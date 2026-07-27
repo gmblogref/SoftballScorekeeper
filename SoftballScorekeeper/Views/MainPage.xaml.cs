@@ -1,4 +1,4 @@
-﻿namespace SoftballScorekeeper
+﻿namespace SoftballScorekeeper.Views
 {
     public partial class MainPage : ContentPage
     {
