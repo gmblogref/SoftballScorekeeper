@@ -6,7 +6,7 @@ The application is intended to provide fast, simple, offline scorekeeping with a
 
 ## Technology Stack
 
-- .NET 8
+- .NET 9
 - .NET MAUI
 - C#
 - XAML
@@ -19,7 +19,7 @@ The application is intended to provide fast, simple, offline scorekeeping with a
 
 - Visual Studio 2022
 - .NET Multi-platform App UI development workload
-- .NET 8 SDK
+- .NET 9 SDK
 - Android SDK for Android builds
 - Windows Developer Mode for local Windows deployment
 
