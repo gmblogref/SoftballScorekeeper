@@ -1,5 +1,7 @@
+using System.Globalization;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using SoftballScorekeeper.Resources.Strings;
 
 namespace SoftballScorekeeper.ViewModels;
 
@@ -8,14 +10,15 @@ public partial class MainPageViewModel : ObservableObject
     private int count;
 
     [ObservableProperty]
-    private string counterText = "Click me";
+    private string counterText = AppResources.CounterButtonText;
 
     [RelayCommand]
     private void IncrementCounter()
     {
         count++;
-        CounterText = count == 1
-            ? $"Clicked {count} time"
-            : $"Clicked {count} times";
+        CounterText = string.Format(
+            CultureInfo.CurrentCulture,
+            count == 1 ? AppResources.CounterStatusSingular : AppResources.CounterStatusPlural,
+            count);
     }
 }
