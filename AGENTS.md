@@ -198,24 +198,81 @@ Do not introduce patterns, frameworks, or dependencies only because they are com
 
 ### User-Facing Text
 
-Do not hardcode user-facing strings in application code.
+Do not hardcode runtime user-facing text in C#, XAML, or other application implementation files.
 
 Store user-facing text in centralized `.resx` resource files, including:
 
 - Page titles
 - Button labels
-- Menu text
+- Menu items
 - Dialog titles
 - Confirmation messages
 - Validation messages
 - Empty-state messages
 - Status text
-- Accessibility labels
+- Accessibility text
+- Other labels and text presented to the user
 - Dynamic text templates
 
-Insert runtime values through formatted resource templates.
+Use formatted resource templates for dynamic user-facing text. Insert runtime values such as player names, team names, scores, inning numbers, and base names through those templates rather than constructing complete user-facing sentences in code.
 
-Internal identifiers and enum values may remain in code, but their user-visible labels must come from resources.
+Internal enum names and technical identifiers may remain in code, but their user-visible labels must come from resources.
+
+### Application Configuration
+
+Centralize application configuration values rather than scattering them throughout the codebase.
+
+Use focused, strongly typed configuration classes unless another mechanism is more appropriate for a specific framework or platform requirement. Supply configuration through dependency injection when appropriate.
+
+Application configuration includes values that may reasonably vary by application setup, environment, deployment, platform, or future product decision, such as:
+
+- Database file names
+- Feature defaults
+- Application behavior settings
+- Platform-dependent options
+- Other centralized runtime settings
+
+Keep configuration classes focused. Do not use them as generic dumping grounds or create configuration entries merely to eliminate every string or numeric literal from source code.
+
+Distinguish application configuration from user-facing resources and implementation-specific technical literals. Application configuration must remain centralized even when it currently has only one consumer.
+
+### Shared Technical Constants
+
+Centralize shared technical identifiers when reuse improves clarity, consistency, or maintainability.
+
+Keep constants close to the feature, service, class, or responsibility that owns them. Prefer focused constants classes or static members associated with that responsibility.
+
+Avoid broad, generic `Constants` classes that collect unrelated values. Do not promote a value to a shared constant solely because it is a string literal.
+
+Focused centralization is appropriate when the same technical identifier is reused, must remain consistent across multiple locations, or has meaningful domain or infrastructure significance.
+
+### Inline Technical Literals
+
+One-use implementation details may remain inline when moving them elsewhere would reduce readability or add unnecessary indirection. Inline technical literals are appropriate when they are implementation-specific, locally understandable, and are neither application configuration nor user-facing text.
+
+Examples include:
+
+- One-use SQL statements
+- Framework identifiers
+- XAML binding paths
+- Resource keys
+- Platform identifiers
+- Build metadata
+- Format strings used only by a local implementation
+- Similar framework-required or implementation-specific literals
+
+Keep these values inline only when they are not reused and do not represent a configurable application decision. Evaluate repeated or semantically important technical identifiers for focused centralization.
+
+User-facing text must still use `.resx` resources even when it appears only once. Application configuration must still be centralized even when it currently has only one consumer.
+
+Use this decision boundary:
+
+- Text shown to the user belongs in `.resx` resources.
+- Values representing application behavior or runtime setup belong in centralized configuration.
+- Reused technical identifiers may belong in focused constants near their owning responsibility.
+- Local one-use implementation details may remain inline when centralization would make the code less clear.
+
+The project does not require every string literal or numeric literal to be extracted.
 
 ### Async APIs
 
