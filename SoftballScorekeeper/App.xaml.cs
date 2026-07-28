@@ -1,14 +1,19 @@
-﻿namespace SoftballScorekeeper;
+using Microsoft.Extensions.DependencyInjection;
+
+namespace SoftballScorekeeper;
 
 public partial class App : Application
 {
-	public App()
+	private readonly AppShell appShell;
+
+	public App(IServiceProvider serviceProvider)
 	{
 		InitializeComponent();
+		appShell = serviceProvider.GetRequiredService<AppShell>();
 	}
 
 	protected override Window CreateWindow(IActivationState? activationState)
 	{
-		return new Window(new AppShell());
+		return new Window(appShell);
 	}
 }

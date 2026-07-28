@@ -1,5 +1,8 @@
 ﻿using Microsoft.Extensions.Logging;
 
+using SoftballScorekeeper.ViewModels;
+using SoftballScorekeeper.Views;
+
 namespace SoftballScorekeeper
 {
     public static class MauiProgram
@@ -18,6 +21,10 @@ namespace SoftballScorekeeper
 #if DEBUG
     		builder.Logging.AddDebug();
 #endif
+
+            builder.Services.AddSingleton<AppShell>();
+            builder.Services.AddSingleton<MainPageViewModel>();
+            builder.Services.AddSingleton<MainPage>();
 
             return builder.Build();
         }
