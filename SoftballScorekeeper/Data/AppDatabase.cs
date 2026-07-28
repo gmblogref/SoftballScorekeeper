@@ -1,18 +1,26 @@
 using SQLite;
+using SoftballScorekeeper.Configuration;
 
 namespace SoftballScorekeeper.Data;
 
 public sealed class AppDatabase
 {
-    public const string DatabaseFilename = "SoftballScorekeeper.db3";
-
     private readonly SQLiteAsyncConnection connection;
     private readonly SemaphoreSlim initializationLock = new(1, 1);
     private volatile bool isInitialized;
 
-    public AppDatabase()
+    public AppDatabase(ApplicationSettings settings)
     {
-        DatabasePath = Path.Combine(FileSystem.AppDataDirectory, DatabaseFilename);
+        ArgumentNullException.ThrowIfNull(settings);
+
+        if (string.IsNullOrWhiteSpace(settings.DatabaseFileName))
+        {
+            throw new ArgumentException(
+                "Database filename cannot be null, empty, or whitespace.",
+                nameof(settings.DatabaseFileName));
+        }
+
+        DatabasePath = Path.Combine(FileSystem.AppDataDirectory, settings.DatabaseFileName);
         connection = new SQLiteAsyncConnection(
             DatabasePath,
             SQLiteOpenFlags.ReadWrite | SQLiteOpenFlags.Create | SQLiteOpenFlags.SharedCache);
