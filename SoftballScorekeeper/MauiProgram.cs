@@ -1,5 +1,6 @@
 ﻿using Microsoft.Extensions.Logging;
 
+using SoftballScorekeeper.Data;
 using SoftballScorekeeper.ViewModels;
 using SoftballScorekeeper.Views;
 
@@ -23,6 +24,7 @@ namespace SoftballScorekeeper
 #endif
 
             builder.Services.AddSingleton<AppShell>();
+            builder.Services.AddSingleton<AppDatabase>();
             builder.Services.AddSingleton<MainPageViewModel>();
             builder.Services.AddSingleton<MainPage>();
 
