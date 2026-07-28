@@ -10,11 +10,11 @@ Stable product and architecture decisions belong in the project architecture doc
 
 ## Current Project Status
 
-- **Current story:** Story 0.9 — Create and Require Feature History Updates
-- **Completed stories before the current story:** Stories 0.0 through 0.8
+- **Latest completed story:** Story 0.10 — Update README.md
+- **Completed stories:** Stories 0.0 through 0.10
 - **Next planned implementation story:** Story 1.0 — Create Landing Page
 - **Current phase:** Foundation phase
-- **Foundation status:** The implementation foundation is complete; the phase will be complete when Story 0.9 documentation is validated and committed.
+- **Foundation status:** Complete
 
 The repository contains a single-project .NET 9 MAUI application targeting Android and Windows. Its implemented foundation includes repository guidance, a pragmatic folder structure, CommunityToolkit.Mvvm, MAUI dependency injection, device-local SQLite initialization, centralized user-facing resources, and strongly typed application settings. Product-facing softball features remain deferred.
 
@@ -319,6 +319,65 @@ The complete document and focused diff were reviewed, `git diff --check` passed,
 #### Impact on Future Stories
 
 Follow the documented decision boundary and avoid generic constants or configuration dumping grounds.
+
+### Story 0.9 — Create and Require Feature History Updates
+
+**Status:** Complete
+
+#### Implementation Summary
+
+- Added root-level `FEATURE_HISTORY.md` as the canonical implementation-history record.
+- Reconstructed concise, chronological implementation summaries for Stories 0.0 through 0.8 from repository state, Git history, and recorded story information.
+- Documented current status, reusable components, architectural decisions, validation, warnings, limitations, deferred work, and verified commit messages.
+- Updated `AGENTS.md` to require reading and updating the history for every story.
+- Added feature-history requirements to story discipline, validation, definition of done, Git workflow, and documentation guidance.
+
+#### Architecture and Design Decisions
+
+The feature history records actual completed implementation state without duplicating full story specifications. Stable architecture belongs in architecture documentation, while repository-wide implementation instructions remain in `AGENTS.md`.
+
+A story is not complete until its reviewed history entry is included in the same story-focused commit as the implementation.
+
+#### Existing Components to Reuse
+
+- Root-level `FEATURE_HISTORY.md`
+- The maintenance workflow documented in `FEATURE_HISTORY.md`
+- Repository-wide history requirements in `AGENTS.md`
+
+#### Validation Completed
+
+The complete history, Story 0.0–0.8 coverage, status information, reusable components, and `AGENTS.md` workflow requirements were reviewed. `git diff --check` passed, and only documentation files changed. No application build was run.
+
+#### Commit Message
+
+`docs: add canonical feature history and maintenance rules`
+
+#### Impact on Future Stories
+
+Read the history before implementation, reuse documented components, and update the history after validation and before every story commit.
+
+### Story 0.10 — Update README.md
+
+**Status:** Complete
+
+#### Implementation Summary
+
+- Rewrote root-level `README.md` and removed obsolete default MAUI template status text.
+- Documented the project purpose, foundation status, verified technology stack, single-project folder structure, documentation, build requirements, current infrastructure, boundaries, and planned functionality.
+- Clearly separated implemented foundation infrastructure from future team, player, game, lineup, scorekeeping, statistics, and beer-rule workflows.
+- Identified Story 1.0 — Create Landing Page as the next planned story.
+
+#### Architecture and Design Decisions
+
+The README provides a concise project orientation and links to `AGENTS.md` for implementation guidance and `FEATURE_HISTORY.md` for detailed implementation state. It does not duplicate those documents or describe planned features as implemented.
+
+#### Validation Completed
+
+The complete README and Story 0.10 history/status updates were reviewed. `git diff --check` passed, and only `README.md` and `FEATURE_HISTORY.md` changed. No application build or launch was performed.
+
+#### Impact on Future Stories
+
+The repository documentation now accurately presents the completed foundation and is ready for Story 1.0 — Create Landing Page.
 
 ## Maintenance Rules
 
