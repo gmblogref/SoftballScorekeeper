@@ -321,6 +321,9 @@ AI assistants must work within the current story and repository context.
 
 They must:
 
+- Read `FEATURE_HISTORY.md` before implementing a story.
+- Use the feature history to understand current implementation state and reuse existing components and patterns.
+- Avoid rebuilding existing functionality or introducing parallel infrastructure without a documented reason.
 - Stay within the scope of the current story.
 - Preserve the approved architecture.
 - Prefer incremental implementation.
@@ -351,12 +354,15 @@ When requirements are unclear, document the assumption or ask for clarification 
 
 Before making changes, identify:
 
+- Relevant completed work, reusable components, and known limitations recorded in `FEATURE_HISTORY.md`
 - The current story goal
 - Included scope
 - Excluded scope
 - Acceptance criteria
 - Expected deliverables
 - Existing files likely to be affected
+
+Future stories should include an acceptance criterion requiring `FEATURE_HISTORY.md` to be updated with an accurate implementation summary. Equivalent wording is acceptable when it requires the same outcome.
 
 Before declaring the story complete:
 
@@ -365,6 +371,8 @@ Before declaring the story complete:
 - Confirm no unrelated files were changed.
 - Report assumptions and deviations.
 - Report validation results accurately.
+- Add a concise, implementation-focused entry to `FEATURE_HISTORY.md`.
+- Confirm the entry matches the actual implementation and preserves prior entries unless an intentional correction is required.
 
 ## Testing and Validation Expectations
 
@@ -380,6 +388,10 @@ For each story:
 - Report which tests and builds were run.
 - Report any tests or validation steps that were not run.
 - Do not claim validation succeeded without evidence.
+- Review the new `FEATURE_HISTORY.md` entry.
+- Confirm the entry describes the actual implementation.
+- Confirm prior history entries remain intact unless intentionally corrected.
+- Confirm `FEATURE_HISTORY.md` will be included in the story commit.
 
 When the story changes only documentation, tests may be unnecessary unless the documentation change affects generated output or tooling.
 
@@ -390,7 +402,7 @@ At minimum, validate the affected supported targets when practical:
 
 Validation should be proportional to the change. Small documentation changes do not require unrelated exhaustive testing.
 
-## Completion Review
+## Completion Review and Definition of Done
 
 Before reporting a story as complete:
 
@@ -401,6 +413,12 @@ Before reporting a story as complete:
 - Confirm the implementation matches the acceptance criteria.
 - Confirm excluded scope was not implemented.
 - Note any deferred work without implementing it early.
+- Confirm `FEATURE_HISTORY.md` contains an accurate implementation summary for the story.
+- Confirm the new history entry has been reviewed and matches the actual implementation.
+- Confirm prior history entries remain intact unless intentionally corrected.
+- Confirm the history update will be included in the same story-focused commit as the implementation.
+
+A story is not complete until its feature-history entry is included.
 
 ## Git and Commit Expectations
 
@@ -416,6 +434,8 @@ Contributors and AI assistants must:
 - Review `git status` before committing.
 - Confirm only intended files are staged.
 - Do not combine unrelated stories in one commit.
+- Update `FEATURE_HISTORY.md` before every story commit.
+- Include the implementation and its feature-history update in the same story-focused commit.
 
 Do not rewrite published history unless explicitly instructed.
 
@@ -456,16 +476,23 @@ Architecture documentation records:
 
 ### Feature History
 
+`FEATURE_HISTORY.md` is the canonical record of completed implementation work and current repository state. Developers and AI assistants must read it before starting a story and update it after implementation and validation but before committing.
+
 The feature-history document records:
 
 - Completed stories
 - Implementation summaries
 - Files and areas changed
+- Important architecture and design decisions
+- Reusable components and patterns
 - Tests and validation performed
+- Known warnings and limitations
 - Deferred work
 - Current implementation state
 
 Do not describe planned work as implemented.
+
+Keep entries concise, chronological, and implementation-focused. Do not copy full user-story specifications or acceptance criteria into the history. Preserve prior entries unless correcting inaccurate information, and preserve historical clarity when making corrections. Never invent unknown information.
 
 Documentation must accurately distinguish between:
 
@@ -473,7 +500,7 @@ Documentation must accurately distinguish between:
 - Current implementation
 - Planned future work
 
-When completing a story, provide a concise completion summary suitable for adding to the feature-history document.
+When completing a story, add its reviewed history entry to `FEATURE_HISTORY.md` and include that change in the same commit as the story implementation.
 
 ## Version 1 Project Boundaries
 
