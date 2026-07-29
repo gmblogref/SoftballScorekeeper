@@ -10,13 +10,12 @@ Stable product and architecture decisions belong in the project architecture doc
 
 ## Current Project Status
 
-- **Latest completed story:** Story 0.10 — Update README.md
-- **Completed stories:** Stories 0.0 through 0.10
-- **Next planned implementation story:** Story 1.0 — Create Landing Page
-- **Current phase:** Foundation phase
+- **Latest completed story:** Story 1.0 — Create Landing Page
+- **Completed stories:** Stories 0.0 through 1.0
+- **Current phase:** Initial application interface
 - **Foundation status:** Complete
 
-The repository contains a single-project .NET 9 MAUI application targeting Android and Windows. Its implemented foundation includes repository guidance, a pragmatic folder structure, CommunityToolkit.Mvvm, MAUI dependency injection, device-local SQLite initialization, centralized user-facing resources, and strongly typed application settings. Product-facing softball features remain deferred.
+The repository contains a single-project .NET 9 MAUI application targeting Android and Windows. Its implemented foundation includes repository guidance, a pragmatic folder structure, CommunityToolkit.Mvvm, MAUI dependency injection, device-local SQLite initialization, centralized user-facing resources, and strongly typed application settings. The initial landing page is implemented; team creation and other product-facing softball workflows remain deferred.
 
 ## Completed Story Summaries
 
@@ -378,6 +377,40 @@ The complete README and Story 0.10 history/status updates were reviewed. `git di
 #### Impact on Future Stories
 
 The repository documentation now accurately presents the completed foundation and is ready for Story 1.0 — Create Landing Page.
+
+### Story 1.0 — Create Landing Page
+
+**Status:** Complete
+
+#### Implementation Summary
+
+- Replaced the default .NET MAUI counter page with a tablet-friendly landing page displaying the application title, Teams heading, empty-state message, Create Team action, and temporary command feedback.
+- Added `LandingPageViewModel`, deriving from `ObservableObject`, with a generated relay command that updates resource-backed presentation state without navigating or creating data.
+- Updated `MainPage` to use `LandingPageViewModel` through constructor injection, compiled bindings, and the existing shared styles.
+- Replaced the `MainPageViewModel` dependency-injection registration with `LandingPageViewModel` and removed the obsolete view model and counter behavior.
+- Added landing-page resources and removed obsolete template text, accessibility descriptions, counter resources, the .NET template image, and its project-file resize entry.
+
+#### Architecture and Design Decisions
+
+The temporary Create Team action remains presentation-only. It does not introduce team models, repositories, services, database tables, navigation routes, or team-management pages. The existing AppShell startup and route behavior, dependency-injection flow, `ApplicationSettings`, and `AppDatabase` initialization remain unchanged.
+
+#### Existing Components to Reuse
+
+- `LandingPageViewModel` and its constructor-injected `MainPage` integration
+- Strongly typed `AppResources` accessors and compiled XAML bindings
+- Existing AppShell startup, dependency-injection, and shared-style patterns
+
+#### Validation Completed
+
+Windows and Android builds and application launches completed successfully during manual validation. On both platforms, the landing page displayed correctly and the Create Team placeholder feedback worked without reported warnings, layout problems, or runtime exceptions. `git diff --check` passed. No automated tests were run or added. `README.md` did not require changes.
+
+#### Deferred Work
+
+Team creation, team persistence, navigation to team-management pages, and other team functionality remain deferred to later stories.
+
+#### Impact on Future Stories
+
+Replace the temporary Create Team feedback only when a later story introduces the corresponding team workflow. Reuse the established resource, MVVM, constructor-injection, and Shell startup patterns.
 
 ## Maintenance Rules
 

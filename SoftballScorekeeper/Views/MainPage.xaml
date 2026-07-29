@@ -4,34 +4,50 @@
              xmlns:strings="clr-namespace:SoftballScorekeeper.Resources.Strings"
              xmlns:viewModels="clr-namespace:SoftballScorekeeper.ViewModels"
              x:Class="SoftballScorekeeper.Views.MainPage"
-             x:DataType="viewModels:MainPageViewModel">
+             x:DataType="viewModels:LandingPageViewModel">
 
     <ScrollView>
         <VerticalStackLayout
-            Padding="30,0"
-            Spacing="25">
-            <Image
-                Source="dotnet_bot.png"
-                HeightRequest="185"
-                Aspect="AspectFit"
-                SemanticProperties.Description="{x:Static strings:AppResources.MainPageImageSemanticDescription}" />
+            Padding="40"
+            Spacing="24">
 
             <Label
-                Text="{x:Static strings:AppResources.MainPageHeading}"
+                Text="{x:Static strings:AppResources.LandingPageTitle}"
                 Style="{StaticResource Headline}"
                 SemanticProperties.HeadingLevel="Level1" />
 
             <Label
-                Text="{x:Static strings:AppResources.MainPageInstructions}"
+                Text="{x:Static strings:AppResources.TeamsHeading}"
                 Style="{StaticResource SubHeadline}"
-                SemanticProperties.HeadingLevel="Level2"
-                SemanticProperties.Description="{x:Static strings:AppResources.MainPageInstructionsSemanticDescription}" />
+                SemanticProperties.HeadingLevel="Level2" />
+
+            <Label
+                Text="{x:Static strings:AppResources.NoTeamsMessage}"
+                HorizontalTextAlignment="Center" />
 
             <Button
-                Text="{Binding CounterText}"
-                SemanticProperties.Hint="{x:Static strings:AppResources.CounterButtonSemanticHint}"
-                Command="{Binding IncrementCounterCommand}"
-                HorizontalOptions="Fill" />
+                Text="{x:Static strings:AppResources.CreateTeamButton}"
+                Command="{Binding CreateTeamCommand}"
+                HorizontalOptions="Center" />
+
+            <Label
+                Text="{Binding StatusMessage}"
+                HorizontalTextAlignment="Center">
+                <Label.Triggers>
+                    <DataTrigger
+                        TargetType="Label"
+                        Binding="{Binding StatusMessage}"
+                        Value="{x:Null}">
+                        <Setter Property="IsVisible" Value="False" />
+                    </DataTrigger>
+                    <DataTrigger
+                        TargetType="Label"
+                        Binding="{Binding StatusMessage}"
+                        Value="">
+                        <Setter Property="IsVisible" Value="False" />
+                    </DataTrigger>
+                </Label.Triggers>
+            </Label>
         </VerticalStackLayout>
     </ScrollView>
 

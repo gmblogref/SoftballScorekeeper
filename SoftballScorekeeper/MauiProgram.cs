@@ -27,7 +27,7 @@ namespace SoftballScorekeeper
             builder.Services.AddSingleton<AppShell>();
             builder.Services.AddSingleton<ApplicationSettings>();
             builder.Services.AddSingleton<AppDatabase>();
-            builder.Services.AddSingleton<MainPageViewModel>();
+            builder.Services.AddSingleton<LandingPageViewModel>();
             builder.Services.AddSingleton<MainPage>();
 
             return builder.Build();
