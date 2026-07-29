@@ -20,9 +20,13 @@ public partial class EditTeamViewModel : ObservableObject, IQueryAttributable
     private string validationMessage = string.Empty;
 
     [ObservableProperty]
+    [NotifyCanExecuteChangedFor(nameof(RequestDeactivateTeamCommand))]
+    [NotifyCanExecuteChangedFor(nameof(ConfirmDeactivateTeamCommand))]
     private bool isBusy;
 
     [ObservableProperty]
+    [NotifyCanExecuteChangedFor(nameof(RequestDeactivateTeamCommand))]
+    [NotifyCanExecuteChangedFor(nameof(ConfirmDeactivateTeamCommand))]
     private bool isTeamLoaded;
 
     public EditTeamViewModel(TeamRepository teamRepository)
@@ -31,6 +35,8 @@ public partial class EditTeamViewModel : ObservableObject, IQueryAttributable
 
         this.teamRepository = teamRepository;
     }
+
+    public Func<string, Task>? DeactivateTeamConfirmationRequested { get; set; }
 
     public void ApplyQueryAttributes(IDictionary<string, object> query)
     {
@@ -163,6 +169,60 @@ public partial class EditTeamViewModel : ObservableObject, IQueryAttributable
         {
             IsBusy = false;
         }
+    }
+
+    [RelayCommand(CanExecute = nameof(CanDeactivateTeam))]
+    private async Task RequestDeactivateTeamAsync()
+    {
+        if (!CanDeactivateTeam())
+        {
+            return;
+        }
+
+        var confirmationRequested = DeactivateTeamConfirmationRequested;
+        if (confirmationRequested is not null)
+        {
+            await confirmationRequested(loadedTeam!.Name);
+        }
+    }
+
+    [RelayCommand(CanExecute = nameof(CanDeactivateTeam))]
+    private async Task ConfirmDeactivateTeamAsync()
+    {
+        if (!CanDeactivateTeam())
+        {
+            ValidationMessage = AppResources.TeamNotFound;
+            return;
+        }
+
+        IsBusy = true;
+        try
+        {
+            if (await teamRepository.DeactivateAsync(loadedTeam!.Id) == 0)
+            {
+                loadedTeam = null;
+                IsTeamLoaded = false;
+                ValidationMessage = AppResources.TeamNotFound;
+                return;
+            }
+
+            loadedTeam.IsActive = false;
+            IsTeamLoaded = false;
+            ValidationMessage = string.Empty;
+            await Shell.Current.GoToAsync("..");
+        }
+        finally
+        {
+            IsBusy = false;
+        }
+    }
+
+    private bool CanDeactivateTeam()
+    {
+        return !IsBusy
+            && hasValidTeamId
+            && IsTeamLoaded
+            && loadedTeam is { Id: > 0, IsActive: true };
     }
 
     private void ResetTeamState()

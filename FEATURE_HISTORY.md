@@ -10,13 +10,13 @@ Stable product and architecture decisions belong in the project architecture doc
 
 ## Current Project Status
 
-- **Latest completed story:** Story 1.2 — Edit Team
-- **Completed stories:** Stories 0.0 through 1.2
+- **Latest completed story:** Story 1.3 — Deactivate Team
+- **Completed stories:** Stories 0.0 through 1.3
 - **Next planned implementation story:** Not currently documented
 - **Current phase:** Initial application interface
 - **Foundation status:** Complete
 
-The repository contains a single-project .NET 9 MAUI application targeting Android and Windows. Its implemented foundation includes repository guidance, a pragmatic folder structure, CommunityToolkit.Mvvm, MAUI dependency injection, device-local SQLite initialization, centralized user-facing resources, and strongly typed application settings. The landing page and Team creation and editing workflows are implemented; other product-facing softball workflows remain deferred.
+The repository contains a single-project .NET 9 MAUI application targeting Android and Windows. Its implemented foundation includes repository guidance, a pragmatic folder structure, CommunityToolkit.Mvvm, MAUI dependency injection, device-local SQLite initialization, centralized user-facing resources, and strongly typed application settings. The landing page and Team creation, editing, and deactivation workflows are implemented; other product-facing softball workflows remain deferred.
 
 ## Approved Project-Wide Direction
 
@@ -579,6 +579,89 @@ Team deactivation, deletion, reactivation, year, record, colors, logo, statistic
 Windows runtime behavior was not validated in this story. The automated test project and layered/Clean Architecture migration remain planned, as does replacement of the default icon and splash branding.
 
 Git reported informational LF-to-CRLF conversion warnings during diff review; no unintended whole-file line-ending rewrite was present.
+
+### Story 1.3 — Deactivate Team
+
+**Status:** Complete
+
+#### Implementation Summary
+
+- Added a Deactivate Team action to the existing Edit Team page while retaining Save and Cancel as the normal editing actions.
+- Positioned deactivation below the normal action group with clear spacing, tablet-friendly minimum sizing, and theme-aware red outline and text.
+- Added a resource-backed confirmation that identifies the persisted Team name and explains that the Team will be hidden, its data preserved, and no permanent deletion performed.
+- Added no reactivation, permanent deletion, or separate inactive-Team management page.
+
+#### Repository and Persistence
+
+- Added `TeamRepository.DeactivateAsync(int id)` using one parameterized SQLite update matching both Team ID and `IsActive == true`.
+- The operation changes only `IsActive` to `false`, returns the affected-row count, and preserves every other Team value and the existing SQLite row.
+- A successful active-Team update returns one. A missing or already inactive Team returns zero.
+- No Team row is deleted or inserted, and no database schema change was required.
+- Existing active-Team loading and duplicate-name queries remain unchanged and continue to exclude inactive Teams.
+
+#### ViewModel and Confirmation Workflow
+
+- Extended `EditTeamViewModel` with the asynchronous `DeactivateTeamConfirmationRequested` delegate and generated `RequestDeactivateTeamCommand` and `ConfirmDeactivateTeamCommand`.
+- The request command supplies the persisted loaded Team name rather than potentially unsaved `TeamName` Entry text. It performs no mutation or persistence before confirmation.
+- Shared `CanExecute` rules require a loaded, valid, active Team and a non-busy ViewModel. Notifications refresh command availability as loading and busy state change.
+- Confirmed deactivation rechecks state, prevents repeated execution, calls `TeamRepository.DeactivateAsync`, and uses `TeamNotFound` when zero rows are affected.
+- The ViewModel marks its in-memory Team inactive only after persistence succeeds and navigates back only after success.
+- Direct SQLite access, dialog and navigation services, messaging, event aggregation, service location, and a Team service were not introduced.
+
+#### Page and Resources
+
+- Bound the page action to `RequestDeactivateTeamCommand` and relied on generated command availability before loading and while busy.
+- Assigned the confirmation delegate once in the transient `EditTeamPage` constructor.
+- Kept code-behind limited to the MAUI `DisplayAlert` confirmation, resource formatting with `CultureInfo.CurrentCulture`, and awaiting `ConfirmDeactivateTeamCommand` after explicit confirmation.
+- Canceling confirmation leaves the Team active, keeps the page open, and preserves unsaved form state.
+- Added `DeactivateTeamButton`, `DeactivateTeamConfirmationTitle`, `DeactivateTeamConfirmationMessage`, and `ConfirmDeactivateTeamButton` to `AppResources` and its strongly typed accessors.
+- Reused `CancelButton` and `TeamNotFound`. The confirmation template uses `{0}` for the persisted Team name and contains all deactivation consequences. No runtime user-facing text was hardcoded.
+
+#### Navigation, Refresh, and Duplicate Names
+
+- Reused the existing Edit Team Shell route and `Shell.Current.GoToAsync("..")` back-navigation pattern.
+- Reused `MainPage.OnAppearing`, `LandingPageViewModel.LoadTeamsAsync`, and `TeamRepository.GetActiveAsync`; no landing-page collection was manually modified.
+- After deactivation, the Team disappears, remaining active Teams stay alphabetically ordered, empty-state visibility updates, and Create Team remains available.
+- Active duplicate-name protection remains trimmed and case-insensitive. A new Team or another active Team may use the name of an inactive Team.
+- Existing transient `EditTeamPage` and `EditTeamViewModel` lifetimes remain unchanged; no DI registration was added.
+
+#### Files Changed
+
+- `FEATURE_HISTORY.md`
+- `SoftballScorekeeper/Data/Repositories/TeamRepository.cs`
+- `SoftballScorekeeper/Resources/Strings/AppResources.Designer.cs`
+- `SoftballScorekeeper/Resources/Strings/AppResources.resx`
+- `SoftballScorekeeper/ViewModels/EditTeamViewModel.cs`
+- `SoftballScorekeeper/Views/EditTeamPage.xaml`
+- `SoftballScorekeeper/Views/EditTeamPage.xaml.cs`
+
+#### Validation Completed
+
+Windows build and launch succeeded. Edit Team opened correctly, the deactivation action was clearly separated and unavailable until loading completed, and confirmation used the persisted name rather than unsaved Entry text. Canceling kept the Team active, retained the page and unsaved form state, while confirmation returned to the refreshed landing page without a stale or duplicate card. Remaining Teams stayed alphabetical and Create Team remained available.
+
+The Android build and launch succeeded on the 10-inch tablet emulator. The deactivation action was readable, visually distinct, comfortably tappable, unavailable until loading completed, and acceptable in the tested theme presentation. No clipping, overlap, touch-target issue, or runtime exception occurred. Confirmation used the persisted name; cancel preserved the active Team and unsaved state; confirmed deactivation refreshed the landing page without stale or duplicate cards.
+
+After the application was fully closed and relaunched, the deactivated Team remained hidden. The empty state appeared when no active Teams remained, and Create Team remained available.
+
+Manual duplicate validation confirmed that two active Teams cannot share the same normalized name, while a new Team and an existing active Team can use a deactivated Team's name. Case and surrounding-whitespace behavior remained correct.
+
+`git diff --check` passed. Git emitted informational LF-to-CRLF conversion warnings only. No generated build output, local SQLite database, secret, machine-specific file, or unexpected change was included. No automated tests were added or run because the planned test project does not yet exist.
+
+#### Reusable Components and Decisions
+
+- Use conditional soft-delete updates at the repository boundary and return affected-row counts to distinguish success from unavailable records.
+- Continue ID-only navigation and repository reloads as the persistence source of truth.
+- Use lightweight ViewModel-to-View coordination for view-only confirmation dialogs without adding a dialog service.
+- Use persisted entity values in destructive confirmations, generated command `CanExecute` for loaded/busy protection, and resource-backed formatted messages for dynamic text.
+- Reuse existing page `OnAppearing` refresh and active-only list and duplicate queries after soft deletion.
+
+#### Known Warnings and Deferred Work
+
+The LF-to-CRLF messages remain informational and did not indicate a build failure or implementation defect.
+
+Team reactivation, an inactive-Team management screen, and permanent Team deletion remain deferred. Team year, record, colors, logo, statistics, and workspace navigation also remain deferred.
+
+Player and Game management, lineups, scorekeeping, statistics, beer rules, the automated test project, layered/Clean Architecture migration, and replacement application branding and icons remain future work.
 
 ## Maintenance Rules
 

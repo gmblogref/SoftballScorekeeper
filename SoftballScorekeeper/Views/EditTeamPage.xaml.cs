@@ -1,3 +1,5 @@
+using System.Globalization;
+using SoftballScorekeeper.Resources.Strings;
 using SoftballScorekeeper.ViewModels;
 
 namespace SoftballScorekeeper.Views;
@@ -11,6 +13,7 @@ public partial class EditTeamPage : ContentPage
         InitializeComponent();
 
         this.viewModel = viewModel;
+        viewModel.DeactivateTeamConfirmationRequested = ConfirmTeamDeactivationAsync;
         BindingContext = viewModel;
     }
 
@@ -19,5 +22,26 @@ public partial class EditTeamPage : ContentPage
         base.OnAppearing();
 
         await viewModel.LoadTeamAsync();
+    }
+
+    private async Task ConfirmTeamDeactivationAsync(string teamName)
+    {
+        var message = string.Format(
+            CultureInfo.CurrentCulture,
+            AppResources.DeactivateTeamConfirmationMessage,
+            teamName);
+
+        var confirmed = await DisplayAlert(
+            AppResources.DeactivateTeamConfirmationTitle,
+            message,
+            AppResources.ConfirmDeactivateTeamButton,
+            AppResources.CancelButton);
+
+        if (!confirmed || !viewModel.ConfirmDeactivateTeamCommand.CanExecute(null))
+        {
+            return;
+        }
+
+        await viewModel.ConfirmDeactivateTeamCommand.ExecuteAsync(null);
     }
 }
