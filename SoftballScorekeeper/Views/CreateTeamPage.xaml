@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:strings="clr-namespace:SoftballScorekeeper.Resources.Strings"
+             xmlns:viewModels="clr-namespace:SoftballScorekeeper.ViewModels"
+             x:Class="SoftballScorekeeper.Views.CreateTeamPage"
+             x:DataType="viewModels:CreateTeamViewModel"
+             Title="{x:Static strings:AppResources.CreateTeamTitle}">
+
+    <ScrollView>
+        <VerticalStackLayout
+            Padding="40"
+            Spacing="20">
+
+            <Label
+                Text="{x:Static strings:AppResources.CreateTeamTitle}"
+                Style="{StaticResource Headline}"
+                SemanticProperties.HeadingLevel="Level1" />
+
+            <Label
+                Text="{x:Static strings:AppResources.TeamNameLabel}"
+                SemanticProperties.HeadingLevel="Level2" />
+
+            <Entry
+                Text="{Binding TeamName, Mode=TwoWay}"
+                Placeholder="{x:Static strings:AppResources.TeamNamePlaceholder}" />
+
+            <Label Text="{Binding ValidationMessage}">
+                <Label.Triggers>
+                    <DataTrigger
+                        TargetType="Label"
+                        Binding="{Binding ValidationMessage}"
+                        Value="">
+                        <Setter Property="IsVisible" Value="False" />
+                    </DataTrigger>
+                </Label.Triggers>
+            </Label>
+
+            <HorizontalStackLayout
+                HorizontalOptions="Center"
+                Spacing="16">
+                <Button
+                    Text="{x:Static strings:AppResources.SaveButton}"
+                    Command="{Binding SaveCommand}">
+                    <Button.Triggers>
+                        <DataTrigger
+                            TargetType="Button"
+                            Binding="{Binding IsBusy}"
+                            Value="True">
+                            <Setter Property="IsEnabled" Value="False" />
+                        </DataTrigger>
+                    </Button.Triggers>
+                </Button>
+
+                <Button
+                    Text="{x:Static strings:AppResources.CancelButton}"
+                    Command="{Binding CancelCommand}" />
+            </HorizontalStackLayout>
+        </VerticalStackLayout>
+    </ScrollView>
+
+</ContentPage>

@@ -1,5 +1,6 @@
 using SQLite;
 using SoftballScorekeeper.Configuration;
+using SoftballScorekeeper.Models;
 
 namespace SoftballScorekeeper.Data;
 
@@ -28,6 +29,12 @@ public sealed class AppDatabase
 
     public string DatabasePath { get; }
 
+    internal async Task<SQLiteAsyncConnection> GetConnectionAsync()
+    {
+        await InitializeAsync();
+        return connection;
+    }
+
     public async Task InitializeAsync()
     {
         if (isInitialized)
@@ -43,7 +50,7 @@ public sealed class AppDatabase
                 return;
             }
 
-            await connection.ExecuteScalarAsync<int>("SELECT 1");
+            await connection.CreateTableAsync<Team>();
             isInitialized = true;
         }
         finally

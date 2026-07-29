@@ -10,12 +10,13 @@ Stable product and architecture decisions belong in the project architecture doc
 
 ## Current Project Status
 
-- **Latest completed story:** Story 1.0 — Create Landing Page
-- **Completed stories:** Stories 0.0 through 1.0
+- **Latest completed story:** Story 1.1 — Create Team
+- **Completed stories:** Stories 0.0 through 1.1
+- **Next planned implementation story:** Not currently documented
 - **Current phase:** Initial application interface
 - **Foundation status:** Complete
 
-The repository contains a single-project .NET 9 MAUI application targeting Android and Windows. Its implemented foundation includes repository guidance, a pragmatic folder structure, CommunityToolkit.Mvvm, MAUI dependency injection, device-local SQLite initialization, centralized user-facing resources, and strongly typed application settings. The initial landing page is implemented; team creation and other product-facing softball workflows remain deferred.
+The repository contains a single-project .NET 9 MAUI application targeting Android and Windows. Its implemented foundation includes repository guidance, a pragmatic folder structure, CommunityToolkit.Mvvm, MAUI dependency injection, device-local SQLite initialization, centralized user-facing resources, and strongly typed application settings. The landing page and initial Team creation workflow are implemented; other product-facing softball workflows remain deferred.
 
 ## Completed Story Summaries
 
@@ -411,6 +412,80 @@ Team creation, team persistence, navigation to team-management pages, and other 
 #### Impact on Future Stories
 
 Replace the temporary Create Team feedback only when a later story introduces the corresponding team workflow. Reuse the established resource, MVVM, constructor-injection, and Shell startup patterns.
+
+### Story 1.1 — Create Team
+
+**Status:** Complete
+
+#### Implementation Summary
+
+##### Team Persistence
+
+- Added `Team` with `Id`, `Name`, and `IsActive`; IDs are SQLite auto-incremented primary keys and new Teams are active by default.
+- Added Team table creation to the existing asynchronous, once-only, `SemaphoreSlim`-protected `AppDatabase` initialization flow.
+
+##### Repository
+
+- Added concrete `TeamRepository` operations for creating a Team, loading active Teams alphabetically, and checking active duplicate names.
+- Duplicate comparison trims supplied and stored names, ignores casing, and excludes inactive Teams without reactivating them.
+- No generic repository, service, manager, base repository, or unnecessary interface was introduced.
+
+##### Create Team Workflow
+
+- Added `CreateTeamViewModel` and `CreateTeamPage` with resource-backed required-name and duplicate-name validation.
+- Save persists one Team using the trimmed name and returns to the landing page only after insertion succeeds; Cancel clears the form and returns without saving.
+- All fixed runtime user-facing text uses strongly typed `AppResources` entries.
+
+##### Landing Page
+
+- Replaced the placeholder Create Team behavior with asynchronous Shell navigation through the shared `create-team` route.
+- Added active-Team loading, stable collection binding, automatic refresh whenever the landing page appears, and empty/populated-state switching.
+- Removed the obsolete placeholder status state. Team selection remains intentionally inactive.
+
+##### Android Tablet Presentation
+
+- Added bordered, rounded, content-sized Team cards optimized for the 10-inch Android tablet target.
+- Cards share a left-aligned page edge while Team names remain centered within each card.
+- Kept the Create Team button centered at a natural, touch-friendly width.
+- Team record display and Team-page navigation remain deferred.
+
+##### Dependency Injection and Navigation
+
+- Preserved singleton lifetimes for `AppDatabase`, `TeamRepository`, `LandingPageViewModel`, and `MainPage`.
+- Registered `CreateTeamViewModel` and `CreateTeamPage` as transient so each form workflow receives fresh state.
+- Registered and reused the stable `create-team` Shell route.
+
+##### Placeholder Cleanup
+
+- Removed `Models/.gitkeep` after adding `Team`; no `.gitkeep` remains in a populated folder.
+
+#### Architecture and Design Decisions
+
+Team persistence remains behind the concrete repository, while ViewModels contain presentation and workflow coordination without direct SQLite access. The landing page refreshes through its existing page lifecycle after navigation returns, avoiding messaging, event aggregation, or a navigation-service abstraction.
+
+#### Existing Components to Reuse
+
+- `Team`, `TeamRepository`, and the initialized connection access owned by `AppDatabase`
+- `CreateTeamViewModel` and `CreateTeamPage` form, validation, and transient DI pattern
+- `LandingPageViewModel.Teams`, appearance-based refresh, and resource-backed compiled bindings
+- Shared `AppShell.CreateTeamRoute` navigation constant
+
+#### Validation Completed
+
+- Windows and Android builds succeeded, and both applications launched successfully.
+- Create Team navigation, required-name validation, duplicate-name validation, and Cancel returning without saving worked.
+- Successful Save persisted the Team and returned to the automatically refreshed landing page.
+- Saved Teams remained after restarting the application and appeared alphabetically.
+- Final Android Team-card and Create Team button presentation was manually approved.
+- Team cards remained non-interactive as required by Story 1.1.
+
+#### Deferred Work
+
+Edit Team; delete or deactivate Team; reactivation; Team record; Team-page navigation; Team year; Team logo and colors; players; games; rosters; and statistics remain deferred.
+
+#### Impact on Future Stories
+
+Reuse the Team persistence, validation, transient form, Shell route, and landing-page refresh patterns. Add Team-card interaction, record display, or additional Team fields only when a later story explicitly requires them.
 
 ## Maintenance Rules
 

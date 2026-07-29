@@ -79,4 +79,25 @@
   <data name="CreateTeamPlaceholderMessage" xml:space="preserve">
     <value>Team creation will be added in a future story.</value>
   </data>
+  <data name="CreateTeamTitle" xml:space="preserve">
+    <value>Create Team</value>
+  </data>
+  <data name="TeamNameLabel" xml:space="preserve">
+    <value>Team Name</value>
+  </data>
+  <data name="TeamNamePlaceholder" xml:space="preserve">
+    <value>Enter team name</value>
+  </data>
+  <data name="SaveButton" xml:space="preserve">
+    <value>Save</value>
+  </data>
+  <data name="CancelButton" xml:space="preserve">
+    <value>Cancel</value>
+  </data>
+  <data name="TeamNameRequired" xml:space="preserve">
+    <value>Team name is required.</value>
+  </data>
+  <data name="DuplicateTeamName" xml:space="preserve">
+    <value>An active team with this name already exists.</value>
+  </data>
 </root>
