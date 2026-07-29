@@ -25,6 +25,16 @@ public sealed class TeamRepository
         return await connection.UpdateAsync(team);
     }
 
+    public async Task<int> DeactivateAsync(int id)
+    {
+        var connection = await database.GetConnectionAsync();
+        return await connection.ExecuteAsync(
+            "UPDATE Team SET IsActive = ? WHERE Id = ? AND IsActive = ?",
+            false,
+            id,
+            true);
+    }
+
     public async Task<List<Team>> GetActiveAsync()
     {
         var connection = await database.GetConnectionAsync();

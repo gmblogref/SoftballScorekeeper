@@ -156,5 +156,29 @@ namespace SoftballScorekeeper.Resources.Strings {
             }
         }
 
+        public static string DeactivateTeamButton {
+            get {
+                return ResourceManager.GetString("DeactivateTeamButton", resourceCulture);
+            }
+        }
+
+        public static string DeactivateTeamConfirmationTitle {
+            get {
+                return ResourceManager.GetString("DeactivateTeamConfirmationTitle", resourceCulture);
+            }
+        }
+
+        public static string DeactivateTeamConfirmationMessage {
+            get {
+                return ResourceManager.GetString("DeactivateTeamConfirmationMessage", resourceCulture);
+            }
+        }
+
+        public static string ConfirmDeactivateTeamButton {
+            get {
+                return ResourceManager.GetString("ConfirmDeactivateTeamButton", resourceCulture);
+            }
+        }
+
     }
 }

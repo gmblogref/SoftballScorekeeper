@@ -67,6 +67,19 @@
                     Text="{x:Static strings:AppResources.CancelButton}"
                     Command="{Binding CancelCommand}" />
             </HorizontalStackLayout>
+
+            <Button
+                Margin="0,28,0,0"
+                Padding="24,14"
+                MinimumHeightRequest="52"
+                MinimumWidthRequest="200"
+                HorizontalOptions="Center"
+                Text="{x:Static strings:AppResources.DeactivateTeamButton}"
+                Command="{Binding RequestDeactivateTeamCommand}"
+                BackgroundColor="Transparent"
+                BorderColor="{AppThemeBinding Light=#B3261E, Dark=#FFB4AB}"
+                BorderWidth="2"
+                TextColor="{AppThemeBinding Light=#B3261E, Dark=#FFB4AB}" />
         </VerticalStackLayout>
     </ScrollView>
 

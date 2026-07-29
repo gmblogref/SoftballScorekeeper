@@ -106,4 +106,16 @@
   <data name="TeamNotFound" xml:space="preserve">
     <value>The selected team could not be found.</value>
   </data>
+  <data name="DeactivateTeamButton" xml:space="preserve">
+    <value>Deactivate Team</value>
+  </data>
+  <data name="DeactivateTeamConfirmationTitle" xml:space="preserve">
+    <value>Deactivate Team</value>
+  </data>
+  <data name="DeactivateTeamConfirmationMessage" xml:space="preserve">
+    <value>Deactivate "{0}"? The team will be hidden from normal screens, but its existing data will be preserved. The team will not be permanently deleted. Reactivation will be added in a future update.</value>
+  </data>
+  <data name="ConfirmDeactivateTeamButton" xml:space="preserve">
+    <value>Deactivate</value>
+  </data>
 </root>
