@@ -100,4 +100,10 @@
   <data name="DuplicateTeamName" xml:space="preserve">
     <value>An active team with this name already exists.</value>
   </data>
+  <data name="EditTeamTitle" xml:space="preserve">
+    <value>Edit Team</value>
+  </data>
+  <data name="TeamNotFound" xml:space="preserve">
+    <value>The selected team could not be found.</value>
+  </data>
 </root>

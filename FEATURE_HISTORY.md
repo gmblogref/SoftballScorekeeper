@@ -10,13 +10,37 @@ Stable product and architecture decisions belong in the project architecture doc
 
 ## Current Project Status
 
-- **Latest completed story:** Story 1.1 — Create Team
-- **Completed stories:** Stories 0.0 through 1.1
+- **Latest completed story:** Story 1.2 — Edit Team
+- **Completed stories:** Stories 0.0 through 1.2
 - **Next planned implementation story:** Not currently documented
 - **Current phase:** Initial application interface
 - **Foundation status:** Complete
 
-The repository contains a single-project .NET 9 MAUI application targeting Android and Windows. Its implemented foundation includes repository guidance, a pragmatic folder structure, CommunityToolkit.Mvvm, MAUI dependency injection, device-local SQLite initialization, centralized user-facing resources, and strongly typed application settings. The landing page and initial Team creation workflow are implemented; other product-facing softball workflows remain deferred.
+The repository contains a single-project .NET 9 MAUI application targeting Android and Windows. Its implemented foundation includes repository guidance, a pragmatic folder structure, CommunityToolkit.Mvvm, MAUI dependency injection, device-local SQLite initialization, centralized user-facing resources, and strongly typed application settings. The landing page and Team creation and editing workflows are implemented; other product-facing softball workflows remain deferred.
+
+## Approved Project-Wide Direction
+
+The following project-wide architecture and planning decisions were approved while Story 1.2 was in progress. They guide future work but do not represent completed implementation or physical-device validation.
+
+### Primary Device and Tablet-First UX
+
+The primary deployment and UX target is a 10-inch Android tablet used for live adult slow-pitch softball scorekeeping. The preferred scoring experience is landscape-first unless later real-device testing supports a different decision. Android tablet behavior is the primary UI and interaction acceptance standard; Windows remains supported for development, debugging, secondary validation, and convenience.
+
+Tablet UI should favor large finger-friendly touch targets, clear readability at normal viewing distance, minimal taps, one-handed operation where practical, stable control placement, touch-appropriate spacing, and reliable offline use. Desktop conventions should not drive the primary experience when they conflict with Android tablet usability.
+
+### Current and Planned Architecture
+
+The current repository remains one .NET MAUI application project using logical folders, XAML, MVVM, CommunityToolkit.Mvvm, dependency injection, centralized resources, configuration, and SQLite foundations. This single-project organization remains valid through Team CRUD and Player CRUD.
+
+After Team and Player CRUD, but before roster, game scheduling, lineup, statistics, and scoring-rule complexity grows substantially, a dedicated future story is expected to transition the solution toward pragmatic Presentation / .NET MAUI, Application, Domain, Infrastructure, and Tests boundaries. Clear dependency direction and independent testability matter more than project count, and unnecessary interfaces and abstractions should be avoided. This transition is approved future work and has not been implemented.
+
+### Planned Automated Testing
+
+An automated test project is planned during or immediately after the architecture-transition milestone and before complex roster, lineup, statistics, and scoring-engine development. Domain and application rules should be testable without launching MAUI. Scoring rules are expected to receive comprehensive table-driven coverage, while repository integration tests may use isolated temporary SQLite databases. UI automation remains out of scope unless a later story explicitly adds it. No automated test project exists yet as a result of this decision.
+
+### Planned Early Branding
+
+The default .NET application icon and splash screen should be replaced early in the feature phase. Initial branding may be simple and generated, should remain visually consistent across Android and Windows, and should establish project ownership without delaying functional development. This branding work remains planned and has not been completed by this documentation decision.
 
 ## Completed Story Summaries
 
@@ -486,6 +510,75 @@ Edit Team; delete or deactivate Team; reactivation; Team record; Team-page navig
 #### Impact on Future Stories
 
 Reuse the Team persistence, validation, transient form, Shell route, and landing-page refresh patterns. Add Team-card interaction, record display, or additional Team fields only when a later story explicitly requires them.
+
+### Story 1.2 — Edit Team
+
+**Status:** Complete
+
+#### Implementation Summary
+
+- Made active Team cards tappable while retaining their existing appearance and `CollectionView.SelectionMode="None"`.
+- Added MVVM-based Team selection through `LandingPageViewModel` and Shell navigation to the Edit Team workflow.
+- Added `EditTeamViewModel` and `EditTeamPage` with constructor injection, compiled bindings, resource-backed validation, and Save and Cancel commands.
+- Registered the Edit Team page and view model as transient so each edit workflow receives fresh state.
+- Preserved the landing page's existing `OnAppearing` refresh, which reloads active Teams and alphabetically repositions a renamed Team after returning.
+- Updated the existing SQLite Team row rather than inserting a replacement; only one Team card remains after a rename.
+
+#### Repository Changes
+
+- Added `GetActiveByIdAsync` to load only an active Team with the requested ID.
+- Added `UpdateAsync` using sqlite-net update behavior for an existing Team row.
+- Extended active-name duplicate checking with an overload that excludes the current Team ID.
+- Preserved active-only, trimmed, case-insensitive duplicate comparison. Inactive Teams do not block Save, an unchanged name succeeds, and Create Team duplicate validation remains unchanged.
+- Missing and inactive Teams are not editable.
+
+#### Navigation and State Behavior
+
+- Added the centralized Shell route `edit-team` and query key `teamId`.
+- Landing-page navigation uses `ShellNavigationQueryParameters` and passes only the Team ID, not a mutable Team object as authoritative state.
+- `EditTeamViewModel` implements `IQueryAttributable`, explicitly parses positive integer and numeric-string IDs, and reloads the Team from `TeamRepository` as the persistence source of truth.
+- Editable Team-name state remains separate from the loaded model until Save. Save trims before validation and persistence; Cancel does not mutate or persist the Team.
+- Busy-state handling prevents repeated command execution. Repeated page appearances do not overwrite unsaved input.
+- Failed and zero-row updates do not navigate and restore the original in-memory model name.
+- Missing, invalid, inactive, and nonexistent Team IDs display the resource-backed Team-not-found state and block Save.
+
+#### Resources and Dependency Injection
+
+- Added `EditTeamTitle` and `TeamNotFound` to the centralized resources and strongly typed accessors.
+- Reused the existing Team Name label and placeholder, Save, Cancel, required-name, and duplicate-name resources. No runtime user-facing text was hardcoded.
+- Registered `EditTeamViewModel` and `EditTeamPage` as transient while preserving singleton `TeamRepository` and `AppDatabase` lifetimes.
+
+#### Reusable Components and Decisions
+
+- Use ID-only Shell navigation and repository reloads when editing persisted entities.
+- Use `IQueryAttributable` for explicit query parsing and centralized route and query-key constants.
+- Use transient form pages and view models for fresh workflow state.
+- Continue using page `OnAppearing` refresh instead of messaging when returning to an existing list page.
+- Keep editable form state separate from the loaded persistence model and exclude the current entity during duplicate validation.
+
+#### Documentation Updates
+
+`AGENTS.md`, `README.md`, and this feature history were intentionally updated during Story 1.2. The updates clarify the current single-project architecture, planned pragmatic layered/Clean Architecture transition, planned automated test project, primary Android tablet focus, secondary Windows support, and planned branding work. These project-wide plans are not Story 1.2 implementation and remain future work.
+
+#### Validation Completed
+
+The Android build succeeded, and the application launched successfully. Selecting an active Team card opened Edit Team with the correct name. Cancel returned without saving, and saving an unchanged name succeeded without duplicate validation or inserting another Team.
+
+Empty and whitespace-only names displayed required-name validation. Duplicate active names were rejected when entered exactly, with different casing, and with surrounding whitespace. A valid rename was trimmed, updated the existing SQLite row, left one Team card, refreshed automatically, moved to the correct alphabetical position, and persisted after the application was closed and reopened.
+
+The 10-inch Android tablet layout was readable and usable. No clipping, overlap, touch-target issues, or runtime exceptions were observed.
+
+Windows validation was intentionally not performed for Story 1.2. Current development and deployment validation focused on the Android tablet; Windows remains a supported secondary target and was not a completion requirement for this story.
+
+No automated tests were run because no automated test project currently exists.
+
+#### Known Warnings and Deferred Work
+
+Team deactivation, deletion, reactivation, year, record, colors, logo, statistics, and workspace navigation remain deferred. Player and Game workflows also remain deferred.
+
+Windows runtime behavior was not validated in this story. The automated test project and layered/Clean Architecture migration remain planned, as does replacement of the default icon and splash branding.
+
+Git reported informational LF-to-CRLF conversion warnings during diff review; no unintended whole-file line-ending rewrite was present.
 
 ## Maintenance Rules
 

@@ -2,7 +2,7 @@
 
 ## Project Overview
 
-Softball Scorekeeper is a lightweight, offline-first scorekeeping application for adult slow-pitch softball.
+Softball Scorekeeper is a lightweight, offline-first scorekeeping application for live adult slow-pitch softball games.
 
 The application is designed to replace paper scorekeeping and unnecessary complexity with a fast, tablet-friendly workflow that matches how the team actually records games.
 
@@ -23,15 +23,22 @@ The core product principle is:
 
 ## Supported Platforms
 
-Primary platform:
+Primary deployment and design target:
 
-- Android tablet
+- 10-inch Android tablet
+- Landscape-first scoring experience unless real-device testing supports a different decision
 
-Secondary platform:
+Android tablet behavior is the primary UI and interaction acceptance standard.
 
-- Windows
+Supported secondary platform:
 
-When platform-specific compromises are necessary, Android tablet usability takes priority.
+- Windows for development, debugging, validation, and convenience
+
+When Android tablet usability and desktop conventions conflict, Android tablet usability takes priority. Windows must remain supported, but desktop conventions must not drive the primary experience.
+
+## Branding
+
+Replace the default .NET application icon and splash branding early in the feature phase. Initial branding may be simple and generated, and it should establish project ownership without delaying functional development. Keep Android and Windows branding assets visually consistent.
 
 ## Technology Stack
 
@@ -59,6 +66,18 @@ Do not introduce:
 Use a pragmatic layered architecture with Clean Architecture principles where they provide clear value.
 
 The goal is separation of responsibilities, testable business logic, and maintainable code without unnecessary abstraction.
+
+The repository currently uses a single .NET MAUI project with logical folders and established MVVM, dependency-injection, resource, configuration, and SQLite foundations. This structure remains valid for the immediate Team CRUD and Player CRUD work.
+
+After Team CRUD and Player CRUD are established, but before roster, scheduling, lineup, statistics, and scoring-rule complexity grows substantially, use a dedicated architecture-transition story to move toward pragmatic logical or project boundaries for:
+
+- Presentation / .NET MAUI application
+- Application
+- Domain
+- Infrastructure
+- Tests
+
+This transition is planned future work. Do not describe these boundaries as separate implemented projects or move files early merely to imitate textbook Clean Architecture. Clear dependency direction, independently testable business rules, and separation of MAUI, SQLite, and domain logic matter more than the number of projects, interfaces, or wrapper services.
 
 Preferred dependency direction:
 
@@ -89,6 +108,19 @@ The Presentation layer is responsible for:
 - Platform-facing behavior
 
 Use XAML and MVVM as the default presentation approach.
+
+Design UI and interaction work for live use on the primary 10-inch Android tablet. Prioritize:
+
+- Large, finger-friendly touch targets
+- Clear readability at a normal tablet viewing distance
+- Minimal taps
+- One-handed operation where practical
+- Stable placement of frequently used controls
+- Touch-appropriate spacing rather than mouse-level precision
+- Simple, responsive layouts that remain usable on the target tablet
+- Reliable offline operation during games
+
+Avoid hover-only, right-click-only, keyboard-only, or other desktop-only interaction assumptions. Avoid unnecessarily dense desktop-style forms. Do not introduce arbitrary control-size measurements unless approved measurements already exist in the repository.
 
 Use CommunityToolkit.Mvvm for common MVVM infrastructure such as:
 
@@ -378,6 +410,8 @@ Before declaring the story complete:
 
 Preserve existing build success and working application behavior.
 
+The user manually runs builds, application launches, and tests unless the user explicitly requests otherwise. Provide exact, repository-appropriate validation instructions and report accurately what was and was not run.
+
 For each story:
 
 - Add or update tests when the story introduces testable behavior.
@@ -395,12 +429,20 @@ For each story:
 
 When the story changes only documentation, tests may be unnecessary unless the documentation change affects generated output or tooling.
 
+Android validation is required for UI and interaction stories because Android tablet behavior is the primary acceptance standard. Windows remains useful for development and secondary validation.
+
+Major scoring and tablet-interaction stories should be exercised on the actual target 10-inch Android tablet when it is available. Emulator validation is useful and is acceptable until the physical tablet is available when documented honestly, but it does not permanently replace real-device validation for major touch workflows. Non-UI stories should use validation appropriate to their scope.
+
 At minimum, validate the affected supported targets when practical:
 
 - Android
 - Windows
 
 Validation should be proportional to the change. Small documentation changes do not require unrelated exhaustive testing.
+
+Introduce an automated test project during or immediately after the planned architecture-transition milestone and before complex roster, lineup, statistics, and scoring-engine development. Domain and application rules must be testable without launching the MAUI application.
+
+Scoring-engine development requires comprehensive table-driven tests covering base states, out counts, batter outcomes, runner movement, corrections, and derived statistics. Repository integration tests may use isolated temporary SQLite databases. UI automation is not required unless a later story explicitly adds it.
 
 ## Completion Review and Definition of Done
 
@@ -529,37 +571,8 @@ Do not expand a story beyond its approved scope to prepare for these features.
 
 ## Current Implementation Status
 
-The approved architecture includes:
+The repository currently contains a single-project .NET MAUI application targeting Android and Windows, organized through logical folders. Inspect `FEATURE_HISTORY.md` and the current repository before describing specific features or foundations as implemented.
 
-- .NET MAUI
-- C#
-- XAML
-- MVVM
-- CommunityToolkit.Mvvm
-- Layered responsibilities
-- SQLite local persistence
-- Centralized resource files
-- Offline-first behavior
-
-However, planned architecture must not be described as already implemented.
-
-At the time this document was created, the repository contains the initial .NET MAUI application foundation targeting:
-
-- Android
-- Windows
-
-The following remain deferred until later stories:
-
-- MVVM infrastructure
-- Dependency injection
-- SQLite
-- Resource files
-- Navigation
-- Domain models
-- Team management
-- Player management
-- Scoring
-- Statistics
-- Beer rules
+The future layered/Clean Architecture transition and automated test project are planned, not implemented merely because they are documented here. Player management, complex roster and lineup workflows, scoring rules, statistics, and beer rules remain deferred until their stories are implemented.
 
 AI assistants must inspect the current repository before assuming any deferred feature exists.

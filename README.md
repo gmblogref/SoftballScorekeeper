@@ -2,17 +2,21 @@
 
 ## Project Overview
 
-Softball Scorekeeper is a lightweight, offline-first scorekeeping application for adult slow-pitch softball. It is intended to prioritize fast score entry, minimal user input, automatic statistics, and reliable use without an internet connection.
+Softball Scorekeeper is a lightweight, fully offline scorekeeper for live adult slow-pitch softball games. It is focused on fast entry, minimal taps, automatic statistics, custom beer-rule tracking, and simple correction of unusual plays.
 
-The primary platform is Android tablet, with Windows as the secondary platform. The repository currently contains the application foundation; the planned softball workflows have not yet been implemented.
+The primary deployment and UX target is a 10-inch Android tablet, with a landscape-first scoring experience unless real-device testing supports a different decision. Windows remains a supported secondary platform for development, debugging, validation, and convenience.
+
+## Tablet-First Experience
+
+Android tablet behavior is the primary UI and interaction acceptance standard. The interface prioritizes large finger-friendly touch targets, clear readability at normal tablet viewing distance, minimal interaction steps, one-handed use where practical, stable control placement, touch-appropriate spacing, and reliable offline operation. Desktop conventions must not drive the primary experience when they conflict with Android tablet usability.
 
 ## Current Status
 
 - **Foundation phase:** Complete
-- **Completed foundation stories:** Stories 0.0 through 0.10
-- **Next planned story:** Story 1.0 — Create Landing Page
+- **Latest completed story:** Story 1.2 — Edit Team
+- **Completed stories:** Stories 0.0 through 1.2
 
-The application has foundational presentation, dependency-injection, persistence, resource, configuration, and documentation infrastructure. Team, player, game, lineup, scorekeeping, statistics, and beer-rule workflows do not exist yet.
+The application has foundational presentation, dependency-injection, persistence, resource, configuration, and documentation infrastructure. Its landing page and Team creation and editing workflows are implemented. Player, game, roster, lineup, scorekeeping, statistics, and beer-rule workflows remain planned.
 
 ## Technology Stack
 
@@ -25,15 +29,21 @@ The application has foundational presentation, dependency-injection, persistence
 
 ## Repository Structure
 
-The application uses a pragmatic single-project MAUI structure while preserving separation of responsibilities through folders and repository conventions.
+The application currently uses one pragmatic .NET MAUI project while preserving separation of responsibilities through logical folders and repository conventions.
 
 - `Configuration` — Strongly typed application settings and defaults.
-- `Data` — Device-local SQLite connection and initialization infrastructure.
-- `Models` — Reserved for models introduced by future stories.
+- `Data` — Device-local SQLite initialization and repository infrastructure.
+- `Models` — Application data models introduced by feature stories.
 - `Resources` — Styles, images, fonts, app assets, and centralized `.resx` strings.
 - `Services` — Reserved for application services introduced by future stories.
 - `ViewModels` — MVVM presentation state and commands.
 - `Views` — MAUI XAML pages and minimal code-behind.
+
+## Architecture Direction
+
+The current single-project structure, XAML/MVVM presentation, CommunityToolkit.Mvvm, dependency injection, centralized resources, configuration, and SQLite persistence remain valid through Team CRUD and Player CRUD.
+
+A later dedicated story is expected to transition the solution toward pragmatic layered/Clean Architecture boundaries for Presentation / .NET MAUI, Application, Domain, Infrastructure, and Tests. This transition is planned after Team and Player CRUD but before roster, scheduling, lineup, statistics, and scoring-rule complexity grows substantially. It has not been implemented; clear dependency direction and testability matter more than project count or unnecessary interfaces and abstractions.
 
 ## Project Documentation
 
@@ -51,9 +61,15 @@ Development requires:
 
 Open `SoftballScorekeeper.sln` in Visual Studio, select either the Windows target or an available Android emulator/device, and run the application through the IDE.
 
+## Testing Direction
+
+An automated test project is planned during or immediately after the architecture transition and before complex roster, lineup, statistics, and scoring-engine development. Domain and application rules should be testable without launching MAUI, and the scoring engine is expected to receive comprehensive table-driven coverage. Repository integration tests may use isolated temporary SQLite databases. UI automation is not currently required unless a later story adds it.
+
+Manual Android and Windows validation remain part of the current workflow until automated testing is introduced. Android validation is the primary UI standard; emulator validation is useful, with real-device validation expected for major tablet interaction and scoring workflows when the target device is available.
+
 ## Current Functionality
 
-The implemented foundation includes:
+The current implementation includes:
 
 - A basic single-project .NET MAUI application targeting Android and Windows
 - XAML and CommunityToolkit.Mvvm infrastructure
@@ -62,8 +78,10 @@ The implemented foundation includes:
 - Centralized strongly typed `.resx` resources for user-facing text
 - Strongly typed application settings registered through dependency injection
 - Repository implementation guidance and canonical feature-history documentation
+- A tablet-friendly landing page that loads active Teams
+- Local Team creation and editing with validation and persistence
 
-The current UI remains a foundational starter screen with a resource-backed counter. Actual softball workflows have not yet been implemented.
+More advanced softball workflows remain planned and must not be treated as implemented before their stories are completed.
 
 ## Planned Features
 
@@ -75,6 +93,10 @@ Planned functionality includes:
 - In-game scorekeeping
 - Automatic player and team statistics
 - Custom beer-rule tracking
+
+## Branding Direction
+
+The default .NET application icon and splash screen will be replaced early in the feature phase. Initial branding may be simple and generated so it establishes project ownership without delaying functional development, and Android and Windows assets should remain visually consistent.
 
 ## Project Boundaries
 

@@ -19,6 +19,12 @@ public sealed class TeamRepository
         return await connection.InsertAsync(team);
     }
 
+    public async Task<int> UpdateAsync(Team team)
+    {
+        var connection = await database.GetConnectionAsync();
+        return await connection.UpdateAsync(team);
+    }
+
     public async Task<List<Team>> GetActiveAsync()
     {
         var connection = await database.GetConnectionAsync();
@@ -28,7 +34,25 @@ public sealed class TeamRepository
             .ToListAsync();
     }
 
-    public async Task<bool> ActiveNameExistsAsync(string name)
+    public async Task<Team?> GetActiveByIdAsync(int id)
+    {
+        var connection = await database.GetConnectionAsync();
+        return await connection.Table<Team>()
+            .Where(team => team.Id == id && team.IsActive)
+            .FirstOrDefaultAsync();
+    }
+
+    public Task<bool> ActiveNameExistsAsync(string name)
+    {
+        return ActiveNameExistsAsync(name, excludedTeamId: null);
+    }
+
+    public Task<bool> ActiveNameExistsAsync(string name, int excludedTeamId)
+    {
+        return ActiveNameExistsAsync(name, (int?)excludedTeamId);
+    }
+
+    private async Task<bool> ActiveNameExistsAsync(string name, int? excludedTeamId)
     {
         var normalizedName = name.Trim();
         var connection = await database.GetConnectionAsync();
@@ -37,9 +61,10 @@ public sealed class TeamRepository
             .ToListAsync();
 
         return activeTeams.Any(
-            team => string.Equals(
-                team.Name.Trim(),
-                normalizedName,
-                StringComparison.OrdinalIgnoreCase));
+            team => team.Id != excludedTeamId
+                && string.Equals(
+                    team.Name.Trim(),
+                    normalizedName,
+                    StringComparison.OrdinalIgnoreCase));
     }
 }

@@ -60,4 +60,20 @@ public partial class LandingPageViewModel : ObservableObject
     {
         await Shell.Current.GoToAsync(AppShell.CreateTeamRoute);
     }
+
+    [RelayCommand]
+    private async Task EditTeamAsync(Team? team)
+    {
+        if (team is null || team.Id <= 0)
+        {
+            return;
+        }
+
+        var parameters = new ShellNavigationQueryParameters
+        {
+            [AppShell.TeamIdQueryParameter] = team.Id
+        };
+
+        await Shell.Current.GoToAsync(AppShell.EditTeamRoute, parameters);
+    }
 }
