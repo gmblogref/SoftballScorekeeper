@@ -64,28 +64,19 @@
   <data name="MainPageTitle" xml:space="preserve">
     <value>Home</value>
   </data>
-  <data name="MainPageHeading" xml:space="preserve">
-    <value>Hello, World!</value>
+  <data name="LandingPageTitle" xml:space="preserve">
+    <value>Softball Scorekeeper</value>
   </data>
-  <data name="MainPageInstructions" xml:space="preserve">
-    <value>Welcome to &#xA;.NET Multi-platform App UI</value>
+  <data name="TeamsHeading" xml:space="preserve">
+    <value>Teams</value>
   </data>
-  <data name="MainPageImageSemanticDescription" xml:space="preserve">
-    <value>dot net bot in a race car number eight</value>
+  <data name="NoTeamsMessage" xml:space="preserve">
+    <value>No teams have been created.</value>
   </data>
-  <data name="MainPageInstructionsSemanticDescription" xml:space="preserve">
-    <value>Welcome to dot net Multi platform App U I</value>
+  <data name="CreateTeamButton" xml:space="preserve">
+    <value>Create Team</value>
   </data>
-  <data name="CounterButtonText" xml:space="preserve">
-    <value>Click me</value>
-  </data>
-  <data name="CounterButtonSemanticHint" xml:space="preserve">
-    <value>Counts the number of times you click</value>
-  </data>
-  <data name="CounterStatusSingular" xml:space="preserve">
-    <value>Clicked {0} time</value>
-  </data>
-  <data name="CounterStatusPlural" xml:space="preserve">
-    <value>Clicked {0} times</value>
+  <data name="CreateTeamPlaceholderMessage" xml:space="preserve">
+    <value>Team creation will be added in a future story.</value>
   </data>
 </root>

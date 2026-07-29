@@ -72,51 +72,33 @@ namespace SoftballScorekeeper.Resources.Strings {
             }
         }
 
-        public static string MainPageHeading {
+        public static string LandingPageTitle {
             get {
-                return ResourceManager.GetString("MainPageHeading", resourceCulture);
+                return ResourceManager.GetString("LandingPageTitle", resourceCulture);
             }
         }
 
-        public static string MainPageInstructions {
+        public static string TeamsHeading {
             get {
-                return ResourceManager.GetString("MainPageInstructions", resourceCulture);
+                return ResourceManager.GetString("TeamsHeading", resourceCulture);
             }
         }
 
-        public static string MainPageImageSemanticDescription {
+        public static string NoTeamsMessage {
             get {
-                return ResourceManager.GetString("MainPageImageSemanticDescription", resourceCulture);
+                return ResourceManager.GetString("NoTeamsMessage", resourceCulture);
             }
         }
 
-        public static string MainPageInstructionsSemanticDescription {
+        public static string CreateTeamButton {
             get {
-                return ResourceManager.GetString("MainPageInstructionsSemanticDescription", resourceCulture);
+                return ResourceManager.GetString("CreateTeamButton", resourceCulture);
             }
         }
 
-        public static string CounterButtonText {
+        public static string CreateTeamPlaceholderMessage {
             get {
-                return ResourceManager.GetString("CounterButtonText", resourceCulture);
-            }
-        }
-
-        public static string CounterButtonSemanticHint {
-            get {
-                return ResourceManager.GetString("CounterButtonSemanticHint", resourceCulture);
-            }
-        }
-
-        public static string CounterStatusSingular {
-            get {
-                return ResourceManager.GetString("CounterStatusSingular", resourceCulture);
-            }
-        }
-
-        public static string CounterStatusPlural {
-            get {
-                return ResourceManager.GetString("CounterStatusPlural", resourceCulture);
+                return ResourceManager.GetString("CreateTeamPlaceholderMessage", resourceCulture);
             }
         }
 

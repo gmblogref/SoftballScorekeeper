@@ -4,7 +4,7 @@ namespace SoftballScorekeeper.Views;
 
 public partial class MainPage : ContentPage
 {
-    public MainPage(MainPageViewModel viewModel)
+    public MainPage(LandingPageViewModel viewModel)
     {
         InitializeComponent();
         BindingContext = viewModel;
