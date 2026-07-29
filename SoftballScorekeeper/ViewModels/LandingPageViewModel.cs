@@ -1,18 +1,63 @@
+using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
-using SoftballScorekeeper.Resources.Strings;
+using SoftballScorekeeper.Data.Repositories;
+using SoftballScorekeeper.Models;
 
 namespace SoftballScorekeeper.ViewModels;
 
 public partial class LandingPageViewModel : ObservableObject
 {
+    private readonly TeamRepository teamRepository;
+
     [ObservableProperty]
-    private string? statusMessage;
+    private bool hasTeams;
+
+    [ObservableProperty]
+    private bool hasNoTeams = true;
+
+    [ObservableProperty]
+    private bool isLoading;
+
+    public LandingPageViewModel(TeamRepository teamRepository)
+    {
+        ArgumentNullException.ThrowIfNull(teamRepository);
+
+        this.teamRepository = teamRepository;
+    }
+
+    public ObservableCollection<Team> Teams { get; } = new();
+
+    public async Task LoadTeamsAsync()
+    {
+        if (IsLoading)
+        {
+            return;
+        }
+
+        IsLoading = true;
+        try
+        {
+            var teams = await teamRepository.GetActiveAsync();
+
+            Teams.Clear();
+            foreach (var team in teams)
+            {
+                Teams.Add(team);
+            }
+
+            HasTeams = Teams.Count > 0;
+            HasNoTeams = !HasTeams;
+        }
+        finally
+        {
+            IsLoading = false;
+        }
+    }
 
     [RelayCommand]
-    private void CreateTeam()
+    private async Task CreateTeamAsync()
     {
-        // Temporary feedback until a future story implements team creation.
-        StatusMessage = AppResources.CreateTeamPlaceholderMessage;
+        await Shell.Current.GoToAsync(AppShell.CreateTeamRoute);
     }
 }

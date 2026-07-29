@@ -1,54 +1,75 @@
-﻿<?xml version="1.0" encoding="utf-8" ?>
+<?xml version="1.0" encoding="utf-8" ?>
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:models="clr-namespace:SoftballScorekeeper.Models"
              xmlns:strings="clr-namespace:SoftballScorekeeper.Resources.Strings"
              xmlns:viewModels="clr-namespace:SoftballScorekeeper.ViewModels"
              x:Class="SoftballScorekeeper.Views.MainPage"
              x:DataType="viewModels:LandingPageViewModel">
 
-    <ScrollView>
-        <VerticalStackLayout
-            Padding="40"
-            Spacing="24">
+    <Grid
+        Padding="40"
+        RowDefinitions="Auto,Auto,*,Auto"
+        RowSpacing="24">
 
-            <Label
-                Text="{x:Static strings:AppResources.LandingPageTitle}"
-                Style="{StaticResource Headline}"
-                SemanticProperties.HeadingLevel="Level1" />
+        <Label
+            Grid.Row="0"
+            Text="{x:Static strings:AppResources.LandingPageTitle}"
+            Style="{StaticResource Headline}"
+            SemanticProperties.HeadingLevel="Level1" />
 
-            <Label
-                Text="{x:Static strings:AppResources.TeamsHeading}"
-                Style="{StaticResource SubHeadline}"
-                SemanticProperties.HeadingLevel="Level2" />
+        <Label
+            Grid.Row="1"
+            Text="{x:Static strings:AppResources.TeamsHeading}"
+            Style="{StaticResource SubHeadline}"
+            SemanticProperties.HeadingLevel="Level2" />
 
+        <Grid Grid.Row="2">
             <Label
                 Text="{x:Static strings:AppResources.NoTeamsMessage}"
-                HorizontalTextAlignment="Center" />
+                HorizontalTextAlignment="Center"
+                IsVisible="{Binding HasNoTeams}" />
 
-            <Button
-                Text="{x:Static strings:AppResources.CreateTeamButton}"
-                Command="{Binding CreateTeamCommand}"
-                HorizontalOptions="Center" />
+            <CollectionView
+                ItemsSource="{Binding Teams}"
+                IsVisible="{Binding HasTeams}"
+                SelectionMode="None">
+                <CollectionView.ItemTemplate>
+                    <DataTemplate x:DataType="models:Team">
+                        <Border
+                            Margin="0,0,0,12"
+                            Padding="24"
+                            MinimumHeightRequest="88"
+                            HorizontalOptions="Start"
+                            BackgroundColor="{AppThemeBinding Light={StaticResource White}, Dark={StaticResource Gray900}}"
+                            Stroke="{AppThemeBinding Light={StaticResource Gray300}, Dark={StaticResource Gray500}}"
+                            StrokeThickness="2">
+                            <Border.StrokeShape>
+                                <RoundRectangle CornerRadius="14" />
+                            </Border.StrokeShape>
 
-            <Label
-                Text="{Binding StatusMessage}"
-                HorizontalTextAlignment="Center">
-                <Label.Triggers>
-                    <DataTrigger
-                        TargetType="Label"
-                        Binding="{Binding StatusMessage}"
-                        Value="{x:Null}">
-                        <Setter Property="IsVisible" Value="False" />
-                    </DataTrigger>
-                    <DataTrigger
-                        TargetType="Label"
-                        Binding="{Binding StatusMessage}"
-                        Value="">
-                        <Setter Property="IsVisible" Value="False" />
-                    </DataTrigger>
-                </Label.Triggers>
-            </Label>
-        </VerticalStackLayout>
-    </ScrollView>
+                            <Label
+                                Text="{Binding Name}"
+                                FontFamily="OpenSansSemibold"
+                                FontSize="24"
+                                LineBreakMode="TailTruncation"
+                                HorizontalOptions="Center"
+                                HorizontalTextAlignment="Center"
+                                VerticalOptions="Center"
+                                VerticalTextAlignment="Center" />
+                        </Border>
+                    </DataTemplate>
+                </CollectionView.ItemTemplate>
+            </CollectionView>
+        </Grid>
+
+        <Button
+            Grid.Row="3"
+            Text="{x:Static strings:AppResources.CreateTeamButton}"
+            Command="{Binding CreateTeamCommand}"
+            MinimumWidthRequest="180"
+            Padding="28,14"
+            HorizontalOptions="Center" />
+    </Grid>
 
 </ContentPage>

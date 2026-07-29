@@ -102,5 +102,47 @@ namespace SoftballScorekeeper.Resources.Strings {
             }
         }
 
+        public static string CreateTeamTitle {
+            get {
+                return ResourceManager.GetString("CreateTeamTitle", resourceCulture);
+            }
+        }
+
+        public static string TeamNameLabel {
+            get {
+                return ResourceManager.GetString("TeamNameLabel", resourceCulture);
+            }
+        }
+
+        public static string TeamNamePlaceholder {
+            get {
+                return ResourceManager.GetString("TeamNamePlaceholder", resourceCulture);
+            }
+        }
+
+        public static string SaveButton {
+            get {
+                return ResourceManager.GetString("SaveButton", resourceCulture);
+            }
+        }
+
+        public static string CancelButton {
+            get {
+                return ResourceManager.GetString("CancelButton", resourceCulture);
+            }
+        }
+
+        public static string TeamNameRequired {
+            get {
+                return ResourceManager.GetString("TeamNameRequired", resourceCulture);
+            }
+        }
+
+        public static string DuplicateTeamName {
+            get {
+                return ResourceManager.GetString("DuplicateTeamName", resourceCulture);
+            }
+        }
+
     }
 }

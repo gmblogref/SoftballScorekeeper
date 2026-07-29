@@ -2,6 +2,7 @@
 
 using SoftballScorekeeper.Configuration;
 using SoftballScorekeeper.Data;
+using SoftballScorekeeper.Data.Repositories;
 using SoftballScorekeeper.ViewModels;
 using SoftballScorekeeper.Views;
 
@@ -27,7 +28,10 @@ namespace SoftballScorekeeper
             builder.Services.AddSingleton<AppShell>();
             builder.Services.AddSingleton<ApplicationSettings>();
             builder.Services.AddSingleton<AppDatabase>();
+            builder.Services.AddSingleton<TeamRepository>();
             builder.Services.AddSingleton<LandingPageViewModel>();
+            builder.Services.AddTransient<CreateTeamViewModel>();
+            builder.Services.AddTransient<CreateTeamPage>();
             builder.Services.AddSingleton<MainPage>();
 
             return builder.Build();
