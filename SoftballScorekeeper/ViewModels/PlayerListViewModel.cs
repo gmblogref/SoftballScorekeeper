@@ -71,13 +71,13 @@ public partial class PlayerListViewModel : ObservableObject
         }
     }
 
-    [RelayCommand]
+    [RelayCommand(CanExecute = nameof(CanUsePlayerManager))]
     private async Task AddPlayerAsync()
     {
         await Shell.Current.GoToAsync(AppShell.CreatePlayerRoute);
     }
 
-    [RelayCommand]
+    [RelayCommand(CanExecute = nameof(CanEditPlayer))]
     private async Task EditPlayerAsync(int playerId)
     {
         if (playerId <= 0)
@@ -114,7 +114,7 @@ public partial class PlayerListViewModel : ObservableObject
         }
 
         isConfirmationPending = true;
-        DeactivateSelectedPlayersCommand.NotifyCanExecuteChanged();
+        NotifyManagerCommandsCanExecuteChanged();
         try
         {
             var confirmationRequested = DeactivatePlayersConfirmationRequested;
@@ -127,8 +127,7 @@ public partial class PlayerListViewModel : ObservableObject
         {
             pendingPlayerIds = Array.Empty<int>();
             isConfirmationPending = false;
-            DeactivateSelectedPlayersCommand.NotifyCanExecuteChanged();
-            ConfirmDeactivateSelectedPlayersCommand.NotifyCanExecuteChanged();
+            NotifyManagerCommandsCanExecuteChanged();
         }
     }
 
@@ -164,10 +163,10 @@ public partial class PlayerListViewModel : ObservableObject
         }
     }
 
-    [RelayCommand]
-    private void ManageInactivePlayers()
+    [RelayCommand(CanExecute = nameof(CanUsePlayerManager))]
+    private async Task ManageInactivePlayersAsync()
     {
-        ShowPlaceholderMessage();
+        await Shell.Current.GoToAsync(AppShell.InactivePlayersRoute);
     }
 
     private void ShowPlaceholderMessage()
@@ -177,8 +176,17 @@ public partial class PlayerListViewModel : ObservableObject
 
     partial void OnIsLoadingChanged(bool value)
     {
-        DeactivateSelectedPlayersCommand.NotifyCanExecuteChanged();
-        ConfirmDeactivateSelectedPlayersCommand.NotifyCanExecuteChanged();
+        NotifyManagerCommandsCanExecuteChanged();
+    }
+
+    private bool CanUsePlayerManager()
+    {
+        return !IsLoading && !isConfirmationPending;
+    }
+
+    private bool CanEditPlayer(int playerId)
+    {
+        return CanUsePlayerManager() && playerId > 0;
     }
 
     private bool CanDeactivateSelectedPlayers()
@@ -223,5 +231,14 @@ public partial class PlayerListViewModel : ObservableObject
     private void UpdateSelectionState()
     {
         SelectedPlayerCount = Players.Count(item => item.IsSelected);
+    }
+
+    private void NotifyManagerCommandsCanExecuteChanged()
+    {
+        AddPlayerCommand.NotifyCanExecuteChanged();
+        EditPlayerCommand.NotifyCanExecuteChanged();
+        DeactivateSelectedPlayersCommand.NotifyCanExecuteChanged();
+        ManageInactivePlayersCommand.NotifyCanExecuteChanged();
+        ConfirmDeactivateSelectedPlayersCommand.NotifyCanExecuteChanged();
     }
 }

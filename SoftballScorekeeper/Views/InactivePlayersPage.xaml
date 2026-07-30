@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:strings="clr-namespace:SoftballScorekeeper.Resources.Strings"
+             xmlns:viewModels="clr-namespace:SoftballScorekeeper.ViewModels"
+             x:Class="SoftballScorekeeper.Views.InactivePlayersPage"
+             x:DataType="viewModels:InactivePlayersViewModel"
+             Title="{x:Static strings:AppResources.InactivePlayersTitle}">
+    <Grid Padding="40"
+          RowDefinitions="Auto,Auto,Auto,*,Auto"
+          RowSpacing="20">
+        <Label Grid.Row="0"
+               Text="{x:Static strings:AppResources.InactivePlayersTitle}"
+               Style="{StaticResource Headline}"
+               SemanticProperties.HeadingLevel="Level1" />
+
+        <Label Grid.Row="1" Text="{Binding ValidationMessage}">
+            <Label.Triggers>
+                <DataTrigger TargetType="Label" Binding="{Binding ValidationMessage}" Value="">
+                    <Setter Property="IsVisible" Value="False" />
+                </DataTrigger>
+            </Label.Triggers>
+        </Label>
+
+        <Label Grid.Row="2"
+               Text="{Binding SelectedPlayerCount, StringFormat={x:Static strings:AppResources.SelectedPlayerCountText}}"
+               HorizontalTextAlignment="Center" />
+
+        <Grid Grid.Row="3">
+            <Label Text="{x:Static strings:AppResources.NoInactivePlayersMessage}"
+                   HorizontalTextAlignment="Center"
+                   VerticalOptions="Center"
+                   IsVisible="{Binding HasNoInactivePlayers}" />
+
+            <CollectionView ItemsSource="{Binding InactivePlayers}"
+                            IsVisible="{Binding HasInactivePlayers}"
+                            SelectionMode="None">
+                <CollectionView.ItemTemplate>
+                    <DataTemplate x:DataType="viewModels:PlayerSelectionItem">
+                        <Grid Padding="20,12"
+                              RowDefinitions="Auto,1"
+                              ColumnDefinitions="*,Auto"
+                              ColumnSpacing="20"
+                              MinimumHeightRequest="72">
+                            <Label Text="{Binding DisplayName}"
+                                   FontSize="20"
+                                   LineBreakMode="TailTruncation"
+                                   HorizontalOptions="Start"
+                                   VerticalOptions="Center" />
+                            <CheckBox Grid.Column="1"
+                                      IsChecked="{Binding IsSelected, Mode=TwoWay}"
+                                      MinimumHeightRequest="48"
+                                      MinimumWidthRequest="48"
+                                      HorizontalOptions="End"
+                                      VerticalOptions="Center" />
+                            <BoxView Grid.Row="1"
+                                     Grid.ColumnSpan="2"
+                                     Margin="0,11,0,0"
+                                     HeightRequest="1"
+                                     Color="{AppThemeBinding Light={StaticResource Gray200}, Dark={StaticResource Gray500}}" />
+                        </Grid>
+                    </DataTemplate>
+                </CollectionView.ItemTemplate>
+            </CollectionView>
+        </Grid>
+
+        <Button Grid.Row="4"
+                Text="{x:Static strings:AppResources.ReactivateSelectedPlayersButton}"
+                Command="{Binding ReactivateSelectedPlayersCommand}"
+                WidthRequest="210"
+                HeightRequest="44"
+                Padding="12,6"
+                HorizontalOptions="Center" />
+    </Grid>
+</ContentPage>

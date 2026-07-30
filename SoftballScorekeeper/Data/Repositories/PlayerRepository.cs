@@ -58,6 +58,34 @@ public sealed class PlayerRepository
             parameters);
     }
 
+    public async Task<int> ReactivateAsync(IReadOnlyCollection<int>? playerIds)
+    {
+        if (playerIds is null || playerIds.Count == 0)
+        {
+            return 0;
+        }
+
+        var validPlayerIds = playerIds
+            .Where(playerId => playerId > 0)
+            .Distinct()
+            .ToArray();
+
+        if (validPlayerIds.Length == 0)
+        {
+            return 0;
+        }
+
+        var placeholders = string.Join(", ", validPlayerIds.Select(_ => "?"));
+        var parameters = new object[] { true, false }
+            .Concat(validPlayerIds.Cast<object>())
+            .ToArray();
+        var connection = await database.GetConnectionAsync();
+
+        return await connection.ExecuteAsync(
+            $"UPDATE Player SET IsActive = ? WHERE IsActive = ? AND Id IN ({placeholders})",
+            parameters);
+    }
+
     public async Task<List<Player>> GetActiveAsync()
     {
         var connection = await database.GetConnectionAsync();
@@ -74,11 +102,14 @@ public sealed class PlayerRepository
     public async Task<List<Player>> GetInactiveAsync()
     {
         var connection = await database.GetConnectionAsync();
-        return await connection.Table<Player>()
+        var inactivePlayers = await connection.Table<Player>()
             .Where(player => !player.IsActive)
-            .OrderBy(player => player.FirstName)
-            .ThenBy(player => player.LastName)
             .ToListAsync();
+
+        return inactivePlayers
+            .OrderBy(player => player.FirstName, StringComparer.OrdinalIgnoreCase)
+            .ThenBy(player => player.LastName ?? string.Empty, StringComparer.OrdinalIgnoreCase)
+            .ToList();
     }
 
     public async Task<Player?> GetActiveByIdAsync(int id)

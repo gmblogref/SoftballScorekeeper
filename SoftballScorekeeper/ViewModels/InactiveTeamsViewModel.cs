@@ -95,6 +95,11 @@ public partial class InactiveTeamsViewModel : ObservableObject
 
             ValidationMessage = string.Empty;
             await ReloadInactiveTeamsAsync();
+
+            if (!HasInactiveTeams)
+            {
+                await Shell.Current.GoToAsync("..");
+            }
         }
         finally
         {
