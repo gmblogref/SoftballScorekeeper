@@ -824,6 +824,63 @@ Player creation, editing, deactivation, reactivation, bulk persistence, Team mem
 
 `Implement Player list foundation`
 
+### Story 2.1 — Create Player
+
+**Status:** Complete
+
+#### Implementation Summary
+
+- Added the transient Create Player page and ViewModel with First Name, optional Last Name, resource-backed validation, Save, and Cancel behavior following the established Create Team form pattern.
+- Replaced only the Player List Add Player placeholder with Shell navigation through the centralized `create-player` route; the other Player-management actions remain placeholders.
+- Save trims both names, requires a nonblank First Name, persists a blank Last Name as `null` under the existing nullable model convention, and inserts one active Player through `PlayerRepository`.
+- Duplicate Player names remain intentionally allowed. Failed validation and Cancel perform no repository write, and successful Save returns to the existing Player List `OnAppearing` refresh flow.
+- Corrected active Player ordering after Android validation exposed SQLite's binary text collation behavior. The repository now orders active Players case-insensitively by First Name and then Last Name.
+
+#### Files Changed
+
+Added:
+
+- `SoftballScorekeeper/ViewModels/CreatePlayerViewModel.cs`
+- `SoftballScorekeeper/Views/CreatePlayerPage.xaml`
+- `SoftballScorekeeper/Views/CreatePlayerPage.xaml.cs`
+
+Modified:
+
+- `FEATURE_HISTORY.md`
+- `SoftballScorekeeper/AppShell.xaml.cs`
+- `SoftballScorekeeper/Data/Repositories/PlayerRepository.cs`
+- `SoftballScorekeeper/MauiProgram.cs`
+- `SoftballScorekeeper/Resources/Strings/AppResources.resx`
+- `SoftballScorekeeper/Resources/Strings/AppResources.Designer.cs`
+- `SoftballScorekeeper/ViewModels/PlayerListViewModel.cs`
+
+#### Architecture and Design Decisions
+
+- Preserved repository-owned SQLite persistence by adding only `PlayerRepository.CreateAsync`; the Create ViewModel contains no direct database access.
+- Kept active Player ordering repository-owned. Active rows are filtered in SQLite and ordered in memory with `StringComparer.OrdinalIgnoreCase`, using First Name as the primary field and Last Name as the secondary field.
+- Null Last Names use `string.Empty` only as the ordering comparison key; persisted data is not modified. Blank Last Name input is stored as `null`, consistent with the existing optional `Player.LastName` model property.
+- Player names are not unique, and no duplicate-name query, warning, or constraint was introduced.
+- Registered `CreatePlayerViewModel` and `CreatePlayerPage` as transient and reused Shell back-navigation without adding a navigation service.
+- Retained Player List appearance-based refresh, minimal constructor-only page code-behind, compiled bindings, and centralized runtime resources.
+- Used `ObservableObject.SetProperty` for the new form state and generated RelayCommands, avoiding new `MVVMTK0045` warnings without adding a base ViewModel, service, generic CRUD framework, form framework, or architectural layer.
+
+#### Validation Completed
+
+- `git diff --check` passed.
+- The Windows target build succeeded with 24 warnings and zero errors. Warnings remained in the existing `CS8602`, `MVVMTK0045`, and `XC0025` categories; Story 2.1 introduced no remaining new warning.
+- The command-line Android build could not locate the Android SDK and reported `XA5300`; Android build, launch, and runtime validation were subsequently completed through the configured Visual Studio environment.
+- Android validation passed for Add Player navigation, blank and whitespace-only First Name validation, no insert on invalid input, name trimming, optional blank Last Name, duplicate names, single active-Player insertion, Save and Cancel navigation, list refresh, empty-state transition, restart persistence, and clean transient form state.
+- Existing checkbox selection behavior and Android tablet layout remained functional without crashes, binding failures, clipping, overlap, or runtime exceptions.
+- The initial case-sensitive ordering defect was corrected and retested successfully. Active Players appeared case-insensitively by First Name and then Last Name, including safe handling of null and blank Last Names.
+
+#### Limitations and Deferred Work
+
+Player editing, deactivation, reactivation, Team membership, `TeamPlayer`, jersey numbers, duplicate-name warnings, bulk operations, games, lineups, and statistics remain deferred. Automated tests, the layered/Clean Architecture migration, and application branding also remain future work.
+
+#### Intended Commit Message
+
+`Implement Player creation`
+
 ## Maintenance Rules
 
 Every future story must update this file before the story is committed. A story is not complete until its accurate feature-history entry is included in the same story-focused commit as its implementation.

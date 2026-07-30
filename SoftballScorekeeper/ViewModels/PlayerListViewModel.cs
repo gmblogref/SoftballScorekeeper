@@ -59,9 +59,9 @@ public partial class PlayerListViewModel : ObservableObject
     }
 
     [RelayCommand]
-    private void AddPlayer()
+    private async Task AddPlayerAsync()
     {
-        ShowPlaceholderMessage();
+        await Shell.Current.GoToAsync(AppShell.CreatePlayerRoute);
     }
 
     [RelayCommand]
