@@ -166,4 +166,22 @@
   <data name="PlayerManagementPlaceholderMessage" xml:space="preserve">
     <value>Player management actions will be added in future stories.</value>
   </data>
+  <data name="CreatePlayerTitle" xml:space="preserve">
+    <value>Create Player</value>
+  </data>
+  <data name="FirstNameLabel" xml:space="preserve">
+    <value>First Name</value>
+  </data>
+  <data name="FirstNamePlaceholder" xml:space="preserve">
+    <value>Enter first name</value>
+  </data>
+  <data name="LastNameLabel" xml:space="preserve">
+    <value>Last Name</value>
+  </data>
+  <data name="LastNamePlaceholder" xml:space="preserve">
+    <value>Enter last name</value>
+  </data>
+  <data name="FirstNameRequired" xml:space="preserve">
+    <value>First name is required.</value>
+  </data>
 </root>
