@@ -933,6 +933,65 @@ Android build and tablet runtime validation remain required in the user's config
 
 `Implement Player editing`
 
+### Story 2.3 — Deactivate Selected Players
+
+**Status:** Complete
+
+#### Implementation Summary
+
+- Made the existing Player List checkboxes the sole source of bulk selection and added live selected-count state and display.
+- Replaced the Deactivate Selected placeholder with a guarded confirmation and persistence workflow. The action is enabled only when at least one Player is selected and disabled during loading, persistence, or an active confirmation request.
+- Added singular and plural resource-backed confirmation messages containing the selected count, preservation guidance, and future-reactivation guidance. Cancel performs no repository call and preserves all selections.
+- Confirmed deactivation stays on the Player List, reloads active Players from the repository, preserves case-insensitive ordering, and shows the existing empty state when no active Players remain.
+
+#### Files Added
+
+None.
+
+#### Files Modified
+
+- `FEATURE_HISTORY.md`
+- `SoftballScorekeeper/Data/Repositories/PlayerRepository.cs`
+- `SoftballScorekeeper/ViewModels/PlayerSelectionItem.cs`
+- `SoftballScorekeeper/ViewModels/PlayerListViewModel.cs`
+- `SoftballScorekeeper/Views/PlayerListPage.xaml`
+- `SoftballScorekeeper/Views/PlayerListPage.xaml.cs`
+- `SoftballScorekeeper/Resources/Strings/AppResources.resx`
+- `SoftballScorekeeper/Resources/Strings/AppResources.Designer.cs`
+
+#### Repository and Selection Behavior
+
+- Added focused `PlayerRepository.DeactivateAsync`, which safely returns zero for null, empty, or invalid ID collections and performs one conditional SQLite update for distinct valid IDs. It changes only `IsActive` from true to false, ignores missing or already-inactive rows, returns the affected-row count, and performs no insert or delete.
+- Kept selection outside the persisted Player model. `PlayerSelectionItem` now accepts an optional focused selection callback, allowing `PlayerListViewModel` to maintain `SelectedPlayerCount`, `HasSelectedPlayers`, and command availability without generic selection infrastructure or event subscriptions that require cleanup.
+- The dedicated per-row Edit action remains independent of checkbox state, and Add Player behavior remains unchanged.
+
+#### Confirmation, Busy State, and Partial Updates
+
+- Reused the Team workflow's lightweight ViewModel-to-page confirmation delegate and request/confirmed-command pattern. Page code-behind only selects the singular or plural resource, formats the count, displays the native alert, and invokes the confirmed command.
+- The ViewModel snapshots distinct selected active IDs before confirmation. Cancel leaves the snapshot unapplied and preserves visible selection; loading, confirmation, and persistence guards prevent overlapping repository calls.
+- Full success rebuilds the active list with fresh unselected wrappers. If fewer rows are affected, the list still reloads from repository truth, a resource-backed partial-result message is shown, and requested Players that remain active are reselected.
+- Reload continues to use repository-owned case-insensitive First Name then Last Name ordering and recomputes the existing list and empty-state properties.
+
+#### Resources
+
+- Added `SelectedPlayerCountText`, `DeactivatePlayersConfirmationTitle`, `DeactivatePlayerConfirmationMessage`, `DeactivatePlayersConfirmationMessage`, `ConfirmDeactivatePlayersButton`, and `PlayerDeactivationPartialFailureMessage`.
+- Reused `DeactivateSelectedPlayersButton`, `CancelButton`, and `NoPlayersMessage`.
+
+#### Validation Completed
+
+- Reviewed the complete Story 2.3 diff for selection tracking, command availability, confirmation cancellation, conditional active-only persistence, partial-update recovery, repository reload, empty state, resource usage, and excluded scope.
+- `git diff --check` passed. Informational LF-to-CRLF conversion notices remain present.
+- The Windows target build succeeded with 24 warnings and zero errors. Warning categories remain the existing `CS8602`, `MVVMTK0045`, and `XC0025` categories; Story 2.3 introduced no new warning category.
+- The command-line Android build was attempted but could not locate the Android SDK and failed with `XA5300`. Android and Windows runtime validation were not performed.
+
+#### Limitations and Deferred Work
+
+Android build and 10-inch tablet runtime validation remain pending in the user's configured environment. Player reactivation, inactive-Player management, permanent deletion, Team membership, jersey numbers, lineups, games, undo, statistics, automated tests, architecture migration, and branding remain deferred.
+
+#### Intended Commit Message
+
+`Deactivate selected Players`
+
 ## Maintenance Rules
 
 Every future story must update this file before the story is committed. A story is not complete until its accurate feature-history entry is included in the same story-focused commit as its implementation.
