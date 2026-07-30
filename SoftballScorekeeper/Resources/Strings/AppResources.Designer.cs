@@ -222,5 +222,11 @@ namespace SoftballScorekeeper.Resources.Strings {
             }
         }
 
+        public static string InactiveTeamNameExists {
+            get {
+                return ResourceManager.GetString("InactiveTeamNameExists", resourceCulture);
+            }
+        }
+
     }
 }
