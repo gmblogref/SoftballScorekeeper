@@ -314,5 +314,17 @@ namespace SoftballScorekeeper.Resources.Strings {
             }
         }
 
+        public static string EditPlayerTitle {
+            get {
+                return ResourceManager.GetString("EditPlayerTitle", resourceCulture);
+            }
+        }
+
+        public static string PlayerNotFound {
+            get {
+                return ResourceManager.GetString("PlayerNotFound", resourceCulture);
+            }
+        }
+
     }
 }
