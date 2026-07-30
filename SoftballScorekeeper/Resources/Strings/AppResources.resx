@@ -190,4 +190,22 @@
   <data name="PlayerNotFound" xml:space="preserve">
     <value>The Player could not be found.</value>
   </data>
+  <data name="SelectedPlayerCountText" xml:space="preserve">
+    <value>Selected: {0}</value>
+  </data>
+  <data name="DeactivatePlayersConfirmationTitle" xml:space="preserve">
+    <value>Deactivate Players</value>
+  </data>
+  <data name="DeactivatePlayerConfirmationMessage" xml:space="preserve">
+    <value>Deactivate {0} selected Player? The Player will be hidden from active Player screens. Existing data will be preserved, and the Player can be reactivated later.</value>
+  </data>
+  <data name="DeactivatePlayersConfirmationMessage" xml:space="preserve">
+    <value>Deactivate {0} selected Players? The Players will be hidden from active Player screens. Existing data will be preserved, and they can be reactivated later.</value>
+  </data>
+  <data name="ConfirmDeactivatePlayersButton" xml:space="preserve">
+    <value>Deactivate</value>
+  </data>
+  <data name="PlayerDeactivationPartialFailureMessage" xml:space="preserve">
+    <value>{0} of {1} selected Players were deactivated. The active Player list has been refreshed.</value>
+  </data>
 </root>

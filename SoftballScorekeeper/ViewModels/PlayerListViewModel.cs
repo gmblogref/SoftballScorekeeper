@@ -1,4 +1,5 @@
 using System.Collections.ObjectModel;
+using System.Globalization;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using SoftballScorekeeper.Data.Repositories;
@@ -9,6 +10,9 @@ namespace SoftballScorekeeper.ViewModels;
 public partial class PlayerListViewModel : ObservableObject
 {
     private readonly PlayerRepository playerRepository;
+    private IReadOnlyList<int> pendingPlayerIds = Array.Empty<int>();
+    private bool isConfirmationPending;
+    private int selectedPlayerCount;
 
     [ObservableProperty]
     private bool hasPlayers;
@@ -31,6 +35,24 @@ public partial class PlayerListViewModel : ObservableObject
 
     public ObservableCollection<PlayerSelectionItem> Players { get; } = new();
 
+    public Func<int, Task>? DeactivatePlayersConfirmationRequested { get; set; }
+
+    public int SelectedPlayerCount
+    {
+        get => selectedPlayerCount;
+        private set
+        {
+            if (SetProperty(ref selectedPlayerCount, value))
+            {
+                OnPropertyChanged(nameof(HasSelectedPlayers));
+                DeactivateSelectedPlayersCommand.NotifyCanExecuteChanged();
+                ConfirmDeactivateSelectedPlayersCommand.NotifyCanExecuteChanged();
+            }
+        }
+    }
+
+    public bool HasSelectedPlayers => SelectedPlayerCount > 0;
+
     public async Task LoadPlayersAsync()
     {
         if (IsLoading)
@@ -41,16 +63,7 @@ public partial class PlayerListViewModel : ObservableObject
         IsLoading = true;
         try
         {
-            var players = await playerRepository.GetActiveAsync();
-
-            Players.Clear();
-            foreach (var player in players)
-            {
-                Players.Add(new PlayerSelectionItem(player));
-            }
-
-            HasPlayers = Players.Count > 0;
-            HasNoPlayers = !HasPlayers;
+            await ReloadPlayersAsync();
         }
         finally
         {
@@ -80,10 +93,75 @@ public partial class PlayerListViewModel : ObservableObject
         await Shell.Current.GoToAsync(AppShell.EditPlayerRoute, parameters);
     }
 
-    [RelayCommand]
-    private void DeactivateSelectedPlayers()
+    [RelayCommand(CanExecute = nameof(CanDeactivateSelectedPlayers))]
+    private async Task DeactivateSelectedPlayersAsync()
     {
-        ShowPlaceholderMessage();
+        if (!CanDeactivateSelectedPlayers())
+        {
+            return;
+        }
+
+        pendingPlayerIds = Players
+            .Where(item => item.IsSelected && item.Player is { Id: > 0, IsActive: true })
+            .Select(item => item.Player.Id)
+            .Distinct()
+            .ToArray();
+
+        if (pendingPlayerIds.Count == 0)
+        {
+            UpdateSelectionState();
+            return;
+        }
+
+        isConfirmationPending = true;
+        DeactivateSelectedPlayersCommand.NotifyCanExecuteChanged();
+        try
+        {
+            var confirmationRequested = DeactivatePlayersConfirmationRequested;
+            if (confirmationRequested is not null)
+            {
+                await confirmationRequested(pendingPlayerIds.Count);
+            }
+        }
+        finally
+        {
+            pendingPlayerIds = Array.Empty<int>();
+            isConfirmationPending = false;
+            DeactivateSelectedPlayersCommand.NotifyCanExecuteChanged();
+            ConfirmDeactivateSelectedPlayersCommand.NotifyCanExecuteChanged();
+        }
+    }
+
+    [RelayCommand(CanExecute = nameof(CanConfirmDeactivateSelectedPlayers))]
+    private async Task ConfirmDeactivateSelectedPlayersAsync()
+    {
+        if (!CanConfirmDeactivateSelectedPlayers())
+        {
+            return;
+        }
+
+        var selectedIds = pendingPlayerIds.ToArray();
+        IsLoading = true;
+        try
+        {
+            var affectedRows = await playerRepository.DeactivateAsync(selectedIds);
+            var idsToReselect = affectedRows == selectedIds.Length
+                ? Array.Empty<int>()
+                : selectedIds;
+
+            await ReloadPlayersAsync(idsToReselect);
+            StatusMessage = affectedRows == selectedIds.Length
+                ? string.Empty
+                : string.Format(
+                    CultureInfo.CurrentCulture,
+                    AppResources.PlayerDeactivationPartialFailureMessage,
+                    affectedRows,
+                    selectedIds.Length);
+        }
+        finally
+        {
+            IsLoading = false;
+        }
     }
 
     [RelayCommand]
@@ -95,5 +173,55 @@ public partial class PlayerListViewModel : ObservableObject
     private void ShowPlaceholderMessage()
     {
         StatusMessage = AppResources.PlayerManagementPlaceholderMessage;
+    }
+
+    partial void OnIsLoadingChanged(bool value)
+    {
+        DeactivateSelectedPlayersCommand.NotifyCanExecuteChanged();
+        ConfirmDeactivateSelectedPlayersCommand.NotifyCanExecuteChanged();
+    }
+
+    private bool CanDeactivateSelectedPlayers()
+    {
+        return !IsLoading && !isConfirmationPending && HasSelectedPlayers;
+    }
+
+    private bool CanConfirmDeactivateSelectedPlayers()
+    {
+        return !IsLoading && isConfirmationPending && pendingPlayerIds.Count > 0;
+    }
+
+    private async Task ReloadPlayersAsync(IReadOnlyCollection<int>? playerIdsToReselect = null)
+    {
+        var players = await playerRepository.GetActiveAsync();
+        var selectedIds = playerIdsToReselect is null
+            ? null
+            : playerIdsToReselect.ToHashSet();
+
+        Players.Clear();
+        foreach (var player in players)
+        {
+            var item = new PlayerSelectionItem(player, OnPlayerSelectionChanged);
+            if (selectedIds?.Contains(player.Id) == true)
+            {
+                item.IsSelected = true;
+            }
+
+            Players.Add(item);
+        }
+
+        HasPlayers = Players.Count > 0;
+        HasNoPlayers = !HasPlayers;
+        UpdateSelectionState();
+    }
+
+    private void OnPlayerSelectionChanged(PlayerSelectionItem item)
+    {
+        UpdateSelectionState();
+    }
+
+    private void UpdateSelectionState()
+    {
+        SelectedPlayerCount = Players.Count(item => item.IsSelected);
     }
 }

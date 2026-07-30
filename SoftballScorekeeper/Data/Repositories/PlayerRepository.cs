@@ -30,6 +30,34 @@ public sealed class PlayerRepository
             true);
     }
 
+    public async Task<int> DeactivateAsync(IReadOnlyCollection<int>? playerIds)
+    {
+        if (playerIds is null || playerIds.Count == 0)
+        {
+            return 0;
+        }
+
+        var validPlayerIds = playerIds
+            .Where(playerId => playerId > 0)
+            .Distinct()
+            .ToArray();
+
+        if (validPlayerIds.Length == 0)
+        {
+            return 0;
+        }
+
+        var placeholders = string.Join(", ", validPlayerIds.Select(_ => "?"));
+        var parameters = new object[] { false, true }
+            .Concat(validPlayerIds.Cast<object>())
+            .ToArray();
+        var connection = await database.GetConnectionAsync();
+
+        return await connection.ExecuteAsync(
+            $"UPDATE Player SET IsActive = ? WHERE IsActive = ? AND Id IN ({placeholders})",
+            parameters);
+    }
+
     public async Task<List<Player>> GetActiveAsync()
     {
         var connection = await database.GetConnectionAsync();

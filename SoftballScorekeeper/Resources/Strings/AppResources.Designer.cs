@@ -326,5 +326,41 @@ namespace SoftballScorekeeper.Resources.Strings {
             }
         }
 
+        public static string SelectedPlayerCountText {
+            get {
+                return ResourceManager.GetString("SelectedPlayerCountText", resourceCulture);
+            }
+        }
+
+        public static string DeactivatePlayersConfirmationTitle {
+            get {
+                return ResourceManager.GetString("DeactivatePlayersConfirmationTitle", resourceCulture);
+            }
+        }
+
+        public static string DeactivatePlayerConfirmationMessage {
+            get {
+                return ResourceManager.GetString("DeactivatePlayerConfirmationMessage", resourceCulture);
+            }
+        }
+
+        public static string DeactivatePlayersConfirmationMessage {
+            get {
+                return ResourceManager.GetString("DeactivatePlayersConfirmationMessage", resourceCulture);
+            }
+        }
+
+        public static string ConfirmDeactivatePlayersButton {
+            get {
+                return ResourceManager.GetString("ConfirmDeactivatePlayersButton", resourceCulture);
+            }
+        }
+
+        public static string PlayerDeactivationPartialFailureMessage {
+            get {
+                return ResourceManager.GetString("PlayerDeactivationPartialFailureMessage", resourceCulture);
+            }
+        }
+
     }
 }
