@@ -90,6 +90,16 @@
                 BackgroundColor="Transparent"
                 BorderWidth="0"
                 TextColor="{AppThemeBinding Light={StaticResource Primary}, Dark={StaticResource PrimaryDark}}" />
+
+            <Button
+                Text="{x:Static strings:AppResources.ViewPlayersButton}"
+                Command="{Binding OpenPlayerListCommand}"
+                MinimumHeightRequest="48"
+                Padding="20,10"
+                HorizontalOptions="Center"
+                BackgroundColor="Transparent"
+                BorderWidth="0"
+                TextColor="{AppThemeBinding Light={StaticResource Primary}, Dark={StaticResource PrimaryDark}}" />
         </VerticalStackLayout>
     </Grid>
 

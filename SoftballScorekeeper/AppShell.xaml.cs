@@ -5,6 +5,7 @@
         public const string CreateTeamRoute = "create-team";
         public const string EditTeamRoute = "edit-team";
         public const string InactiveTeamsRoute = "inactive-teams";
+        public const string PlayerListRoute = "players";
         public const string TeamIdQueryParameter = "teamId";
 
         public AppShell(Views.MainPage mainPage)
@@ -13,6 +14,7 @@
             Routing.RegisterRoute(CreateTeamRoute, typeof(Views.CreateTeamPage));
             Routing.RegisterRoute(EditTeamRoute, typeof(Views.EditTeamPage));
             Routing.RegisterRoute(InactiveTeamsRoute, typeof(Views.InactiveTeamsPage));
+            Routing.RegisterRoute(PlayerListRoute, typeof(Views.PlayerListPage));
             MainShellContent.Content = mainPage;
         }
     }
