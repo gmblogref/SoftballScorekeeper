@@ -663,6 +663,61 @@ Team reactivation, an inactive-Team management screen, and permanent Team deleti
 
 Player and Game management, lineups, scorekeeping, statistics, beer rules, the automated test project, layered/Clean Architecture migration, and replacement application branding and icons remain future work.
 
+### Story 1.4 — Manage and Reactivate Inactive Teams
+
+**Status:** Complete
+
+#### Implementation Summary
+
+- Added a secondary, resource-backed Manage Inactive Teams action to the landing page and a transient inactive-Team page and view model.
+- The new page reloads on every appearance, shows only inactive Teams in repository-provided alphabetical order, preserves one stable observable collection, and switches between list and empty states.
+- Each inactive-Team card offers only a tablet-friendly Reactivate action. No editing, permanent deletion, bulk action, or unrelated administration behavior was added.
+
+#### Repository and Reactivation Behavior
+
+- Added `GetInactiveAsync`, which queries only rows where `IsActive` is false and orders them by name.
+- Added `ReactivateAsync(int id)` as a conditional SQLite update matching the existing Team ID and inactive state. It changes only `IsActive` to true, returns zero for a missing or already-active row, and never inserts, copies, or deletes a Team.
+- Reused active-name checking with current-Team exclusion. Comparison continues to trim surrounding whitespace, ignore casing, and consider only active Teams.
+
+#### ViewModel, Confirmation, and Conflict Behavior
+
+- Added `InactiveTeamsViewModel` with generated request and confirmed-reactivation commands, busy-state overlap protection, collection and empty-state properties, and a resource-backed validation message.
+- Reused Story 1.3's lightweight asynchronous confirmation delegate. Page code-behind formats the persisted Team name into a resource template, displays Reactivate and Cancel actions, and invokes the confirmed ViewModel command only after approval.
+- Cancel performs no persistence work. Confirmation checks for an active normalized-name conflict, leaves the inactive row unchanged when blocked, conditionally reactivates the existing row, and reloads the inactive list after success.
+- Reused `DuplicateTeamName`, `TeamNotFound`, and `CancelButton` where their meanings match.
+
+#### Navigation, Resources, and Dependency Injection
+
+- Added and registered the centralized `inactive-teams` Shell route. Landing navigation remains owned by `LandingPageViewModel`.
+- Registered `InactiveTeamsViewModel` and `InactiveTeamsPage` as transient without changing existing service lifetimes.
+- Added `ManageInactiveTeamsButton`, `InactiveTeamsTitle`, `NoInactiveTeamsMessage`, `ReactivateTeamButton`, `ReactivateTeamConfirmationTitle`, `ReactivateTeamConfirmationMessage`, and `ConfirmReactivateTeamButton` resources and strongly typed accessors.
+- Returning to the landing page continues to rely exclusively on `MainPage.OnAppearing` and its existing active-Team reload; the inactive-Team workflow does not modify the landing collection.
+
+#### Files Added
+
+- `SoftballScorekeeper/ViewModels/InactiveTeamsViewModel.cs`
+- `SoftballScorekeeper/Views/InactiveTeamsPage.xaml`
+- `SoftballScorekeeper/Views/InactiveTeamsPage.xaml.cs`
+
+#### Files Modified
+
+- `FEATURE_HISTORY.md`
+- `SoftballScorekeeper/AppShell.xaml.cs`
+- `SoftballScorekeeper/Data/Repositories/TeamRepository.cs`
+- `SoftballScorekeeper/MauiProgram.cs`
+- `SoftballScorekeeper/Resources/Strings/AppResources.Designer.cs`
+- `SoftballScorekeeper/Resources/Strings/AppResources.resx`
+- `SoftballScorekeeper/ViewModels/LandingPageViewModel.cs`
+- `SoftballScorekeeper/Views/MainPage.xaml`
+
+#### Validation Status, Warnings, and Deferred Work
+
+The implementation and complete Story 1.4 diff received static review, and `git diff --check` passed. A command-line Windows framework build succeeded with zero warnings and zero errors. User validation then confirmed that the Windows build passed with zero warnings and errors, the application launched, existing Create, Edit, and Deactivate workflows remained functional, and all inactive-Team navigation, ordering, empty-state, confirmation, cancel, reactivation, landing refresh, restart persistence, and active-name conflict behavior passed without runtime exceptions.
+
+User validation also confirmed that the Android build and launch passed and that all Story 1.4 workflows worked on the 10-inch tablet. The tablet presentation was readable with no clipping, overlap, unexpected scrolling, binding errors, or touch-target problems. No application-code correction was required after validation. No automated test project exists, so no automated tests were added or run. Git continued to report only the known informational LF-to-CRLF conversion messages during diff review.
+
+Create and Edit continue to allow reuse of an inactive Team name, consistent with the behavior established before Story 1.4; the user accepted this as outside Story 1.4 and deferred any change to the next story. Permanent deletion, inactive-Team editing, bulk actions, Team merging or duplication, additional Team fields and statistics, Team workspace behavior, Player and Game workflows, generic administration or soft-delete frameworks, the automated test project, architecture migration, and branding remain deferred.
+
 ## Maintenance Rules
 
 Every future story must update this file before the story is committed. A story is not complete until its accurate feature-history entry is included in the same story-focused commit as its implementation.

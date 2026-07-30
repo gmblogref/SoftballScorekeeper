@@ -118,4 +118,25 @@
   <data name="ConfirmDeactivateTeamButton" xml:space="preserve">
     <value>Deactivate</value>
   </data>
+  <data name="ManageInactiveTeamsButton" xml:space="preserve">
+    <value>Manage Inactive Teams</value>
+  </data>
+  <data name="InactiveTeamsTitle" xml:space="preserve">
+    <value>Inactive Teams</value>
+  </data>
+  <data name="NoInactiveTeamsMessage" xml:space="preserve">
+    <value>There are no inactive teams.</value>
+  </data>
+  <data name="ReactivateTeamButton" xml:space="preserve">
+    <value>Reactivate</value>
+  </data>
+  <data name="ReactivateTeamConfirmationTitle" xml:space="preserve">
+    <value>Reactivate Team</value>
+  </data>
+  <data name="ReactivateTeamConfirmationMessage" xml:space="preserve">
+    <value>Reactivate "{0}"? The team will return to the normal landing page, and its existing data will be preserved.</value>
+  </data>
+  <data name="ConfirmReactivateTeamButton" xml:space="preserve">
+    <value>Reactivate</value>
+  </data>
 </root>

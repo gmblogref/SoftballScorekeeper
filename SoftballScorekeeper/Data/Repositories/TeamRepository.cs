@@ -35,11 +35,30 @@ public sealed class TeamRepository
             true);
     }
 
+    public async Task<int> ReactivateAsync(int id)
+    {
+        var connection = await database.GetConnectionAsync();
+        return await connection.ExecuteAsync(
+            "UPDATE Team SET IsActive = ? WHERE Id = ? AND IsActive = ?",
+            true,
+            id,
+            false);
+    }
+
     public async Task<List<Team>> GetActiveAsync()
     {
         var connection = await database.GetConnectionAsync();
         return await connection.Table<Team>()
             .Where(team => team.IsActive)
+            .OrderBy(team => team.Name)
+            .ToListAsync();
+    }
+
+    public async Task<List<Team>> GetInactiveAsync()
+    {
+        var connection = await database.GetConnectionAsync();
+        return await connection.Table<Team>()
+            .Where(team => !team.IsActive)
             .OrderBy(team => team.Name)
             .ToListAsync();
     }

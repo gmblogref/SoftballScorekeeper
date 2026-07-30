@@ -70,13 +70,27 @@
             </CollectionView>
         </Grid>
 
-        <Button
+        <VerticalStackLayout
             Grid.Row="3"
-            Text="{x:Static strings:AppResources.CreateTeamButton}"
-            Command="{Binding CreateTeamCommand}"
-            MinimumWidthRequest="180"
-            Padding="28,14"
-            HorizontalOptions="Center" />
+            HorizontalOptions="Center"
+            Spacing="12">
+            <Button
+                Text="{x:Static strings:AppResources.CreateTeamButton}"
+                Command="{Binding CreateTeamCommand}"
+                MinimumWidthRequest="180"
+                Padding="28,14"
+                HorizontalOptions="Center" />
+
+            <Button
+                Text="{x:Static strings:AppResources.ManageInactiveTeamsButton}"
+                Command="{Binding ManageInactiveTeamsCommand}"
+                MinimumHeightRequest="48"
+                Padding="20,10"
+                HorizontalOptions="Center"
+                BackgroundColor="Transparent"
+                BorderWidth="0"
+                TextColor="{AppThemeBinding Light={StaticResource Primary}, Dark={StaticResource PrimaryDark}}" />
+        </VerticalStackLayout>
     </Grid>
 
 </ContentPage>

@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:models="clr-namespace:SoftballScorekeeper.Models"
+             xmlns:strings="clr-namespace:SoftballScorekeeper.Resources.Strings"
+             xmlns:viewModels="clr-namespace:SoftballScorekeeper.ViewModels"
+             x:Class="SoftballScorekeeper.Views.InactiveTeamsPage"
+             x:Name="PageRoot"
+             x:DataType="viewModels:InactiveTeamsViewModel"
+             Title="{x:Static strings:AppResources.InactiveTeamsTitle}">
+
+    <Grid
+        Padding="40"
+        RowDefinitions="Auto,Auto,*"
+        RowSpacing="20">
+        <Label
+            Grid.Row="0"
+            Text="{x:Static strings:AppResources.InactiveTeamsTitle}"
+            Style="{StaticResource Headline}"
+            SemanticProperties.HeadingLevel="Level1" />
+
+        <Label
+            Grid.Row="1"
+            Text="{Binding ValidationMessage}">
+            <Label.Triggers>
+                <DataTrigger TargetType="Label" Binding="{Binding ValidationMessage}" Value="">
+                    <Setter Property="IsVisible" Value="False" />
+                </DataTrigger>
+            </Label.Triggers>
+        </Label>
+
+        <Grid Grid.Row="2">
+            <Label
+                Text="{x:Static strings:AppResources.NoInactiveTeamsMessage}"
+                HorizontalTextAlignment="Center"
+                VerticalOptions="Center"
+                IsVisible="{Binding HasNoInactiveTeams}" />
+
+            <CollectionView
+                ItemsSource="{Binding InactiveTeams}"
+                IsVisible="{Binding HasInactiveTeams}"
+                SelectionMode="None">
+                <CollectionView.ItemTemplate>
+                    <DataTemplate x:DataType="models:Team">
+                        <Border
+                            Margin="0,0,0,12"
+                            Padding="20"
+                            MinimumHeightRequest="88"
+                            BackgroundColor="{AppThemeBinding Light={StaticResource White}, Dark={StaticResource Gray900}}"
+                            Stroke="{AppThemeBinding Light={StaticResource Gray300}, Dark={StaticResource Gray500}}"
+                            StrokeThickness="2">
+                            <Border.StrokeShape>
+                                <RoundRectangle CornerRadius="14" />
+                            </Border.StrokeShape>
+
+                            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="20">
+                                <Label
+                                    Text="{Binding Name}"
+                                    FontFamily="OpenSansSemibold"
+                                    FontSize="24"
+                                    LineBreakMode="TailTruncation"
+                                    VerticalOptions="Center" />
+                                <Button
+                                    Grid.Column="1"
+                                    Text="{x:Static strings:AppResources.ReactivateTeamButton}"
+                                    Command="{Binding Source={x:Reference PageRoot}, Path=BindingContext.RequestReactivateTeamCommand}"
+                                    CommandParameter="{Binding .}"
+                                    MinimumHeightRequest="52"
+                                    Padding="24,14" />
+                            </Grid>
+                        </Border>
+                    </DataTemplate>
+                </CollectionView.ItemTemplate>
+            </CollectionView>
+        </Grid>
+    </Grid>
+</ContentPage>

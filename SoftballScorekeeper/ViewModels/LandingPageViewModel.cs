@@ -62,6 +62,12 @@ public partial class LandingPageViewModel : ObservableObject
     }
 
     [RelayCommand]
+    private async Task ManageInactiveTeamsAsync()
+    {
+        await Shell.Current.GoToAsync(AppShell.InactiveTeamsRoute);
+    }
+
+    [RelayCommand]
     private async Task EditTeamAsync(Team? team)
     {
         if (team is null || team.Id <= 0)

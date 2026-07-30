@@ -32,8 +32,10 @@ namespace SoftballScorekeeper
             builder.Services.AddSingleton<LandingPageViewModel>();
             builder.Services.AddTransient<CreateTeamViewModel>();
             builder.Services.AddTransient<EditTeamViewModel>();
+            builder.Services.AddTransient<InactiveTeamsViewModel>();
             builder.Services.AddTransient<CreateTeamPage>();
             builder.Services.AddTransient<EditTeamPage>();
+            builder.Services.AddTransient<InactiveTeamsPage>();
             builder.Services.AddSingleton<MainPage>();
 
             return builder.Build();
