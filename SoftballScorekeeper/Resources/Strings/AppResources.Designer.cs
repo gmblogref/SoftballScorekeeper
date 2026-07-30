@@ -362,5 +362,53 @@ namespace SoftballScorekeeper.Resources.Strings {
             }
         }
 
+        public static string InactivePlayersTitle {
+            get {
+                return ResourceManager.GetString("InactivePlayersTitle", resourceCulture);
+            }
+        }
+
+        public static string NoInactivePlayersMessage {
+            get {
+                return ResourceManager.GetString("NoInactivePlayersMessage", resourceCulture);
+            }
+        }
+
+        public static string ReactivateSelectedPlayersButton {
+            get {
+                return ResourceManager.GetString("ReactivateSelectedPlayersButton", resourceCulture);
+            }
+        }
+
+        public static string ReactivatePlayersConfirmationTitle {
+            get {
+                return ResourceManager.GetString("ReactivatePlayersConfirmationTitle", resourceCulture);
+            }
+        }
+
+        public static string ReactivatePlayerConfirmationMessage {
+            get {
+                return ResourceManager.GetString("ReactivatePlayerConfirmationMessage", resourceCulture);
+            }
+        }
+
+        public static string ReactivatePlayersConfirmationMessage {
+            get {
+                return ResourceManager.GetString("ReactivatePlayersConfirmationMessage", resourceCulture);
+            }
+        }
+
+        public static string ConfirmReactivatePlayersButton {
+            get {
+                return ResourceManager.GetString("ConfirmReactivatePlayersButton", resourceCulture);
+            }
+        }
+
+        public static string PlayerReactivationPartialFailureMessage {
+            get {
+                return ResourceManager.GetString("PlayerReactivationPartialFailureMessage", resourceCulture);
+            }
+        }
+
     }
 }

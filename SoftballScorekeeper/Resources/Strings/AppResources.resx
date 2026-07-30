@@ -208,4 +208,28 @@
   <data name="PlayerDeactivationPartialFailureMessage" xml:space="preserve">
     <value>{0} of {1} selected Players were deactivated. The active Player list has been refreshed.</value>
   </data>
+  <data name="InactivePlayersTitle" xml:space="preserve">
+    <value>Inactive Players</value>
+  </data>
+  <data name="NoInactivePlayersMessage" xml:space="preserve">
+    <value>There are no inactive Players.</value>
+  </data>
+  <data name="ReactivateSelectedPlayersButton" xml:space="preserve">
+    <value>Reactivate Selected</value>
+  </data>
+  <data name="ReactivatePlayersConfirmationTitle" xml:space="preserve">
+    <value>Reactivate Players</value>
+  </data>
+  <data name="ReactivatePlayerConfirmationMessage" xml:space="preserve">
+    <value>Reactivate {0} selected Player? The Player will return to active Player screens, and existing Player data will remain preserved.</value>
+  </data>
+  <data name="ReactivatePlayersConfirmationMessage" xml:space="preserve">
+    <value>Reactivate {0} selected Players? The Players will return to active Player screens, and existing Player data will remain preserved.</value>
+  </data>
+  <data name="ConfirmReactivatePlayersButton" xml:space="preserve">
+    <value>Reactivate</value>
+  </data>
+  <data name="PlayerReactivationPartialFailureMessage" xml:space="preserve">
+    <value>{0} of {1} selected Players were reactivated. The inactive Player list has been refreshed.</value>
+  </data>
 </root>
