@@ -65,9 +65,19 @@ public partial class PlayerListViewModel : ObservableObject
     }
 
     [RelayCommand]
-    private void EditPlayer()
+    private async Task EditPlayerAsync(int playerId)
     {
-        ShowPlaceholderMessage();
+        if (playerId <= 0)
+        {
+            return;
+        }
+
+        var parameters = new ShellNavigationQueryParameters
+        {
+            [AppShell.PlayerIdQueryParameter] = playerId
+        };
+
+        await Shell.Current.GoToAsync(AppShell.EditPlayerRoute, parameters);
     }
 
     [RelayCommand]

@@ -184,4 +184,10 @@
   <data name="FirstNameRequired" xml:space="preserve">
     <value>First name is required.</value>
   </data>
+  <data name="EditPlayerTitle" xml:space="preserve">
+    <value>Edit Player</value>
+  </data>
+  <data name="PlayerNotFound" xml:space="preserve">
+    <value>The Player could not be found.</value>
+  </data>
 </root>

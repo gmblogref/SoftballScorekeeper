@@ -19,6 +19,17 @@ public sealed class PlayerRepository
         return await connection.InsertAsync(player);
     }
 
+    public async Task<int> UpdateAsync(Player player)
+    {
+        var connection = await database.GetConnectionAsync();
+        return await connection.ExecuteAsync(
+            "UPDATE Player SET FirstName = ?, LastName = ? WHERE Id = ? AND IsActive = ?",
+            player.FirstName,
+            player.LastName,
+            player.Id,
+            true);
+    }
+
     public async Task<List<Player>> GetActiveAsync()
     {
         var connection = await database.GetConnectionAsync();
@@ -40,5 +51,13 @@ public sealed class PlayerRepository
             .OrderBy(player => player.FirstName)
             .ThenBy(player => player.LastName)
             .ToListAsync();
+    }
+
+    public async Task<Player?> GetActiveByIdAsync(int id)
+    {
+        var connection = await database.GetConnectionAsync();
+        return await connection.Table<Player>()
+            .Where(player => player.Id == id && player.IsActive)
+            .FirstOrDefaultAsync();
     }
 }
