@@ -718,6 +718,53 @@ User validation also confirmed that the Android build and launch passed and that
 
 Create and Edit continue to allow reuse of an inactive Team name, consistent with the behavior established before Story 1.4; the user accepted this as outside Story 1.4 and deferred any change to the next story. Permanent deletion, inactive-Team editing, bulk actions, Team merging or duplication, additional Team fields and statistics, Team workspace behavior, Player and Game workflows, generic administration or soft-delete frameworks, the automated test project, architecture migration, and branding remain deferred.
 
+### Story 1.5 — Prevent Reuse of Inactive Team Names
+
+**Status:** Complete
+
+#### Implementation Summary
+
+- Added focused `TeamRepository.InactiveNameExistsAsync` overloads that load inactive Teams only, trim surrounding whitespace from supplied and persisted names, compare with `StringComparison.OrdinalIgnoreCase`, and support current-Team ID exclusion.
+- Create Team now checks inactive normalized-name matches after required-name and active-duplicate validation. A conflict displays resource-backed guidance directing the user to Manage Inactive Teams, remains on the form, and performs no insert.
+- Edit Team now performs the same inactive-name check after active-duplicate validation and excludes the loaded Team ID. A conflict occurs before editable or persisted model state is mutated, remains on the form, and performs no update.
+- Existing active duplicate validation and Story 1.4 reactivation behavior remain intact. Create and Edit do not automatically navigate, reactivate, merge, rename, or delete a Team when blocked.
+
+#### Files Changed
+
+- `FEATURE_HISTORY.md`
+- `SoftballScorekeeper/Data/Repositories/TeamRepository.cs`
+- `SoftballScorekeeper/ViewModels/CreateTeamViewModel.cs`
+- `SoftballScorekeeper/ViewModels/EditTeamViewModel.cs`
+- `SoftballScorekeeper/Resources/Strings/AppResources.resx`
+- `SoftballScorekeeper/Resources/Strings/AppResources.Designer.cs`
+
+#### Architecture and Design Decisions
+
+- Preserved repository ownership of persisted Team-name lookup and kept active and inactive checks as separate public operations.
+- Reused the established trimmed, case-insensitive in-memory comparison behavior without introducing a generic identity or validation abstraction.
+- Added only the `InactiveTeamNameExists` resource and strongly typed accessor for runtime guidance.
+- No model, page, route, service, interface, database table, migration, dependency-injection registration, or architectural-layer change was required.
+- No automatic reactivation or navigation to Manage Inactive Teams was introduced.
+
+#### Validation Completed
+
+- `git diff --check` passed.
+- The Windows framework build succeeded with 19 existing warnings and zero errors. The warnings remained in the existing `CS8602`, `MVVMTK0045`, and `XC0025` categories; no warning originated from Story 1.5 changes.
+- Android build, launch, and runtime validation passed through the user's configured Visual Studio environment.
+- Create and Edit correctly blocked exact, casing-varied, and surrounding-whitespace-varied inactive-name conflicts, displayed the resource-backed guidance, remained on their forms, and performed no prohibited insert or update.
+- Active-duplicate regression tests, unique Create and Edit, unchanged-name Edit without a separate inactive conflict, Manage Inactive Teams reactivation, and persistence after restart passed.
+- Story 1.4 reactivation continued updating the existing inactive row, and the reactivated Team appeared exactly once.
+- The Android 10-inch tablet layout remained readable and usable, and no runtime exceptions occurred.
+- Windows runtime validation was not performed; Windows compile validation passed.
+
+#### Limitations and Deferred Work
+
+Automatic navigation to Manage Inactive Teams, automatic reactivation, Team merging, permanent deletion, and editing inactive Teams remain outside scope. No database-level unique constraint or automated test project was added. The layered/Clean Architecture migration remains deferred.
+
+#### Intended Commit Message
+
+`Prevent inactive Team name reuse`
+
 ### Story 2.0 — Player List and Multi-Selection Foundation
 
 **Status:** Complete

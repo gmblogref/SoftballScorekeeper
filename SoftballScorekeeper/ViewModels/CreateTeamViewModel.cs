@@ -87,6 +87,12 @@ public partial class CreateTeamViewModel : ObservableObject
             return false;
         }
 
+        if (await teamRepository.InactiveNameExistsAsync(trimmedName))
+        {
+            ValidationMessage = AppResources.InactiveTeamNameExists;
+            return false;
+        }
+
         ValidationMessage = string.Empty;
         return true;
     }

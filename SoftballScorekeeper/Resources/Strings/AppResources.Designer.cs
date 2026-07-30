@@ -222,7 +222,15 @@ namespace SoftballScorekeeper.Resources.Strings {
             }
         }
 
-        public static string ViewPlayersButton {
+		public static string InactiveTeamNameExists
+		{
+			get
+			{
+				return ResourceManager.GetString("InactiveTeamNameExists", resourceCulture);
+			}
+		}
+
+		public static string ViewPlayersButton {
             get {
                 return ResourceManager.GetString("ViewPlayersButton", resourceCulture);
             }

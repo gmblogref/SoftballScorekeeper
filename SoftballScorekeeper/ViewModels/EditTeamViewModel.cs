@@ -122,6 +122,12 @@ public partial class EditTeamViewModel : ObservableObject, IQueryAttributable
                 return;
             }
 
+            if (await teamRepository.InactiveNameExistsAsync(trimmedName, loadedTeam.Id))
+            {
+                ValidationMessage = AppResources.InactiveTeamNameExists;
+                return;
+            }
+
             TeamName = trimmedName;
             var originalName = loadedTeam.Name;
             loadedTeam.Name = trimmedName;
