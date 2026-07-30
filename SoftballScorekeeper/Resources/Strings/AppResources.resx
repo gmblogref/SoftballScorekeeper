@@ -139,4 +139,7 @@
   <data name="ConfirmReactivateTeamButton" xml:space="preserve">
     <value>Reactivate</value>
   </data>
+  <data name="InactiveTeamNameExists" xml:space="preserve">
+    <value>A deactivated Team already uses this name. Reactivate it from Manage Inactive Teams.</value>
+  </data>
 </root>

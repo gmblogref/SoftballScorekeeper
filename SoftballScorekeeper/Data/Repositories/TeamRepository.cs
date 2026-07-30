@@ -81,6 +81,16 @@ public sealed class TeamRepository
         return ActiveNameExistsAsync(name, (int?)excludedTeamId);
     }
 
+    public Task<bool> InactiveNameExistsAsync(string name)
+    {
+        return InactiveNameExistsAsync(name, excludedTeamId: null);
+    }
+
+    public Task<bool> InactiveNameExistsAsync(string name, int excludedTeamId)
+    {
+        return InactiveNameExistsAsync(name, (int?)excludedTeamId);
+    }
+
     private async Task<bool> ActiveNameExistsAsync(string name, int? excludedTeamId)
     {
         var normalizedName = name.Trim();
@@ -90,6 +100,22 @@ public sealed class TeamRepository
             .ToListAsync();
 
         return activeTeams.Any(
+            team => team.Id != excludedTeamId
+                && string.Equals(
+                    team.Name.Trim(),
+                    normalizedName,
+                    StringComparison.OrdinalIgnoreCase));
+    }
+
+    private async Task<bool> InactiveNameExistsAsync(string name, int? excludedTeamId)
+    {
+        var normalizedName = name.Trim();
+        var connection = await database.GetConnectionAsync();
+        var inactiveTeams = await connection.Table<Team>()
+            .Where(team => !team.IsActive)
+            .ToListAsync();
+
+        return inactiveTeams.Any(
             team => team.Id != excludedTeamId
                 && string.Equals(
                     team.Name.Trim(),
