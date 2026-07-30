@@ -222,5 +222,53 @@ namespace SoftballScorekeeper.Resources.Strings {
             }
         }
 
+        public static string ViewPlayersButton {
+            get {
+                return ResourceManager.GetString("ViewPlayersButton", resourceCulture);
+            }
+        }
+
+        public static string PlayersTitle {
+            get {
+                return ResourceManager.GetString("PlayersTitle", resourceCulture);
+            }
+        }
+
+        public static string NoPlayersMessage {
+            get {
+                return ResourceManager.GetString("NoPlayersMessage", resourceCulture);
+            }
+        }
+
+        public static string AddPlayerButton {
+            get {
+                return ResourceManager.GetString("AddPlayerButton", resourceCulture);
+            }
+        }
+
+        public static string EditPlayerButton {
+            get {
+                return ResourceManager.GetString("EditPlayerButton", resourceCulture);
+            }
+        }
+
+        public static string DeactivateSelectedPlayersButton {
+            get {
+                return ResourceManager.GetString("DeactivateSelectedPlayersButton", resourceCulture);
+            }
+        }
+
+        public static string ManageInactivePlayersButton {
+            get {
+                return ResourceManager.GetString("ManageInactivePlayersButton", resourceCulture);
+            }
+        }
+
+        public static string PlayerManagementPlaceholderMessage {
+            get {
+                return ResourceManager.GetString("PlayerManagementPlaceholderMessage", resourceCulture);
+            }
+        }
+
     }
 }

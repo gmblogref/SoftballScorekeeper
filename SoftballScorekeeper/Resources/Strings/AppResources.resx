@@ -139,4 +139,28 @@
   <data name="ConfirmReactivateTeamButton" xml:space="preserve">
     <value>Reactivate</value>
   </data>
+  <data name="ViewPlayersButton" xml:space="preserve">
+    <value>Players</value>
+  </data>
+  <data name="PlayersTitle" xml:space="preserve">
+    <value>Players</value>
+  </data>
+  <data name="NoPlayersMessage" xml:space="preserve">
+    <value>No players have been created.</value>
+  </data>
+  <data name="AddPlayerButton" xml:space="preserve">
+    <value>Add Player</value>
+  </data>
+  <data name="EditPlayerButton" xml:space="preserve">
+    <value>Edit Player</value>
+  </data>
+  <data name="DeactivateSelectedPlayersButton" xml:space="preserve">
+    <value>Deactivate Selected</value>
+  </data>
+  <data name="ManageInactivePlayersButton" xml:space="preserve">
+    <value>Manage Inactive Players</value>
+  </data>
+  <data name="PlayerManagementPlaceholderMessage" xml:space="preserve">
+    <value>Player management actions will be added in future stories.</value>
+  </data>
 </root>
