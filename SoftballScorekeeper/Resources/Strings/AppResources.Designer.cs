@@ -422,12 +422,6 @@ namespace SoftballScorekeeper.Resources.Strings {
             }
         }
 
-        public static string RemovePlayersPlaceholderMessage {
-            get {
-                return ResourceManager.GetString("RemovePlayersPlaceholderMessage", resourceCulture);
-            }
-        }
-
         public static string TeamNameEditHint {
             get {
                 return ResourceManager.GetString("TeamNameEditHint", resourceCulture);
@@ -539,6 +533,66 @@ namespace SoftballScorekeeper.Resources.Strings {
         public static string AddPlayersPartialResultMessage {
             get {
                 return ResourceManager.GetString("AddPlayersPartialResultMessage", resourceCulture);
+            }
+        }
+
+        public static string RemovePlayersFromTeamTitle {
+            get {
+                return ResourceManager.GetString("RemovePlayersFromTeamTitle", resourceCulture);
+            }
+        }
+
+        public static string RemovePlayersHeading {
+            get {
+                return ResourceManager.GetString("RemovePlayersHeading", resourceCulture);
+            }
+        }
+
+        public static string NoRemovableRosterPlayersMessage {
+            get {
+                return ResourceManager.GetString("NoRemovableRosterPlayersMessage", resourceCulture);
+            }
+        }
+
+        public static string RemoveSelectedPlayersFromTeamButton {
+            get {
+                return ResourceManager.GetString("RemoveSelectedPlayersFromTeamButton", resourceCulture);
+            }
+        }
+
+        public static string RemovePlayersFromTeamConfirmationTitle {
+            get {
+                return ResourceManager.GetString("RemovePlayersFromTeamConfirmationTitle", resourceCulture);
+            }
+        }
+
+        public static string RemovePlayerFromTeamConfirmationMessage {
+            get {
+                return ResourceManager.GetString("RemovePlayerFromTeamConfirmationMessage", resourceCulture);
+            }
+        }
+
+        public static string RemovePlayersFromTeamConfirmationMessage {
+            get {
+                return ResourceManager.GetString("RemovePlayersFromTeamConfirmationMessage", resourceCulture);
+            }
+        }
+
+        public static string ConfirmRemovePlayersFromTeamButton {
+            get {
+                return ResourceManager.GetString("ConfirmRemovePlayersFromTeamButton", resourceCulture);
+            }
+        }
+
+        public static string RemovePlayersPartialResultMessage {
+            get {
+                return ResourceManager.GetString("RemovePlayersPartialResultMessage", resourceCulture);
+            }
+        }
+
+        public static string RemovePlayersNoOpMessage {
+            get {
+                return ResourceManager.GetString("RemovePlayersNoOpMessage", resourceCulture);
             }
         }
 

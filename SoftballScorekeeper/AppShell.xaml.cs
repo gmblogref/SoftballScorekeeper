@@ -11,6 +11,7 @@
         public const string InactivePlayersRoute = "inactive-players";
         public const string TeamWorkspaceRoute = "team-workspace";
         public const string AddPlayersToTeamRoute = "add-players-to-team";
+        public const string RemovePlayersFromTeamRoute = "remove-players-from-team";
         public const string TeamIdQueryParameter = "teamId";
         public const string PlayerIdQueryParameter = "playerId";
 
@@ -26,6 +27,7 @@
             Routing.RegisterRoute(InactivePlayersRoute, typeof(Views.InactivePlayersPage));
             Routing.RegisterRoute(TeamWorkspaceRoute, typeof(Views.TeamWorkspacePage));
             Routing.RegisterRoute(AddPlayersToTeamRoute, typeof(Views.AddPlayersToTeamPage));
+            Routing.RegisterRoute(RemovePlayersFromTeamRoute, typeof(Views.RemovePlayersFromTeamPage));
             MainShellContent.Content = mainPage;
         }
     }

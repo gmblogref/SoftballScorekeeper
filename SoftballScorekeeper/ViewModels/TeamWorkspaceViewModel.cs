@@ -306,9 +306,14 @@ public partial class TeamWorkspaceViewModel : ObservableObject, IQueryAttributab
     }
 
     [RelayCommand(CanExecute = nameof(CanManageRoster))]
-    private void RemovePlayers()
+    private async Task RemovePlayersAsync()
     {
-        StatusMessage = AppResources.RemovePlayersPlaceholderMessage;
+        var parameters = new ShellNavigationQueryParameters
+        {
+            [AppShell.TeamIdQueryParameter] = TeamId
+        };
+
+        await Shell.Current.GoToAsync(AppShell.RemovePlayersFromTeamRoute, parameters);
     }
 
     private bool CanBeginTeamNameEdit()

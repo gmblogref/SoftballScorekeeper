@@ -239,11 +239,111 @@ public sealed class TeamPlayerRepository
             .ToList();
     }
 
+    public async Task<RemovePlayersFromTeamResult> RemovePlayersFromTeamAsync(
+        int teamId,
+        IReadOnlyCollection<int>? playerIds)
+    {
+        var requestedIds = playerIds?.Distinct().ToArray() ?? Array.Empty<int>();
+        if (teamId <= 0 || requestedIds.Length == 0)
+        {
+            return EmptyRemoveResult(requestedIds);
+        }
+
+        var connection = await database.GetConnectionAsync();
+        var activeTeam = await connection.Table<Team>()
+            .Where(team => team.Id == teamId && team.IsActive)
+            .FirstOrDefaultAsync();
+        if (activeTeam is null)
+        {
+            return EmptyRemoveResult(requestedIds);
+        }
+
+        var positiveIds = requestedIds.Where(id => id > 0).ToArray();
+        var activePlayers = await connection.Table<Player>()
+            .Where(player => player.IsActive)
+            .ToListAsync();
+        var activePlayerIds = activePlayers
+            .Where(player => positiveIds.Contains(player.Id))
+            .Select(player => player.Id)
+            .ToHashSet();
+        var relationships = await connection.Table<TeamPlayer>()
+            .Where(item => item.TeamId == teamId)
+            .ToListAsync();
+
+        var ignored = requestedIds.Where(id => !activePlayerIds.Contains(id)).ToList();
+        var alreadyInactive = new List<int>();
+        var notOnTeam = new List<int>();
+        var activeMembershipIds = new List<int>();
+
+        foreach (var playerId in positiveIds.Where(activePlayerIds.Contains))
+        {
+            var matching = relationships.Where(item => item.PlayerId == playerId).ToList();
+            if (matching.Any(item => item.IsActive))
+            {
+                activeMembershipIds.Add(playerId);
+            }
+            else if (matching.Count > 0)
+            {
+                alreadyInactive.Add(playerId);
+            }
+            else
+            {
+                notOnTeam.Add(playerId);
+            }
+        }
+
+        if (activeMembershipIds.Count == 0)
+        {
+            return new RemovePlayersFromTeamResult(
+                requestedIds,
+                Array.Empty<int>(),
+                alreadyInactive,
+                notOnTeam,
+                ignored);
+        }
+
+        var placeholders = string.Join(", ", activeMembershipIds.Select(_ => "?"));
+        var parameters = new object[] { false, teamId, true }
+            .Concat(activeMembershipIds.Cast<object>())
+            .ToArray();
+        await connection.ExecuteAsync(
+            $"UPDATE TeamPlayer SET IsActive = ? WHERE TeamId = ? AND IsActive = ? AND PlayerId IN ({placeholders})",
+            parameters);
+
+        var remainingActiveRelationships = await connection.Table<TeamPlayer>()
+            .Where(item => item.TeamId == teamId && item.IsActive)
+            .ToListAsync();
+        var remainingActivePlayerIds = remainingActiveRelationships
+            .Select(item => item.PlayerId)
+            .ToHashSet();
+        var removed = activeMembershipIds
+            .Where(id => !remainingActivePlayerIds.Contains(id))
+            .ToArray();
+        ignored.AddRange(activeMembershipIds.Where(id => remainingActivePlayerIds.Contains(id)));
+
+        return new RemovePlayersFromTeamResult(
+            requestedIds,
+            removed,
+            alreadyInactive,
+            notOnTeam,
+            ignored.Distinct().ToArray());
+    }
+
     private static AddPlayersToTeamResult EmptyAddResult(IReadOnlyList<int> requestedIds)
     {
         return new AddPlayersToTeamResult(
             requestedIds,
             Array.Empty<int>(),
+            Array.Empty<int>(),
+            Array.Empty<int>(),
+            Array.Empty<int>(),
+            requestedIds);
+    }
+
+    private static RemovePlayersFromTeamResult EmptyRemoveResult(IReadOnlyList<int> requestedIds)
+    {
+        return new RemovePlayersFromTeamResult(
+            requestedIds,
             Array.Empty<int>(),
             Array.Empty<int>(),
             Array.Empty<int>(),
