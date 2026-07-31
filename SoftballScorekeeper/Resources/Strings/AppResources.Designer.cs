@@ -410,5 +410,53 @@ namespace SoftballScorekeeper.Resources.Strings {
             }
         }
 
+        public static string TeamWorkspaceTitle {
+            get {
+                return ResourceManager.GetString("TeamWorkspaceTitle", resourceCulture);
+            }
+        }
+
+        public static string CurrentRosterHeading {
+            get {
+                return ResourceManager.GetString("CurrentRosterHeading", resourceCulture);
+            }
+        }
+
+        public static string NoRosterPlayersMessage {
+            get {
+                return ResourceManager.GetString("NoRosterPlayersMessage", resourceCulture);
+            }
+        }
+
+        public static string AddPlayersButton {
+            get {
+                return ResourceManager.GetString("AddPlayersButton", resourceCulture);
+            }
+        }
+
+        public static string RemovePlayersButton {
+            get {
+                return ResourceManager.GetString("RemovePlayersButton", resourceCulture);
+            }
+        }
+
+        public static string AddPlayersPlaceholderMessage {
+            get {
+                return ResourceManager.GetString("AddPlayersPlaceholderMessage", resourceCulture);
+            }
+        }
+
+        public static string RemovePlayersPlaceholderMessage {
+            get {
+                return ResourceManager.GetString("RemovePlayersPlaceholderMessage", resourceCulture);
+            }
+        }
+
+        public static string TeamNameEditHint {
+            get {
+                return ResourceManager.GetString("TeamNameEditHint", resourceCulture);
+            }
+        }
+
     }
 }

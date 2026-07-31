@@ -35,6 +35,7 @@ namespace SoftballScorekeeper
             });
             builder.Services.AddSingleton<TeamRepository>();
             builder.Services.AddSingleton<PlayerRepository>();
+            builder.Services.AddSingleton<TeamPlayerRepository>();
             builder.Services.AddSingleton<LandingPageViewModel>();
             builder.Services.AddTransient<CreateTeamViewModel>();
             builder.Services.AddTransient<EditTeamViewModel>();
@@ -43,6 +44,7 @@ namespace SoftballScorekeeper
             builder.Services.AddTransient<CreatePlayerViewModel>();
             builder.Services.AddTransient<EditPlayerViewModel>();
             builder.Services.AddTransient<InactivePlayersViewModel>();
+            builder.Services.AddTransient<TeamWorkspaceViewModel>();
             builder.Services.AddTransient<CreateTeamPage>();
             builder.Services.AddTransient<EditTeamPage>();
             builder.Services.AddTransient<InactiveTeamsPage>();
@@ -50,6 +52,7 @@ namespace SoftballScorekeeper
             builder.Services.AddTransient<CreatePlayerPage>();
             builder.Services.AddTransient<EditPlayerPage>();
             builder.Services.AddTransient<InactivePlayersPage>();
+            builder.Services.AddTransient<TeamWorkspacePage>();
             builder.Services.AddSingleton<MainPage>();
 
             return builder.Build();

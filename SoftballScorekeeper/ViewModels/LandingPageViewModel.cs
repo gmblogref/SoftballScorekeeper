@@ -17,6 +17,7 @@ public partial class LandingPageViewModel : ObservableObject
     private bool hasNoTeams = true;
 
     [ObservableProperty]
+    [NotifyCanExecuteChangedFor(nameof(OpenTeamCommand))]
     private bool isLoading;
 
     public LandingPageViewModel(TeamRepository teamRepository)
@@ -73,8 +74,8 @@ public partial class LandingPageViewModel : ObservableObject
         await Shell.Current.GoToAsync(AppShell.PlayerListRoute);
     }
 
-    [RelayCommand]
-    private async Task EditTeamAsync(Team? team)
+    [RelayCommand(CanExecute = nameof(CanOpenTeam))]
+    private async Task OpenTeamAsync(Team? team)
     {
         if (team is null || team.Id <= 0)
         {
@@ -86,6 +87,12 @@ public partial class LandingPageViewModel : ObservableObject
             [AppShell.TeamIdQueryParameter] = team.Id
         };
 
-        await Shell.Current.GoToAsync(AppShell.EditTeamRoute, parameters);
+        await Shell.Current.GoToAsync(AppShell.TeamWorkspaceRoute, parameters);
     }
+
+    private bool CanOpenTeam(Team? team)
+    {
+        return !IsLoading && team is { Id: > 0 };
+    }
+
 }

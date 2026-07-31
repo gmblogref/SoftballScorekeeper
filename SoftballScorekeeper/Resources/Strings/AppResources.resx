@@ -232,4 +232,28 @@
   <data name="PlayerReactivationPartialFailureMessage" xml:space="preserve">
     <value>{0} of {1} selected Players were reactivated. The inactive Player list has been refreshed.</value>
   </data>
+  <data name="TeamWorkspaceTitle" xml:space="preserve">
+    <value>Team Workspace</value>
+  </data>
+  <data name="CurrentRosterHeading" xml:space="preserve">
+    <value>Current Roster</value>
+  </data>
+  <data name="NoRosterPlayersMessage" xml:space="preserve">
+    <value>This Team does not have any active roster Players.</value>
+  </data>
+  <data name="AddPlayersButton" xml:space="preserve">
+    <value>Add Players</value>
+  </data>
+  <data name="RemovePlayersButton" xml:space="preserve">
+    <value>Remove Players</value>
+  </data>
+  <data name="AddPlayersPlaceholderMessage" xml:space="preserve">
+    <value>Adding Players to a Team will be available in a future story.</value>
+  </data>
+  <data name="RemovePlayersPlaceholderMessage" xml:space="preserve">
+    <value>Removing Players from a Team will be available in a future story.</value>
+  </data>
+  <data name="TeamNameEditHint" xml:space="preserve">
+    <value>Tap to edit the Team name.</value>
+  </data>
 </root>
