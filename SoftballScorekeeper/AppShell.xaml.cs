@@ -9,6 +9,7 @@
         public const string CreatePlayerRoute = "create-player";
         public const string EditPlayerRoute = "edit-player";
         public const string InactivePlayersRoute = "inactive-players";
+        public const string TeamWorkspaceRoute = "team-workspace";
         public const string TeamIdQueryParameter = "teamId";
         public const string PlayerIdQueryParameter = "playerId";
 
@@ -22,6 +23,7 @@
             Routing.RegisterRoute(CreatePlayerRoute, typeof(Views.CreatePlayerPage));
             Routing.RegisterRoute(EditPlayerRoute, typeof(Views.EditPlayerPage));
             Routing.RegisterRoute(InactivePlayersRoute, typeof(Views.InactivePlayersPage));
+            Routing.RegisterRoute(TeamWorkspaceRoute, typeof(Views.TeamWorkspacePage));
             MainShellContent.Content = mainPage;
         }
     }

@@ -1,3 +1,5 @@
+using SQLite;
+using SoftballScorekeeper.Core.Models;
 using SoftballScorekeeper.Infrastructure.Data;
 using SoftballScorekeeper.Infrastructure.Data.Repositories;
 
@@ -50,6 +52,22 @@ internal sealed class TemporaryTestDatabase : IAsyncDisposable
         return new PlayerRepository(Database);
     }
 
+    public TeamPlayerRepository CreateTeamPlayerRepository()
+    {
+        return new TeamPlayerRepository(Database);
+    }
+
+    public Task<int> SeedTeamPlayerAsync(TeamPlayer teamPlayer)
+    {
+        return UseSeedingConnectionAsync(connection => connection.InsertAsync(teamPlayer));
+    }
+
+    public Task<List<TeamPlayer>> GetTeamPlayersAsync()
+    {
+        return UseSeedingConnectionAsync(
+            connection => connection.Table<TeamPlayer>().OrderBy(item => item.Id).ToListAsync());
+    }
+
     public async ValueTask DisposeAsync()
     {
         if (isDisposed)
@@ -83,6 +101,23 @@ internal sealed class TemporaryTestDatabase : IAsyncDisposable
         if (File.Exists(filePath))
         {
             File.Delete(filePath);
+        }
+    }
+
+    private async Task<TResult> UseSeedingConnectionAsync<TResult>(
+        Func<SQLiteAsyncConnection, Task<TResult>> operation)
+    {
+        var connection = new SQLiteAsyncConnection(
+            DatabasePath,
+            SQLiteOpenFlags.ReadWrite | SQLiteOpenFlags.SharedCache);
+
+        try
+        {
+            return await operation(connection);
+        }
+        finally
+        {
+            await connection.CloseAsync();
         }
     }
 }
