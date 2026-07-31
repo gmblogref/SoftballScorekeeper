@@ -1,6 +1,6 @@
-using SoftballScorekeeper.Models;
+using SoftballScorekeeper.Core.Models;
 
-namespace SoftballScorekeeper.Data.Repositories;
+namespace SoftballScorekeeper.Infrastructure.Data.Repositories;
 
 public sealed class PlayerRepository
 {

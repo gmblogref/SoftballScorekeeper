@@ -1,5 +1,5 @@
 using CommunityToolkit.Mvvm.ComponentModel;
-using SoftballScorekeeper.Models;
+using SoftballScorekeeper.Core.Models;
 
 namespace SoftballScorekeeper.ViewModels;
 

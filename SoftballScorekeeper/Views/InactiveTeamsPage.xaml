@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8" ?>
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
-             xmlns:models="clr-namespace:SoftballScorekeeper.Models"
+             xmlns:models="clr-namespace:SoftballScorekeeper.Core.Models;assembly=SoftballScorekeeper.Core"
              xmlns:strings="clr-namespace:SoftballScorekeeper.Resources.Strings"
              xmlns:viewModels="clr-namespace:SoftballScorekeeper.ViewModels"
              x:Class="SoftballScorekeeper.Views.InactiveTeamsPage"

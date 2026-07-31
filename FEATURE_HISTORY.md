@@ -1059,6 +1059,90 @@ The command-line Android SDK limitation remains, and restart persistence was not
 
 `Reactivate selected Players`
 
+### Story 3.0 — Layered Solution Restructure
+
+**Status:** Complete
+
+#### Implementation Summary
+
+- Reorganized the single-project solution into the `SoftballScorekeeper` .NET MAUI project, the platform-independent `SoftballScorekeeper.Core` class library, and the `SoftballScorekeeper.Infrastructure` class library without introducing new application functionality.
+- Moved `Team` and `Player` into Core and moved `AppDatabase`, `TeamRepository`, and `PlayerRepository` into Infrastructure while preserving existing behavior.
+- Kept Views, ViewModels, resources, Shell, configuration, dependency-injection composition, and platform assets in the MAUI project.
+
+#### Files Added
+
+- `SoftballScorekeeper.Core/SoftballScorekeeper.Core.csproj`
+- `SoftballScorekeeper.Core/Models/Team.cs`
+- `SoftballScorekeeper.Core/Models/Player.cs`
+- `SoftballScorekeeper.Infrastructure/SoftballScorekeeper.Infrastructure.csproj`
+- `SoftballScorekeeper.Infrastructure/Data/AppDatabase.cs`
+- `SoftballScorekeeper.Infrastructure/Data/Repositories/TeamRepository.cs`
+- `SoftballScorekeeper.Infrastructure/Data/Repositories/PlayerRepository.cs`
+
+#### Files Moved or Removed
+
+- Moved, rather than functionally deleted, `SoftballScorekeeper/Models/Team.cs` and `SoftballScorekeeper/Models/Player.cs` into Core.
+- Moved, rather than functionally deleted, `SoftballScorekeeper/Data/AppDatabase.cs`, `SoftballScorekeeper/Data/Repositories/TeamRepository.cs`, and `SoftballScorekeeper/Data/Repositories/PlayerRepository.cs` into Infrastructure.
+- Removed the obsolete source copies and empty Data and Models folder declarations from the MAUI project.
+
+#### Files Modified
+
+- `AGENTS.md`
+- `README.md`
+- `FEATURE_HISTORY.md`
+- `SoftballScorekeeper.sln`
+- `SoftballScorekeeper/SoftballScorekeeper.csproj`
+- `SoftballScorekeeper/App.xaml.cs`
+- `SoftballScorekeeper/MauiProgram.cs`
+- `SoftballScorekeeper/ViewModels/CreatePlayerViewModel.cs`
+- `SoftballScorekeeper/ViewModels/CreateTeamViewModel.cs`
+- `SoftballScorekeeper/ViewModels/EditPlayerViewModel.cs`
+- `SoftballScorekeeper/ViewModels/EditTeamViewModel.cs`
+- `SoftballScorekeeper/ViewModels/InactivePlayersViewModel.cs`
+- `SoftballScorekeeper/ViewModels/InactiveTeamsViewModel.cs`
+- `SoftballScorekeeper/ViewModels/LandingPageViewModel.cs`
+- `SoftballScorekeeper/ViewModels/PlayerListViewModel.cs`
+- `SoftballScorekeeper/ViewModels/PlayerSelectionItem.cs`
+- `SoftballScorekeeper/Views/InactiveTeamsPage.xaml`
+- `SoftballScorekeeper/Views/InactiveTeamsPage.xaml.cs`
+- `SoftballScorekeeper/Views/MainPage.xaml`
+
+#### Architecture and Design Decisions
+
+- Established the final dependency graph:
+
+  ```text
+  SoftballScorekeeper
+  ├── SoftballScorekeeper.Core
+  └── SoftballScorekeeper.Infrastructure
+      └── SoftballScorekeeper.Core
+  ```
+
+- Core references no solution project, Infrastructure references only Core, and MAUI references Core and Infrastructure; no circular references exist.
+- Changed model namespaces from `SoftballScorekeeper.Models` to `SoftballScorekeeper.Core.Models`, database namespaces from `SoftballScorekeeper.Data` to `SoftballScorekeeper.Infrastructure.Data`, and repository namespaces from `SoftballScorekeeper.Data.Repositories` to `SoftballScorekeeper.Infrastructure.Data.Repositories`. Affected XAML model namespace declarations identify the Core assembly explicitly.
+- Kept `ApplicationSettings` and the sole composition root in MAUI. `MauiProgram` continues combining `FileSystem.AppDataDirectory` with `ApplicationSettings.DatabaseFileName` and passes the complete path explicitly to `AppDatabase`; Infrastructure does not reference MAUI, and existing service lifetimes remain unchanged.
+- Chose lightweight project separation appropriate to the current application size. The existing sqlite-net attributes remain on Core models to preserve the schema and avoid duplicate persistence entities, mapping code, and premature abstractions.
+- Added no service locator, assembly scanning, alternate container, speculative repository interfaces, repository redesign, Application project, test project, or Shared, Contracts, Services, Common, or Utilities project. Views and ViewModels were not reorganized into feature folders.
+- Preserved `SoftballScorekeeper.db3`, its existing application-data location, model class names, properties, sqlite-net attributes, `Team` and `Player` table names, initialization order, repository behavior, and existing service lifetimes. No migration, database recreation, deletion, or schema change was added.
+
+#### Validation Completed
+
+- `dotnet build SoftballScorekeeper\SoftballScorekeeper.csproj -f net9.0-windows10.0.19041.0` succeeded with 24 warnings and zero errors. The existing warning categories were `CS8602`, `MVVMTK0045`, and `XC0025`.
+- `dotnet build SoftballScorekeeper\SoftballScorekeeper.csproj -f net9.0-android` remained blocked by `XA5300` because the command-line environment could not locate the Android SDK; this is an environmental limitation rather than a confirmed code failure.
+- Manual Android runtime validation through Visual Studio passed using the existing installed database. Existing Teams and Players loaded with no reset, migration, data loss, startup exception, or runtime exception.
+- Manual Team validation passed for creation, editing, soft-deactivation, inactive management, reactivation, final-item automatic navigation, inactive-name validation, list refresh, reactivated-item display, and page interactivity.
+- Manual Player validation passed for creation, editing, bulk soft-deactivation, inactive management, partial reactivation remaining on the inactive page, final-item reactivation returning to Player Manager, ordering, list refresh, reactivated-item display, and page interactivity.
+- General Android regression validation passed for Team and Player navigation, back navigation, confirmation dialogs, validation messages, empty states, resource-backed runtime text, resource-key availability, and page interactivity.
+- `git diff --check` passed. Static review confirmed exactly three project files, the required dependency graph with no cycles, no stale namespaces or duplicate moved sources, SQLite implementation only in Infrastructure, presentation and platform assets remaining in MAUI, unchanged Shell route values, no migration or schema changes, and only intended Story 3.0 changes.
+
+#### Limitations and Deferred Work
+
+Android command-line compilation remains blocked by local Android SDK discovery and `XA5300`. Automated tests remain deferred to Story 3.1. View and ViewModel feature-folder organization, TeamPlayer, Team rosters, games, lineups, scoring, statistics, Beer Rules, and additional architecture layers remain deferred.
+
+#### Intended Commit Message
+
+`Restructure solution into layered architecture`
+
 ## Maintenance Rules
 
 Every future story must update this file before the story is committed. A story is not complete until its accurate feature-history entry is included in the same story-focused commit as its implementation.

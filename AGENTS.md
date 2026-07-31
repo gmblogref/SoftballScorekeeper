@@ -67,17 +67,9 @@ Use a pragmatic layered architecture with Clean Architecture principles where th
 
 The goal is separation of responsibilities, testable business logic, and maintainable code without unnecessary abstraction.
 
-The repository currently uses a single .NET MAUI project with logical folders and established MVVM, dependency-injection, resource, configuration, and SQLite foundations. This structure remains valid for the immediate Team CRUD and Player CRUD work.
+The repository uses three projects: the `SoftballScorekeeper` .NET MAUI presentation and composition-root project, the platform-independent `SoftballScorekeeper.Core` domain project, and the `SoftballScorekeeper.Infrastructure` SQLite persistence project. The MAUI project references Core and Infrastructure, Infrastructure references Core, and Core references no other solution project.
 
-After Team CRUD and Player CRUD are established, but before roster, scheduling, lineup, statistics, and scoring-rule complexity grows substantially, use a dedicated architecture-transition story to move toward pragmatic logical or project boundaries for:
-
-- Presentation / .NET MAUI application
-- Application
-- Domain
-- Infrastructure
-- Tests
-
-This transition is planned future work. Do not describe these boundaries as separate implemented projects or move files early merely to imitate textbook Clean Architecture. Clear dependency direction, independently testable business rules, and separation of MAUI, SQLite, and domain logic matter more than the number of projects, interfaces, or wrapper services.
+An Application project and automated test project remain planned future work. Do not create additional project boundaries early merely to imitate textbook Clean Architecture. Clear dependency direction, independently testable business rules, and separation of MAUI, SQLite, and domain logic matter more than the number of projects, interfaces, or wrapper services.
 
 Preferred dependency direction:
 
@@ -440,7 +432,7 @@ At minimum, validate the affected supported targets when practical:
 
 Validation should be proportional to the change. Small documentation changes do not require unrelated exhaustive testing.
 
-Introduce an automated test project during or immediately after the planned architecture-transition milestone and before complex roster, lineup, statistics, and scoring-engine development. Domain and application rules must be testable without launching the MAUI application.
+Introduce an automated test project immediately after the architecture-transition milestone and before complex roster, lineup, statistics, and scoring-engine development. Domain and application rules must be testable without launching the MAUI application.
 
 Scoring-engine development requires comprehensive table-driven tests covering base states, out counts, batter outcomes, runner movement, corrections, and derived statistics. Repository integration tests may use isolated temporary SQLite databases. UI automation is not required unless a later story explicitly adds it.
 
@@ -571,8 +563,8 @@ Do not expand a story beyond its approved scope to prepare for these features.
 
 ## Current Implementation Status
 
-The repository currently contains a single-project .NET MAUI application targeting Android and Windows, organized through logical folders. Inspect `FEATURE_HISTORY.md` and the current repository before describing specific features or foundations as implemented.
+The repository currently contains a three-project solution: a .NET MAUI application targeting Android and Windows, a platform-independent Core library, and an Infrastructure library for SQLite persistence. Inspect `FEATURE_HISTORY.md` and the current repository before describing specific features or foundations as implemented.
 
-The future layered/Clean Architecture transition and automated test project are planned, not implemented merely because they are documented here. Player management, complex roster and lineup workflows, scoring rules, statistics, and beer rules remain deferred until their stories are implemented.
+The automated test project and Application project remain planned, not implemented merely because they are documented here. Complex roster and lineup workflows, scoring rules, statistics, and beer rules remain deferred until their stories are implemented.
 
 AI assistants must inspect the current repository before assuming any deferred feature exists.

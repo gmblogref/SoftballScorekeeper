@@ -1,7 +1,7 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
-using SoftballScorekeeper.Data.Repositories;
-using SoftballScorekeeper.Models;
+using SoftballScorekeeper.Core.Models;
+using SoftballScorekeeper.Infrastructure.Data.Repositories;
 using SoftballScorekeeper.Resources.Strings;
 
 namespace SoftballScorekeeper.ViewModels;
