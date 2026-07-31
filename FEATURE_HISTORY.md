@@ -10,13 +10,13 @@ Stable product and architecture decisions belong in the project architecture doc
 
 ## Current Project Status
 
-- **Latest completed story:** Story 1.3 — Deactivate Team
-- **Completed stories:** Stories 0.0 through 1.3
-- **Next planned implementation story:** Not currently documented
-- **Current phase:** Initial application interface
+- **Latest completed story:** Story 3.1 — Automated Test Foundation
+- **Completed stories:** Stories 0.0 through 3.1
+- **Next planned implementation story:** Story 3.2 — Team Roster Foundation (not started)
+- **Current phase:** Layered application and automated-test foundation
 - **Foundation status:** Complete
 
-The repository contains a single-project .NET 9 MAUI application targeting Android and Windows. Its implemented foundation includes repository guidance, a pragmatic folder structure, CommunityToolkit.Mvvm, MAUI dependency injection, device-local SQLite initialization, centralized user-facing resources, and strongly typed application settings. The landing page and Team creation, editing, and deactivation workflows are implemented; other product-facing softball workflows remain deferred.
+The repository contains a four-project .NET 9 solution: the Android- and Windows-targeted .NET MAUI application, platform-independent Core, Infrastructure, and the first automated test project. Its implemented foundation includes repository guidance, pragmatic layered dependencies, CommunityToolkit.Mvvm, MAUI dependency injection, device-local SQLite initialization, centralized user-facing resources, strongly typed application settings, and isolated xUnit repository integration tests. The landing page and Team and Player management workflows are implemented; Team roster and other product-facing softball workflows remain deferred.
 
 ## Approved Project-Wide Direction
 
@@ -30,13 +30,11 @@ Tablet UI should favor large finger-friendly touch targets, clear readability at
 
 ### Current and Planned Architecture
 
-The current repository remains one .NET MAUI application project using logical folders, XAML, MVVM, CommunityToolkit.Mvvm, dependency injection, centralized resources, configuration, and SQLite foundations. This single-project organization remains valid through Team CRUD and Player CRUD.
-
-After Team and Player CRUD, but before roster, game scheduling, lineup, statistics, and scoring-rule complexity grows substantially, a dedicated future story is expected to transition the solution toward pragmatic Presentation / .NET MAUI, Application, Domain, Infrastructure, and Tests boundaries. Clear dependency direction and independent testability matter more than project count, and unnecessary interfaces and abstractions should be avoided. This transition is approved future work and has not been implemented.
+Story 3.0 transitioned the repository from one MAUI project to pragmatic MAUI, Core, and Infrastructure project boundaries after Team and Player CRUD. Story 3.1 added the Tests boundary. XAML, MVVM, CommunityToolkit.Mvvm, dependency injection composition, centralized resources, configuration, and platform assets remain in MAUI; models are in Core; SQLite persistence is in Infrastructure. Clear dependency direction and independent testability continue to matter more than project count, and unnecessary interfaces and abstractions should be avoided.
 
 ### Planned Automated Testing
 
-An automated test project is planned during or immediately after the architecture-transition milestone and before complex roster, lineup, statistics, and scoring-engine development. Domain and application rules should be testable without launching MAUI. Scoring rules are expected to receive comprehensive table-driven coverage, while repository integration tests may use isolated temporary SQLite databases. UI automation remains out of scope unless a later story explicitly adds it. No automated test project exists yet as a result of this decision.
+Story 3.1 added the first automated test project immediately after the architecture transition and before complex roster, lineup, statistics, and scoring-engine development. Current coverage exercises repository behavior against isolated temporary SQLite databases without launching MAUI. Future domain and application rules should remain independently testable, and scoring rules are expected to receive comprehensive table-driven coverage. UI automation remains out of scope unless a later story explicitly adds it.
 
 ### Planned Early Branding
 
@@ -1142,6 +1140,64 @@ Android command-line compilation remains blocked by local Android SDK discovery 
 #### Intended Commit Message
 
 `Restructure solution into layered architecture`
+
+### Story 3.1 — Automated Test Foundation
+
+**Status:** Complete
+
+#### Implementation Summary
+
+- Added `SoftballScorekeeper.Tests`, the solution's first and only automated test project, targeting .NET 9 with xUnit. It is a solution member, references Core and Infrastructure only, does not reference the MAUI project, and no production project references it.
+- Added exact test dependencies `Microsoft.NET.Test.Sdk` 17.8.0, `xunit` 2.5.3, and `xunit.runner.visualstudio` 2.5.3. The Visual Studio runner uses `PrivateAssets="all"` and includes runtime, build, native, content files, analyzers, and build-transitive assets. No mocking, coverage, or UI-testing package was added.
+- Added a reusable, file-backed temporary SQLite fixture that creates one GUID-named directory beneath `Path.GetTempPath()`, stores `repository-tests.db3` within it, and initializes the real `AppDatabase`, `TeamRepository`, and `PlayerRepository`. Tests never use the real application database, `FileSystem.AppDataDirectory`, shared static database state, or network access.
+- Made the fixture asynchronously and idempotently disposable. Cleanup closes the SQLite connection first, removes the database plus `-journal`, `-wal`, and `-shm` sidecars, removes any remaining files inside the fixture-owned directory, and then removes that directory.
+- Added the narrowly scoped public `AppDatabase.CloseAsync()` lifecycle method so tests can release SQLite file handles before deletion. It delegates to the existing connection's asynchronous close operation and does not change the database path, schema, flags, initialization, repository behavior, dependency injection, startup, or UI behavior.
+
+#### Repository Test Coverage
+
+- Added two foundation tests proving that separate fixtures use distinct database paths and that disposing a fixture removes its owned directory and database artifacts.
+- Added 21 `TeamRepository` tests covering creation defaults and generated IDs, active and inactive loading and filtering, the repository's existing SQLite name ordering, normalized duplicate-name checks with active/inactive and current-Team exclusion behavior, editing, deactivation, reactivation, invalid and missing IDs, already-correct states, affected-row counts, and row preservation.
+- Added 27 `PlayerRepository` tests covering creation defaults and generated IDs, nullable last names, duplicate names, active and inactive loading and filtering, case-insensitive first-name/last-name ordering, active-by-ID loading, editing, deactivation, reactivation, invalid, missing, and duplicate IDs, empty and null input, already-correct states, affected-row counts, and row preservation. The hardening review strengthened selected lifecycle assertions to verify every selected Player's first and last name.
+- The 50 tests use behavior-focused names, arrange independent fixtures, assert public repository behavior and persisted state, and pass under both normal parallel execution and forced sequential execution. They use no raw SQL, shared base fixture, mocks, speculative repository interfaces, or production-only implementation shortcuts.
+
+#### Validation Completed
+
+- Focused runs passed: foundation 2/2 (75 ms), Team repository 21/21 (468 ms), and Player repository 27/27 (705 ms), with zero failures or skips.
+- Two complete test-project runs each passed all 50 tests with zero failures and zero skips; the final recorded duration was 907 ms. A separate forced-sequential run also passed all 50 tests with zero failures and zero skips in approximately one second, demonstrating isolation independent of execution order.
+- The test project build succeeded with zero warnings and zero errors.
+- A plain root `dotnet test` stalled silently during implicit restore and was safely stopped. Explicit restore of the test project with `--disable-parallel` then succeeded with all projects up to date. The root workaround `dotnet test --no-restore --maxcpucount:1 -nodeReuse:false` built and evaluated the solution and all 50 tests passed, but the overall command exited with failure because the MAUI Android target encountered existing `XA5300` SDK discovery. This was an environment/toolchain failure, not a test or source-code failure.
+- `dotnet build SoftballScorekeeper\SoftballScorekeeper.csproj -f net9.0-windows10.0.19041.0 --no-restore -nodeReuse:false` succeeded incrementally with zero warnings and zero errors. Windows runtime validation was not performed.
+- Android runtime or emulator validation was not performed because this story contains no UI behavior. Android was evaluated indirectly by the root test command and encountered `XA5300`; no Android build or runtime success is claimed, and the existing environment was not repaired as part of this story.
+- Repeated validation left no test databases, SQLite sidecars, fixture directories, result directories, coverage artifacts, or temporary run-settings files. `git diff --check` passed with only informational LF-to-CRLF notices.
+
+#### Documentation and Guidance
+
+- Updated `README.md` with the xUnit project, Core and Infrastructure references, isolated temporary file-backed SQLite strategy, cleanup guarantees, the root `dotnet test` command, and explicit current test-suite limitations without publishing brittle test counts.
+- Updated `AGENTS.md` to describe the four-project solution and require focused and full-suite validation, assertions against persisted state, isolated and repeatable repository databases, minimal test abstractions, honest reporting, and a clear distinction between non-UI automated tests and platform runtime validation.
+
+#### Files Added
+
+- `SoftballScorekeeper.Tests/SoftballScorekeeper.Tests.csproj`
+- `SoftballScorekeeper.Tests/TemporaryTestDatabase.cs`
+- `SoftballScorekeeper.Tests/TemporaryTestDatabaseTests.cs`
+- `SoftballScorekeeper.Tests/TeamRepositoryTests.cs`
+- `SoftballScorekeeper.Tests/PlayerRepositoryTests.cs`
+
+#### Files Modified
+
+- `AGENTS.md`
+- `README.md`
+- `FEATURE_HISTORY.md`
+- `SoftballScorekeeper.Infrastructure/Data/AppDatabase.cs`
+- `SoftballScorekeeper.sln`
+
+#### Limitations and Deferred Work
+
+ViewModel tests, MAUI UI automation, Android instrumentation, Windows UI automation, coverage thresholds and enforcement, continuous integration, and a general-purpose ViewModel test suite remain deferred. TeamPlayer and roster behavior, games, lineups, scoring, statistics, Beer Rule behavior, performance testing, additional test-project splits by layer, and a mocking framework remain deferred unless a later story provides a concrete need and justification.
+
+#### Intended Commit Message
+
+`Add automated test foundation`
 
 ## Maintenance Rules
 

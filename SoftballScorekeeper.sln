@@ -9,6 +9,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SoftballScorekeeper.Core", 
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SoftballScorekeeper.Infrastructure", "SoftballScorekeeper.Infrastructure\SoftballScorekeeper.Infrastructure.csproj", "{B0A23BB8-B805-464E-A340-B8E7264D45EB}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SoftballScorekeeper.Tests", "SoftballScorekeeper.Tests\SoftballScorekeeper.Tests.csproj", "{8BA5DC75-9A25-4C96-A9B7-E12E1402D569}"
+EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{8EC462FD-D22E-90A8-E5CE-7E832BA40C5D}"
 	ProjectSection(SolutionItems) = preProject
 		README.md = README.md
@@ -34,6 +36,10 @@ Global
 		{B0A23BB8-B805-464E-A340-B8E7264D45EB}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{B0A23BB8-B805-464E-A340-B8E7264D45EB}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{B0A23BB8-B805-464E-A340-B8E7264D45EB}.Release|Any CPU.Build.0 = Release|Any CPU
+		{8BA5DC75-9A25-4C96-A9B7-E12E1402D569}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{8BA5DC75-9A25-4C96-A9B7-E12E1402D569}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{8BA5DC75-9A25-4C96-A9B7-E12E1402D569}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{8BA5DC75-9A25-4C96-A9B7-E12E1402D569}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

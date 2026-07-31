@@ -67,9 +67,9 @@ Use a pragmatic layered architecture with Clean Architecture principles where th
 
 The goal is separation of responsibilities, testable business logic, and maintainable code without unnecessary abstraction.
 
-The repository uses three projects: the `SoftballScorekeeper` .NET MAUI presentation and composition-root project, the platform-independent `SoftballScorekeeper.Core` domain project, and the `SoftballScorekeeper.Infrastructure` SQLite persistence project. The MAUI project references Core and Infrastructure, Infrastructure references Core, and Core references no other solution project.
+The repository uses three production projects plus one automated test project: the `SoftballScorekeeper` .NET MAUI presentation and composition-root project, the platform-independent `SoftballScorekeeper.Core` domain project, the `SoftballScorekeeper.Infrastructure` SQLite persistence project, and `SoftballScorekeeper.Tests`. The MAUI project references Core and Infrastructure, Infrastructure references Core, and Core references no other solution project.
 
-An Application project and automated test project remain planned future work. Do not create additional project boundaries early merely to imitate textbook Clean Architecture. Clear dependency direction, independently testable business rules, and separation of MAUI, SQLite, and domain logic matter more than the number of projects, interfaces, or wrapper services.
+An Application project remains planned future work. The `SoftballScorekeeper.Tests` project references Core and Infrastructure and must not reference the MAUI presentation project. Do not create additional project boundaries early merely to imitate textbook Clean Architecture. Clear dependency direction, independently testable business rules, and separation of MAUI, SQLite, and domain logic matter more than the number of projects, interfaces, or wrapper services.
 
 Preferred dependency direction:
 
@@ -407,12 +407,15 @@ The user manually runs builds, application launches, and tests unless the user e
 For each story:
 
 - Add or update tests when the story introduces testable behavior.
+- Add or update focused automated tests when Core or Infrastructure repository behavior changes, testing public observable behavior and persisted state where meaningful.
 - Do not add meaningless tests only to increase test count.
 - Keep existing tests passing.
 - Do not break existing functionality.
 - Validate every acceptance criterion before declaring completion.
+- Run relevant focused tests before declaring work complete, and run the full suite when repository behavior or shared test infrastructure changes.
 - Report which tests and builds were run.
 - Report any tests or validation steps that were not run.
+- Report failures, skipped tests, warnings, and environmental limitations accurately.
 - Do not claim validation succeeded without evidence.
 - Review the new `FEATURE_HISTORY.md` entry.
 - Confirm the entry describes the actual implementation.
@@ -432,7 +435,9 @@ At minimum, validate the affected supported targets when practical:
 
 Validation should be proportional to the change. Small documentation changes do not require unrelated exhaustive testing.
 
-Introduce an automated test project immediately after the architecture-transition milestone and before complex roster, lineup, statistics, and scoring-engine development. Domain and application rules must be testable without launching the MAUI application.
+Repository tests must use isolated temporary SQLite databases, never use the real application database, clean up temporary database artifacts, and remain independently and repeatedly runnable. Prefer focused tests and minimal reusable helpers; avoid unnecessary mocking, speculative test abstractions, and broad generic fixture infrastructure without a demonstrated need.
+
+Repository tests do not provide MAUI UI coverage and must not be reported as Android or Windows runtime validation. UI behavior still requires appropriate manual or UI-level validation. Keep test changes story-focused and report untested areas honestly rather than adding unrelated future-feature coverage.
 
 Scoring-engine development requires comprehensive table-driven tests covering base states, out counts, batter outcomes, runner movement, corrections, and derived statistics. Repository integration tests may use isolated temporary SQLite databases. UI automation is not required unless a later story explicitly adds it.
 
@@ -563,8 +568,8 @@ Do not expand a story beyond its approved scope to prepare for these features.
 
 ## Current Implementation Status
 
-The repository currently contains a three-project solution: a .NET MAUI application targeting Android and Windows, a platform-independent Core library, and an Infrastructure library for SQLite persistence. Inspect `FEATURE_HISTORY.md` and the current repository before describing specific features or foundations as implemented.
+The repository currently contains three production projects and one automated test project: a .NET MAUI application targeting Android and Windows, a platform-independent Core library, an Infrastructure library for SQLite persistence, and Tests for current repository behavior. Inspect `FEATURE_HISTORY.md` and the current repository before describing specific features or foundations as implemented.
 
-The automated test project and Application project remain planned, not implemented merely because they are documented here. Complex roster and lineup workflows, scoring rules, statistics, and beer rules remain deferred until their stories are implemented.
+The automated test project covers the current Team and Player repository behavior using isolated temporary SQLite databases. An Application project remains planned, not implemented merely because it is documented here. Complex roster and lineup workflows, scoring rules, statistics, and beer rules remain deferred until their stories are implemented.
 
 AI assistants must inspect the current repository before assuming any deferred feature exists.

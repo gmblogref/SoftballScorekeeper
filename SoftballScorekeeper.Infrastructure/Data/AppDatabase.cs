@@ -56,4 +56,9 @@ public sealed class AppDatabase
             initializationLock.Release();
         }
     }
+
+    public Task CloseAsync()
+    {
+        return connection.CloseAsync();
+    }
 }
