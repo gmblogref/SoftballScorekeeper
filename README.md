@@ -29,15 +29,16 @@ The application has foundational presentation, dependency-injection, persistence
 
 ## Repository Structure
 
-The solution uses three focused projects with one-way project references.
+The solution uses three focused production projects with one-way project references plus one automated test project.
 
 - `SoftballScorekeeper` — .NET MAUI composition root, configuration, Views, ViewModels, resources, and platform assets.
 - `SoftballScorekeeper.Core` — Platform-independent Team and Player models and shared domain types.
 - `SoftballScorekeeper.Infrastructure` — Device-local SQLite initialization and Team and Player repositories; references Core.
+- `SoftballScorekeeper.Tests` — xUnit repository tests for Core models and Infrastructure persistence behavior; references Core and Infrastructure only.
 
 ## Architecture Direction
 
-The MAUI project references Core and Infrastructure, Infrastructure references Core, and Core references no other solution project. `MauiProgram` remains the only composition root. An Application project and automated test project remain deferred until later stories require them; clear dependency direction and testability matter more than unnecessary interfaces and abstractions.
+The MAUI project references Core and Infrastructure, Infrastructure references Core, and Core references no other solution project. The Tests project references Core and Infrastructure without referencing MAUI. `MauiProgram` remains the only composition root. An Application project remains deferred until a later story requires it; clear dependency direction and testability matter more than unnecessary interfaces and abstractions.
 
 ## Project Documentation
 
@@ -55,11 +56,17 @@ Development requires:
 
 Open `SoftballScorekeeper.sln` in Visual Studio, select either the Windows target or an available Android emulator/device, and run the application through the IDE.
 
-## Testing Direction
+## Testing
 
-An automated test project is planned during or immediately after the architecture transition and before complex roster, lineup, statistics, and scoring-engine development. Domain and application rules should be testable without launching MAUI, and the scoring engine is expected to receive comprehensive table-driven coverage. Repository integration tests may use isolated temporary SQLite databases. UI automation is not currently required unless a later story adds it.
+`SoftballScorekeeper.Tests` contains automated tests for Core models exercised through Infrastructure persistence, temporary SQLite database initialization and cleanup, `TeamRepository`, and `PlayerRepository`. Repository tests use isolated temporary file-backed SQLite databases, never use the real application database, and remove their temporary database files after execution.
 
-Manual Android and Windows validation remain part of the current workflow until automated testing is introduced. Android validation is the primary UI standard; emulator validation is useful, with real-device validation expected for major tablet interaction and scoring workflows when the target device is available.
+Run the automated suite from the repository root:
+
+```text
+dotnet test
+```
+
+The suite does not currently include MAUI UI automation, Android instrumentation tests, Windows UI automation, a general ViewModel test suite, code-coverage threshold enforcement, or continuous-integration test execution. Manual Android and Windows validation therefore remains part of the workflow where appropriate. Android validation is the primary UI standard; emulator validation is useful, with real-device validation expected for major tablet interaction and scoring workflows when the target device is available.
 
 ## Current Functionality
 
