@@ -12,11 +12,11 @@ Stable product and architecture decisions belong in the project architecture doc
 
 - **Latest completed story:** Story 3.1 — Automated Test Foundation
 - **Completed stories:** Stories 0.0 through 3.1
-- **Current story:** Story 3.3 — Player Workspace and Player Manager Cleanup (implementation complete; manual runtime validation pending)
+- **Current story:** Story 3.4 — Add Players to Team (implementation complete; manual runtime validation pending)
 - **Current phase:** Team and Player workspace workflows and validation
 - **Foundation status:** Complete
 
-The repository contains a four-project .NET 9 solution: the Android- and Windows-targeted .NET MAUI application, platform-independent Core, Infrastructure, and the automated test project. Its implemented foundation includes repository guidance, pragmatic layered dependencies, CommunityToolkit.Mvvm, MAUI dependency injection, device-local SQLite initialization, centralized user-facing resources, strongly typed application settings, and isolated xUnit repository integration tests. Team Workspace, Player Workspace, Player Manager bulk lifecycle actions, and the read-only Team roster foundation are implemented; roster membership management and other product-facing softball workflows remain deferred.
+The repository contains a four-project .NET 9 solution: the Android- and Windows-targeted .NET MAUI application, platform-independent Core, Infrastructure, and the automated test project. Its implemented foundation includes repository guidance, pragmatic layered dependencies, CommunityToolkit.Mvvm, MAUI dependency injection, device-local SQLite initialization, centralized user-facing resources, strongly typed application settings, and isolated xUnit repository integration tests. Team Workspace can add existing active Players to its roster, Player Workspace shows active Team memberships, and Player Manager retains bulk lifecycle actions; roster removal and other product-facing softball workflows remain deferred.
 
 ## Approved Project-Wide Direction
 
@@ -1314,6 +1314,54 @@ Windows and Android runtime validation remains required before Story 3.3 is full
 #### Intended Commit Message
 
 `Implement Player workspace`
+
+### Story 3.4 — Add Players to Team
+
+**Status:** Implementation complete; manual runtime validation pending
+
+#### Implementation Summary
+
+- Added the transient `AddPlayersToTeamPage` and `AddPlayersToTeamViewModel`, centralized `add-players-to-team` Shell route, and ID-only navigation from Team Workspace through the existing `teamId` query key. The page reloads the active Team and eligible Players from repositories, reuses `PlayerSelectionItem` for non-persisted checkbox selection, tracks selected count, prevents overlapping load/confirmation/write operations, and uses resource-backed singular and plural confirmation through the established page delegate pattern.
+- Extended `TeamPlayerRepository` with eligible-Player filtering, bulk add-or-reactivate behavior, and active-Team membership reads for a Player. Eligible Players are globally active and lack an active relationship to the selected active Team; inactive relationships and memberships on other Teams remain eligible. Results retain deterministic case-insensitive Player and Team ordering and safely reject invalid, inactive, or missing parents and Players.
+- Added focused `AddPlayersToTeamResult` reporting requested, eligible, inserted, reactivated, already-active, and ignored Player IDs plus the total successfully active memberships. Repository-level duplicate enforcement deduplicates requested IDs, checks all existing Team/Player relationships, preserves and reactivates the lowest-ID inactive row, skips insertion when an active row exists, and avoids a database unique index or migration risk. Pre-existing duplicate cleanup remains outside scope.
+- Complete add results return to Team Workspace, whose `OnAppearing` load now refreshes Team and roster repository state so new Players appear once in existing case-insensitive order. Partial results remain on the add page, reload eligible Players, reselect only requested IDs still eligible, and show the actual repository-reported success count. Remove Players remains the existing non-persisting Story 3.5 placeholder.
+- Replaced Player Workspace’s Team Membership placeholder with a stable, read-only collection of active Teams loaded through `TeamPlayerRepository`. Membership refresh runs on each appearance without overwriting an active Player-name edit buffer; inactive Teams, inactive relationships, other Players’ memberships, and invalid or inactive Players are excluded.
+- Removed the obsolete Add Players and Team Membership placeholder resources. No Core models, database schema, TeamPlayer deletion/deactivation behavior, Player creation, jersey numbers, game state, lineup, scoring, statistics, or generic relationship framework were added.
+
+#### Files Added
+
+- `SoftballScorekeeper.Infrastructure/Data/Repositories/AddPlayersToTeamResult.cs`
+- `SoftballScorekeeper/ViewModels/AddPlayersToTeamViewModel.cs`
+- `SoftballScorekeeper/Views/AddPlayersToTeamPage.xaml`
+- `SoftballScorekeeper/Views/AddPlayersToTeamPage.xaml.cs`
+
+#### Files Modified
+
+- `FEATURE_HISTORY.md`
+- `SoftballScorekeeper.Infrastructure/Data/Repositories/TeamPlayerRepository.cs`
+- `SoftballScorekeeper.Tests/TeamPlayerRepositoryTests.cs`
+- `SoftballScorekeeper/AppShell.xaml.cs`
+- `SoftballScorekeeper/MauiProgram.cs`
+- `SoftballScorekeeper/Resources/Strings/AppResources.resx`
+- `SoftballScorekeeper/Resources/Strings/AppResources.Designer.cs`
+- `SoftballScorekeeper/ViewModels/TeamWorkspaceViewModel.cs`
+- `SoftballScorekeeper/ViewModels/PlayerWorkspaceViewModel.cs`
+- `SoftballScorekeeper/Views/PlayerWorkspacePage.xaml`
+
+#### Automated Tests and Validation
+
+- Added 15 isolated TeamPlayer repository tests covering eligible filtering, active/inactive relationships and parents, other-Team eligibility, case-insensitive ordering, duplicate names by ID, non-mutation, insertion, reactivation with original-ID preservation, active duplicate prevention, input deduplication, invalid and inactive Players, missing/inactive Teams, empty input, result counts, cross-Team isolation, active membership filtering and ordering, and read non-mutation.
+- The focused TeamPlayer repository run passed 29 of 29 tests with zero failures and zero skips. The complete suite passed 79 of 79 tests with zero failures and zero skips; Tests still references only Core and Infrastructure and uses isolated temporary SQLite databases.
+- The final standalone `dotnet build SoftballScorekeeper\SoftballScorekeeper.csproj -f net9.0-windows10.0.19041.0 --no-restore -nodeReuse:false -verbosity:minimal` succeeded incrementally with one existing `CS8602` warning and zero errors. An earlier full compilation succeeded with 51 warnings from the existing `CS8602`, `MVVMTK0045`, and `XC0025` categories and no errors; Story 3.4 introduced no new warning category.
+- The Android command-line build was attempted and failed with `XA5300` because the environment could not locate the Android SDK. No Android build, deployment, emulator, Windows runtime, or Android runtime success is claimed.
+
+#### Limitations and Deferred Work
+
+Manual Android tablet and Windows runtime validation remain required before Story 3.4 is fully complete. Remove Players, TeamPlayer deactivation UI, roster checkboxes, jersey numbers, Player creation within the add flow, games, lineups, scoring, statistics, Beer Rules, and duplicate cleanup or database-level uniqueness remain deferred.
+
+#### Intended Commit Message
+
+`Implement add Players to Team`
 
 ## Maintenance Rules
 

@@ -112,7 +112,7 @@ public partial class TeamWorkspaceViewModel : ObservableObject, IQueryAttributab
 
     public async Task LoadTeamAsync()
     {
-        if (IsBusy || IsTeamLoaded)
+        if (IsBusy)
         {
             return;
         }
@@ -295,9 +295,14 @@ public partial class TeamWorkspaceViewModel : ObservableObject, IQueryAttributab
     }
 
     [RelayCommand(CanExecute = nameof(CanManageRoster))]
-    private void AddPlayers()
+    private async Task AddPlayersAsync()
     {
-        StatusMessage = AppResources.AddPlayersPlaceholderMessage;
+        var parameters = new ShellNavigationQueryParameters
+        {
+            [AppShell.TeamIdQueryParameter] = TeamId
+        };
+
+        await Shell.Current.GoToAsync(AppShell.AddPlayersToTeamRoute, parameters);
     }
 
     [RelayCommand(CanExecute = nameof(CanManageRoster))]

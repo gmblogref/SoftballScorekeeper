@@ -238,9 +238,6 @@
   <data name="RemovePlayersButton" xml:space="preserve">
     <value>Remove Players</value>
   </data>
-  <data name="AddPlayersPlaceholderMessage" xml:space="preserve">
-    <value>Adding Players to a Team will be available in a future story.</value>
-  </data>
   <data name="RemovePlayersPlaceholderMessage" xml:space="preserve">
     <value>Removing Players from a Team will be available in a future story.</value>
   </data>
@@ -256,9 +253,6 @@
   <data name="TeamMembershipHeading" xml:space="preserve">
     <value>Team Membership</value>
   </data>
-  <data name="TeamMembershipPlaceholderMessage" xml:space="preserve">
-    <value>Team membership management is not available yet.</value>
-  </data>
   <data name="DeactivatePlayerButton" xml:space="preserve">
     <value>Deactivate Player</value>
   </data>
@@ -273,5 +267,38 @@
   </data>
   <data name="PlayerDeactivationFailed" xml:space="preserve">
     <value>The Player could not be deactivated. Please try again.</value>
+  </data>
+  <data name="AddPlayersToTeamTitle" xml:space="preserve">
+    <value>Add Players to Team</value>
+  </data>
+  <data name="AddPlayersHeading" xml:space="preserve">
+    <value>Add Players</value>
+  </data>
+  <data name="EligiblePlayersHeading" xml:space="preserve">
+    <value>Eligible Players</value>
+  </data>
+  <data name="NoEligiblePlayersMessage" xml:space="preserve">
+    <value>There are no active Players available to add to this Team.</value>
+  </data>
+  <data name="AddSelectedPlayersToTeamButton" xml:space="preserve">
+    <value>Add Selected to Team</value>
+  </data>
+  <data name="AddPlayersToTeamConfirmationTitle" xml:space="preserve">
+    <value>Add Players to Team</value>
+  </data>
+  <data name="AddPlayerToTeamConfirmationMessage" xml:space="preserve">
+    <value>Add {0} selected Player to {1}?</value>
+  </data>
+  <data name="AddPlayersToTeamConfirmationMessage" xml:space="preserve">
+    <value>Add {0} selected Players to {1}?</value>
+  </data>
+  <data name="ConfirmAddPlayersToTeamButton" xml:space="preserve">
+    <value>Add</value>
+  </data>
+  <data name="AddPlayersPartialResultMessage" xml:space="preserve">
+    <value>{0} of {1} selected Players were added to the Team. The eligible Player list has been refreshed.</value>
+  </data>
+  <data name="NoTeamMembershipsMessage" xml:space="preserve">
+    <value>This Player does not have any active Team memberships.</value>
   </data>
 </root>
