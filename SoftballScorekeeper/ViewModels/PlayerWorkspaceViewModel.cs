@@ -1,3 +1,4 @@
+using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using SoftballScorekeeper.Core.Models;
@@ -9,6 +10,7 @@ namespace SoftballScorekeeper.ViewModels;
 public partial class PlayerWorkspaceViewModel : ObservableObject, IQueryAttributable
 {
     private readonly PlayerRepository playerRepository;
+    private readonly TeamPlayerRepository teamPlayerRepository;
     private bool hasValidPlayerId;
     private bool isConfirmationPending;
     private Player? loadedPlayer;
@@ -50,11 +52,23 @@ public partial class PlayerWorkspaceViewModel : ObservableObject, IQueryAttribut
     [ObservableProperty]
     private string validationMessage = string.Empty;
 
-    public PlayerWorkspaceViewModel(PlayerRepository playerRepository)
+    [ObservableProperty]
+    private bool hasTeamMemberships;
+
+    [ObservableProperty]
+    private bool hasNoTeamMemberships;
+
+    public PlayerWorkspaceViewModel(
+        PlayerRepository playerRepository,
+        TeamPlayerRepository teamPlayerRepository)
     {
         ArgumentNullException.ThrowIfNull(playerRepository);
+        ArgumentNullException.ThrowIfNull(teamPlayerRepository);
         this.playerRepository = playerRepository;
+        this.teamPlayerRepository = teamPlayerRepository;
     }
+
+    public ObservableCollection<Team> TeamMemberships { get; } = new();
 
     public Func<string, Task>? DeactivatePlayerConfirmationRequested { get; set; }
 
@@ -89,7 +103,7 @@ public partial class PlayerWorkspaceViewModel : ObservableObject, IQueryAttribut
 
     public async Task LoadPlayerAsync()
     {
-        if (IsBusy || IsPlayerLoaded)
+        if (IsBusy)
         {
             return;
         }
@@ -103,6 +117,12 @@ public partial class PlayerWorkspaceViewModel : ObservableObject, IQueryAttribut
         IsBusy = true;
         try
         {
+            if (IsPlayerLoaded)
+            {
+                await ReloadTeamMembershipsAsync();
+                return;
+            }
+
             var player = await playerRepository.GetActiveByIdAsync(PlayerId);
             if (player is null)
             {
@@ -116,6 +136,7 @@ public partial class PlayerWorkspaceViewModel : ObservableObject, IQueryAttribut
             EditableLastName = player.LastName ?? string.Empty;
             ValidationMessage = string.Empty;
             IsPlayerLoaded = true;
+            await ReloadTeamMembershipsAsync();
         }
         finally
         {
@@ -308,6 +329,19 @@ public partial class PlayerWorkspaceViewModel : ObservableObject, IQueryAttribut
         ConfirmDeactivatePlayerCommand.NotifyCanExecuteChanged();
     }
 
+    private async Task ReloadTeamMembershipsAsync()
+    {
+        var teams = await teamPlayerRepository.GetActiveTeamsForPlayerAsync(PlayerId);
+        TeamMemberships.Clear();
+        foreach (var team in teams)
+        {
+            TeamMemberships.Add(team);
+        }
+
+        HasTeamMemberships = TeamMemberships.Count > 0;
+        HasNoTeamMemberships = !HasTeamMemberships;
+    }
+
     private void ResetPlayerState()
     {
         PlayerId = 0;
@@ -316,6 +350,9 @@ public partial class PlayerWorkspaceViewModel : ObservableObject, IQueryAttribut
         PlayerDisplayName = string.Empty;
         EditableFirstName = string.Empty;
         EditableLastName = string.Empty;
+        TeamMemberships.Clear();
+        HasTeamMemberships = false;
+        HasNoTeamMemberships = false;
         ValidationMessage = string.Empty;
         IsEditingPlayerName = false;
         IsPlayerLoaded = false;

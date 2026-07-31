@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8" ?>
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:models="clr-namespace:SoftballScorekeeper.Core.Models;assembly=SoftballScorekeeper.Core"
              xmlns:strings="clr-namespace:SoftballScorekeeper.Resources.Strings"
              xmlns:viewModels="clr-namespace:SoftballScorekeeper.ViewModels"
              x:Class="SoftballScorekeeper.Views.PlayerWorkspacePage"
@@ -77,12 +78,27 @@
             SemanticProperties.HeadingLevel="Level2"
             IsVisible="{Binding IsPlayerLoaded}" />
 
-        <Label
-            Grid.Row="3"
-            Text="{x:Static strings:AppResources.TeamMembershipPlaceholderMessage}"
-            HorizontalTextAlignment="Center"
-            VerticalOptions="Center"
-            IsVisible="{Binding IsPlayerLoaded}" />
+        <Grid Grid.Row="3" IsVisible="{Binding IsPlayerLoaded}">
+            <Label
+                Text="{x:Static strings:AppResources.NoTeamMembershipsMessage}"
+                HorizontalTextAlignment="Center"
+                VerticalOptions="Center"
+                IsVisible="{Binding HasNoTeamMemberships}" />
+            <CollectionView ItemsSource="{Binding TeamMemberships}" IsVisible="{Binding HasTeamMemberships}" SelectionMode="None">
+                <CollectionView.ItemTemplate>
+                    <DataTemplate x:DataType="models:Team">
+                        <Grid Padding="20,12" RowDefinitions="Auto,1" MinimumHeightRequest="64">
+                            <Label Text="{Binding Name}" FontSize="20" LineBreakMode="WordWrap" />
+                            <BoxView
+                                Grid.Row="1"
+                                Margin="0,11,0,0"
+                                HeightRequest="1"
+                                Color="{AppThemeBinding Light={StaticResource Gray200}, Dark={StaticResource Gray500}}" />
+                        </Grid>
+                    </DataTemplate>
+                </CollectionView.ItemTemplate>
+            </CollectionView>
+        </Grid>
 
         <Button
             Grid.Row="4"
