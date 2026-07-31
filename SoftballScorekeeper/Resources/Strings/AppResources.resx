@@ -154,17 +154,11 @@
   <data name="AddPlayerButton" xml:space="preserve">
     <value>Add Player</value>
   </data>
-  <data name="EditPlayerButton" xml:space="preserve">
-    <value>Edit Player</value>
-  </data>
   <data name="DeactivateSelectedPlayersButton" xml:space="preserve">
     <value>Deactivate Selected</value>
   </data>
   <data name="ManageInactivePlayersButton" xml:space="preserve">
     <value>Manage Inactive Players</value>
-  </data>
-  <data name="PlayerManagementPlaceholderMessage" xml:space="preserve">
-    <value>Player management actions will be added in future stories.</value>
   </data>
   <data name="CreatePlayerTitle" xml:space="preserve">
     <value>Create Player</value>
@@ -183,9 +177,6 @@
   </data>
   <data name="FirstNameRequired" xml:space="preserve">
     <value>First name is required.</value>
-  </data>
-  <data name="EditPlayerTitle" xml:space="preserve">
-    <value>Edit Player</value>
   </data>
   <data name="PlayerNotFound" xml:space="preserve">
     <value>The Player could not be found.</value>
@@ -255,5 +246,32 @@
   </data>
   <data name="TeamNameEditHint" xml:space="preserve">
     <value>Tap to edit the Team name.</value>
+  </data>
+  <data name="PlayerWorkspaceTitle" xml:space="preserve">
+    <value>Player Workspace</value>
+  </data>
+  <data name="PlayerNameEditHint" xml:space="preserve">
+    <value>Tap to edit the Player name.</value>
+  </data>
+  <data name="TeamMembershipHeading" xml:space="preserve">
+    <value>Team Membership</value>
+  </data>
+  <data name="TeamMembershipPlaceholderMessage" xml:space="preserve">
+    <value>Team membership management is not available yet.</value>
+  </data>
+  <data name="DeactivatePlayerButton" xml:space="preserve">
+    <value>Deactivate Player</value>
+  </data>
+  <data name="DeactivatePlayerConfirmationTitle" xml:space="preserve">
+    <value>Deactivate Player</value>
+  </data>
+  <data name="DeactivateSinglePlayerConfirmationMessage" xml:space="preserve">
+    <value>Deactivate "{0}"? The Player will be hidden from active Player screens. Existing Player data will remain preserved, and the Player can be reactivated later.</value>
+  </data>
+  <data name="PlayerUpdateFailed" xml:space="preserve">
+    <value>The Player could not be updated. Please try again.</value>
+  </data>
+  <data name="PlayerDeactivationFailed" xml:space="preserve">
+    <value>The Player could not be deactivated. Please try again.</value>
   </data>
 </root>

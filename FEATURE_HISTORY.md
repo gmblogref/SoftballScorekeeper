@@ -12,11 +12,11 @@ Stable product and architecture decisions belong in the project architecture doc
 
 - **Latest completed story:** Story 3.1 — Automated Test Foundation
 - **Completed stories:** Stories 0.0 through 3.1
-- **Current story:** Story 3.2 — Team Roster Foundation (implementation complete; manual runtime validation pending)
-- **Current phase:** Team roster workflows and validation
+- **Current story:** Story 3.3 — Player Workspace and Player Manager Cleanup (implementation complete; manual runtime validation pending)
+- **Current phase:** Team and Player workspace workflows and validation
 - **Foundation status:** Complete
 
-The repository contains a four-project .NET 9 solution: the Android- and Windows-targeted .NET MAUI application, platform-independent Core, Infrastructure, and the automated test project. Its implemented foundation includes repository guidance, pragmatic layered dependencies, CommunityToolkit.Mvvm, MAUI dependency injection, device-local SQLite initialization, centralized user-facing resources, strongly typed application settings, and isolated xUnit repository integration tests. Team and Player management and the read-only Team roster workspace foundation are implemented; roster membership management and other product-facing softball workflows remain deferred.
+The repository contains a four-project .NET 9 solution: the Android- and Windows-targeted .NET MAUI application, platform-independent Core, Infrastructure, and the automated test project. Its implemented foundation includes repository guidance, pragmatic layered dependencies, CommunityToolkit.Mvvm, MAUI dependency injection, device-local SQLite initialization, centralized user-facing resources, strongly typed application settings, and isolated xUnit repository integration tests. Team Workspace, Player Workspace, Player Manager bulk lifecycle actions, and the read-only Team roster foundation are implemented; roster membership management and other product-facing softball workflows remain deferred.
 
 ## Approved Project-Wide Direction
 
@@ -1264,6 +1264,56 @@ Adding and removing Players, TeamPlayer deactivation and reactivation, jersey nu
 #### Intended Commit Message
 
 `Implement Team roster foundation`
+
+### Story 3.3 — Player Workspace and Player Manager Cleanup
+
+**Status:** Implementation complete; manual runtime validation pending
+
+#### Implementation Summary
+
+- Added transient `PlayerWorkspacePage` and `PlayerWorkspaceViewModel` and registered the centralized `player-workspace` Shell route. Player Manager navigation passes only the positive Player ID through the existing `playerId` query key; the Workspace reloads the active Player through `PlayerRepository` and safely rejects missing, malformed, non-positive, inactive, and nonexistent IDs.
+- Made each Player name a compact, bordered, content-sized, tablet-friendly navigation control while preserving the checkbox as an independent bulk-selection control on the opposite side of the row. Player Manager retains Add Player, selected count, Deactivate Selected, Manage Inactive Players, empty state, ordering, selection wrappers, confirmation behavior, and repository-backed `OnAppearing` refresh. Its three list-level actions now share one horizontal action row, and per-row Edit buttons were removed.
+- Added inline Player-name editing to Workspace with separate persisted and editable state. Tapping the displayed name prepopulates First Name and Last Name buffers; Save trims both values, requires First Name, normalizes blank Last Name to `null`, allows duplicate names, skips unchanged writes, updates exactly one active row through `PlayerRepository.UpdateAsync`, updates the display without leaving Workspace, and shows resource-backed retry feedback for failures. Cancel restores persisted values without writing.
+- Added confirmed single-Player soft deactivation using the established ViewModel-to-page delegate pattern and the persisted display name. The existing parameterized bulk `PlayerRepository.DeactivateAsync` is reused with a one-ID collection; exactly one affected row is required, failures remain on Workspace with resource-backed retry feedback, and success returns to Player Manager for its normal reload. Unsaved edit buffers remain separate from the persisted confirmation name and survive a canceled confirmation.
+- Added a resource-backed Team Membership heading and unavailable placeholder without TeamPlayer reads or writes, membership controls, game participation, lineup, statistics, or navigation.
+- Removed the obsolete `EditPlayerPage`, `EditPlayerViewModel`, `edit-player` route and registrations, Player Manager edit command and per-row Edit button, and the exclusively used `EditPlayerButton`, `EditPlayerTitle`, and `PlayerManagementPlaceholderMessage` resources. Shared Player labels, placeholders, validation, Save, Cancel, and not-found resources remain.
+
+#### Files Added
+
+- `SoftballScorekeeper/ViewModels/PlayerWorkspaceViewModel.cs`
+- `SoftballScorekeeper/Views/PlayerWorkspacePage.xaml`
+- `SoftballScorekeeper/Views/PlayerWorkspacePage.xaml.cs`
+
+#### Files Modified
+
+- `FEATURE_HISTORY.md`
+- `SoftballScorekeeper/AppShell.xaml.cs`
+- `SoftballScorekeeper/MauiProgram.cs`
+- `SoftballScorekeeper/Resources/Strings/AppResources.resx`
+- `SoftballScorekeeper/Resources/Strings/AppResources.Designer.cs`
+- `SoftballScorekeeper/ViewModels/PlayerListViewModel.cs`
+- `SoftballScorekeeper/Views/PlayerListPage.xaml`
+
+#### Files Removed
+
+- `SoftballScorekeeper/ViewModels/EditPlayerViewModel.cs`
+- `SoftballScorekeeper/Views/EditPlayerPage.xaml`
+- `SoftballScorekeeper/Views/EditPlayerPage.xaml.cs`
+
+#### Validation Completed
+
+- The complete automated suite passed all 64 tests with zero failures and zero skips in approximately one second. No production repository behavior changed, so no artificial repository tests were added; Tests continues referencing only Core and Infrastructure.
+- `dotnet build SoftballScorekeeper\SoftballScorekeeper.csproj -f net9.0-windows10.0.19041.0 --no-restore -nodeReuse:false -verbosity:minimal` succeeded with 42 warnings and zero errors. Warning categories remain `CS8602`, `MVVMTK0045`, and `XC0025`; the new Workspace presentation fields and source-bound Player-name gesture add instances of existing categories but no new category.
+- The Android command-line build was attempted and failed with `XA5300` because the environment could not locate the Android SDK. No Android build, deployment, emulator, or runtime success is claimed.
+- Static review confirmed ID-only navigation, independent name and checkbox targets, separate persisted and editable state, no-change save behavior, persisted-name confirmation, one-ID reuse of parameterized soft deactivation, no TeamPlayer behavior, removal of obsolete Edit Player references, resource-backed runtime text, and unchanged repository APIs.
+
+#### Limitations and Deferred Work
+
+Windows and Android runtime validation remains required before Story 3.3 is fully complete. Team membership loading and writes, jersey numbers, Player statistics, game participation, lineups, permanent deletion, editing inactive Players, and UI automation remain deferred.
+
+#### Intended Commit Message
+
+`Implement Player workspace`
 
 ## Maintenance Rules
 
