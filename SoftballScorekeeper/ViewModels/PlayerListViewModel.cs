@@ -77,8 +77,8 @@ public partial class PlayerListViewModel : ObservableObject
         await Shell.Current.GoToAsync(AppShell.CreatePlayerRoute);
     }
 
-    [RelayCommand(CanExecute = nameof(CanEditPlayer))]
-    private async Task EditPlayerAsync(int playerId)
+    [RelayCommand(CanExecute = nameof(CanOpenPlayer))]
+    private async Task OpenPlayerAsync(int playerId)
     {
         if (playerId <= 0)
         {
@@ -90,7 +90,7 @@ public partial class PlayerListViewModel : ObservableObject
             [AppShell.PlayerIdQueryParameter] = playerId
         };
 
-        await Shell.Current.GoToAsync(AppShell.EditPlayerRoute, parameters);
+        await Shell.Current.GoToAsync(AppShell.PlayerWorkspaceRoute, parameters);
     }
 
     [RelayCommand(CanExecute = nameof(CanDeactivateSelectedPlayers))]
@@ -169,11 +169,6 @@ public partial class PlayerListViewModel : ObservableObject
         await Shell.Current.GoToAsync(AppShell.InactivePlayersRoute);
     }
 
-    private void ShowPlaceholderMessage()
-    {
-        StatusMessage = AppResources.PlayerManagementPlaceholderMessage;
-    }
-
     partial void OnIsLoadingChanged(bool value)
     {
         NotifyManagerCommandsCanExecuteChanged();
@@ -184,7 +179,7 @@ public partial class PlayerListViewModel : ObservableObject
         return !IsLoading && !isConfirmationPending;
     }
 
-    private bool CanEditPlayer(int playerId)
+    private bool CanOpenPlayer(int playerId)
     {
         return CanUsePlayerManager() && playerId > 0;
     }
@@ -236,7 +231,7 @@ public partial class PlayerListViewModel : ObservableObject
     private void NotifyManagerCommandsCanExecuteChanged()
     {
         AddPlayerCommand.NotifyCanExecuteChanged();
-        EditPlayerCommand.NotifyCanExecuteChanged();
+        OpenPlayerCommand.NotifyCanExecuteChanged();
         DeactivateSelectedPlayersCommand.NotifyCanExecuteChanged();
         ManageInactivePlayersCommand.NotifyCanExecuteChanged();
         ConfirmDeactivateSelectedPlayersCommand.NotifyCanExecuteChanged();

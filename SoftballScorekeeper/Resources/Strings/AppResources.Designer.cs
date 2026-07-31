@@ -254,12 +254,6 @@ namespace SoftballScorekeeper.Resources.Strings {
             }
         }
 
-        public static string EditPlayerButton {
-            get {
-                return ResourceManager.GetString("EditPlayerButton", resourceCulture);
-            }
-        }
-
         public static string DeactivateSelectedPlayersButton {
             get {
                 return ResourceManager.GetString("DeactivateSelectedPlayersButton", resourceCulture);
@@ -269,12 +263,6 @@ namespace SoftballScorekeeper.Resources.Strings {
         public static string ManageInactivePlayersButton {
             get {
                 return ResourceManager.GetString("ManageInactivePlayersButton", resourceCulture);
-            }
-        }
-
-        public static string PlayerManagementPlaceholderMessage {
-            get {
-                return ResourceManager.GetString("PlayerManagementPlaceholderMessage", resourceCulture);
             }
         }
 
@@ -311,12 +299,6 @@ namespace SoftballScorekeeper.Resources.Strings {
         public static string FirstNameRequired {
             get {
                 return ResourceManager.GetString("FirstNameRequired", resourceCulture);
-            }
-        }
-
-        public static string EditPlayerTitle {
-            get {
-                return ResourceManager.GetString("EditPlayerTitle", resourceCulture);
             }
         }
 
@@ -455,6 +437,60 @@ namespace SoftballScorekeeper.Resources.Strings {
         public static string TeamNameEditHint {
             get {
                 return ResourceManager.GetString("TeamNameEditHint", resourceCulture);
+            }
+        }
+
+        public static string PlayerWorkspaceTitle {
+            get {
+                return ResourceManager.GetString("PlayerWorkspaceTitle", resourceCulture);
+            }
+        }
+
+        public static string PlayerNameEditHint {
+            get {
+                return ResourceManager.GetString("PlayerNameEditHint", resourceCulture);
+            }
+        }
+
+        public static string TeamMembershipHeading {
+            get {
+                return ResourceManager.GetString("TeamMembershipHeading", resourceCulture);
+            }
+        }
+
+        public static string TeamMembershipPlaceholderMessage {
+            get {
+                return ResourceManager.GetString("TeamMembershipPlaceholderMessage", resourceCulture);
+            }
+        }
+
+        public static string DeactivatePlayerButton {
+            get {
+                return ResourceManager.GetString("DeactivatePlayerButton", resourceCulture);
+            }
+        }
+
+        public static string DeactivatePlayerConfirmationTitle {
+            get {
+                return ResourceManager.GetString("DeactivatePlayerConfirmationTitle", resourceCulture);
+            }
+        }
+
+        public static string DeactivateSinglePlayerConfirmationMessage {
+            get {
+                return ResourceManager.GetString("DeactivateSinglePlayerConfirmationMessage", resourceCulture);
+            }
+        }
+
+        public static string PlayerUpdateFailed {
+            get {
+                return ResourceManager.GetString("PlayerUpdateFailed", resourceCulture);
+            }
+        }
+
+        public static string PlayerDeactivationFailed {
+            get {
+                return ResourceManager.GetString("PlayerDeactivationFailed", resourceCulture);
             }
         }
 
