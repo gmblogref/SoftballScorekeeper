@@ -1,8 +1,7 @@
 using SQLite;
-using SoftballScorekeeper.Configuration;
-using SoftballScorekeeper.Models;
+using SoftballScorekeeper.Core.Models;
 
-namespace SoftballScorekeeper.Data;
+namespace SoftballScorekeeper.Infrastructure.Data;
 
 public sealed class AppDatabase
 {
@@ -10,18 +9,16 @@ public sealed class AppDatabase
     private readonly SemaphoreSlim initializationLock = new(1, 1);
     private volatile bool isInitialized;
 
-    public AppDatabase(ApplicationSettings settings)
+    public AppDatabase(string databasePath)
     {
-        ArgumentNullException.ThrowIfNull(settings);
-
-        if (string.IsNullOrWhiteSpace(settings.DatabaseFileName))
+        if (string.IsNullOrWhiteSpace(databasePath))
         {
             throw new ArgumentException(
-                "Database filename cannot be null, empty, or whitespace.",
-                nameof(settings.DatabaseFileName));
+                "Database path cannot be null, empty, or whitespace.",
+                nameof(databasePath));
         }
 
-        DatabasePath = Path.Combine(FileSystem.AppDataDirectory, settings.DatabaseFileName);
+        DatabasePath = databasePath;
         connection = new SQLiteAsyncConnection(
             DatabasePath,
             SQLiteOpenFlags.ReadWrite | SQLiteOpenFlags.Create | SQLiteOpenFlags.SharedCache);

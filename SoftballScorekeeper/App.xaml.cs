@@ -1,5 +1,5 @@
 using Microsoft.Extensions.DependencyInjection;
-using SoftballScorekeeper.Data;
+using SoftballScorekeeper.Infrastructure.Data;
 
 namespace SoftballScorekeeper;
 

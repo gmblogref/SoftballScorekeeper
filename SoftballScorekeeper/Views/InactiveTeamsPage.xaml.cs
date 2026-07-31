@@ -1,5 +1,5 @@
 using System.Globalization;
-using SoftballScorekeeper.Models;
+using SoftballScorekeeper.Core.Models;
 using SoftballScorekeeper.Resources.Strings;
 using SoftballScorekeeper.ViewModels;
 

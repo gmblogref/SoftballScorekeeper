@@ -1,6 +1,6 @@
 using SQLite;
 
-namespace SoftballScorekeeper.Models;
+namespace SoftballScorekeeper.Core.Models;
 
 public sealed class Player
 {

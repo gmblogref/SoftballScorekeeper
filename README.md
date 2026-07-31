@@ -13,10 +13,10 @@ Android tablet behavior is the primary UI and interaction acceptance standard. T
 ## Current Status
 
 - **Foundation phase:** Complete
-- **Latest completed story:** Story 1.2 — Edit Team
-- **Completed stories:** Stories 0.0 through 1.2
+- **Latest completed story:** Story 3.0 — Layered Solution Restructure
+- **Completed stories:** Stories 0.0 through 3.0
 
-The application has foundational presentation, dependency-injection, persistence, resource, configuration, and documentation infrastructure. Its landing page and Team creation and editing workflows are implemented. Player, game, roster, lineup, scorekeeping, statistics, and beer-rule workflows remain planned.
+The application has foundational presentation, dependency-injection, persistence, resource, configuration, and documentation infrastructure. Team and Player management workflows are implemented. Game, roster, lineup, scorekeeping, statistics, and beer-rule workflows remain planned.
 
 ## Technology Stack
 
@@ -29,21 +29,15 @@ The application has foundational presentation, dependency-injection, persistence
 
 ## Repository Structure
 
-The application currently uses one pragmatic .NET MAUI project while preserving separation of responsibilities through logical folders and repository conventions.
+The solution uses three focused projects with one-way project references.
 
-- `Configuration` — Strongly typed application settings and defaults.
-- `Data` — Device-local SQLite initialization and repository infrastructure.
-- `Models` — Application data models introduced by feature stories.
-- `Resources` — Styles, images, fonts, app assets, and centralized `.resx` strings.
-- `Services` — Reserved for application services introduced by future stories.
-- `ViewModels` — MVVM presentation state and commands.
-- `Views` — MAUI XAML pages and minimal code-behind.
+- `SoftballScorekeeper` — .NET MAUI composition root, configuration, Views, ViewModels, resources, and platform assets.
+- `SoftballScorekeeper.Core` — Platform-independent Team and Player models and shared domain types.
+- `SoftballScorekeeper.Infrastructure` — Device-local SQLite initialization and Team and Player repositories; references Core.
 
 ## Architecture Direction
 
-The current single-project structure, XAML/MVVM presentation, CommunityToolkit.Mvvm, dependency injection, centralized resources, configuration, and SQLite persistence remain valid through Team CRUD and Player CRUD.
-
-A later dedicated story is expected to transition the solution toward pragmatic layered/Clean Architecture boundaries for Presentation / .NET MAUI, Application, Domain, Infrastructure, and Tests. This transition is planned after Team and Player CRUD but before roster, scheduling, lineup, statistics, and scoring-rule complexity grows substantially. It has not been implemented; clear dependency direction and testability matter more than project count or unnecessary interfaces and abstractions.
+The MAUI project references Core and Infrastructure, Infrastructure references Core, and Core references no other solution project. `MauiProgram` remains the only composition root. An Application project and automated test project remain deferred until later stories require them; clear dependency direction and testability matter more than unnecessary interfaces and abstractions.
 
 ## Project Documentation
 
@@ -71,7 +65,7 @@ Manual Android and Windows validation remain part of the current workflow until 
 
 The current implementation includes:
 
-- A basic single-project .NET MAUI application targeting Android and Windows
+- A three-project solution with a .NET MAUI application targeting Android and Windows, a platform-independent Core library, and an Infrastructure library
 - XAML and CommunityToolkit.Mvvm infrastructure
 - Dependency-injection registrations and constructor injection
 - Device-local SQLite connection and asynchronous initialization

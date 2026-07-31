@@ -1,8 +1,8 @@
 ﻿using Microsoft.Extensions.Logging;
 
 using SoftballScorekeeper.Configuration;
-using SoftballScorekeeper.Data;
-using SoftballScorekeeper.Data.Repositories;
+using SoftballScorekeeper.Infrastructure.Data;
+using SoftballScorekeeper.Infrastructure.Data.Repositories;
 using SoftballScorekeeper.ViewModels;
 using SoftballScorekeeper.Views;
 
@@ -27,7 +27,12 @@ namespace SoftballScorekeeper
 
             builder.Services.AddSingleton<AppShell>();
             builder.Services.AddSingleton<ApplicationSettings>();
-            builder.Services.AddSingleton<AppDatabase>();
+            builder.Services.AddSingleton(serviceProvider =>
+            {
+                var settings = serviceProvider.GetRequiredService<ApplicationSettings>();
+                var databasePath = Path.Combine(FileSystem.AppDataDirectory, settings.DatabaseFileName);
+                return new AppDatabase(databasePath);
+            });
             builder.Services.AddSingleton<TeamRepository>();
             builder.Services.AddSingleton<PlayerRepository>();
             builder.Services.AddSingleton<LandingPageViewModel>();
