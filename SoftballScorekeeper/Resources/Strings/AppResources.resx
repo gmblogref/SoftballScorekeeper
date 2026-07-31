@@ -238,9 +238,6 @@
   <data name="RemovePlayersButton" xml:space="preserve">
     <value>Remove Players</value>
   </data>
-  <data name="RemovePlayersPlaceholderMessage" xml:space="preserve">
-    <value>Removing Players from a Team will be available in a future story.</value>
-  </data>
   <data name="TeamNameEditHint" xml:space="preserve">
     <value>Tap to edit the Team name.</value>
   </data>
@@ -297,6 +294,36 @@
   </data>
   <data name="AddPlayersPartialResultMessage" xml:space="preserve">
     <value>{0} of {1} selected Players were added to the Team. The eligible Player list has been refreshed.</value>
+  </data>
+  <data name="RemovePlayersFromTeamTitle" xml:space="preserve">
+    <value>Remove Players from Team</value>
+  </data>
+  <data name="RemovePlayersHeading" xml:space="preserve">
+    <value>Remove Players</value>
+  </data>
+  <data name="NoRemovableRosterPlayersMessage" xml:space="preserve">
+    <value>This Team has no active roster Players to remove.</value>
+  </data>
+  <data name="RemoveSelectedPlayersFromTeamButton" xml:space="preserve">
+    <value>Remove Selected from Team</value>
+  </data>
+  <data name="RemovePlayersFromTeamConfirmationTitle" xml:space="preserve">
+    <value>Remove Players from Team</value>
+  </data>
+  <data name="RemovePlayerFromTeamConfirmationMessage" xml:space="preserve">
+    <value>Remove {0} selected Player only from {1}? The Player record and existing data will remain preserved and active, and the Player can be added back later.</value>
+  </data>
+  <data name="RemovePlayersFromTeamConfirmationMessage" xml:space="preserve">
+    <value>Remove {0} selected Players only from {1}? Their Player records and existing data will remain preserved and active, and they can be added back later.</value>
+  </data>
+  <data name="ConfirmRemovePlayersFromTeamButton" xml:space="preserve">
+    <value>Remove</value>
+  </data>
+  <data name="RemovePlayersPartialResultMessage" xml:space="preserve">
+    <value>{0} of {1} selected Players were removed from the Team. The active roster has been refreshed.</value>
+  </data>
+  <data name="RemovePlayersNoOpMessage" xml:space="preserve">
+    <value>No selected Players were removed from the Team. The active roster has been refreshed.</value>
   </data>
   <data name="NoTeamMembershipsMessage" xml:space="preserve">
     <value>This Player does not have any active Team memberships.</value>

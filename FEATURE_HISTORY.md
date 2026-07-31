@@ -10,13 +10,13 @@ Stable product and architecture decisions belong in the project architecture doc
 
 ## Current Project Status
 
-- **Latest completed story:** Story 3.1 — Automated Test Foundation
-- **Completed stories:** Stories 0.0 through 3.1
-- **Current story:** Story 3.4 — Add Players to Team (implementation complete; manual runtime validation pending)
+- **Latest completed story:** Story 3.5 — Remove Players from Team
+- **Completed stories:** Stories 0.0 through 3.1 and Story 3.5; Stories 3.2 through 3.4 retain their recorded validation status
+- **Current story:** Story 3.5 — Remove Players from Team (complete; Windows runtime not run)
 - **Current phase:** Team and Player workspace workflows and validation
 - **Foundation status:** Complete
 
-The repository contains a four-project .NET 9 solution: the Android- and Windows-targeted .NET MAUI application, platform-independent Core, Infrastructure, and the automated test project. Its implemented foundation includes repository guidance, pragmatic layered dependencies, CommunityToolkit.Mvvm, MAUI dependency injection, device-local SQLite initialization, centralized user-facing resources, strongly typed application settings, and isolated xUnit repository integration tests. Team Workspace can add existing active Players to its roster, Player Workspace shows active Team memberships, and Player Manager retains bulk lifecycle actions; roster removal and other product-facing softball workflows remain deferred.
+The repository contains a four-project .NET 9 solution: the Android- and Windows-targeted .NET MAUI application, platform-independent Core, Infrastructure, and the automated test project. Its implemented foundation includes repository guidance, pragmatic layered dependencies, CommunityToolkit.Mvvm, MAUI dependency injection, device-local SQLite initialization, centralized user-facing resources, strongly typed application settings, and isolated xUnit repository integration tests. Team Workspace can add and remove existing active Players from its roster, Player Workspace shows active Team memberships, and Player Manager retains bulk lifecycle actions; other product-facing softball workflows remain deferred.
 
 ## Approved Project-Wide Direction
 
@@ -1362,6 +1362,54 @@ Manual Android tablet and Windows runtime validation remain required before Stor
 #### Intended Commit Message
 
 `Implement add Players to Team`
+
+### Story 3.5 — Remove Players from Team
+
+**Status:** Complete; Android manual runtime validation passed, Windows runtime not run
+
+#### Implementation Summary
+
+- Replaced Team Workspace's removal placeholder with ID-only navigation through the centralized `remove-players-from-team` Shell route and existing `teamId` query key. The new transient page and ViewModel reload the active Team and active roster from repositories and reuse `PlayerSelectionItem`, stable collection updates, selected-count state, and overlapping-operation guards.
+- Added a resource-backed empty state, selection action, and singular/plural confirmation. Confirmation limits removal to the selected Team, preserves globally active Player records and existing data, and explains that Players can be added back. Cancel performs no repository write and preserves selection.
+- Extended `TeamPlayerRepository` with a focused parameterized bulk removal method and `RemovePlayersFromTeamResult`. It validates an active Team, safely deduplicates and classifies requested IDs, and updates only active matching `TeamPlayer.IsActive` values for the selected Team. It performs no inserts or deletes and preserves Player rows, TeamPlayer IDs and foreign keys, unselected relationships, and memberships on other Teams.
+- Complete results navigate back so Team Workspace reloads repository truth on appearance. Partial and no-op results stay on the removal page, reload the active roster, reselect requested Players that remain active members, and display resource-backed feedback. Player Workspace's existing appearance refresh removes the Team from its read-only membership list without a lifecycle change.
+- The existing Add Players workflow makes removed Players eligible and reactivates the existing inactive TeamPlayer row. Repository regression coverage verifies original relationship-ID preservation and prevents a duplicate row or duplicate active membership.
+
+#### Files Added
+
+- `SoftballScorekeeper.Infrastructure/Data/Repositories/RemovePlayersFromTeamResult.cs`
+- `SoftballScorekeeper/ViewModels/RemovePlayersFromTeamViewModel.cs`
+- `SoftballScorekeeper/Views/RemovePlayersFromTeamPage.xaml`
+- `SoftballScorekeeper/Views/RemovePlayersFromTeamPage.xaml.cs`
+
+#### Files Modified
+
+- `FEATURE_HISTORY.md`
+- `SoftballScorekeeper.Infrastructure/Data/Repositories/TeamPlayerRepository.cs`
+- `SoftballScorekeeper.Tests/TeamPlayerRepositoryTests.cs`
+- `SoftballScorekeeper/AppShell.xaml.cs`
+- `SoftballScorekeeper/MauiProgram.cs`
+- `SoftballScorekeeper/Resources/Strings/AppResources.resx`
+- `SoftballScorekeeper/Resources/Strings/AppResources.Designer.cs`
+- `SoftballScorekeeper/ViewModels/TeamWorkspaceViewModel.cs`
+
+#### Automated Tests and Validation
+
+- Added seven isolated TeamPlayer repository tests covering relationship-only soft deactivation and row/key preservation, global Player and cross-Team isolation, unselected and duplicate relationship handling, null/empty/invalid/missing/already-inactive inputs, missing and inactive Teams, result classifications and counts, and remove-then-re-add ID preservation without duplication.
+- The focused TeamPlayer repository run passed 36 of 36 tests with zero failures and zero skips. The complete suite passed 86 of 86 tests with zero failures and zero skips. Tests continue using isolated temporary SQLite databases and reference only Core and Infrastructure.
+- The Windows target build succeeded with 58 warnings and zero errors. Warning categories remain the existing `CS8602`, `MVVMTK0045`, and `XC0025` categories; no new warning category was introduced.
+- Manual Android tablet validation passed through the available runtime environment. The validated workflow covered navigation, correct Team and active-roster loading, single- and multi-Player selection and removal, singular and plural confirmation, cancellation with selection preservation and no removal, removal-page and Team Workspace refresh, correct remaining-roster ordering, and the empty-roster state after final removal.
+- Android validation also confirmed that removed Team memberships disappear from Player Workspace, Players remain globally active, other active Team memberships remain intact, removed Players become eligible for Add Players, re-adding restores the existing membership without duplicate roster or membership entries, and Add Players remains functional. Inline Team editing, Team deactivation, Player editing, and Player deactivation also remained functional, with no clipping, overlap, stale selection, binding failure, or runtime exception observed.
+- The Android command-line build remains unavailable because the environment cannot locate the Android SDK and reports `XA5300`; this CLI limitation does not negate the reported manual Android tablet runtime pass. The Windows target build succeeded, but the Windows application was not launched. Restart persistence was not tested and is not claimed.
+- Static review confirmed centralized resources, transient page/ViewModel lifetimes, singleton repository lifetime, route registration, ID-only navigation, parameterized relationship-only SQL, no TeamPlayer inserts or deletes in removal, no global Player deactivation, and no database artifacts.
+
+#### Limitations and Deferred Work
+
+Windows application runtime and restart-persistence validation were not performed. Jersey numbers, removal metadata, lineup and game behavior, scoring, statistics, Beer Rules, generic relationship abstractions, duplicate-data cleanup, database uniqueness changes, and UI automation remain deferred.
+
+#### Intended Commit Message
+
+`Implement remove Players from Team`
 
 ## Maintenance Rules
 

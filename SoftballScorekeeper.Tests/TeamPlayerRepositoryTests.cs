@@ -483,6 +483,155 @@ public sealed class TeamPlayerRepositoryTests
         Assert.Equal((relationship.Id, relationship.IsActive), (persisted.Id, persisted.IsActive));
     }
 
+    [Fact]
+    public async Task RemovePlayersFromTeamAsync_ActiveRelationship_SoftDeactivatesRelationshipOnly()
+    {
+        await using var db = await TemporaryTestDatabase.CreateAsync();
+        var team = await CreateTeamAsync(db);
+        var player = await CreatePlayerAsync(db, "Amy", "Able");
+        var relationship = await AddTeamPlayerAsync(db, team, player);
+
+        var result = await db.CreateTeamPlayerRepository().RemovePlayersFromTeamAsync(team.Id, [player.Id]);
+
+        Assert.Equal([player.Id], result.RequestedPlayerIds);
+        Assert.Equal([player.Id], result.RemovedPlayerIds);
+        Assert.Equal(1, result.SuccessfulRemovalCount);
+        Assert.Empty(result.AlreadyInactivePlayerIds);
+        Assert.Empty(result.NotOnTeamPlayerIds);
+        Assert.Empty(result.IgnoredPlayerIds);
+        var persistedRelationship = Assert.Single(await db.GetTeamPlayersAsync());
+        Assert.Equal(
+            (relationship.Id, relationship.TeamId, relationship.PlayerId, false),
+            (persistedRelationship.Id, persistedRelationship.TeamId, persistedRelationship.PlayerId, persistedRelationship.IsActive));
+        var persistedPlayer = Assert.Single(await db.CreatePlayerRepository().GetActiveAsync());
+        Assert.Equal(player.Id, persistedPlayer.Id);
+        Assert.True(persistedPlayer.IsActive);
+    }
+
+    [Fact]
+    public async Task RemovePlayersFromTeamAsync_OnlyChangesSelectedRelationshipOnSelectedTeam()
+    {
+        await using var db = await TemporaryTestDatabase.CreateAsync();
+        var selectedTeam = await CreateTeamAsync(db, "Selected");
+        var otherTeam = await CreateTeamAsync(db, "Other");
+        var selected = await CreatePlayerAsync(db, "Amy", "Able");
+        var unselected = await CreatePlayerAsync(db, "Bob", "Baker");
+        var selectedRelationship = await AddTeamPlayerAsync(db, selectedTeam, selected);
+        var unselectedRelationship = await AddTeamPlayerAsync(db, selectedTeam, unselected);
+        var otherTeamRelationship = await AddTeamPlayerAsync(db, otherTeam, selected);
+
+        await db.CreateTeamPlayerRepository().RemovePlayersFromTeamAsync(selectedTeam.Id, [selected.Id]);
+
+        var relationships = await db.GetTeamPlayersAsync();
+        Assert.Equal(3, relationships.Count);
+        Assert.Contains(relationships, item => item.Id == selectedRelationship.Id && !item.IsActive);
+        Assert.Contains(relationships, item => item.Id == unselectedRelationship.Id && item.IsActive);
+        Assert.Contains(relationships, item => item.Id == otherTeamRelationship.Id && item.IsActive);
+        Assert.Equal(2, (await db.CreatePlayerRepository().GetActiveAsync()).Count);
+    }
+
+    [Fact]
+    public async Task RemovePlayersFromTeamAsync_DuplicateIds_DeactivatesAllMatchingActiveRowsAndReportsPlayerOnce()
+    {
+        await using var db = await TemporaryTestDatabase.CreateAsync();
+        var team = await CreateTeamAsync(db);
+        var player = await CreatePlayerAsync(db, "Amy", "Able");
+        await AddTeamPlayerAsync(db, team, player);
+        await AddTeamPlayerAsync(db, team, player);
+
+        var result = await db.CreateTeamPlayerRepository().RemovePlayersFromTeamAsync(
+            team.Id,
+            [player.Id, player.Id]);
+
+        Assert.Equal([player.Id], result.RequestedPlayerIds);
+        Assert.Equal([player.Id], result.RemovedPlayerIds);
+        var relationships = await db.GetTeamPlayersAsync();
+        Assert.Equal(2, relationships.Count);
+        Assert.All(relationships, item => Assert.False(item.IsActive));
+    }
+
+    [Fact]
+    public async Task RemovePlayersFromTeamAsync_ClassifiesInvalidMissingNotOnTeamAndAlreadyInactiveIds()
+    {
+        await using var db = await TemporaryTestDatabase.CreateAsync();
+        var team = await CreateTeamAsync(db);
+        var inactiveMember = await CreatePlayerAsync(db, "Amy", "Able");
+        var notOnTeam = await CreatePlayerAsync(db, "Bob", "Baker");
+        var inactivePlayer = await CreatePlayerAsync(db, "Cara", "Clark");
+        await AddTeamPlayerAsync(db, team, inactiveMember, isActive: false);
+        Assert.Equal(1, await db.CreatePlayerRepository().DeactivateAsync([inactivePlayer.Id]));
+
+        var result = await db.CreateTeamPlayerRepository().RemovePlayersFromTeamAsync(
+            team.Id,
+            [inactiveMember.Id, notOnTeam.Id, inactivePlayer.Id, int.MaxValue, 0, -1]);
+
+        Assert.Empty(result.RemovedPlayerIds);
+        Assert.Equal([inactiveMember.Id], result.AlreadyInactivePlayerIds);
+        Assert.Equal([notOnTeam.Id], result.NotOnTeamPlayerIds);
+        Assert.Equal([inactivePlayer.Id, int.MaxValue, 0, -1], result.IgnoredPlayerIds);
+        Assert.Single(await db.GetTeamPlayersAsync());
+    }
+
+    [Fact]
+    public async Task RemovePlayersFromTeamAsync_NullEmptyMissingOrInactiveTeam_PerformsNoWrites()
+    {
+        await using var db = await TemporaryTestDatabase.CreateAsync();
+        var activeTeam = await CreateTeamAsync(db, "Active");
+        var inactiveTeam = await CreateTeamAsync(db, "Inactive");
+        var player = await CreatePlayerAsync(db, "Amy", "Able");
+        var relationship = await AddTeamPlayerAsync(db, activeTeam, player);
+        Assert.Equal(1, await db.CreateTeamRepository().DeactivateAsync(inactiveTeam.Id));
+        var repository = db.CreateTeamPlayerRepository();
+
+        Assert.Empty((await repository.RemovePlayersFromTeamAsync(activeTeam.Id, null)).RequestedPlayerIds);
+        Assert.Empty((await repository.RemovePlayersFromTeamAsync(activeTeam.Id, [])).RequestedPlayerIds);
+        Assert.Equal([player.Id], (await repository.RemovePlayersFromTeamAsync(int.MaxValue, [player.Id])).IgnoredPlayerIds);
+        Assert.Equal([player.Id], (await repository.RemovePlayersFromTeamAsync(inactiveTeam.Id, [player.Id])).IgnoredPlayerIds);
+        var persisted = Assert.Single(await db.GetTeamPlayersAsync());
+        Assert.Equal((relationship.Id, true), (persisted.Id, persisted.IsActive));
+    }
+
+    [Fact]
+    public async Task RemovePlayersFromTeamAsync_MixedRequest_ReportsAccurateCompletePartialAndNoOpCounts()
+    {
+        await using var db = await TemporaryTestDatabase.CreateAsync();
+        var team = await CreateTeamAsync(db);
+        var first = await CreatePlayerAsync(db, "Amy", "Able");
+        var second = await CreatePlayerAsync(db, "Bob", "Baker");
+        var notOnTeam = await CreatePlayerAsync(db, "Cara", "Clark");
+        await AddTeamPlayerAsync(db, team, first);
+        await AddTeamPlayerAsync(db, team, second);
+
+        var complete = await db.CreateTeamPlayerRepository().RemovePlayersFromTeamAsync(team.Id, [first.Id]);
+        var partial = await db.CreateTeamPlayerRepository().RemovePlayersFromTeamAsync(team.Id, [second.Id, notOnTeam.Id]);
+        var noOp = await db.CreateTeamPlayerRepository().RemovePlayersFromTeamAsync(team.Id, [first.Id]);
+
+        Assert.Equal(1, complete.SuccessfulRemovalCount);
+        Assert.Equal(1, partial.SuccessfulRemovalCount);
+        Assert.Equal([notOnTeam.Id], partial.NotOnTeamPlayerIds);
+        Assert.Equal(0, noOp.SuccessfulRemovalCount);
+        Assert.Equal([first.Id], noOp.AlreadyInactivePlayerIds);
+    }
+
+    [Fact]
+    public async Task RemoveThenAddPlayer_ReactivatesSameRelationshipWithoutDuplicate()
+    {
+        await using var db = await TemporaryTestDatabase.CreateAsync();
+        var team = await CreateTeamAsync(db);
+        var player = await CreatePlayerAsync(db, "Amy", "Able");
+        var original = await AddTeamPlayerAsync(db, team, player);
+        var repository = db.CreateTeamPlayerRepository();
+
+        Assert.Equal([player.Id], (await repository.RemovePlayersFromTeamAsync(team.Id, [player.Id])).RemovedPlayerIds);
+        Assert.Equal([player.Id], (await repository.GetEligiblePlayersForTeamAsync(team.Id)).Select(item => item.Id));
+        Assert.Equal([player.Id], (await repository.AddPlayersToTeamAsync(team.Id, [player.Id])).ReactivatedPlayerIds);
+
+        var relationship = Assert.Single(await db.GetTeamPlayersAsync());
+        Assert.Equal(original.Id, relationship.Id);
+        Assert.True(relationship.IsActive);
+        Assert.Single(await repository.GetActivePlayersForTeamAsync(team.Id));
+    }
+
     private static async Task<Team> CreateTeamAsync(
         TemporaryTestDatabase testDatabase,
         string name = "Falcons")
