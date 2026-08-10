@@ -12,10 +12,14 @@ public partial class TeamWorkspaceViewModel : ObservableObject, IQueryAttributab
 {
     private readonly TeamRepository teamRepository;
     private readonly TeamPlayerRepository teamPlayerRepository;
+    private readonly GameRepository gameRepository;
+    private bool hasGames;
+    private bool hasInitialSectionSelection;
     private bool hasValidTeamId;
     private bool isConfirmationPending;
     private IReadOnlyList<int> pendingPlayerIds = Array.Empty<int>();
     private int selectedPlayerCount;
+    private TeamWorkspaceSection selectedSection = TeamWorkspaceSection.Roster;
     private Team? loadedTeam;
 
     [ObservableProperty]
@@ -74,13 +78,16 @@ public partial class TeamWorkspaceViewModel : ObservableObject, IQueryAttributab
 
     public TeamWorkspaceViewModel(
         TeamRepository teamRepository,
-        TeamPlayerRepository teamPlayerRepository)
+        TeamPlayerRepository teamPlayerRepository,
+        GameRepository gameRepository)
     {
         ArgumentNullException.ThrowIfNull(teamRepository);
         ArgumentNullException.ThrowIfNull(teamPlayerRepository);
+        ArgumentNullException.ThrowIfNull(gameRepository);
 
         this.teamRepository = teamRepository;
         this.teamPlayerRepository = teamPlayerRepository;
+        this.gameRepository = gameRepository;
     }
 
     public ObservableCollection<PlayerSelectionItem> RosterPlayers { get; } = new();
@@ -103,6 +110,37 @@ public partial class TeamWorkspaceViewModel : ObservableObject, IQueryAttributab
     }
 
     public bool HasSelectedPlayers => SelectedPlayerCount > 0;
+
+    public bool HasGames
+    {
+        get => hasGames;
+        private set
+        {
+            if (SetProperty(ref hasGames, value))
+            {
+                OnPropertyChanged(nameof(HasNoGames));
+            }
+        }
+    }
+
+    public bool HasNoGames => !HasGames;
+
+    public TeamWorkspaceSection SelectedSection
+    {
+        get => selectedSection;
+        private set
+        {
+            if (SetProperty(ref selectedSection, value))
+            {
+                OnPropertyChanged(nameof(IsGamesSectionSelected));
+                OnPropertyChanged(nameof(IsRosterSectionSelected));
+            }
+        }
+    }
+
+    public bool IsGamesSectionSelected => SelectedSection == TeamWorkspaceSection.Games;
+
+    public bool IsRosterSectionSelected => SelectedSection == TeamWorkspaceSection.Roster;
 
     public void ApplyQueryAttributes(IDictionary<string, object> query)
     {
@@ -157,6 +195,7 @@ public partial class TeamWorkspaceViewModel : ObservableObject, IQueryAttributab
             }
 
             var players = await teamPlayerRepository.GetActivePlayersForTeamAsync(TeamId);
+            var teamHasGames = await gameRepository.HasGamesForTeamAsync(TeamId);
 
             loadedTeam = team;
             TeamName = team.Name;
@@ -169,6 +208,15 @@ public partial class TeamWorkspaceViewModel : ObservableObject, IQueryAttributab
 
             HasPlayers = RosterPlayers.Count > 0;
             HasNoPlayers = !HasPlayers;
+            HasGames = teamHasGames;
+            if (!hasInitialSectionSelection)
+            {
+                SelectedSection = HasGames
+                    ? TeamWorkspaceSection.Games
+                    : TeamWorkspaceSection.Roster;
+                hasInitialSectionSelection = true;
+            }
+
             ValidationMessage = string.Empty;
             StatusMessage = string.Empty;
             ExitRemovePlayersMode();
@@ -327,6 +375,21 @@ public partial class TeamWorkspaceViewModel : ObservableObject, IQueryAttributab
         };
 
         await Shell.Current.GoToAsync(AppShell.AddPlayersToTeamRoute, parameters);
+    }
+
+    [RelayCommand]
+    private void SelectGamesSection()
+    {
+        ExitRemovePlayersMode();
+        SelectedSection = TeamWorkspaceSection.Games;
+        hasInitialSectionSelection = true;
+    }
+
+    [RelayCommand]
+    private void SelectRosterSection()
+    {
+        SelectedSection = TeamWorkspaceSection.Roster;
+        hasInitialSectionSelection = true;
     }
 
     [RelayCommand(CanExecute = nameof(CanBeginRemovePlayers))]
@@ -496,10 +559,13 @@ public partial class TeamWorkspaceViewModel : ObservableObject, IQueryAttributab
         RosterPlayers.Clear();
         HasPlayers = false;
         HasNoPlayers = false;
+        HasGames = false;
+        hasInitialSectionSelection = false;
         ValidationMessage = string.Empty;
         StatusMessage = string.Empty;
         IsEditingTeamName = false;
         ExitRemovePlayersMode();
+        SelectedSection = TeamWorkspaceSection.Roster;
         IsTeamLoaded = false;
     }
 

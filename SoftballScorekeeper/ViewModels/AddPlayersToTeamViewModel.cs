@@ -34,10 +34,12 @@ public partial class AddPlayersToTeamViewModel : ObservableObject, IQueryAttribu
     [ObservableProperty]
     [NotifyCanExecuteChangedFor(nameof(AddSelectedPlayersCommand))]
     [NotifyCanExecuteChangedFor(nameof(ConfirmAddSelectedPlayersCommand))]
+    [NotifyCanExecuteChangedFor(nameof(CreatePlayerCommand))]
     private bool isBusy;
 
     [ObservableProperty]
     [NotifyCanExecuteChangedFor(nameof(AddSelectedPlayersCommand))]
+    [NotifyCanExecuteChangedFor(nameof(CreatePlayerCommand))]
     private bool isTeamLoaded;
 
     public AddPlayersToTeamViewModel(
@@ -92,7 +94,7 @@ public partial class AddPlayersToTeamViewModel : ObservableObject, IQueryAttribu
 
     public async Task LoadAsync()
     {
-        if (IsBusy || IsTeamLoaded)
+        if (IsBusy)
         {
             return;
         }
@@ -161,6 +163,17 @@ public partial class AddPlayersToTeamViewModel : ObservableObject, IQueryAttribu
         }
     }
 
+    [RelayCommand(CanExecute = nameof(CanCreatePlayer))]
+    private async Task CreatePlayerAsync()
+    {
+        var parameters = new ShellNavigationQueryParameters
+        {
+            [AppShell.TeamIdQueryParameter] = TeamId
+        };
+
+        await Shell.Current.GoToAsync(AppShell.CreatePlayerRoute, parameters);
+    }
+
     [RelayCommand(CanExecute = nameof(CanConfirmAddSelectedPlayers))]
     private async Task ConfirmAddSelectedPlayersAsync()
     {
@@ -208,6 +221,11 @@ public partial class AddPlayersToTeamViewModel : ObservableObject, IQueryAttribu
         return !IsBusy && !isConfirmationPending && IsTeamLoaded && HasSelectedPlayers;
     }
 
+    private bool CanCreatePlayer()
+    {
+        return !IsBusy && !isConfirmationPending && IsTeamLoaded;
+    }
+
     private bool CanConfirmAddSelectedPlayers()
     {
         return !IsBusy && isConfirmationPending && IsTeamLoaded && pendingPlayerIds.Count > 0;
@@ -249,6 +267,7 @@ public partial class AddPlayersToTeamViewModel : ObservableObject, IQueryAttribu
     {
         AddSelectedPlayersCommand.NotifyCanExecuteChanged();
         ConfirmAddSelectedPlayersCommand.NotifyCanExecuteChanged();
+        CreatePlayerCommand.NotifyCanExecuteChanged();
     }
 
     private void ResetState()

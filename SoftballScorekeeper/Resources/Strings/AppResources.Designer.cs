@@ -272,6 +272,24 @@ namespace SoftballScorekeeper.Resources.Strings {
             }
         }
 
+        public static string CreateNewPlayerButton {
+            get {
+                return ResourceManager.GetString("CreateNewPlayerButton", resourceCulture);
+            }
+        }
+
+        public static string PlayerCreationFailed {
+            get {
+                return ResourceManager.GetString("PlayerCreationFailed", resourceCulture);
+            }
+        }
+
+        public static string PlayerCreatedTeamMembershipFailed {
+            get {
+                return ResourceManager.GetString("PlayerCreatedTeamMembershipFailed", resourceCulture);
+            }
+        }
+
         public static string FirstNameLabel {
             get {
                 return ResourceManager.GetString("FirstNameLabel", resourceCulture);
@@ -395,6 +413,30 @@ namespace SoftballScorekeeper.Resources.Strings {
         public static string TeamWorkspaceTitle {
             get {
                 return ResourceManager.GetString("TeamWorkspaceTitle", resourceCulture);
+            }
+        }
+
+        public static string GamesSectionLabel {
+            get {
+                return ResourceManager.GetString("GamesSectionLabel", resourceCulture);
+            }
+        }
+
+        public static string RosterSectionLabel {
+            get {
+                return ResourceManager.GetString("RosterSectionLabel", resourceCulture);
+            }
+        }
+
+        public static string NoGamesMessage {
+            get {
+                return ResourceManager.GetString("NoGamesMessage", resourceCulture);
+            }
+        }
+
+        public static string GamesAvailableMessage {
+            get {
+                return ResourceManager.GetString("GamesAvailableMessage", resourceCulture);
             }
         }
 
