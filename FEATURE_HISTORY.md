@@ -10,10 +10,10 @@ Stable product and architecture decisions belong in the project architecture doc
 
 ## Current Project Status
 
-- **Latest completed story:** Story 3.6 — Global Application Navigation
-- **Completed stories:** Stories 0.0 through 3.1, Story 3.5, and Story 3.6; Stories 3.2 through 3.4 retain their recorded validation status
-- **Current story:** Story 3.6 — Global Application Navigation (complete; Android tablet validation passed, Windows runtime not run)
-- **Current phase:** Global navigation and Team/Player workspace workflows
+- **Latest completed story:** Story 3.7 — Replace Default Application Icon
+- **Completed stories:** Stories 0.0 through 3.1 and Stories 3.5 through 3.7; Stories 3.2 through 3.4 retain their recorded validation status
+- **Current story:** Story 3.7 — Replace Default Application Icon (complete; Android tablet validation passed, Windows validation intentionally not performed)
+- **Current phase:** Early branding and Team/Player workspace workflows
 - **Foundation status:** Complete
 
 The repository contains a four-project .NET 9 solution: the Android- and Windows-targeted .NET MAUI application, platform-independent Core, Infrastructure, and the automated test project. Its implemented foundation includes repository guidance, pragmatic layered dependencies, CommunityToolkit.Mvvm, MAUI dependency injection, device-local SQLite initialization, centralized user-facing resources, strongly typed application settings, and isolated xUnit repository integration tests. Team Workspace can add and remove existing active Players from its roster, Player Workspace shows active Team memberships, and Player Manager retains bulk lifecycle actions; other product-facing softball workflows remain deferred.
@@ -38,7 +38,7 @@ Story 3.1 added the first automated test project immediately after the architect
 
 ### Planned Early Branding
 
-The default .NET application icon and splash screen should be replaced early in the feature phase. Initial branding may be simple and generated, should remain visually consistent across Android and Windows, and should establish project ownership without delaying functional development. This branding work remains planned and has not been completed by this documentation decision.
+Story 3.7 replaced the default .NET application icon for the Android deployment target. Splash-screen redesign and any further branding work remain planned. Initial branding may be simple and generated and should establish project ownership without delaying functional development.
 
 ## Completed Story Summaries
 
@@ -1468,6 +1468,32 @@ Windows runtime validation was not performed. Games fast navigation, a Current G
 #### Intended Commit Message
 
 `Implement global application navigation`
+
+### Story 3.7 — Replace Default Application Icon
+
+**Status:** Complete; Android build, runtime, and launcher validation passed; Windows validation intentionally not performed
+
+#### Implementation Summary
+
+- Replaced the default layered .NET MAUI icon configuration with the Softball Scorekeeper source asset at `SoftballScorekeeper/Resources/AppIcon/softball_scorekeeper_icon.png`. The icon uses an optic-yellow softball with blue stitching and bold athletic-style `350` lettering, a white home plate, and a dark blue background. Large, simple elements preserve recognition at Android launcher sizes.
+- Updated `SoftballScorekeeper.csproj` to process the PNG through the existing `MauiIcon` pipeline with `BaseSize="1024,1024"`, replacing the former `appicon.svg` and `appiconfg.svg` layered configuration. Removed both obsolete default SVG assets after confirming no active project or Android references remain.
+- Updated `Platforms/Android/AndroidManifest.xml` so `android:icon` and `android:roundIcon` reference the generated `@mipmap/softball_scorekeeper_icon` and `@mipmap/softball_scorekeeper_icon_round` resources that match the new `MauiIcon` filename.
+- No application behavior, navigation, persistence, database schema, repository, Core, Infrastructure, Team, Player, TeamPlayer, or Games functionality changed. No application ID, application title, or version information changed. No dependencies were added.
+
+#### Automated Tests and Validation
+
+- The complete automated test suite was run manually and passed 86 of 86 tests with zero failures and zero skips. No icon-specific automated tests were added.
+- The Android build passed, and the application launched successfully on the Android tablet. Visual validation in the Android launcher/task interface confirmed that the softball is recognizable, `350` remains readable, blue stitching and the home plate composition remain visible, important artwork is not clipped, and launcher masking is acceptable.
+- Windows runtime and icon validation were intentionally not performed because Android is the deployment target for this branding story. No Windows-specific icon work was introduced.
+- Repository review confirmed the project and manifest icon configuration are consistent, obsolete default icon references are absent from active Android/MAUI configuration, and no generated Android icon output, build output, database files, secrets, machine-specific files, or new dependencies are included in the story diff.
+
+#### Limitations and Deferred Work
+
+Splash-screen redesign was not included. Further branding work, including any future platform-specific branding beyond the Android deployment target, remains deferred.
+
+#### Intended Commit Message
+
+`Replace default application icon`
 
 ## Maintenance Rules
 
