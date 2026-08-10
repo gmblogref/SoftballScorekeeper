@@ -10,13 +10,13 @@ Stable product and architecture decisions belong in the project architecture doc
 
 ## Current Project Status
 
-- **Latest completed story:** Story 4.0 — Season and Game Data Foundation
-- **Completed stories:** Stories 0.0 through 3.1 and Stories 3.5 through 4.0; Stories 3.2 through 3.4 retain their recorded validation status
-- **Current story:** Story 4.0 — Season and Game Data Foundation (complete; automated tests and Windows build passed, runtime validation not run)
-- **Current phase:** Team-scoped Game Management data foundation
+- **Latest completed story:** Story 4.1 — Team Workspace Games and Roster Tabs
+- **Completed stories:** Stories 0.0 through 3.1 and Stories 3.5 through 4.1; Stories 3.2 through 3.4 retain their recorded validation status
+- **Current story:** Story 4.1 — Team Workspace Games and Roster Tabs (complete; automated tests, Windows build, and Android tablet validation passed)
+- **Current phase:** Team-scoped Game Management workspace foundation
 - **Foundation status:** Complete
 
-The repository contains a four-project .NET 9 solution: the Android- and Windows-targeted .NET MAUI application, platform-independent Core, Infrastructure, and the automated test project. Its implemented foundation includes repository guidance, pragmatic layered dependencies, CommunityToolkit.Mvvm, MAUI dependency injection, device-local SQLite initialization, centralized user-facing resources, strongly typed application settings, and isolated xUnit repository integration tests. Team Workspace can add and remove existing active Players from its roster, Player Workspace shows active Team memberships, and Player Manager retains bulk lifecycle actions; other product-facing softball workflows remain deferred.
+The repository contains a four-project .NET 9 solution: the Android- and Windows-targeted .NET MAUI application, platform-independent Core, Infrastructure, and the automated test project. Its implemented foundation includes repository guidance, pragmatic layered dependencies, CommunityToolkit.Mvvm, MAUI dependency injection, device-local SQLite initialization, centralized user-facing resources, strongly typed application settings, and isolated xUnit repository integration tests. Team Workspace contains local Games and Roster sections, supports adding or removing existing active Players, and supports creating a global Player with immediate TeamPlayer membership from the Team-scoped Add Players workflow. Player Workspace shows active Team memberships, and Player Manager retains bulk lifecycle actions; Game schedule management and other later softball workflows remain deferred.
 
 ## Approved Project-Wide Direction
 
@@ -1524,6 +1524,39 @@ Write-time Team/Season ownership validation, Season and Game creation/editing/re
 #### Intended Commit Message
 
 `Add Season and Game data foundation`
+
+### Story 4.1 — Team Workspace Games and Roster Tabs
+
+**Status:** Complete; automated tests, Windows build, and Android 10-inch tablet validation passed
+
+#### Implementation Summary
+
+- Added local Games and Roster sections within Team Workspace, preserving the global Teams | Players navigation. Games and Roster are Team-specific content sections, not global destinations, separate Shell routes, or top-level managers; the hierarchy remains Teams → Team Workspace → Games | Roster.
+- Used the existing `GameRepository` to choose the initial section for each Team context. A Team with persisted Games initially opens Games, including when its roster is empty; a Team without Games initially opens Roster. Roster membership does not determine Game availability, and changing to a different Team recalculates the initial selection.
+- Preserved an explicit Games or Roster selection across ordinary repository-backed refreshes after the initial decision. No global tab-state service, persisted navigation state, messaging system, or generic navigation-state framework was introduced.
+- Established only the Story 4.1 Games container: Teams without Games receive a resource-backed empty state, while Teams with Games receive a resource-backed temporary Games-present state. No raw IDs or debug data are displayed.
+- Moved the existing roster presentation under Roster without redesign. Active-roster display, empty state, ordering, multi-select Add Players, inline Remove Players mode, conditional checkboxes, selected count, cancellation, confirmation, repository refresh, TeamPlayer-only membership removal, Player preservation, and re-add behavior remain intact.
+- Switching from Roster to Games while Remove Players mode is active exits the mode, clears temporary selections, resets the selected count, and performs no persistence or confirmation. Returning to Roster shows normal mode; hidden removal selections are not retained.
+- Added Create New Player to the Team-scoped Add Players workflow by reusing the existing Create Player UI. The workflow creates the normal global Player, immediately adds TeamPlayer membership for the current Team, refreshes the Team roster, and leaves the Player available globally without duplicating Player data in TeamPlayer. Existing multi-select Add Players behavior remains unchanged.
+- If global Player creation succeeds but Team membership fails, the global Player is preserved, duplicate creation is prevented, a resource-backed partial-outcome message is shown, and returning to Add Players allows the existing Player to be added normally. No new repository API or transaction behavior was introduced.
+- Team editing remains outside the Games/Roster content distinction and continues to work for either selection. Games remain independent of roster membership, and TeamPlayer data is not consulted to show or enable Games. Existing Team Manager back behavior and global Teams/Players navigation remain unchanged, with no duplicate Team Workspace stack behavior.
+- No Core models, database schema, Infrastructure behavior, or dependencies changed.
+
+#### Automated Tests and Validation
+
+- The complete automated suite passed 107 of 107 tests with zero failures and zero skips. No unnecessary MAUI presentation tests were added.
+- The Windows `net9.0-windows10.0.19041.0` target build succeeded with zero errors and 54 warnings. Warnings remain in the existing `CS8602`, `MVVMTK0045`, and `XC0025` categories; no new warning category was introduced.
+- Manual validation passed on the 10-inch Android tablet. It covered a Team without Games defaulting to Roster; Games/Roster switching and selected-section indication; Games empty presentation; roster display; Add Players; Team-scoped Create New Player with automatic TeamPlayer membership and visibility in both the Team roster and global Players; Remove Players entry, cancellation, confirmation, and section-switch cleanup; Team editing; global Teams/Players navigation; Back navigation; selector sizing and touch behavior; and light and dark themes.
+- No clipping, overlap, stale hidden removal selection, binding failure, or runtime exception was observed. A Team-with-existing-Games runtime scenario could not be practically produced through the current production UI, so that initial Games selection was covered by the implemented repository-backed logic and available test data rather than claimed as a production-UI-created manual scenario.
+- Final repository review confirmed `git diff --check` passes.
+
+#### Limitations and Deferred Work
+
+Populated Game schedule rows, Story 4.2 schedule UI, month grouping and accordion behavior, NEXT playing-date indication, Game CRUD and selection mode, Season UI, Game Workspace, lineups, live scoring, statistics, Beer Rules, and global Games navigation remain deferred. Story 4.1 introduced no schedule-management behavior or other later-story functionality.
+
+#### Intended Commit Message
+
+`Document completed Team Workspace Games and Roster tabs`
 
 ## Maintenance Rules
 
