@@ -57,15 +57,47 @@ internal sealed class TemporaryTestDatabase : IAsyncDisposable
         return new TeamPlayerRepository(Database);
     }
 
+    public SeasonRepository CreateSeasonRepository()
+    {
+        return new SeasonRepository(Database);
+    }
+
+    public GameRepository CreateGameRepository()
+    {
+        return new GameRepository(Database);
+    }
+
     public Task<int> SeedTeamPlayerAsync(TeamPlayer teamPlayer)
     {
         return UseSeedingConnectionAsync(connection => connection.InsertAsync(teamPlayer));
+    }
+
+    public Task<int> SeedSeasonAsync(Season season)
+    {
+        return UseSeedingConnectionAsync(connection => connection.InsertAsync(season));
+    }
+
+    public Task<int> SeedGameAsync(Game game)
+    {
+        return UseSeedingConnectionAsync(connection => connection.InsertAsync(game));
     }
 
     public Task<List<TeamPlayer>> GetTeamPlayersAsync()
     {
         return UseSeedingConnectionAsync(
             connection => connection.Table<TeamPlayer>().OrderBy(item => item.Id).ToListAsync());
+    }
+
+    public Task<List<Season>> GetSeasonsAsync()
+    {
+        return UseSeedingConnectionAsync(
+            connection => connection.Table<Season>().OrderBy(item => item.Id).ToListAsync());
+    }
+
+    public Task<List<Game>> GetGamesAsync()
+    {
+        return UseSeedingConnectionAsync(
+            connection => connection.Table<Game>().OrderBy(item => item.Id).ToListAsync());
     }
 
     public async ValueTask DisposeAsync()

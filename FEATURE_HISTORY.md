@@ -10,10 +10,10 @@ Stable product and architecture decisions belong in the project architecture doc
 
 ## Current Project Status
 
-- **Latest completed story:** Story 3.7 — Replace Default Application Icon
-- **Completed stories:** Stories 0.0 through 3.1 and Stories 3.5 through 3.7; Stories 3.2 through 3.4 retain their recorded validation status
-- **Current story:** Story 3.7 — Replace Default Application Icon (complete; Android tablet validation passed, Windows validation intentionally not performed)
-- **Current phase:** Early branding and Team/Player workspace workflows
+- **Latest completed story:** Story 4.0 — Season and Game Data Foundation
+- **Completed stories:** Stories 0.0 through 3.1 and Stories 3.5 through 4.0; Stories 3.2 through 3.4 retain their recorded validation status
+- **Current story:** Story 4.0 — Season and Game Data Foundation (complete; automated tests and Windows build passed, runtime validation not run)
+- **Current phase:** Team-scoped Game Management data foundation
 - **Foundation status:** Complete
 
 The repository contains a four-project .NET 9 solution: the Android- and Windows-targeted .NET MAUI application, platform-independent Core, Infrastructure, and the automated test project. Its implemented foundation includes repository guidance, pragmatic layered dependencies, CommunityToolkit.Mvvm, MAUI dependency injection, device-local SQLite initialization, centralized user-facing resources, strongly typed application settings, and isolated xUnit repository integration tests. Team Workspace can add and remove existing active Players from its roster, Player Workspace shows active Team memberships, and Player Manager retains bulk lifecycle actions; other product-facing softball workflows remain deferred.
@@ -1494,6 +1494,36 @@ Splash-screen redesign was not included. Further branding work, including any fu
 #### Intended Commit Message
 
 `Replace default application icon`
+
+### Story 4.0 — Season and Game Data Foundation
+
+**Status:** Complete; automated tests and Windows build passed; Windows and Android runtime validation not run
+
+#### Implementation Summary
+
+- Added the Core `Season` model with only auto-increment `Id`, owning `TeamId`, data-driven `Name`, and calendar `Year`. Season has no `IsActive`, lifecycle/status, `StartDate`, or `EndDate`: Team is the long-lived identity across years, one Team may own Seasons in multiple years, and a Season's temporal extent is represented by its Games rather than duplicated date fields.
+- Added the Core `Game` model with auto-increment `Id`, owning `TeamId` and `SeasonId`, `DateTime ScheduledDate`, `TimeSpan ScheduledTime`, and nullable `Opponent` and `Field`. Scheduling represents local/device softball schedule time without timezone conversion infrastructure, and unknown opponent or field values remain null rather than persisted placeholders.
+- Extended the guarded `AppDatabase` initialization to create the `Season` and `Game` tables additively after the existing `Team`, `Player`, and `TeamPlayer` tables. The existing database path, tables, records, and initialization pattern remain unchanged; no reset, migration framework, or manual migration step was introduced.
+- Added the read-only, Team-scoped `SeasonRepository` APIs `GetForTeamAsync`, `GetByIdForTeamAsync`, and `HasSeasonsForTeamAsync`. Missing and non-positive contexts return safe results, and Seasons order deterministically by year, default SQLite name ordering, then ID without lifecycle filtering or hardcoded name chronology.
+- Added the read-only, Team-scoped `GameRepository` APIs `GetForTeamAsync` and `HasGamesForTeamAsync`. Games order by scheduled date, scheduled time, then ID; same-date and same-time Games remain distinct. The repository has no Player, TeamPlayer, roster, or lineup dependency, so a Team with no roster Players can own and query Games.
+- Registered both repositories as singletons using the existing repository lifetime convention. No page, ViewModel, resource, navigation, Team/Player workflow, roster-history behavior, or user-facing UI changed.
+- Persisted ownership is Team → Season → Game: Season stores `TeamId`, and Game stores both `TeamId` and `SeasonId`. Team-scoped reads preserve and isolate these relationships. Story 4.0 exposes no public Game write API, so validation that a selected Season belongs to the same Team during a write is intentionally deferred to the future Add Game workflow and is not claimed as currently enforced against direct inserts.
+
+#### Automated Tests and Validation
+
+- Added 11 `SeasonRepositoryTests` covering persistence, arbitrary names and counts, one Team across multiple years, Team isolation, Team-scoped ID lookup, year/name/ID ordering, invalid and missing IDs, existence queries, and read immutability.
+- Added 10 `GameRepositoryTests` covering complete persistence and nullable fields, multiple Seasons and years, Team isolation, date/time/ID ordering, distinct same-date and same-time Games, invalid and missing IDs, existence queries, zero-roster Game ownership, and read immutability. The existing initialization test now exercises all five tables, repeated initialization, and same-Team multi-year Season persistence without adding another test method.
+- The complete suite increased from 86 to 107 tests and passed 107 of 107 with zero failures and zero skips using `dotnet test SoftballScorekeeper.Tests\SoftballScorekeeper.Tests.csproj --no-restore --verbosity:minimal -nodeReuse:false`.
+- The Windows target rebuild succeeded with 54 warnings and zero errors using `dotnet build SoftballScorekeeper\SoftballScorekeeper.csproj -f net9.0-windows10.0.19041.0 --no-restore -nodeReuse:false -verbosity:minimal -t:Rebuild`. The warning count and existing `CS8602`, `MVVMTK0045`, and `XC0025` categories match the previously recorded baseline; Story 4.0 introduced no new warning category. The Windows application was not launched.
+- Android build and runtime validation were not performed. Story 4.0 adds no user-facing UI behavior; repository behavior was validated through isolated temporary SQLite databases.
+
+#### Limitations and Deferred Work
+
+Write-time Team/Season ownership validation, Season and Game creation/editing/removal workflows, Team Workspace Games/Roster tabs, schedule UI, month grouping, NEXT indication, doubleheader workflows, Game Workspace, roster history, lineups, scoring, statistics, Beer Rules, and all other Story 4.1+ behavior remain deferred. No Season or Game lifecycle was introduced.
+
+#### Intended Commit Message
+
+`Add Season and Game data foundation`
 
 ## Maintenance Rules
 

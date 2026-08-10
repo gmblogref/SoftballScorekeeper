@@ -50,6 +50,8 @@ public sealed class AppDatabase
             await connection.CreateTableAsync<Team>();
             await connection.CreateTableAsync<Player>();
             await connection.CreateTableAsync<TeamPlayer>();
+            await connection.CreateTableAsync<Season>();
+            await connection.CreateTableAsync<Game>();
             isInitialized = true;
         }
         finally
