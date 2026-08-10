@@ -142,9 +142,6 @@
   <data name="InactiveTeamNameExists" xml:space="preserve">
     <value>A deactivated Team already uses this name. Reactivate it from Manage Inactive Teams.</value>
   </data>
-  <data name="ViewPlayersButton" xml:space="preserve">
-    <value>Players</value>
-  </data>
   <data name="PlayersTitle" xml:space="preserve">
     <value>Players</value>
   </data>
@@ -156,6 +153,9 @@
   </data>
   <data name="DeactivateSelectedPlayersButton" xml:space="preserve">
     <value>Deactivate Selected</value>
+  </data>
+  <data name="DeactivatePlayersButton" xml:space="preserve">
+    <value>Deactivate Players</value>
   </data>
   <data name="ManageInactivePlayersButton" xml:space="preserve">
     <value>Manage Inactive Players</value>
@@ -294,15 +294,6 @@
   </data>
   <data name="AddPlayersPartialResultMessage" xml:space="preserve">
     <value>{0} of {1} selected Players were added to the Team. The eligible Player list has been refreshed.</value>
-  </data>
-  <data name="RemovePlayersFromTeamTitle" xml:space="preserve">
-    <value>Remove Players from Team</value>
-  </data>
-  <data name="RemovePlayersHeading" xml:space="preserve">
-    <value>Remove Players</value>
-  </data>
-  <data name="NoRemovableRosterPlayersMessage" xml:space="preserve">
-    <value>This Team has no active roster Players to remove.</value>
   </data>
   <data name="RemoveSelectedPlayersFromTeamButton" xml:space="preserve">
     <value>Remove Selected from Team</value>

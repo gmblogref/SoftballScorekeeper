@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8" ?>
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
-             xmlns:models="clr-namespace:SoftballScorekeeper.Core.Models;assembly=SoftballScorekeeper.Core"
+             xmlns:controls="clr-namespace:SoftballScorekeeper.Views.Controls"
              xmlns:strings="clr-namespace:SoftballScorekeeper.Resources.Strings"
              xmlns:viewModels="clr-namespace:SoftballScorekeeper.ViewModels"
              x:Class="SoftballScorekeeper.Views.TeamWorkspacePage"
@@ -11,10 +11,12 @@
 
     <Grid
         Padding="40"
-        RowDefinitions="Auto,Auto,Auto,*,Auto,Auto,Auto"
+        RowDefinitions="Auto,Auto,Auto,Auto,*,Auto,Auto,Auto"
         RowSpacing="20">
 
-        <Grid Grid.Row="0" IsVisible="{Binding IsTeamLoaded}">
+        <controls:PrimarySectionNavigation Grid.Row="0" CurrentSection="Teams" />
+
+        <Grid Grid.Row="1" IsVisible="{Binding IsTeamLoaded}">
             <Label
                 Text="{Binding TeamName}"
                 Style="{StaticResource Headline}"
@@ -58,15 +60,20 @@
             </Grid>
         </Grid>
 
-        <Label
-            Grid.Row="1"
-            Text="{x:Static strings:AppResources.CurrentRosterHeading}"
-            Style="{StaticResource SubHeadline}"
-            SemanticProperties.HeadingLevel="Level2"
-            IsVisible="{Binding IsTeamLoaded}" />
+        <VerticalStackLayout Grid.Row="2" Spacing="8" IsVisible="{Binding IsTeamLoaded}">
+            <Label
+                Text="{x:Static strings:AppResources.CurrentRosterHeading}"
+                Style="{StaticResource SubHeadline}"
+                SemanticProperties.HeadingLevel="Level2" />
+            <Label
+                Text="{Binding SelectedPlayerCount, StringFormat={x:Static strings:AppResources.SelectedPlayerCountText}}"
+                HorizontalOptions="Fill"
+                HorizontalTextAlignment="Center"
+                IsVisible="{Binding IsRemovingPlayers}" />
+        </VerticalStackLayout>
 
         <Label
-            Grid.Row="2"
+            Grid.Row="3"
             Text="{Binding ValidationMessage}"
             HorizontalTextAlignment="Center">
             <Label.Triggers>
@@ -76,7 +83,7 @@
             </Label.Triggers>
         </Label>
 
-        <Grid Grid.Row="3" IsVisible="{Binding IsTeamLoaded}">
+        <Grid Grid.Row="4" IsVisible="{Binding IsTeamLoaded}">
             <Label
                 Text="{x:Static strings:AppResources.NoRosterPlayersMessage}"
                 HorizontalTextAlignment="Center"
@@ -84,15 +91,20 @@
                 IsVisible="{Binding HasNoPlayers}" />
 
             <CollectionView
-                ItemsSource="{Binding Players}"
+                ItemsSource="{Binding RosterPlayers}"
                 IsVisible="{Binding HasPlayers}"
                 SelectionMode="None">
+                <CollectionView.Triggers>
+                    <DataTrigger TargetType="CollectionView" Binding="{Binding IsRemovingPlayers}" Value="True">
+                        <Setter Property="IsVisible" Value="False" />
+                    </DataTrigger>
+                </CollectionView.Triggers>
                 <CollectionView.ItemTemplate>
-                    <DataTemplate x:DataType="models:Player">
+                    <DataTemplate x:DataType="viewModels:PlayerSelectionItem">
                         <Grid Padding="20,12" RowDefinitions="Auto,1" MinimumHeightRequest="72">
                             <HorizontalStackLayout Spacing="6" VerticalOptions="Center">
-                                <Label Text="{Binding FirstName}" FontSize="20" LineBreakMode="TailTruncation" />
-                                <Label Text="{Binding LastName}" FontSize="20" LineBreakMode="TailTruncation" />
+                                <Label Text="{Binding Player.FirstName}" FontSize="20" LineBreakMode="TailTruncation" />
+                                <Label Text="{Binding Player.LastName}" FontSize="20" LineBreakMode="TailTruncation" />
                             </HorizontalStackLayout>
                             <BoxView
                                 Grid.Row="1"
@@ -103,10 +115,34 @@
                     </DataTemplate>
                 </CollectionView.ItemTemplate>
             </CollectionView>
+
+            <CollectionView
+                ItemsSource="{Binding RosterPlayers}"
+                IsVisible="{Binding IsRemovingPlayers}"
+                SelectionMode="None">
+                <CollectionView.ItemTemplate>
+                    <DataTemplate x:DataType="viewModels:PlayerSelectionItem">
+                        <Grid Padding="20,12" RowDefinitions="Auto,1" ColumnDefinitions="*,Auto" MinimumHeightRequest="72">
+                            <HorizontalStackLayout Spacing="6" VerticalOptions="Center">
+                                <Label Text="{Binding Player.FirstName}" FontSize="20" LineBreakMode="TailTruncation" />
+                                <Label Text="{Binding Player.LastName}" FontSize="20" LineBreakMode="TailTruncation" />
+                            </HorizontalStackLayout>
+                            <CheckBox
+                                Grid.Column="1"
+                                IsChecked="{Binding IsSelected, Mode=TwoWay}"
+                                MinimumHeightRequest="48"
+                                MinimumWidthRequest="48"
+                                HorizontalOptions="End"
+                                VerticalOptions="Center" />
+                            <BoxView Grid.Row="1" Grid.ColumnSpan="2" Margin="0,11,0,0" HeightRequest="1" Color="{AppThemeBinding Light={StaticResource Gray200}, Dark={StaticResource Gray500}}" />
+                        </Grid>
+                    </DataTemplate>
+                </CollectionView.ItemTemplate>
+            </CollectionView>
         </Grid>
 
         <Label
-            Grid.Row="4"
+            Grid.Row="5"
             Text="{Binding StatusMessage}"
             HorizontalTextAlignment="Center">
             <Label.Triggers>
@@ -116,7 +152,12 @@
             </Label.Triggers>
         </Label>
 
-        <HorizontalStackLayout Grid.Row="5" HorizontalOptions="Center" Spacing="20">
+        <HorizontalStackLayout Grid.Row="6" HorizontalOptions="Center" Spacing="20">
+            <HorizontalStackLayout.Triggers>
+                <DataTrigger TargetType="HorizontalStackLayout" Binding="{Binding IsRemovingPlayers}" Value="True">
+                    <Setter Property="IsVisible" Value="False" />
+                </DataTrigger>
+            </HorizontalStackLayout.Triggers>
             <Button
                 Text="{x:Static strings:AppResources.AddPlayersButton}"
                 Command="{Binding AddPlayersCommand}"
@@ -131,8 +172,21 @@
                 Padding="24,12" />
         </HorizontalStackLayout>
 
+        <HorizontalStackLayout Grid.Row="6" HorizontalOptions="Center" Spacing="20" IsVisible="{Binding IsRemovingPlayers}">
+            <Button
+                Text="{x:Static strings:AppResources.CancelButton}"
+                Command="{Binding CancelRemovePlayersCommand}"
+                MinimumHeightRequest="52"
+                Padding="24,12" />
+            <Button
+                Text="{x:Static strings:AppResources.RemoveSelectedPlayersFromTeamButton}"
+                Command="{Binding RemoveSelectedPlayersCommand}"
+                MinimumHeightRequest="52"
+                Padding="24,12" />
+        </HorizontalStackLayout>
+
         <Button
-            Grid.Row="6"
+            Grid.Row="7"
             Margin="0,12,0,0"
             Padding="24,14"
             MinimumHeightRequest="52"
@@ -143,6 +197,12 @@
             BackgroundColor="Transparent"
             BorderColor="{AppThemeBinding Light=#B3261E, Dark=#FFB4AB}"
             BorderWidth="2"
-            TextColor="{AppThemeBinding Light=#B3261E, Dark=#FFB4AB}" />
+            TextColor="{AppThemeBinding Light=#B3261E, Dark=#FFB4AB}">
+            <Button.Triggers>
+                <DataTrigger TargetType="Button" Binding="{Binding IsRemovingPlayers}" Value="True">
+                    <Setter Property="IsVisible" Value="False" />
+                </DataTrigger>
+            </Button.Triggers>
+        </Button>
     </Grid>
 </ContentPage>

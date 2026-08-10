@@ -230,12 +230,6 @@ namespace SoftballScorekeeper.Resources.Strings {
 			}
 		}
 
-		public static string ViewPlayersButton {
-            get {
-                return ResourceManager.GetString("ViewPlayersButton", resourceCulture);
-            }
-        }
-
         public static string PlayersTitle {
             get {
                 return ResourceManager.GetString("PlayersTitle", resourceCulture);
@@ -257,6 +251,12 @@ namespace SoftballScorekeeper.Resources.Strings {
         public static string DeactivateSelectedPlayersButton {
             get {
                 return ResourceManager.GetString("DeactivateSelectedPlayersButton", resourceCulture);
+            }
+        }
+
+        public static string DeactivatePlayersButton {
+            get {
+                return ResourceManager.GetString("DeactivatePlayersButton", resourceCulture);
             }
         }
 
@@ -533,24 +533,6 @@ namespace SoftballScorekeeper.Resources.Strings {
         public static string AddPlayersPartialResultMessage {
             get {
                 return ResourceManager.GetString("AddPlayersPartialResultMessage", resourceCulture);
-            }
-        }
-
-        public static string RemovePlayersFromTeamTitle {
-            get {
-                return ResourceManager.GetString("RemovePlayersFromTeamTitle", resourceCulture);
-            }
-        }
-
-        public static string RemovePlayersHeading {
-            get {
-                return ResourceManager.GetString("RemovePlayersHeading", resourceCulture);
-            }
-        }
-
-        public static string NoRemovableRosterPlayersMessage {
-            get {
-                return ResourceManager.GetString("NoRemovableRosterPlayersMessage", resourceCulture);
             }
         }
 
