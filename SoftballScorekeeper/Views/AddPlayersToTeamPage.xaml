@@ -71,13 +71,23 @@
                 </CollectionView.ItemTemplate>
             </CollectionView>
         </Grid>
-        <Button
-            Grid.Row="6"
-            Text="{x:Static strings:AppResources.AddSelectedPlayersToTeamButton}"
-            Command="{Binding AddSelectedPlayersCommand}"
-            MinimumHeightRequest="52"
-            MinimumWidthRequest="220"
-            Padding="24,12"
-            HorizontalOptions="Center" />
+        <HorizontalStackLayout Grid.Row="6" HorizontalOptions="Center" Spacing="20">
+            <Button
+                Text="{x:Static strings:AppResources.CreateNewPlayerButton}"
+                Command="{Binding CreatePlayerCommand}"
+                MinimumHeightRequest="52"
+                MinimumWidthRequest="200"
+                Padding="24,12"
+                BackgroundColor="Transparent"
+                BorderColor="{AppThemeBinding Light={StaticResource Gray600}, Dark={StaticResource Gray300}}"
+                BorderWidth="2"
+                TextColor="{AppThemeBinding Light={StaticResource Gray900}, Dark={StaticResource White}}" />
+            <Button
+                Text="{x:Static strings:AppResources.AddSelectedPlayersToTeamButton}"
+                Command="{Binding AddSelectedPlayersCommand}"
+                MinimumHeightRequest="52"
+                MinimumWidthRequest="220"
+                Padding="24,12" />
+        </HorizontalStackLayout>
     </Grid>
 </ContentPage>

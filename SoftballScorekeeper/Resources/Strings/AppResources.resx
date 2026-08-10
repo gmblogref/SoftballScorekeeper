@@ -163,6 +163,15 @@
   <data name="CreatePlayerTitle" xml:space="preserve">
     <value>Create Player</value>
   </data>
+  <data name="CreateNewPlayerButton" xml:space="preserve">
+    <value>Create New Player</value>
+  </data>
+  <data name="PlayerCreationFailed" xml:space="preserve">
+    <value>The Player could not be created. Please try again.</value>
+  </data>
+  <data name="PlayerCreatedTeamMembershipFailed" xml:space="preserve">
+    <value>The Player was created, but could not be added to the Team. Return to Add Players to try adding the Player again.</value>
+  </data>
   <data name="FirstNameLabel" xml:space="preserve">
     <value>First Name</value>
   </data>
@@ -225,6 +234,18 @@
   </data>
   <data name="TeamWorkspaceTitle" xml:space="preserve">
     <value>Team Workspace</value>
+  </data>
+  <data name="GamesSectionLabel" xml:space="preserve">
+    <value>Games</value>
+  </data>
+  <data name="RosterSectionLabel" xml:space="preserve">
+    <value>Roster</value>
+  </data>
+  <data name="NoGamesMessage" xml:space="preserve">
+    <value>No Games have been scheduled for this Team.</value>
+  </data>
+  <data name="GamesAvailableMessage" xml:space="preserve">
+    <value>This Team has scheduled Games. Schedule details will appear here in a later update.</value>
   </data>
   <data name="CurrentRosterHeading" xml:space="preserve">
     <value>Current Roster</value>

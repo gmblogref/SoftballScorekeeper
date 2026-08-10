@@ -6,13 +6,19 @@ using SoftballScorekeeper.Resources.Strings;
 
 namespace SoftballScorekeeper.ViewModels;
 
-public partial class CreatePlayerViewModel : ObservableObject
+public partial class CreatePlayerViewModel : ObservableObject, IQueryAttributable
 {
     private readonly PlayerRepository playerRepository;
+    private readonly TeamRepository teamRepository;
+    private readonly TeamPlayerRepository teamPlayerRepository;
     private string firstName = string.Empty;
     private string lastName = string.Empty;
     private string validationMessage = string.Empty;
     private bool isBusy;
+    private bool hasInvalidTeamContext;
+    private bool hasTeamContext;
+    private bool playerCreated;
+    private int teamId;
 
     public string FirstName
     {
@@ -35,20 +41,55 @@ public partial class CreatePlayerViewModel : ObservableObject
     public bool IsBusy
     {
         get => isBusy;
-        set => SetProperty(ref isBusy, value);
+        set
+        {
+            if (SetProperty(ref isBusy, value))
+            {
+                SaveCommand.NotifyCanExecuteChanged();
+            }
+        }
     }
 
-    public CreatePlayerViewModel(PlayerRepository playerRepository)
+    public CreatePlayerViewModel(
+        PlayerRepository playerRepository,
+        TeamRepository teamRepository,
+        TeamPlayerRepository teamPlayerRepository)
     {
         ArgumentNullException.ThrowIfNull(playerRepository);
+        ArgumentNullException.ThrowIfNull(teamRepository);
+        ArgumentNullException.ThrowIfNull(teamPlayerRepository);
 
         this.playerRepository = playerRepository;
+        this.teamRepository = teamRepository;
+        this.teamPlayerRepository = teamPlayerRepository;
     }
 
-    [RelayCommand]
+    public void ApplyQueryAttributes(IDictionary<string, object> query)
+    {
+        teamId = 0;
+        hasTeamContext = false;
+        hasInvalidTeamContext = false;
+
+        if (!query.TryGetValue(AppShell.TeamIdQueryParameter, out var value))
+        {
+            return;
+        }
+
+        if (!TryParseTeamId(value, out teamId))
+        {
+            hasInvalidTeamContext = true;
+            ValidationMessage = AppResources.TeamNotFound;
+            SaveCommand.NotifyCanExecuteChanged();
+            return;
+        }
+
+        hasTeamContext = true;
+    }
+
+    [RelayCommand(CanExecute = nameof(CanSave))]
     private async Task SaveAsync()
     {
-        if (IsBusy)
+        if (!CanSave())
         {
             return;
         }
@@ -68,6 +109,14 @@ public partial class CreatePlayerViewModel : ObservableObject
                 return;
             }
 
+            if (hasTeamContext && await teamRepository.GetActiveByIdAsync(teamId) is null)
+            {
+                hasInvalidTeamContext = true;
+                ValidationMessage = AppResources.TeamNotFound;
+                SaveCommand.NotifyCanExecuteChanged();
+                return;
+            }
+
             var player = new Player
             {
                 FirstName = trimmedFirstName,
@@ -75,9 +124,33 @@ public partial class CreatePlayerViewModel : ObservableObject
                 IsActive = true,
             };
 
-            await playerRepository.CreateAsync(player);
+            if (await playerRepository.CreateAsync(player) != 1)
+            {
+                ValidationMessage = AppResources.PlayerCreationFailed;
+                return;
+            }
+
+            playerCreated = true;
+            SaveCommand.NotifyCanExecuteChanged();
+
+            if (hasTeamContext)
+            {
+                var result = await teamPlayerRepository.AddPlayersToTeamAsync(teamId, [player.Id]);
+                if (result.SuccessfullyActiveMembershipCount != 1)
+                {
+                    ValidationMessage = AppResources.PlayerCreatedTeamMembershipFailed;
+                    return;
+                }
+            }
+
             ValidationMessage = string.Empty;
-            await Shell.Current.GoToAsync("..");
+            await Shell.Current.GoToAsync(hasTeamContext ? "../.." : "..");
+        }
+        catch
+        {
+            ValidationMessage = playerCreated
+                ? AppResources.PlayerCreatedTeamMembershipFailed
+                : AppResources.PlayerCreationFailed;
         }
         finally
         {
@@ -97,5 +170,30 @@ public partial class CreatePlayerViewModel : ObservableObject
         LastName = string.Empty;
         ValidationMessage = string.Empty;
         await Shell.Current.GoToAsync("..");
+    }
+
+    private bool CanSave()
+    {
+        return !IsBusy && !playerCreated && !hasInvalidTeamContext;
+    }
+
+    private static bool TryParseTeamId(object? value, out int parsedTeamId)
+    {
+        if (value is int integerValue && integerValue > 0)
+        {
+            parsedTeamId = integerValue;
+            return true;
+        }
+
+        if (value is string stringValue
+            && int.TryParse(stringValue, out var stringTeamId)
+            && stringTeamId > 0)
+        {
+            parsedTeamId = stringTeamId;
+            return true;
+        }
+
+        parsedTeamId = 0;
+        return false;
     }
 }
