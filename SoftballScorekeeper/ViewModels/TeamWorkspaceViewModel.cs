@@ -1,4 +1,5 @@
 using System.Collections.ObjectModel;
+using System.Globalization;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using SoftballScorekeeper.Core.Models;
@@ -13,6 +14,8 @@ public partial class TeamWorkspaceViewModel : ObservableObject, IQueryAttributab
     private readonly TeamPlayerRepository teamPlayerRepository;
     private bool hasValidTeamId;
     private bool isConfirmationPending;
+    private IReadOnlyList<int> pendingPlayerIds = Array.Empty<int>();
+    private int selectedPlayerCount;
     private Team? loadedTeam;
 
     [ObservableProperty]
@@ -30,6 +33,9 @@ public partial class TeamWorkspaceViewModel : ObservableObject, IQueryAttributab
 
     [ObservableProperty]
     private bool hasNoPlayers;
+
+    [ObservableProperty]
+    private bool isRemovingPlayers;
 
     [ObservableProperty]
     [NotifyCanExecuteChangedFor(nameof(BeginTeamNameEditCommand))]
@@ -77,9 +83,26 @@ public partial class TeamWorkspaceViewModel : ObservableObject, IQueryAttributab
         this.teamPlayerRepository = teamPlayerRepository;
     }
 
-    public ObservableCollection<Player> Players { get; } = new();
+    public ObservableCollection<PlayerSelectionItem> RosterPlayers { get; } = new();
 
     public Func<string, Task>? DeactivateTeamConfirmationRequested { get; set; }
+
+    public Func<int, string, Task>? RemovePlayersConfirmationRequested { get; set; }
+
+    public int SelectedPlayerCount
+    {
+        get => selectedPlayerCount;
+        private set
+        {
+            if (SetProperty(ref selectedPlayerCount, value))
+            {
+                OnPropertyChanged(nameof(HasSelectedPlayers));
+                NotifyCommandStates();
+            }
+        }
+    }
+
+    public bool HasSelectedPlayers => SelectedPlayerCount > 0;
 
     public void ApplyQueryAttributes(IDictionary<string, object> query)
     {
@@ -138,16 +161,17 @@ public partial class TeamWorkspaceViewModel : ObservableObject, IQueryAttributab
             loadedTeam = team;
             TeamName = team.Name;
             EditableTeamName = team.Name;
-            Players.Clear();
+            RosterPlayers.Clear();
             foreach (var player in players)
             {
-                Players.Add(player);
+                RosterPlayers.Add(new PlayerSelectionItem(player, OnPlayerSelectionChanged));
             }
 
-            HasPlayers = Players.Count > 0;
+            HasPlayers = RosterPlayers.Count > 0;
             HasNoPlayers = !HasPlayers;
             ValidationMessage = string.Empty;
             StatusMessage = string.Empty;
+            ExitRemovePlayersMode();
             IsTeamLoaded = true;
         }
         finally
@@ -305,15 +329,88 @@ public partial class TeamWorkspaceViewModel : ObservableObject, IQueryAttributab
         await Shell.Current.GoToAsync(AppShell.AddPlayersToTeamRoute, parameters);
     }
 
-    [RelayCommand(CanExecute = nameof(CanManageRoster))]
-    private async Task RemovePlayersAsync()
+    [RelayCommand(CanExecute = nameof(CanBeginRemovePlayers))]
+    private void RemovePlayers()
     {
-        var parameters = new ShellNavigationQueryParameters
-        {
-            [AppShell.TeamIdQueryParameter] = TeamId
-        };
+        ClearRosterSelection();
+        IsRemovingPlayers = true;
+        NotifyCommandStates();
+    }
 
-        await Shell.Current.GoToAsync(AppShell.RemovePlayersFromTeamRoute, parameters);
+    [RelayCommand(CanExecute = nameof(CanCancelRemovePlayers))]
+    private void CancelRemovePlayers()
+    {
+        ExitRemovePlayersMode();
+        NotifyCommandStates();
+    }
+
+    [RelayCommand(CanExecute = nameof(CanRemoveSelectedPlayers))]
+    private async Task RemoveSelectedPlayersAsync()
+    {
+        pendingPlayerIds = RosterPlayers
+            .Where(item => item.IsSelected && item.Player.Id > 0)
+            .Select(item => item.Player.Id)
+            .Distinct()
+            .ToArray();
+
+        if (pendingPlayerIds.Count == 0)
+        {
+            UpdateSelectionState();
+            return;
+        }
+
+        isConfirmationPending = true;
+        NotifyCommandStates();
+        try
+        {
+            var confirmationRequested = RemovePlayersConfirmationRequested;
+            if (confirmationRequested is not null)
+            {
+                await confirmationRequested(pendingPlayerIds.Count, TeamName);
+            }
+        }
+        finally
+        {
+            pendingPlayerIds = Array.Empty<int>();
+            isConfirmationPending = false;
+            NotifyCommandStates();
+        }
+    }
+
+    [RelayCommand(CanExecute = nameof(CanConfirmRemoveSelectedPlayers))]
+    private async Task ConfirmRemoveSelectedPlayersAsync()
+    {
+        var requestedIds = pendingPlayerIds.ToArray();
+        IsBusy = true;
+        try
+        {
+            var result = await teamPlayerRepository.RemovePlayersFromTeamAsync(TeamId, requestedIds);
+            await ReloadRosterAsync(result.SuccessfulRemovalCount == requestedIds.Length ? null : requestedIds);
+
+            if (result.SuccessfulRemovalCount == requestedIds.Length)
+            {
+                ValidationMessage = string.Empty;
+                ExitRemovePlayersMode();
+                return;
+            }
+
+            ValidationMessage = result.SuccessfulRemovalCount == 0
+                ? AppResources.RemovePlayersNoOpMessage
+                : string.Format(
+                    CultureInfo.CurrentCulture,
+                    AppResources.RemovePlayersPartialResultMessage,
+                    result.SuccessfulRemovalCount,
+                    requestedIds.Length);
+        }
+        catch
+        {
+            await ReloadRosterAsync(requestedIds);
+            ValidationMessage = AppResources.RemovePlayersNoOpMessage;
+        }
+        finally
+        {
+            IsBusy = false;
+        }
     }
 
     private bool CanBeginTeamNameEdit()
@@ -338,8 +435,19 @@ public partial class TeamWorkspaceViewModel : ObservableObject, IQueryAttributab
 
     private bool CanManageRoster()
     {
-        return CanManageTeam() && !IsEditingTeamName && !isConfirmationPending;
+        return CanManageTeam() && !IsEditingTeamName && !IsRemovingPlayers && !isConfirmationPending;
     }
+
+    private bool CanBeginRemovePlayers() => CanManageRoster() && HasPlayers;
+
+    private bool CanCancelRemovePlayers() =>
+        CanManageTeam() && IsRemovingPlayers && !isConfirmationPending;
+
+    private bool CanRemoveSelectedPlayers() =>
+        CanCancelRemovePlayers() && HasSelectedPlayers;
+
+    private bool CanConfirmRemoveSelectedPlayers() =>
+        CanManageTeam() && IsRemovingPlayers && isConfirmationPending && pendingPlayerIds.Count > 0;
 
     private bool CanManageTeam()
     {
@@ -348,6 +456,14 @@ public partial class TeamWorkspaceViewModel : ObservableObject, IQueryAttributab
             && IsTeamLoaded
             && loadedTeam is { Id: > 0, IsActive: true };
     }
+
+    partial void OnIsBusyChanged(bool value) => NotifyCommandStates();
+
+    partial void OnIsTeamLoadedChanged(bool value) => NotifyCommandStates();
+
+    partial void OnIsEditingTeamNameChanged(bool value) => NotifyCommandStates();
+
+    partial void OnIsRemovingPlayersChanged(bool value) => NotifyCommandStates();
 
     private void NotifyCommandStates()
     {
@@ -358,6 +474,9 @@ public partial class TeamWorkspaceViewModel : ObservableObject, IQueryAttributab
         ConfirmDeactivateTeamCommand.NotifyCanExecuteChanged();
         AddPlayersCommand.NotifyCanExecuteChanged();
         RemovePlayersCommand.NotifyCanExecuteChanged();
+        CancelRemovePlayersCommand.NotifyCanExecuteChanged();
+        RemoveSelectedPlayersCommand.NotifyCanExecuteChanged();
+        ConfirmRemoveSelectedPlayersCommand.NotifyCanExecuteChanged();
     }
 
     private void InvalidateTeam()
@@ -374,13 +493,57 @@ public partial class TeamWorkspaceViewModel : ObservableObject, IQueryAttributab
         loadedTeam = null;
         TeamName = string.Empty;
         EditableTeamName = string.Empty;
-        Players.Clear();
+        RosterPlayers.Clear();
         HasPlayers = false;
         HasNoPlayers = false;
         ValidationMessage = string.Empty;
         StatusMessage = string.Empty;
         IsEditingTeamName = false;
+        ExitRemovePlayersMode();
         IsTeamLoaded = false;
+    }
+
+    private async Task ReloadRosterAsync(IReadOnlyCollection<int>? idsToReselect = null)
+    {
+        var players = await teamPlayerRepository.GetActivePlayersForTeamAsync(TeamId);
+        var selectedIds = idsToReselect?.ToHashSet();
+
+        RosterPlayers.Clear();
+        foreach (var player in players)
+        {
+            var item = new PlayerSelectionItem(player, OnPlayerSelectionChanged);
+            if (selectedIds?.Contains(player.Id) == true)
+            {
+                item.IsSelected = true;
+            }
+
+            RosterPlayers.Add(item);
+        }
+
+        HasPlayers = RosterPlayers.Count > 0;
+        HasNoPlayers = !HasPlayers;
+        UpdateSelectionState();
+    }
+
+    private void OnPlayerSelectionChanged(PlayerSelectionItem item) => UpdateSelectionState();
+
+    private void UpdateSelectionState() =>
+        SelectedPlayerCount = RosterPlayers.Count(item => item.IsSelected);
+
+    private void ClearRosterSelection()
+    {
+        foreach (var item in RosterPlayers)
+        {
+            item.IsSelected = false;
+        }
+
+        UpdateSelectionState();
+    }
+
+    private void ExitRemovePlayersMode()
+    {
+        ClearRosterSelection();
+        IsRemovingPlayers = false;
     }
 
     private static bool TryParseTeamId(object? value, out int parsedTeamId)

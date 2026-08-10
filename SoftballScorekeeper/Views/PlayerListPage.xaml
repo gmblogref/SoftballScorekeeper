@@ -2,6 +2,7 @@
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              xmlns:strings="clr-namespace:SoftballScorekeeper.Resources.Strings"
+             xmlns:controls="clr-namespace:SoftballScorekeeper.Views.Controls"
              xmlns:viewModels="clr-namespace:SoftballScorekeeper.ViewModels"
              x:Class="SoftballScorekeeper.Views.PlayerListPage"
              x:Name="PageRoot"
@@ -10,16 +11,18 @@
 
     <Grid
         Padding="40"
-        RowDefinitions="Auto,Auto,Auto,*,Auto"
+        RowDefinitions="Auto,Auto,Auto,Auto,*,Auto"
         RowSpacing="20">
+        <controls:PrimarySectionNavigation Grid.Row="0" CurrentSection="Players" />
+
         <Label
-            Grid.Row="0"
+            Grid.Row="1"
             Text="{x:Static strings:AppResources.PlayersTitle}"
             Style="{StaticResource Headline}"
             SemanticProperties.HeadingLevel="Level1" />
 
         <Label
-            Grid.Row="1"
+            Grid.Row="2"
             Text="{Binding StatusMessage}"
             HorizontalTextAlignment="Center">
             <Label.Triggers>
@@ -33,11 +36,13 @@
         </Label>
 
         <Label
-            Grid.Row="2"
+            Grid.Row="3"
             Text="{Binding SelectedPlayerCount, StringFormat={x:Static strings:AppResources.SelectedPlayerCountText}}"
-            HorizontalTextAlignment="Center" />
+            HorizontalOptions="Fill"
+            HorizontalTextAlignment="Center"
+            IsVisible="{Binding IsSelectingPlayers}" />
 
-        <Grid Grid.Row="3">
+        <Grid Grid.Row="4">
             <Label
                 Text="{x:Static strings:AppResources.NoPlayersMessage}"
                 HorizontalTextAlignment="Center"
@@ -86,7 +91,14 @@
                                 MinimumHeightRequest="48"
                                 MinimumWidthRequest="48"
                                 HorizontalOptions="End"
-                                VerticalOptions="Center" />
+                                VerticalOptions="Center"
+                                IsVisible="False">
+                                <CheckBox.Triggers>
+                                    <DataTrigger TargetType="CheckBox" Binding="{Binding Source={x:Reference PageRoot}, Path=BindingContext.IsSelectingPlayers}" Value="True">
+                                        <Setter Property="IsVisible" Value="True" />
+                                    </DataTrigger>
+                                </CheckBox.Triggers>
+                            </CheckBox>
                             <BoxView
                                 Grid.Row="1"
                                 Grid.ColumnSpan="2"
@@ -100,22 +112,39 @@
         </Grid>
 
         <HorizontalStackLayout
-            Grid.Row="4"
+            Grid.Row="5"
             Spacing="16"
             HorizontalOptions="Center">
+            <HorizontalStackLayout.Triggers>
+                <DataTrigger TargetType="HorizontalStackLayout" Binding="{Binding IsSelectingPlayers}" Value="True">
+                    <Setter Property="IsVisible" Value="False" />
+                </DataTrigger>
+            </HorizontalStackLayout.Triggers>
             <Button
                 Text="{x:Static strings:AppResources.AddPlayerButton}"
                 Command="{Binding AddPlayerCommand}"
                 MinimumHeightRequest="52"
                 Padding="24,12" />
             <Button
-                Text="{x:Static strings:AppResources.DeactivateSelectedPlayersButton}"
-                Command="{Binding DeactivateSelectedPlayersCommand}"
+                Text="{x:Static strings:AppResources.DeactivatePlayersButton}"
+                Command="{Binding BeginDeactivatePlayersCommand}"
+                MinimumHeightRequest="52"
+                Padding="24,12" />
+        </HorizontalStackLayout>
+
+        <HorizontalStackLayout
+            Grid.Row="5"
+            Spacing="16"
+            HorizontalOptions="Center"
+            IsVisible="{Binding IsSelectingPlayers}">
+            <Button
+                Text="{x:Static strings:AppResources.CancelButton}"
+                Command="{Binding CancelDeactivatePlayersCommand}"
                 MinimumHeightRequest="52"
                 Padding="24,12" />
             <Button
-                Text="{x:Static strings:AppResources.ManageInactivePlayersButton}"
-                Command="{Binding ManageInactivePlayersCommand}"
+                Text="{x:Static strings:AppResources.DeactivateSelectedPlayersButton}"
+                Command="{Binding DeactivateSelectedPlayersCommand}"
                 MinimumHeightRequest="52"
                 Padding="24,12" />
         </HorizontalStackLayout>

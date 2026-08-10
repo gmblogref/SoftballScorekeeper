@@ -10,10 +10,10 @@ Stable product and architecture decisions belong in the project architecture doc
 
 ## Current Project Status
 
-- **Latest completed story:** Story 3.5 — Remove Players from Team
-- **Completed stories:** Stories 0.0 through 3.1 and Story 3.5; Stories 3.2 through 3.4 retain their recorded validation status
-- **Current story:** Story 3.5 — Remove Players from Team (complete; Windows runtime not run)
-- **Current phase:** Team and Player workspace workflows and validation
+- **Latest completed story:** Story 3.6 — Global Application Navigation
+- **Completed stories:** Stories 0.0 through 3.1, Story 3.5, and Story 3.6; Stories 3.2 through 3.4 retain their recorded validation status
+- **Current story:** Story 3.6 — Global Application Navigation (complete; Android tablet validation passed, Windows runtime not run)
+- **Current phase:** Global navigation and Team/Player workspace workflows
 - **Foundation status:** Complete
 
 The repository contains a four-project .NET 9 solution: the Android- and Windows-targeted .NET MAUI application, platform-independent Core, Infrastructure, and the automated test project. Its implemented foundation includes repository guidance, pragmatic layered dependencies, CommunityToolkit.Mvvm, MAUI dependency injection, device-local SQLite initialization, centralized user-facing resources, strongly typed application settings, and isolated xUnit repository integration tests. Team Workspace can add and remove existing active Players from its roster, Player Workspace shows active Team memberships, and Player Manager retains bulk lifecycle actions; other product-facing softball workflows remain deferred.
@@ -1410,6 +1410,64 @@ Windows application runtime and restart-persistence validation were not performe
 #### Intended Commit Message
 
 `Implement remove Players from Team`
+
+### Story 3.6 — Global Application Navigation
+
+**Status:** Complete; Android tablet manual validation passed, Windows runtime not run
+
+#### Implementation Summary
+
+- Enabled the existing Shell flyout and organized Teams and Players as native top-level `FlyoutItem` sections. Added a focused reusable `PrimarySectionNavigation` ContentView to the Team Manager, Team Workspace, Add Players, Player Manager, and Player Workspace pages. It presents only resource-backed Teams and Players actions with 48-pixel minimum touch heights and disables the current section for a compact light/dark-theme-compatible indication.
+- Fast switching uses the absolute Shell routes `//teams/team-manager` and `//players/player-manager`. Absolute top-level navigation replaces the active section hierarchy instead of pushing another manager route, so repeated Teams/Players switching does not accumulate duplicate manager pages. It intentionally abandons the prior section's drill-down history; relative navigation within the selected section continues to preserve Team Workspace → Team Manager, Add Players → Team Workspace, and Player Workspace → Player Manager back behavior.
+- The Shell flyout now exposes Manage Inactive Teams and Manage Inactive Players through the existing resource labels, registered routes, transient pages, ViewModels, and repository workflows. The prominent inactive-management buttons were removed from both manager pages, along with their unused ViewModel commands. The obsolete manager-only `ViewPlayersButton` resource and navigation command/route were removed.
+- Existing page lifetimes remain unchanged: the injected Team Manager page and ViewModel are singletons, while Player Manager and all drill-down/inactive pages and ViewModels remain transient. Existing repository-backed `OnAppearing` loads remain the source of truth, including Team and Player manager refresh, Player selection/selected-count reset on reload, and Workspace query-ID reload behavior. No Core, Infrastructure, database, or repository behavior changed.
+- Teams and Players reuse `TeamsHeading` and `PlayersTitle`; flyout inactive actions reuse `ManageInactiveTeamsButton` and `ManageInactivePlayersButton`. No Games or future navigation placeholders were added; Games expansion remains deferred.
+- The final UX correction standardized temporary bulk-selection behavior. Team Workspace now enters inline remove mode from Remove Players, reveals roster checkboxes, selected count, Cancel, and Remove Selected from Team, and reuses the Story 3.5 confirmation and `TeamPlayerRepository` soft-deactivation behavior without leaving the Workspace. Player Manager similarly enters deactivate mode from the new resource-backed Deactivate Players action and reveals checkboxes, selected count, Cancel, and Deactivate Selected. Normal browsing on both screens hides checkboxes and selected-count UI; Cancel clears selections without writes, confirmation cancellation preserves mode and selections, complete success refreshes repository truth and exits mode, and partial results remain in mode with applicable selections preserved.
+- Repository-backed appearance loads clear both temporary modes and selections, preventing global section switching or other navigation from restoring stale bulk-selection state. The dedicated Remove Players page, ViewModel, route, DI registrations, and page-only title/heading/empty-state resources became obsolete and were removed; Story 3.5 history and its shared repository behavior and confirmation/result resources remain intact.
+
+#### Files Added
+
+- `SoftballScorekeeper/Views/Controls/PrimarySectionNavigation.xaml`
+- `SoftballScorekeeper/Views/Controls/PrimarySectionNavigation.xaml.cs`
+
+#### Files Modified
+
+- `FEATURE_HISTORY.md`
+- `SoftballScorekeeper/AppShell.xaml`
+- `SoftballScorekeeper/AppShell.xaml.cs`
+- `SoftballScorekeeper/MauiProgram.cs`
+- `SoftballScorekeeper/Resources/Strings/AppResources.resx`
+- `SoftballScorekeeper/Resources/Strings/AppResources.Designer.cs`
+- `SoftballScorekeeper/ViewModels/LandingPageViewModel.cs`
+- `SoftballScorekeeper/ViewModels/PlayerListViewModel.cs`
+- `SoftballScorekeeper/ViewModels/TeamWorkspaceViewModel.cs`
+- `SoftballScorekeeper/Views/MainPage.xaml`
+- `SoftballScorekeeper/Views/TeamWorkspacePage.xaml`
+- `SoftballScorekeeper/Views/TeamWorkspacePage.xaml.cs`
+- `SoftballScorekeeper/Views/AddPlayersToTeamPage.xaml`
+- `SoftballScorekeeper/Views/PlayerListPage.xaml`
+- `SoftballScorekeeper/Views/PlayerWorkspacePage.xaml`
+
+#### Files Removed
+
+- `SoftballScorekeeper/ViewModels/RemovePlayersFromTeamViewModel.cs`
+- `SoftballScorekeeper/Views/RemovePlayersFromTeamPage.xaml`
+- `SoftballScorekeeper/Views/RemovePlayersFromTeamPage.xaml.cs`
+
+#### Automated Tests and Validation
+
+- The complete automated suite passed 86 of 86 tests with zero failures and zero skips using `dotnet test SoftballScorekeeper.Tests\SoftballScorekeeper.Tests.csproj --no-restore --no-build --verbosity:normal`. No new tests were warranted: the suite remains intentionally repository-focused with references only to Core and Infrastructure, while Story 3.6 changed MAUI navigation and presentation state and introduced no persistence behavior.
+- The final Windows target rebuild succeeded with 54 warnings and zero errors using `dotnet build SoftballScorekeeper\SoftballScorekeeper.csproj -f net9.0-windows10.0.19041.0 --no-restore -nodeReuse:false -verbosity:minimal -t:Rebuild`. Warning count and categories are unchanged from the prior Story 3.6 validation: the existing `CS8602`, `MVVMTK0045`, and `XC0025` categories remain, and the story introduced no new warning category. The Windows application was not launched.
+- Manual validation passed on the 10-inch Android tablet for the final Story 3.6 implementation. It covered fast-switch layout; Teams and Players navigation, repeated switching without manager-stack growth, and current-section indication; manager cleanup and refresh/interactivity; Shell flyout and both existing inactive-management workflows; Team and Player Workspace navigation/back behavior; Add Players regression; inline Team removal and Player deactivation selection modes; selection Cancel and confirmation-cancel behavior; successful selected actions; global section switching from temporary modes; selected-count alignment; layout/clipping; stale-state prevention; and absence of observed binding failures or runtime exceptions.
+- The Android command-line build remains unavailable because the environment cannot locate the Android SDK and reports `XA5300`; this CLI limitation does not negate the successful physical-tablet runtime validation.
+
+#### Limitations and Deferred Work
+
+Windows runtime validation was not performed. Games fast navigation, a Current Game shortcut, lineups, statistics, Beer Rules, Settings, and any other expansion of global navigation beyond Teams and Players remain deferred.
+
+#### Intended Commit Message
+
+`Implement global application navigation`
 
 ## Maintenance Rules
 

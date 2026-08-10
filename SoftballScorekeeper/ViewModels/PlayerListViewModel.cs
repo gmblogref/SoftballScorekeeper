@@ -26,6 +26,9 @@ public partial class PlayerListViewModel : ObservableObject
     [ObservableProperty]
     private string? statusMessage;
 
+    [ObservableProperty]
+    private bool isSelectingPlayers;
+
     public PlayerListViewModel(PlayerRepository playerRepository)
     {
         ArgumentNullException.ThrowIfNull(playerRepository);
@@ -63,6 +66,7 @@ public partial class PlayerListViewModel : ObservableObject
         IsLoading = true;
         try
         {
+            ExitSelectionMode();
             await ReloadPlayersAsync();
         }
         finally
@@ -75,6 +79,21 @@ public partial class PlayerListViewModel : ObservableObject
     private async Task AddPlayerAsync()
     {
         await Shell.Current.GoToAsync(AppShell.CreatePlayerRoute);
+    }
+
+    [RelayCommand(CanExecute = nameof(CanBeginDeactivatePlayers))]
+    private void BeginDeactivatePlayers()
+    {
+        ClearSelection();
+        IsSelectingPlayers = true;
+        NotifyManagerCommandsCanExecuteChanged();
+    }
+
+    [RelayCommand(CanExecute = nameof(CanCancelDeactivatePlayers))]
+    private void CancelDeactivatePlayers()
+    {
+        ExitSelectionMode();
+        NotifyManagerCommandsCanExecuteChanged();
     }
 
     [RelayCommand(CanExecute = nameof(CanOpenPlayer))]
@@ -156,6 +175,10 @@ public partial class PlayerListViewModel : ObservableObject
                     AppResources.PlayerDeactivationPartialFailureMessage,
                     affectedRows,
                     selectedIds.Length);
+            if (affectedRows == selectedIds.Length)
+            {
+                ExitSelectionMode();
+            }
         }
         finally
         {
@@ -163,13 +186,12 @@ public partial class PlayerListViewModel : ObservableObject
         }
     }
 
-    [RelayCommand(CanExecute = nameof(CanUsePlayerManager))]
-    private async Task ManageInactivePlayersAsync()
+    partial void OnIsLoadingChanged(bool value)
     {
-        await Shell.Current.GoToAsync(AppShell.InactivePlayersRoute);
+        NotifyManagerCommandsCanExecuteChanged();
     }
 
-    partial void OnIsLoadingChanged(bool value)
+    partial void OnIsSelectingPlayersChanged(bool value)
     {
         NotifyManagerCommandsCanExecuteChanged();
     }
@@ -179,6 +201,12 @@ public partial class PlayerListViewModel : ObservableObject
         return !IsLoading && !isConfirmationPending;
     }
 
+    private bool CanBeginDeactivatePlayers() =>
+        CanUsePlayerManager() && !IsSelectingPlayers && HasPlayers;
+
+    private bool CanCancelDeactivatePlayers() =>
+        CanUsePlayerManager() && IsSelectingPlayers;
+
     private bool CanOpenPlayer(int playerId)
     {
         return CanUsePlayerManager() && playerId > 0;
@@ -186,7 +214,7 @@ public partial class PlayerListViewModel : ObservableObject
 
     private bool CanDeactivateSelectedPlayers()
     {
-        return !IsLoading && !isConfirmationPending && HasSelectedPlayers;
+        return !IsLoading && !isConfirmationPending && IsSelectingPlayers && HasSelectedPlayers;
     }
 
     private bool CanConfirmDeactivateSelectedPlayers()
@@ -228,12 +256,29 @@ public partial class PlayerListViewModel : ObservableObject
         SelectedPlayerCount = Players.Count(item => item.IsSelected);
     }
 
+    private void ClearSelection()
+    {
+        foreach (var item in Players)
+        {
+            item.IsSelected = false;
+        }
+
+        UpdateSelectionState();
+    }
+
+    private void ExitSelectionMode()
+    {
+        ClearSelection();
+        IsSelectingPlayers = false;
+    }
+
     private void NotifyManagerCommandsCanExecuteChanged()
     {
         AddPlayerCommand.NotifyCanExecuteChanged();
+        BeginDeactivatePlayersCommand.NotifyCanExecuteChanged();
+        CancelDeactivatePlayersCommand.NotifyCanExecuteChanged();
         OpenPlayerCommand.NotifyCanExecuteChanged();
         DeactivateSelectedPlayersCommand.NotifyCanExecuteChanged();
-        ManageInactivePlayersCommand.NotifyCanExecuteChanged();
         ConfirmDeactivateSelectedPlayersCommand.NotifyCanExecuteChanged();
     }
 }

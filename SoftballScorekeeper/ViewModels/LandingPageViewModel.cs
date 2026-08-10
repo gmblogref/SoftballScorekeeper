@@ -62,18 +62,6 @@ public partial class LandingPageViewModel : ObservableObject
         await Shell.Current.GoToAsync(AppShell.CreateTeamRoute);
     }
 
-    [RelayCommand]
-    private async Task ManageInactiveTeamsAsync()
-    {
-        await Shell.Current.GoToAsync(AppShell.InactiveTeamsRoute);
-    }
-
-    [RelayCommand]
-    private async Task OpenPlayerListAsync()
-    {
-        await Shell.Current.GoToAsync(AppShell.PlayerListRoute);
-    }
-
     [RelayCommand(CanExecute = nameof(CanOpenTeam))]
     private async Task OpenTeamAsync(Team? team)
     {

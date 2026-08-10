@@ -4,12 +4,33 @@
     xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
     xmlns:strings="clr-namespace:SoftballScorekeeper.Resources.Strings"
-    Shell.FlyoutBehavior="Disabled"
+    xmlns:views="clr-namespace:SoftballScorekeeper.Views"
+    Shell.FlyoutBehavior="Flyout"
     Title="{x:Static strings:AppResources.ShellTitle}">
 
-	<ShellContent
-        x:Name="MainShellContent"
-        Title="{x:Static strings:AppResources.MainPageTitle}"
-        Route="MainPage" />
+	<FlyoutItem
+        Title="{x:Static strings:AppResources.TeamsHeading}"
+        Route="teams">
+        <ShellContent
+            x:Name="MainShellContent"
+            Title="{x:Static strings:AppResources.TeamsHeading}"
+            Route="team-manager" />
+    </FlyoutItem>
+
+    <FlyoutItem
+        Title="{x:Static strings:AppResources.PlayersTitle}"
+        Route="players">
+        <ShellContent
+            Title="{x:Static strings:AppResources.PlayersTitle}"
+            Route="player-manager"
+            ContentTemplate="{DataTemplate views:PlayerListPage}" />
+    </FlyoutItem>
+
+    <MenuItem
+        Text="{x:Static strings:AppResources.ManageInactiveTeamsButton}"
+        Clicked="OnManageInactiveTeamsClicked" />
+    <MenuItem
+        Text="{x:Static strings:AppResources.ManageInactivePlayersButton}"
+        Clicked="OnManageInactivePlayersClicked" />
 
 </Shell>
