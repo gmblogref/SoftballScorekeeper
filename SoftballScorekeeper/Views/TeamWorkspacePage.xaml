@@ -123,11 +123,18 @@
                 RowDefinitions="Auto,*"
                 RowSpacing="12"
                 IsVisible="{Binding IsGamesSectionSelected}">
-                <Label
-                    Text="{x:Static strings:AppResources.GamesSectionLabel}"
-                    Style="{StaticResource SubHeadline}"
-                    HorizontalTextAlignment="Center"
-                    SemanticProperties.HeadingLevel="Level2" />
+                <VerticalStackLayout Spacing="8">
+                    <Label
+                        Text="{x:Static strings:AppResources.GamesSectionLabel}"
+                        Style="{StaticResource SubHeadline}"
+                        HorizontalTextAlignment="Center"
+                        SemanticProperties.HeadingLevel="Level2" />
+                    <Label
+                        Text="{Binding SelectedGameCountText}"
+                        HorizontalOptions="Fill"
+                        HorizontalTextAlignment="Center"
+                        IsVisible="{Binding IsRemovingGames}" />
+                </VerticalStackLayout>
                 <Grid Grid.Row="1">
                     <Label
                         Text="{x:Static strings:AppResources.NoGamesMessage}"
@@ -161,7 +168,7 @@
                                                     Padding="12,8"
                                                     MinimumHeightRequest="56"
                                                     RowDefinitions="Auto,1"
-                                                    ColumnDefinitions="76,100,2*,110,*,*"
+                                                    ColumnDefinitions="76,100,2*,110,*,*,Auto"
                                                     ColumnSpacing="12">
                                                     <Label
                                                         Text="{Binding NextDisplay}"
@@ -198,9 +205,17 @@
                                                         FontSize="15"
                                                         VerticalTextAlignment="Center"
                                                         LineBreakMode="TailTruncation" />
+                                                    <CheckBox
+                                                        Grid.Column="6"
+                                                        IsChecked="{Binding IsSelected, Mode=TwoWay}"
+                                                        IsVisible="{Binding IsSelectionVisible}"
+                                                        MinimumHeightRequest="48"
+                                                        MinimumWidthRequest="48"
+                                                        HorizontalOptions="End"
+                                                        VerticalOptions="Center" />
                                                     <BoxView
                                                         Grid.Row="1"
-                                                        Grid.ColumnSpan="6"
+                                                        Grid.ColumnSpan="7"
                                                         Margin="0,7,0,0"
                                                         HeightRequest="1"
                                                         Color="{AppThemeBinding Light={StaticResource Gray200}, Dark={StaticResource Gray500}}" />
@@ -319,15 +334,42 @@
                 Padding="24,12" />
         </HorizontalStackLayout>
 
-        <Button
+        <HorizontalStackLayout
             Grid.Row="6"
-            Text="{x:Static strings:AppResources.AddGameButton}"
-            Command="{Binding AddGameCommand}"
-            IsVisible="{Binding IsGamesSectionSelected}"
             HorizontalOptions="Center"
-            MinimumHeightRequest="52"
-            MinimumWidthRequest="180"
-            Padding="24,12" />
+            Spacing="20"
+            IsVisible="{Binding IsGamesSectionSelected}">
+            <HorizontalStackLayout.Triggers>
+                <DataTrigger TargetType="HorizontalStackLayout" Binding="{Binding IsRemovingGames}" Value="True">
+                    <Setter Property="IsVisible" Value="False" />
+                </DataTrigger>
+            </HorizontalStackLayout.Triggers>
+            <Button
+                Text="{x:Static strings:AppResources.AddGameButton}"
+                Command="{Binding AddGameCommand}"
+                MinimumHeightRequest="52"
+                MinimumWidthRequest="180"
+                Padding="24,12" />
+            <Button
+                Text="{x:Static strings:AppResources.RemoveGamesButton}"
+                Command="{Binding RemoveGamesCommand}"
+                MinimumHeightRequest="52"
+                MinimumWidthRequest="180"
+                Padding="24,12" />
+        </HorizontalStackLayout>
+
+        <HorizontalStackLayout Grid.Row="6" HorizontalOptions="Center" Spacing="20" IsVisible="{Binding IsRemovingGames}">
+            <Button
+                Text="{x:Static strings:AppResources.CancelButton}"
+                Command="{Binding CancelRemoveGamesCommand}"
+                MinimumHeightRequest="52"
+                Padding="24,12" />
+            <Button
+                Text="{x:Static strings:AppResources.RemoveSelectedGamesButton}"
+                Command="{Binding RemoveSelectedGamesCommand}"
+                MinimumHeightRequest="52"
+                Padding="24,12" />
+        </HorizontalStackLayout>
 
         <HorizontalStackLayout Grid.Row="6" HorizontalOptions="Center" Spacing="20" IsVisible="{Binding IsRemovingPlayers}">
             <Button
@@ -357,6 +399,9 @@
             TextColor="{AppThemeBinding Light=#B3261E, Dark=#FFB4AB}">
             <Button.Triggers>
                 <DataTrigger TargetType="Button" Binding="{Binding IsRemovingPlayers}" Value="True">
+                    <Setter Property="IsVisible" Value="False" />
+                </DataTrigger>
+                <DataTrigger TargetType="Button" Binding="{Binding IsRemovingGames}" Value="True">
                     <Setter Property="IsVisible" Value="False" />
                 </DataTrigger>
             </Button.Triggers>

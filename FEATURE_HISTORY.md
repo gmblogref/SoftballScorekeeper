@@ -10,9 +10,9 @@ Stable product and architecture decisions belong in the project architecture doc
 
 ## Current Project Status
 
-- **Latest completed story:** Story 4.3 — Add Game
-- **Completed stories:** Stories 0.0 through 3.1 and Stories 3.5 through 4.3; Stories 3.2 through 3.4 retain their recorded validation status
-- **Current story:** None; Story 4.3 — Add Game is complete
+- **Latest completed story:** Story 4.4 — Remove Games
+- **Completed stories:** Stories 0.0 through 3.1 and Stories 3.5 through 4.4; Stories 3.2 through 3.4 retain their recorded validation status
+- **Current story:** None; Story 4.4 — Remove Games is complete
 - **Current phase:** Team-scoped Game Management workspace foundation
 - **Foundation status:** Complete
 
@@ -1647,6 +1647,39 @@ Story 4.4 Remove Games, Story 4.5 Edit Game, safe Game lifecycle/removal rules, 
 #### Intended Commit Message
 
 `Implement Add Game workflow`
+
+### Story 4.4 — Remove Games
+
+**Status:** Complete
+
+#### Implementation Summary
+
+- Added an inline removal mode to Team Workspace Games without adding a page, ViewModel, route, or global state. Normal mode retains the schedule, Add Game, month expansion, and NEXT presentation while adding Remove Games; removal mode shows tablet-sized right-side checkboxes, resource-backed singular/plural selected counts, a disabled-until-selected Remove Selected action, and Cancel.
+- Game selection is temporary presentation state on `GameScheduleItem`, not Core `Game` or persistence state. Cancel, Games-to-Roster switching, Team reload, and later Workspace visits clear selections and exit removal mode without persistence. Canceling the native resource-backed singular/plural confirmation preserves removal mode and the current selection.
+- Extended `GameRepository` with a focused Team-scoped bulk hard-delete operation and `RemoveGamesResult`. It normalizes duplicate input IDs and reports deleted, missing, wrong-Team, blocked, and ignored IDs; invalid Team/input requests are safe no-ops, and a Team can never remove another Team's Game.
+- Infrastructure owns the dependent-history decision. The current schema has no persisted Game-owned lineup or scoring history, so existing scheduled Games are currently eligible for hard deletion; the focused guard can incorporate real future history without changing the Games-tab contract. No lifecycle/status fields, soft deletion, fake history tables, migration, or generic operation framework was introduced.
+- Removing a Game never removes its Season. Same-date doubleheader Games remain independent rows, so selecting one removes only one and selecting both removes both; no pairing inference or identifier was added.
+- Confirmed operations reload Games and Seasons from repository truth and reuse the Story 4.2 schedule rebuild. This naturally removes empty months, preserves surviving month expansion where practical, recalculates NEXT, retains TBD/Season presentation, and shows the existing empty state when the final Game is removed while keeping Games selected for the current session. A later fresh empty-Team Workspace visit continues to use Story 4.1's Roster default.
+- Complete success exits removal mode; partial and no-op results refresh repository truth, remain in removal mode, reselect requested Games still present where possible, and display resource-backed feedback based on the repository result. Busy and confirmation state prevent repeated execution.
+- A physically deleted date/time slot no longer conflicts with Story 4.3 duplicate detection. The preserved Season remains available and the same Team/Season/date/time can be scheduled again.
+- Global-navigation regression testing exposed that native Shell `FlyoutItem` switching restored each section's retained child stack. The flyout now uses built-in Teams/Players menu actions that invoke the existing absolute manager routes while the Shell sections remain route hosts, so global Teams and Players always reset to Team Manager and Player Manager rather than reopening stale Workspace pages. Repository-backed appearance reloads continue clearing transient Game, roster, and Player selections without persistence; relative local Back navigation remains unchanged.
+
+#### Automated Tests and Validation
+
+- Added 7 focused `GameRepositoryTests` covering single and multiple hard deletion, persisted row removal, unrelated-row preservation, Team isolation and wrong-Team reporting, duplicate/non-positive/missing/null/empty input handling, accurate result lists/counts, final-Game Season preservation, one-or-both doubleheader removal, and recreation of a deleted slot with the preserved Season. No fake dependent-history test infrastructure was added because no such persisted schema exists yet.
+- Focused Game repository validation passed 33 of 33 tests with zero failures and zero skips using `dotnet test SoftballScorekeeper.Tests\SoftballScorekeeper.Tests.csproj --no-restore --filter FullyQualifiedName~GameRepositoryTests --verbosity:minimal -nodeReuse:false`.
+- The complete suite increased from 129 to 136 tests and passed 136 of 136 with zero failures and zero skips using `dotnet test SoftballScorekeeper.Tests\SoftballScorekeeper.Tests.csproj --no-restore --verbosity:minimal -nodeReuse:false`.
+- The Windows `net9.0-windows10.0.19041.0` target build succeeded with zero errors and 67 warnings using `dotnet build SoftballScorekeeper\SoftballScorekeeper.csproj -f net9.0-windows10.0.19041.0 --no-restore -nodeReuse:false --verbosity:minimal`. Warning categories remain `CS8602`, `MVVMTK0045`, and `XC0025`; Story 4.4 introduced no new warning category or net warning increase. Windows runtime validation was not performed.
+- Android manual validation passed on the 10-inch tablet. It covered normal/removal mode visibility; right-side checkboxes; single, multiple, and deselection behavior; selected-count and Remove Selected command state; Cancel with no persistence; singular/plural confirmation and confirmation cancellation with selection preservation; single, multiple, and independent doubleheader deletion; repository-backed refresh, empty-month cleanup, and NEXT recalculation; final-Game current-session empty state and later fresh-visit Roster fallback; deleted-slot recreation and Season preservation; Games-to-Roster cleanup; and correct layout with no observed clipping, overlap, binding failure, or runtime exception.
+- The Android regression pass also confirmed that global navigation clears Game-removal, roster-removal, and Player-deactivation temporary state without persistence; Teams and Players now reach their manager roots; repeated root navigation does not intentionally grow a child stack; local Back remains functional; and existing application workflows remain operational. General slowness observed while the development computer was under heavy concurrent load did not reproduce as a specific application performance defect and is not recorded as a Story 4.4 defect.
+
+#### Limitations and Deferred Work
+
+Real dependent Game history does not yet exist, so blocked and mixed production outcomes cannot be exercised until a future story introduces genuine Game-owned persistence. Standard MAUI Shell continues replacing the hamburger icon with Back on pushed routes; simultaneous standard Back and global-menu affordances would require broader title-bar/navigation customization and remain deferred navigation polish, while existing in-page Teams/Players navigation remains available on supported workflow pages. Edit Game, completion/cancellation/status, rainout/rescheduling, archiving/restoration, Game Workspace, Lineup Management, scoring, statistics, Beer Rules, Season editing/removal, and global Games navigation remain deferred.
+
+#### Intended Commit Message
+
+`Implement inline Game removal`
 
 ## Maintenance Rules
 

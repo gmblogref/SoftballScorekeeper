@@ -14,7 +14,30 @@ public partial class TeamWorkspacePage : ContentPage
         this.viewModel = viewModel;
         viewModel.DeactivateTeamConfirmationRequested = ConfirmTeamDeactivationAsync;
         viewModel.RemovePlayersConfirmationRequested = ConfirmPlayerRemovalAsync;
+        viewModel.RemoveGamesConfirmationRequested = ConfirmGameRemovalAsync;
         BindingContext = viewModel;
+    }
+
+    private async Task ConfirmGameRemovalAsync(int selectedGameCount)
+    {
+        var messageTemplate = selectedGameCount == 1
+            ? AppResources.RemoveGameConfirmationMessage
+            : AppResources.RemoveGamesConfirmationMessage;
+        var message = string.Format(
+            CultureInfo.CurrentCulture,
+            messageTemplate,
+            selectedGameCount);
+
+        var confirmed = await DisplayAlert(
+            AppResources.RemoveGamesConfirmationTitle,
+            message,
+            AppResources.ConfirmRemoveGamesButton,
+            AppResources.CancelButton);
+
+        if (confirmed && viewModel.ConfirmRemoveSelectedGamesCommand.CanExecute(null))
+        {
+            await viewModel.ConfirmRemoveSelectedGamesCommand.ExecuteAsync(null);
+        }
     }
 
     private async Task ConfirmPlayerRemovalAsync(int selectedPlayerCount, string teamName)

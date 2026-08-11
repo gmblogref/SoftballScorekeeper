@@ -10,7 +10,8 @@
 
 	<FlyoutItem
         Title="{x:Static strings:AppResources.TeamsHeading}"
-        Route="teams">
+        Route="teams"
+        FlyoutItemIsVisible="False">
         <ShellContent
             x:Name="MainShellContent"
             Title="{x:Static strings:AppResources.TeamsHeading}"
@@ -19,12 +20,20 @@
 
     <FlyoutItem
         Title="{x:Static strings:AppResources.PlayersTitle}"
-        Route="players">
+        Route="players"
+        FlyoutItemIsVisible="False">
         <ShellContent
             Title="{x:Static strings:AppResources.PlayersTitle}"
             Route="player-manager"
             ContentTemplate="{DataTemplate views:PlayerListPage}" />
     </FlyoutItem>
+
+    <MenuItem
+        Text="{x:Static strings:AppResources.TeamsHeading}"
+        Clicked="OnTeamsClicked" />
+    <MenuItem
+        Text="{x:Static strings:AppResources.PlayersTitle}"
+        Clicked="OnPlayersClicked" />
 
     <MenuItem
         Text="{x:Static strings:AppResources.ManageInactiveTeamsButton}"

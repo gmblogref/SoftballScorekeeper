@@ -175,6 +175,74 @@ public sealed class GameRepository
         return result;
     }
 
+    public async Task<RemoveGamesResult> RemoveGamesAsync(
+        int teamId,
+        IReadOnlyCollection<int>? gameIds)
+    {
+        var requestedIds = gameIds?.Distinct().ToArray() ?? Array.Empty<int>();
+        if (teamId <= 0 || requestedIds.Length == 0)
+        {
+            return EmptyRemovalResult(requestedIds);
+        }
+
+        var connection = await database.GetConnectionAsync();
+        var activeTeam = await connection.Table<Team>()
+            .Where(team => team.Id == teamId && team.IsActive)
+            .FirstOrDefaultAsync();
+        if (activeTeam is null)
+        {
+            return EmptyRemovalResult(requestedIds);
+        }
+
+        var ignoredIds = requestedIds.Where(id => id <= 0).ToArray();
+        var positiveIds = requestedIds.Where(id => id > 0).ToArray();
+        var persistedGames = await connection.Table<Game>().ToListAsync();
+        var gamesById = persistedGames
+            .Where(game => positiveIds.Contains(game.Id))
+            .ToDictionary(game => game.Id);
+        var missingIds = positiveIds.Where(id => !gamesById.ContainsKey(id)).ToArray();
+        var wrongTeamIds = positiveIds
+            .Where(id => gamesById.TryGetValue(id, out var game) && game.TeamId != teamId)
+            .ToArray();
+        var eligibleIds = positiveIds
+            .Where(id => gamesById.TryGetValue(id, out var game) && game.TeamId == teamId)
+            .ToArray();
+        var deletedIds = new List<int>();
+        var blockedIds = new List<int>();
+
+        await connection.RunInTransactionAsync(transaction =>
+        {
+            foreach (var gameId in eligibleIds)
+            {
+                if (HasDependentHistory(transaction, gameId))
+                {
+                    blockedIds.Add(gameId);
+                    continue;
+                }
+
+                if (transaction.Execute(
+                        "DELETE FROM Game WHERE Id = ? AND TeamId = ?",
+                        gameId,
+                        teamId) == 1)
+                {
+                    deletedIds.Add(gameId);
+                }
+                else
+                {
+                    blockedIds.Add(gameId);
+                }
+            }
+        });
+
+        return new RemoveGamesResult(
+            requestedIds,
+            deletedIds,
+            missingIds,
+            wrongTeamIds,
+            blockedIds,
+            ignoredIds);
+    }
+
     private static bool HasValidRequest(int teamId, Season? season, IReadOnlyList<Game> games)
     {
         if (teamId <= 0
@@ -214,6 +282,24 @@ public sealed class GameRepository
             0,
             Array.Empty<int>(),
             failureReason);
+    }
+
+    private static RemoveGamesResult EmptyRemovalResult(IReadOnlyList<int> requestedIds)
+    {
+        return new RemoveGamesResult(
+            requestedIds,
+            Array.Empty<int>(),
+            Array.Empty<int>(),
+            Array.Empty<int>(),
+            Array.Empty<int>(),
+            requestedIds);
+    }
+
+    private static bool HasDependentHistory(SQLite.SQLiteConnection transaction, int gameId)
+    {
+        // The current schema has no persisted Game-owned lineup or scoring history.
+        // Future history tables can extend this Infrastructure guard without changing the UI contract.
+        return false;
     }
 
     private sealed class DuplicateScheduledGameException : Exception;

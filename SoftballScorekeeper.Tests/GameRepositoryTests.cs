@@ -559,6 +559,153 @@ public sealed class GameRepositoryTests
         Assert.Equal(existingGame.Id, Assert.Single(await testDatabase.GetGamesAsync()).Id);
     }
 
+    [Fact]
+    public async Task RemoveGamesAsync_OneEligibleGame_DeletesOnlySelectedGameAndPreservesSeason()
+    {
+        await using var testDatabase = await TemporaryTestDatabase.CreateAsync();
+        var team = await CreateTeamAsync(testDatabase);
+        var season = await CreateSeasonAsync(testDatabase, team, "Summer", 2026);
+        var selected = await CreateGameAsync(
+            testDatabase, team, season, new DateTime(2026, 8, 1), new TimeSpan(18, 30, 0));
+        var unselected = await CreateGameAsync(
+            testDatabase, team, season, new DateTime(2026, 8, 8), new TimeSpan(18, 30, 0));
+
+        var result = await testDatabase.CreateGameRepository()
+            .RemoveGamesAsync(team.Id, [selected.Id]);
+
+        Assert.Equal([selected.Id], result.RequestedGameIds);
+        Assert.Equal([selected.Id], result.DeletedGameIds);
+        Assert.Empty(result.MissingGameIds);
+        Assert.Empty(result.WrongTeamGameIds);
+        Assert.Empty(result.BlockedGameIds);
+        Assert.Empty(result.IgnoredGameIds);
+        Assert.Equal(unselected.Id, Assert.Single(await testDatabase.GetGamesAsync()).Id);
+        Assert.Equal(season.Id, Assert.Single(await testDatabase.GetSeasonsAsync()).Id);
+    }
+
+    [Fact]
+    public async Task RemoveGamesAsync_MultipleGames_DeletesRequestedAndLeavesUnrelatedGame()
+    {
+        await using var testDatabase = await TemporaryTestDatabase.CreateAsync();
+        var team = await CreateTeamAsync(testDatabase);
+        var otherTeam = await CreateTeamAsync(testDatabase, "Royals");
+        var season = await CreateSeasonAsync(testDatabase, team, "Summer", 2026);
+        var otherSeason = await CreateSeasonAsync(testDatabase, otherTeam, "Summer", 2026);
+        var first = await CreateGameAsync(
+            testDatabase, team, season, new DateTime(2026, 8, 1), new TimeSpan(18, 30, 0));
+        var second = await CreateGameAsync(
+            testDatabase, team, season, new DateTime(2026, 8, 8), new TimeSpan(18, 30, 0));
+        var unrelated = await CreateGameAsync(
+            testDatabase, otherTeam, otherSeason, new DateTime(2026, 8, 1), new TimeSpan(18, 30, 0));
+
+        var result = await testDatabase.CreateGameRepository()
+            .RemoveGamesAsync(team.Id, [first.Id, second.Id]);
+
+        Assert.Equal(2, result.SuccessfulRemovalCount);
+        Assert.Equal(unrelated.Id, Assert.Single(await testDatabase.GetGamesAsync()).Id);
+    }
+
+    [Fact]
+    public async Task RemoveGamesAsync_WrongTeamGame_ReportsItWithoutDeletingAnyGame()
+    {
+        await using var testDatabase = await TemporaryTestDatabase.CreateAsync();
+        var selectedTeam = await CreateTeamAsync(testDatabase);
+        var otherTeam = await CreateTeamAsync(testDatabase, "Royals");
+        var selectedSeason = await CreateSeasonAsync(testDatabase, selectedTeam, "Summer", 2026);
+        var otherSeason = await CreateSeasonAsync(testDatabase, otherTeam, "Summer", 2026);
+        var selectedGame = await CreateGameAsync(
+            testDatabase, selectedTeam, selectedSeason, new DateTime(2026, 8, 1), new TimeSpan(18, 30, 0));
+        var otherGame = await CreateGameAsync(
+            testDatabase, otherTeam, otherSeason, new DateTime(2026, 8, 1), new TimeSpan(18, 30, 0));
+
+        var result = await testDatabase.CreateGameRepository()
+            .RemoveGamesAsync(selectedTeam.Id, [otherGame.Id]);
+
+        Assert.Empty(result.DeletedGameIds);
+        Assert.Equal([otherGame.Id], result.WrongTeamGameIds);
+        Assert.Equal(
+            [selectedGame.Id, otherGame.Id],
+            (await testDatabase.GetGamesAsync()).Select(game => game.Id));
+    }
+
+    [Fact]
+    public async Task RemoveGamesAsync_InvalidDuplicateMissingAndEmptyInputs_ReturnAccurateNoOpResults()
+    {
+        await using var testDatabase = await TemporaryTestDatabase.CreateAsync();
+        var team = await CreateTeamAsync(testDatabase);
+        var season = await CreateSeasonAsync(testDatabase, team, "Summer", 2026);
+        var game = await CreateGameAsync(
+            testDatabase, team, season, new DateTime(2026, 8, 1), new TimeSpan(18, 30, 0));
+        var repository = testDatabase.CreateGameRepository();
+
+        var mixed = await repository.RemoveGamesAsync(
+            team.Id, [game.Id, game.Id, 0, -1, int.MaxValue]);
+
+        Assert.Equal([game.Id, 0, -1, int.MaxValue], mixed.RequestedGameIds);
+        Assert.Equal([game.Id], mixed.DeletedGameIds);
+        Assert.Equal([int.MaxValue], mixed.MissingGameIds);
+        Assert.Equal([0, -1], mixed.IgnoredGameIds);
+        Assert.Empty((await repository.RemoveGamesAsync(team.Id, null)).RequestedGameIds);
+        Assert.Empty((await repository.RemoveGamesAsync(team.Id, [])).RequestedGameIds);
+        Assert.Empty((await repository.RemoveGamesAsync(0, [game.Id])).DeletedGameIds);
+    }
+
+    [Fact]
+    public async Task RemoveGamesAsync_OneDoubleheaderGame_LeavesOtherGameUntouched()
+    {
+        await using var testDatabase = await TemporaryTestDatabase.CreateAsync();
+        var team = await CreateTeamAsync(testDatabase);
+        var season = await CreateSeasonAsync(testDatabase, team, "Summer", 2026);
+        var first = await CreateGameAsync(
+            testDatabase, team, season, new DateTime(2026, 8, 1), new TimeSpan(18, 30, 0));
+        var second = await CreateGameAsync(
+            testDatabase, team, season, new DateTime(2026, 8, 1), new TimeSpan(19, 30, 0));
+
+        var result = await testDatabase.CreateGameRepository()
+            .RemoveGamesAsync(team.Id, [first.Id]);
+
+        Assert.Equal([first.Id], result.DeletedGameIds);
+        Assert.Equal(second.Id, Assert.Single(await testDatabase.GetGamesAsync()).Id);
+    }
+
+    [Fact]
+    public async Task RemoveGamesAsync_BothDoubleheaderGames_DeletesBothIndependentRows()
+    {
+        await using var testDatabase = await TemporaryTestDatabase.CreateAsync();
+        var team = await CreateTeamAsync(testDatabase);
+        var season = await CreateSeasonAsync(testDatabase, team, "Summer", 2026);
+        var first = await CreateGameAsync(
+            testDatabase, team, season, new DateTime(2026, 8, 1), new TimeSpan(18, 30, 0));
+        var second = await CreateGameAsync(
+            testDatabase, team, season, new DateTime(2026, 8, 1), new TimeSpan(19, 30, 0));
+
+        var result = await testDatabase.CreateGameRepository()
+            .RemoveGamesAsync(team.Id, [first.Id, second.Id]);
+
+        Assert.Equal(2, result.SuccessfulRemovalCount);
+        Assert.Empty(await testDatabase.GetGamesAsync());
+        Assert.Equal(season.Id, Assert.Single(await testDatabase.GetSeasonsAsync()).Id);
+    }
+
+    [Fact]
+    public async Task RemoveGamesAsync_DeletedSlot_CanBeRecreatedUsingPreservedSeason()
+    {
+        await using var testDatabase = await TemporaryTestDatabase.CreateAsync();
+        var team = await CreateTeamAsync(testDatabase);
+        var season = await CreateSeasonAsync(testDatabase, team, "Summer", 2026);
+        var original = await CreateGameAsync(
+            testDatabase, team, season, new DateTime(2026, 8, 20), new TimeSpan(18, 30, 0));
+        var repository = testDatabase.CreateGameRepository();
+
+        var removal = await repository.RemoveGamesAsync(team.Id, [original.Id]);
+        var replacement = await repository.CreateForTeamAsync(team.Id, season, [ValidGame()]);
+
+        Assert.Equal([original.Id], removal.DeletedGameIds);
+        Assert.True(replacement.IsCompleteSuccess);
+        Assert.NotEqual(original.Id, Assert.Single(await testDatabase.GetGamesAsync()).Id);
+        Assert.Equal(season.Id, Assert.Single(await testDatabase.GetSeasonsAsync()).Id);
+    }
+
     private static async Task<Team> CreateTeamAsync(
         TemporaryTestDatabase testDatabase,
         string name = "Tigers")
