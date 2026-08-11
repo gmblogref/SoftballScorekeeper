@@ -10,9 +10,9 @@ Stable product and architecture decisions belong in the project architecture doc
 
 ## Current Project Status
 
-- **Latest completed story:** Story 4.1 — Team Workspace Games and Roster Tabs
-- **Completed stories:** Stories 0.0 through 3.1 and Stories 3.5 through 4.1; Stories 3.2 through 3.4 retain their recorded validation status
-- **Current story:** Story 4.1 — Team Workspace Games and Roster Tabs (complete; automated tests, Windows build, and Android tablet validation passed)
+- **Latest completed story:** Story 4.1.1 — Replace Default Startup Splash Branding
+- **Completed stories:** Stories 0.0 through 3.1, Stories 3.5 through 4.1, and Story 4.1.1; Stories 3.2 through 3.4 retain their recorded validation status
+- **Current story:** Story 4.1.1 — Replace Default Startup Splash Branding (complete; automated tests, Windows build, and Android tablet startup validation passed)
 - **Current phase:** Team-scoped Game Management workspace foundation
 - **Foundation status:** Complete
 
@@ -1557,6 +1557,31 @@ Populated Game schedule rows, Story 4.2 schedule UI, month grouping and accordio
 #### Intended Commit Message
 
 `Document completed Team Workspace Games and Roster tabs`
+
+### Story 4.1.1 — Replace Default Startup Splash Branding
+
+**Status:** Complete; Android 10-inch tablet startup validation passed; automated tests and Windows build passed
+
+#### Implementation Summary
+
+- Replaced `Resources/Splash/splash.svg`, which contained the default MAUI/.NET artwork, with `Resources/Splash/softball_scorekeeper_splash.png`, featuring the Softball Scorekeeper yellow softball, `350`, and home-plate branding.
+- Updated the existing `MauiSplashScreen` declaration from the default `#512BD4` background and `128,128` base size to the branded navy `#0B2F6B` background and final `256,256` base size.
+- Retained the native MAUI splash-screen pipeline. No custom Android or Windows splash implementation, fake `ContentPage` splash, timer, artificial startup delay, navigation change, dependency, or framework was introduced.
+- No Team, Player, roster, Season, Game, Core, Infrastructure, or persistence behavior changed.
+
+#### Automated Tests and Validation
+
+- The complete automated suite passed 107 of 107 tests with zero failures and zero skips.
+- The Windows `net9.0-windows10.0.19041.0` target build succeeded with zero errors and 54 warnings. Warnings remain in the existing `CS8602`, `MVVMTK0045`, and `XC0025` categories; no new warning category was introduced. The Windows application was not launched, so Windows runtime splash appearance was not validated.
+- Manual startup validation passed on the 10-inch Android tablet. The Softball Scorekeeper splash appeared centered at the final `256,256` size on the navy background without visible clipping; default MAUI/.NET branding was absent, and transition into the existing application UI remained normal with no fake in-app splash or artificial delay.
+
+#### Limitations and Deferred Work
+
+Windows runtime splash appearance was not validated. No broader branding, theme, navigation, or application behavior work was included.
+
+#### Intended Commit Message
+
+`Replace default startup splash branding`
 
 ## Maintenance Rules
 
