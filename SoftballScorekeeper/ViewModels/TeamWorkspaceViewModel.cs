@@ -51,6 +51,7 @@ public partial class TeamWorkspaceViewModel : ObservableObject, IQueryAttributab
     [NotifyCanExecuteChangedFor(nameof(ConfirmDeactivateTeamCommand))]
     [NotifyCanExecuteChangedFor(nameof(AddPlayersCommand))]
     [NotifyCanExecuteChangedFor(nameof(RemovePlayersCommand))]
+    [NotifyCanExecuteChangedFor(nameof(AddGameCommand))]
     private bool isBusy;
 
     [ObservableProperty]
@@ -61,6 +62,7 @@ public partial class TeamWorkspaceViewModel : ObservableObject, IQueryAttributab
     [NotifyCanExecuteChangedFor(nameof(ConfirmDeactivateTeamCommand))]
     [NotifyCanExecuteChangedFor(nameof(AddPlayersCommand))]
     [NotifyCanExecuteChangedFor(nameof(RemovePlayersCommand))]
+    [NotifyCanExecuteChangedFor(nameof(AddGameCommand))]
     private bool isTeamLoaded;
 
     [ObservableProperty]
@@ -141,6 +143,7 @@ public partial class TeamWorkspaceViewModel : ObservableObject, IQueryAttributab
             {
                 OnPropertyChanged(nameof(IsGamesSectionSelected));
                 OnPropertyChanged(nameof(IsRosterSectionSelected));
+                AddGameCommand.NotifyCanExecuteChanged();
             }
         }
     }
@@ -385,6 +388,17 @@ public partial class TeamWorkspaceViewModel : ObservableObject, IQueryAttributab
         await Shell.Current.GoToAsync(AppShell.AddPlayersToTeamRoute, parameters);
     }
 
+    [RelayCommand(CanExecute = nameof(CanAddGame))]
+    private async Task AddGameAsync()
+    {
+        var parameters = new ShellNavigationQueryParameters
+        {
+            [AppShell.TeamIdQueryParameter] = TeamId
+        };
+
+        await Shell.Current.GoToAsync(AppShell.AddGameRoute, parameters);
+    }
+
     [RelayCommand]
     private void SelectGamesSection()
     {
@@ -511,6 +525,10 @@ public partial class TeamWorkspaceViewModel : ObservableObject, IQueryAttributab
 
     private bool CanBeginRemovePlayers() => CanManageRoster() && HasPlayers;
 
+    private bool CanAddGame() =>
+        CanManageTeam() && !IsEditingTeamName && !IsRemovingPlayers
+        && !isConfirmationPending && IsGamesSectionSelected;
+
     private bool CanCancelRemovePlayers() =>
         CanManageTeam() && IsRemovingPlayers && !isConfirmationPending;
 
@@ -545,6 +563,7 @@ public partial class TeamWorkspaceViewModel : ObservableObject, IQueryAttributab
         ConfirmDeactivateTeamCommand.NotifyCanExecuteChanged();
         AddPlayersCommand.NotifyCanExecuteChanged();
         RemovePlayersCommand.NotifyCanExecuteChanged();
+        AddGameCommand.NotifyCanExecuteChanged();
         CancelRemovePlayersCommand.NotifyCanExecuteChanged();
         RemoveSelectedPlayersCommand.NotifyCanExecuteChanged();
         ConfirmRemoveSelectedPlayersCommand.NotifyCanExecuteChanged();

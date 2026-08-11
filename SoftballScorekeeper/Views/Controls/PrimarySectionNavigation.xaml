@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8" ?>
 <ContentView xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:controls="clr-namespace:SoftballScorekeeper.Views.Controls"
              xmlns:strings="clr-namespace:SoftballScorekeeper.Resources.Strings"
              x:Class="SoftballScorekeeper.Views.Controls.PrimarySectionNavigation"
              x:Name="NavigationRoot">
@@ -11,13 +12,45 @@
             Clicked="OnTeamsClicked"
             MinimumHeightRequest="48"
             MinimumWidthRequest="112"
-            Padding="20,10" />
+            Padding="20,10"
+            BackgroundColor="{AppThemeBinding Light={StaticResource White}, Dark={StaticResource OffBlack}}"
+            BorderColor="{AppThemeBinding Light={StaticResource Black}, Dark={StaticResource Gray300}}"
+            BorderWidth="2"
+            TextColor="{AppThemeBinding Light={StaticResource Black}, Dark={StaticResource White}}">
+            <Button.Triggers>
+                <DataTrigger
+                    TargetType="Button"
+                    Binding="{Binding CurrentSection, Source={x:Reference NavigationRoot}}"
+                    Value="{x:Static controls:PrimarySection.Teams}">
+                    <Setter Property="BackgroundColor" Value="{StaticResource Primary}" />
+                    <Setter Property="BorderColor" Value="{StaticResource Primary}" />
+                    <Setter Property="TextColor" Value="{StaticResource White}" />
+                    <Setter Property="FontAttributes" Value="Bold" />
+                </DataTrigger>
+            </Button.Triggers>
+        </Button>
         <Button
             x:Name="PlayersButton"
             Text="{x:Static strings:AppResources.PlayersTitle}"
             Clicked="OnPlayersClicked"
             MinimumHeightRequest="48"
             MinimumWidthRequest="112"
-            Padding="20,10" />
+            Padding="20,10"
+            BackgroundColor="{AppThemeBinding Light={StaticResource White}, Dark={StaticResource OffBlack}}"
+            BorderColor="{AppThemeBinding Light={StaticResource Black}, Dark={StaticResource Gray300}}"
+            BorderWidth="2"
+            TextColor="{AppThemeBinding Light={StaticResource Black}, Dark={StaticResource White}}">
+            <Button.Triggers>
+                <DataTrigger
+                    TargetType="Button"
+                    Binding="{Binding CurrentSection, Source={x:Reference NavigationRoot}}"
+                    Value="{x:Static controls:PrimarySection.Players}">
+                    <Setter Property="BackgroundColor" Value="{StaticResource Primary}" />
+                    <Setter Property="BorderColor" Value="{StaticResource Primary}" />
+                    <Setter Property="TextColor" Value="{StaticResource White}" />
+                    <Setter Property="FontAttributes" Value="Bold" />
+                </DataTrigger>
+            </Button.Triggers>
+        </Button>
     </HorizontalStackLayout>
 </ContentView>

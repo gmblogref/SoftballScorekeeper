@@ -72,15 +72,16 @@
                 MinimumHeightRequest="52"
                 MinimumWidthRequest="180"
                 Padding="24,12"
-                BackgroundColor="Transparent"
-                BorderColor="{AppThemeBinding Light={StaticResource Gray600}, Dark={StaticResource Gray300}}"
-                BorderWidth="1"
-                TextColor="{AppThemeBinding Light={StaticResource Gray900}, Dark={StaticResource White}}">
+                BackgroundColor="{AppThemeBinding Light={StaticResource White}, Dark={StaticResource OffBlack}}"
+                BorderColor="{AppThemeBinding Light={StaticResource Black}, Dark={StaticResource Gray300}}"
+                BorderWidth="2"
+                TextColor="{AppThemeBinding Light={StaticResource Black}, Dark={StaticResource White}}">
                 <Button.Triggers>
                     <DataTrigger TargetType="Button" Binding="{Binding IsGamesSectionSelected}" Value="True">
                         <Setter Property="FontAttributes" Value="Bold" />
-                        <Setter Property="BorderWidth" Value="3" />
-                        <Setter Property="BackgroundColor" Value="{AppThemeBinding Light={StaticResource Gray200}, Dark={StaticResource Gray600}}" />
+                        <Setter Property="BackgroundColor" Value="{StaticResource Primary}" />
+                        <Setter Property="BorderColor" Value="{StaticResource Primary}" />
+                        <Setter Property="TextColor" Value="{StaticResource White}" />
                     </DataTrigger>
                 </Button.Triggers>
             </Button>
@@ -91,15 +92,16 @@
                 MinimumHeightRequest="52"
                 MinimumWidthRequest="180"
                 Padding="24,12"
-                BackgroundColor="Transparent"
-                BorderColor="{AppThemeBinding Light={StaticResource Gray600}, Dark={StaticResource Gray300}}"
-                BorderWidth="1"
-                TextColor="{AppThemeBinding Light={StaticResource Gray900}, Dark={StaticResource White}}">
+                BackgroundColor="{AppThemeBinding Light={StaticResource White}, Dark={StaticResource OffBlack}}"
+                BorderColor="{AppThemeBinding Light={StaticResource Black}, Dark={StaticResource Gray300}}"
+                BorderWidth="2"
+                TextColor="{AppThemeBinding Light={StaticResource Black}, Dark={StaticResource White}}">
                 <Button.Triggers>
                     <DataTrigger TargetType="Button" Binding="{Binding IsRosterSectionSelected}" Value="True">
                         <Setter Property="FontAttributes" Value="Bold" />
-                        <Setter Property="BorderWidth" Value="3" />
-                        <Setter Property="BackgroundColor" Value="{AppThemeBinding Light={StaticResource Gray200}, Dark={StaticResource Gray600}}" />
+                        <Setter Property="BackgroundColor" Value="{StaticResource Primary}" />
+                        <Setter Property="BorderColor" Value="{StaticResource Primary}" />
+                        <Setter Property="TextColor" Value="{StaticResource White}" />
                     </DataTrigger>
                 </Button.Triggers>
             </Button>
@@ -144,7 +146,6 @@
                                         Padding="20,8"
                                         MinimumHeightRequest="48"
                                         HorizontalOptions="Fill"
-                                        HorizontalTextAlignment="Start"
                                         Text="{Binding HeaderDisplay}"
                                         Command="{Binding ToggleExpansionCommand}"
                                         FontAttributes="Bold"
@@ -317,6 +318,16 @@
                 MinimumWidthRequest="180"
                 Padding="24,12" />
         </HorizontalStackLayout>
+
+        <Button
+            Grid.Row="6"
+            Text="{x:Static strings:AppResources.AddGameButton}"
+            Command="{Binding AddGameCommand}"
+            IsVisible="{Binding IsGamesSectionSelected}"
+            HorizontalOptions="Center"
+            MinimumHeightRequest="52"
+            MinimumWidthRequest="180"
+            Padding="24,12" />
 
         <HorizontalStackLayout Grid.Row="6" HorizontalOptions="Center" Spacing="20" IsVisible="{Binding IsRemovingPlayers}">
             <Button

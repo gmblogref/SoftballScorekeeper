@@ -256,6 +256,84 @@
   <data name="CollapsedScheduleMonthHeaderFormat" xml:space="preserve">
     <value>{0} ▶</value>
   </data>
+  <data name="AddGameButton" xml:space="preserve">
+    <value>Add Game</value>
+  </data>
+  <data name="AddGameTitle" xml:space="preserve">
+    <value>Add Game</value>
+  </data>
+  <data name="AddGameHeading" xml:space="preserve">
+    <value>Schedule Game</value>
+  </data>
+  <data name="SeasonLabel" xml:space="preserve">
+    <value>Season</value>
+  </data>
+  <data name="SelectSeasonPrompt" xml:space="preserve">
+    <value>Select a Season</value>
+  </data>
+  <data name="CreateNewSeasonLabel" xml:space="preserve">
+    <value>Create New Season</value>
+  </data>
+  <data name="SeasonNameLabel" xml:space="preserve">
+    <value>Season Name</value>
+  </data>
+  <data name="SeasonNamePlaceholder" xml:space="preserve">
+    <value>Enter Season name</value>
+  </data>
+  <data name="SeasonYearLabel" xml:space="preserve">
+    <value>Season Year</value>
+  </data>
+  <data name="SeasonYearPlaceholder" xml:space="preserve">
+    <value>Enter year</value>
+  </data>
+  <data name="SeasonSelectionDisplayFormat" xml:space="preserve">
+    <value>{0} {1}</value>
+  </data>
+  <data name="GameDateLabel" xml:space="preserve">
+    <value>Date</value>
+  </data>
+  <data name="GameTimeLabel" xml:space="preserve">
+    <value>Time</value>
+  </data>
+  <data name="OpponentLabel" xml:space="preserve">
+    <value>Opponent</value>
+  </data>
+  <data name="OpponentPlaceholder" xml:space="preserve">
+    <value>Optional opponent</value>
+  </data>
+  <data name="FieldLabel" xml:space="preserve">
+    <value>Field</value>
+  </data>
+  <data name="FieldPlaceholder" xml:space="preserve">
+    <value>Optional field</value>
+  </data>
+  <data name="AddSecondGameLabel" xml:space="preserve">
+    <value>Add Second Game</value>
+  </data>
+  <data name="SecondGameTimeLabel" xml:space="preserve">
+    <value>Second Game Time</value>
+  </data>
+  <data name="SeasonRequired" xml:space="preserve">
+    <value>Select an existing Season or create a new Season.</value>
+  </data>
+  <data name="SeasonNameRequired" xml:space="preserve">
+    <value>Season Name is required.</value>
+  </data>
+  <data name="SeasonYearInvalid" xml:space="preserve">
+    <value>Enter a valid Season Year.</value>
+  </data>
+  <data name="GameCreationFailed" xml:space="preserve">
+    <value>The Game schedule could not be saved. Review the details and try again.</value>
+  </data>
+  <data name="DuplicateGameSchedule" xml:space="preserve">
+    <value>A Game is already scheduled for this Team, Season, date, and time. Change the date or time and try again.</value>
+  </data>
+  <data name="RequiredFieldIndicator" xml:space="preserve">
+    <value>*</value>
+  </data>
+  <data name="SeasonSelectionHint" xml:space="preserve">
+    <value>Tap the selected Season to choose another.</value>
+  </data>
   <data name="CurrentRosterHeading" xml:space="preserve">
     <value>Current Roster</value>
   </data>

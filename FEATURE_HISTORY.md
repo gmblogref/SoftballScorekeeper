@@ -10,9 +10,9 @@ Stable product and architecture decisions belong in the project architecture doc
 
 ## Current Project Status
 
-- **Latest completed story:** Story 4.1.1 — Replace Default Startup Splash Branding
-- **Completed stories:** Stories 0.0 through 3.1, Stories 3.5 through 4.1, and Story 4.1.1; Stories 3.2 through 3.4 retain their recorded validation status
-- **Current story:** Story 4.2 — Team Games Schedule (implementation complete; automated tests passed; Android tablet validation pending)
+- **Latest completed story:** Story 4.3 — Add Game
+- **Completed stories:** Stories 0.0 through 3.1 and Stories 3.5 through 4.3; Stories 3.2 through 3.4 retain their recorded validation status
+- **Current story:** None; Story 4.3 — Add Game is complete
 - **Current phase:** Team-scoped Game Management workspace foundation
 - **Foundation status:** Complete
 
@@ -1611,6 +1611,42 @@ Production UI currently has no Add Game or Create Season workflow, and the repos
 #### Intended Commit Message
 
 `Implement read-only Team Games schedule`
+
+### Story 4.3 — Add Game
+
+**Status:** Complete
+
+#### Implementation Summary
+
+- Added a resource-backed Add Game action only within Team Workspace Games, a focused Shell route carrying only `teamId`, and transient Add Game page/ViewModel registrations. The workflow reloads the active Team and its Team-scoped Seasons from repositories and returns through the existing navigation stack so Team Workspace preserves Games selection and Story 4.2 reloads schedule truth on `OnAppearing`.
+- Add Game validates the active Team context and loads only that Team's Seasons. The workflow supports selecting an existing Season or creating one in-form without a hardcoded Season-name list; zero-roster Teams remain fully supported.
+- Added a tablet-oriented Add Game form for existing Season selection or in-page new Season entry, scheduled date/time, optional opponent/field, and Save/Cancel. Existing Seasons display their persisted name with year for disambiguation. New Season names are trimmed and required; Season Year defaults from Game Date until intentionally edited and accepts a valid calendar year.
+- Defaulted Add Second Game on. The visible, editable second time defaults to one hour after the first time and continues following the first time until intentionally edited. Single saves request one Game; doubleheader saves request two independent same-date Game rows sharing Team, Season, opponent, and field without adding a pairing model.
+- Extended `SeasonRepository` with normalized, Team/year-scoped get-or-create behavior. Names compare trimmed and case-insensitively, so logical duplicates reuse the existing Season while the same name in another year or Team remains independent. Invalid, missing, or inactive Team contexts and invalid Season values create nothing.
+- Extended `GameRepository` with one focused transactional create operation. It validates the active Team and persisted same-Team Season inside the transaction, or resolves/creates a requested new Season in that same transaction, then inserts exactly one or two Games. Optional opponent/field values are trimmed and whitespace becomes null. Failed ownership, invalid batches, or insertion failure report incomplete results and leave no partial doubleheader or orphan new Season.
+- Game/Season creation remains independent of TeamPlayer, Player, roster, and lineup state. No Core model, schema, migration, Game lifecycle/status, edit/remove behavior, Game Workspace, Season Manager, lineup, scoring, statistics, Beer Rules, global Games navigation, dependency, or generic repository/service/transaction abstraction was introduced.
+- Removed the invalid `HorizontalTextAlignment` attribute from the Story 4.2 month-header Button after the required Windows build exposed it as `XC0009`; this minimal correction allows the existing schedule and Story 4.3 integration to compile without changing schedule behavior.
+- The Android correction pass added one consistent resource-backed red required indicator to genuinely required Add Game labels, placed all validation failures in a padded high-contrast warning container, and strengthened the existing-Season picker with a themed border and selection guidance. Opponent and Field remain visibly optional.
+- Seasons now list by year ascending and then creation ID ascending rather than alphabetically. Add Game defaults to the Season referenced by the Team's highest-ID persisted Game, falling back to the highest-ID Team Season when no Game has used a Season, and enters Create New Season when none exist. First and second Game times now default to 6:30 PM and 7:30 PM while preserving the existing manual second-time override behavior.
+- Game creation now rejects duplicates by persisted `TeamId + SeasonId + ScheduledDate.Date + ScheduledTime`, regardless of opponent or field. The repository also rejects duplicate date/time keys inside a requested doubleheader; persisted conflicts are checked inside the existing transaction so either conflict inserts neither Game and rolls back any proposed new Season. Add Game remains on-screen with a highlighted duplicate-specific resource message.
+- Global Teams/Players navigation remains available from detail and workspace pages: Team Workspace and Add Game can return absolutely to Team Manager where global navigation is present, and Player Workspace can return absolutely to Player Manager. The actual Team Manager or Player Manager treats a tap on its already-selected root destination as a no-op, avoiding duplicate Shell stack behavior. Selected controls are purple; available destinations use a themed bordered surface; grey/dim remains reserved for genuinely disabled or unavailable controls. Team Workspace Games/Roster follows the same convention where applicable. No global Games navigation was introduced.
+
+#### Automated Tests and Validation
+
+- Story 4.3 entered with 107 tests, added 15 tests in the initial implementation for a 122-test passing baseline, then added 7 correction tests for 22 new tests overall and a final total of 129. Coverage includes Season normalization and logical reuse, Team/year isolation, same-name/different-year behavior, year/creation-order listing, most-recently-used lookup, Game ownership, optional-field normalization, zero-roster creation, single and doubleheader persistence with distinct IDs and same-date ordering, exact duplicate rejection independent of opponent/field, requested duplicate times, conflicts in either doubleheader position, transactional rollback, and preservation of existing rows.
+- After the correction pass, focused Season/Game validation passed 43 of 43 tests. The complete suite passed 129 of 129 with zero failures and zero skips using `dotnet test SoftballScorekeeper.Tests\SoftballScorekeeper.Tests.csproj --no-restore --verbosity:minimal -nodeReuse:false`.
+- The Windows `net9.0-windows10.0.19041.0` target rebuild succeeded with zero errors and 67 warnings. Warning categories remain `CS8602`, `MVVMTK0045`, and `XC0025`; the additional warnings remain in existing categories. Windows runtime validation was not performed.
+- Manual Android validation and the correction retest passed on the 10-inch tablet in light and dark themes with no observed clipping, overlap, runtime, or binding issues. Validation covered the Add Game entry point and Team-scoped context/navigation; active-Team and Team-isolated Season behavior; existing and new Season flows; required, trimmed, year-defaulting, duplicate-reuse, ordering, and most-recent defaults; native date/time controls and 6:30/7:30 defaults; optional and blank opponent/field handling; second-Game default, editing, and override preservation; single and doubleheader creation; duplicate/conflict rejection in either doubleheader position; Cancel, rollback/no orphan Season, repeated-Save protection, zero-roster creation, schedule refresh, return to Games, restart persistence, corrected global navigation, and selected/available navigation presentation.
+- The same Android pass closed Story 4.2's deferred populated-schedule validation using application-created data. It confirmed immediate refresh, Team isolation, chronological rows, year/month grouping and ordering, multi-year presentation, default and independent/manual month expansion, all documented NEXT date cases including same-date doubleheaders and today, no NEXT for all-past schedules, date/time/opponent/field/Season and TBD presentation, separate same-date rows, empty-to-first-Game transition, Games selection after creation and on later populated visits, and zero-roster schedule visibility.
+- Final quality review recorded the complete automated suite passing, the Windows build succeeding, Android tablet validation and its correction retest passing, and Story 4.2's deferred populated-schedule validation passing. `git diff --check` passed. No generated build output, database/test database, secret, or machine-specific file was intentionally added, and no Core, schema, or package change was required.
+
+#### Limitations and Deferred Work
+
+Story 4.4 Remove Games, Story 4.5 Edit Game, safe Game lifecycle/removal rules, rainout/rescheduling, Season editing/removal unless later required, Game Workspace, Lineup Management, scoring, statistics, Beer Rules, and global Games navigation remain deferred. Story 4.3 introduced none of those behaviors and added no roster dependency.
+
+#### Intended Commit Message
+
+`Implement Add Game workflow`
 
 ## Maintenance Rules
 

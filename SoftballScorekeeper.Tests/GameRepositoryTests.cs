@@ -1,4 +1,5 @@
 using SoftballScorekeeper.Core.Models;
+using SoftballScorekeeper.Infrastructure.Data.Repositories;
 
 namespace SoftballScorekeeper.Tests;
 
@@ -219,6 +220,345 @@ public sealed class GameRepositoryTests
                 persisted.ScheduledDate, persisted.ScheduledTime, persisted.Opponent, persisted.Field));
     }
 
+    [Fact]
+    public async Task CreateForTeamAsync_OneGame_PersistsCompleteNormalizedValues()
+    {
+        await using var testDatabase = await TemporaryTestDatabase.CreateAsync();
+        var team = await CreateTeamAsync(testDatabase);
+        var season = await CreateSeasonAsync(testDatabase, team, "Summer", 2026);
+        var requested = new Game
+        {
+            ScheduledDate = new DateTime(2026, 8, 20, 13, 45, 0),
+            ScheduledTime = new TimeSpan(18, 30, 0),
+            Opponent = "  Beer Bellies  ",
+            Field = "  Field 2  ",
+        };
+
+        var result = await testDatabase.CreateGameRepository()
+            .CreateForTeamAsync(team.Id, season, [requested]);
+
+        Assert.True(result.IsCompleteSuccess);
+        Assert.Equal(season.Id, result.SeasonId);
+        Assert.Single(result.CreatedGameIds);
+        var persisted = Assert.Single(await testDatabase.GetGamesAsync());
+        Assert.Equal(
+            (team.Id, season.Id, new DateTime(2026, 8, 20), new TimeSpan(18, 30, 0),
+                "Beer Bellies", "Field 2"),
+            (persisted.TeamId, persisted.SeasonId, persisted.ScheduledDate,
+                persisted.ScheduledTime, persisted.Opponent, persisted.Field));
+    }
+
+    [Fact]
+    public async Task CreateForTeamAsync_BlankOptionalValues_PersistNull()
+    {
+        await using var testDatabase = await TemporaryTestDatabase.CreateAsync();
+        var team = await CreateTeamAsync(testDatabase);
+        var season = await CreateSeasonAsync(testDatabase, team, "Summer", 2026);
+        var game = new Game
+        {
+            ScheduledDate = new DateTime(2026, 8, 20),
+            ScheduledTime = new TimeSpan(18, 30, 0),
+            Opponent = "   ",
+            Field = string.Empty,
+        };
+
+        var result = await testDatabase.CreateGameRepository()
+            .CreateForTeamAsync(team.Id, season, [game]);
+
+        Assert.True(result.IsCompleteSuccess);
+        var persisted = Assert.Single(await testDatabase.GetGamesAsync());
+        Assert.Null(persisted.Opponent);
+        Assert.Null(persisted.Field);
+    }
+
+    [Fact]
+    public async Task CreateForTeamAsync_InvalidTeamOrSeasonOwnership_InsertsNothing()
+    {
+        await using var testDatabase = await TemporaryTestDatabase.CreateAsync();
+        var selectedTeam = await CreateTeamAsync(testDatabase, "Tigers");
+        var otherTeam = await CreateTeamAsync(testDatabase, "Royals");
+        var otherSeason = await CreateSeasonAsync(testDatabase, otherTeam, "Summer", 2026);
+        var missingSeason = new Season { Id = int.MaxValue, TeamId = selectedTeam.Id };
+        var game = ValidGame();
+        var repository = testDatabase.CreateGameRepository();
+
+        Assert.False((await repository.CreateForTeamAsync(0, otherSeason, [game])).IsCompleteSuccess);
+        Assert.False((await repository.CreateForTeamAsync(int.MaxValue, otherSeason, [game])).IsCompleteSuccess);
+        Assert.False((await repository.CreateForTeamAsync(selectedTeam.Id, otherSeason, [game])).IsCompleteSuccess);
+        Assert.False((await repository.CreateForTeamAsync(selectedTeam.Id, missingSeason, [game])).IsCompleteSuccess);
+        Assert.Empty(await testDatabase.GetGamesAsync());
+    }
+
+    [Fact]
+    public async Task CreateForTeamAsync_InactiveTeam_InsertsNothing()
+    {
+        await using var testDatabase = await TemporaryTestDatabase.CreateAsync();
+        var team = await CreateTeamAsync(testDatabase);
+        var season = await CreateSeasonAsync(testDatabase, team, "Summer", 2026);
+        Assert.Equal(1, await testDatabase.CreateTeamRepository().DeactivateAsync(team.Id));
+
+        var result = await testDatabase.CreateGameRepository()
+            .CreateForTeamAsync(team.Id, season, [ValidGame()]);
+
+        Assert.False(result.IsCompleteSuccess);
+        Assert.Empty(await testDatabase.GetGamesAsync());
+    }
+
+    [Fact]
+    public async Task CreateForTeamAsync_ZeroRosterTeam_CreatesDoubleheader()
+    {
+        await using var testDatabase = await TemporaryTestDatabase.CreateAsync();
+        var team = await CreateTeamAsync(testDatabase);
+        var season = await CreateSeasonAsync(testDatabase, team, "Summer", 2026);
+        var first = ValidGame(new TimeSpan(18, 30, 0));
+        var second = ValidGame(new TimeSpan(19, 30, 0));
+
+        var result = await testDatabase.CreateGameRepository()
+            .CreateForTeamAsync(team.Id, season, [first, second]);
+
+        Assert.True(result.IsCompleteSuccess);
+        Assert.Equal(2, result.CreatedGameIds.Count);
+        Assert.Equal(2, result.CreatedGameIds.Distinct().Count());
+        var games = await testDatabase.CreateGameRepository().GetForTeamAsync(team.Id);
+        Assert.Equal([first.ScheduledTime, second.ScheduledTime], games.Select(game => game.ScheduledTime));
+        Assert.All(games, game => Assert.Equal(team.Id, game.TeamId));
+        Assert.All(games, game => Assert.Equal(season.Id, game.SeasonId));
+        Assert.All(games, game => Assert.Equal(first.ScheduledDate, game.ScheduledDate));
+        Assert.Empty(await testDatabase.GetTeamPlayersAsync());
+    }
+
+    [Fact]
+    public async Task CreateForTeamAsync_InvalidSecondGame_CreatesNoGameOrNewSeason()
+    {
+        await using var testDatabase = await TemporaryTestDatabase.CreateAsync();
+        var team = await CreateTeamAsync(testDatabase);
+        var newSeason = new Season { TeamId = team.Id, Name = "Summer", Year = 2026 };
+        var invalidSecondGame = ValidGame(TimeSpan.FromDays(1));
+
+        var result = await testDatabase.CreateGameRepository()
+            .CreateForTeamAsync(team.Id, newSeason, [ValidGame(), invalidSecondGame]);
+
+        Assert.False(result.IsCompleteSuccess);
+        Assert.Empty(await testDatabase.GetGamesAsync());
+        Assert.Empty(await testDatabase.GetSeasonsAsync());
+    }
+
+    [Fact]
+    public async Task CreateForTeamAsync_NewDuplicateSeason_ReusesSeasonAndCreatesGamesAtomically()
+    {
+        await using var testDatabase = await TemporaryTestDatabase.CreateAsync();
+        var team = await CreateTeamAsync(testDatabase);
+        var existingSeason = await CreateSeasonAsync(testDatabase, team, "Summer 2", 2026);
+        var requestedSeason = new Season
+        {
+            TeamId = team.Id,
+            Name = "  summer 2  ",
+            Year = 2026,
+        };
+
+        var result = await testDatabase.CreateGameRepository()
+            .CreateForTeamAsync(team.Id, requestedSeason, [ValidGame()]);
+
+        Assert.True(result.IsCompleteSuccess);
+        Assert.Equal(existingSeason.Id, result.SeasonId);
+        Assert.Single(await testDatabase.GetSeasonsAsync());
+        Assert.Single(await testDatabase.GetGamesAsync());
+    }
+
+    [Fact]
+    public async Task CreateForTeamAsync_NewSeason_CreatesSeasonAndDoubleheaderInOneOperation()
+    {
+        await using var testDatabase = await TemporaryTestDatabase.CreateAsync();
+        var team = await CreateTeamAsync(testDatabase);
+        var requestedSeason = new Season
+        {
+            TeamId = team.Id,
+            Name = "  Fall Tournament  ",
+            Year = 2026,
+        };
+
+        var result = await testDatabase.CreateGameRepository().CreateForTeamAsync(
+            team.Id,
+            requestedSeason,
+            [ValidGame(new TimeSpan(18, 30, 0)), ValidGame(new TimeSpan(19, 30, 0))]);
+
+        Assert.True(result.IsCompleteSuccess);
+        var season = Assert.Single(await testDatabase.GetSeasonsAsync());
+        Assert.Equal((team.Id, "Fall Tournament", 2026),
+            (season.TeamId, season.Name, season.Year));
+        Assert.Equal(season.Id, result.SeasonId);
+        var games = await testDatabase.GetGamesAsync();
+        Assert.Equal(2, games.Count);
+        Assert.All(games, game => Assert.Equal(season.Id, game.SeasonId));
+    }
+
+    [Fact]
+    public async Task CreateForTeamAsync_PreservesExistingGames()
+    {
+        await using var testDatabase = await TemporaryTestDatabase.CreateAsync();
+        var team = await CreateTeamAsync(testDatabase);
+        var season = await CreateSeasonAsync(testDatabase, team, "Summer", 2026);
+        var existing = await CreateGameAsync(
+            testDatabase, team, season, new DateTime(2026, 8, 1), new TimeSpan(17, 0, 0));
+
+        var result = await testDatabase.CreateGameRepository()
+            .CreateForTeamAsync(team.Id, season, [ValidGame()]);
+
+        Assert.True(result.IsCompleteSuccess);
+        var persisted = await testDatabase.CreateGameRepository().GetForTeamAsync(team.Id);
+        Assert.Equal(2, persisted.Count);
+        Assert.Contains(persisted, game => game.Id == existing.Id);
+    }
+
+    [Fact]
+    public async Task GetMostRecentlyUsedSeasonIdAsync_ReturnsLatestInsertedGameSeasonForTeam()
+    {
+        await using var testDatabase = await TemporaryTestDatabase.CreateAsync();
+        var selectedTeam = await CreateTeamAsync(testDatabase, "Tigers");
+        var otherTeam = await CreateTeamAsync(testDatabase, "Royals");
+        var summer = await CreateSeasonAsync(testDatabase, selectedTeam, "Summer", 2026);
+        var fall = await CreateSeasonAsync(testDatabase, selectedTeam, "Fall", 2026);
+        var otherSeason = await CreateSeasonAsync(testDatabase, otherTeam, "Fall", 2026);
+        await CreateGameAsync(
+            testDatabase, selectedTeam, summer, new DateTime(2026, 8, 1), new TimeSpan(18, 30, 0));
+        await CreateGameAsync(
+            testDatabase, otherTeam, otherSeason, new DateTime(2026, 8, 2), new TimeSpan(18, 30, 0));
+        await CreateGameAsync(
+            testDatabase, selectedTeam, fall, new DateTime(2026, 9, 1), new TimeSpan(18, 30, 0));
+        var repository = testDatabase.CreateGameRepository();
+
+        Assert.Equal(fall.Id, await repository.GetMostRecentlyUsedSeasonIdAsync(selectedTeam.Id));
+        Assert.Equal(otherSeason.Id, await repository.GetMostRecentlyUsedSeasonIdAsync(otherTeam.Id));
+        Assert.Null(await repository.GetMostRecentlyUsedSeasonIdAsync(0));
+        Assert.Null(await repository.GetMostRecentlyUsedSeasonIdAsync(int.MaxValue));
+    }
+
+    [Fact]
+    public async Task CreateForTeamAsync_ExistingDuplicateKeyWithDifferentDetails_IsRejectedUnchanged()
+    {
+        await using var testDatabase = await TemporaryTestDatabase.CreateAsync();
+        var team = await CreateTeamAsync(testDatabase);
+        var season = await CreateSeasonAsync(testDatabase, team, "Summer", 2026);
+        var existing = await CreateGameAsync(
+            testDatabase,
+            team,
+            season,
+            new DateTime(2026, 8, 20),
+            new TimeSpan(18, 30, 0),
+            "Original Opponent",
+            "Original Field");
+        var requested = ValidGame();
+        requested.Opponent = "Different Opponent";
+        requested.Field = "Different Field";
+
+        var result = await testDatabase.CreateGameRepository()
+            .CreateForTeamAsync(team.Id, season, [requested]);
+
+        Assert.False(result.IsCompleteSuccess);
+        Assert.Equal(CreateGamesFailure.DuplicateSchedule, result.FailureReason);
+        var persisted = Assert.Single(await testDatabase.GetGamesAsync());
+        Assert.Equal(
+            (existing.Id, "Original Opponent", "Original Field"),
+            (persisted.Id, persisted.Opponent, persisted.Field));
+    }
+
+    [Fact]
+    public async Task CreateForTeamAsync_DifferentDateTimeSeasonOrTeam_AreAllowed()
+    {
+        await using var testDatabase = await TemporaryTestDatabase.CreateAsync();
+        var firstTeam = await CreateTeamAsync(testDatabase, "Tigers");
+        var secondTeam = await CreateTeamAsync(testDatabase, "Royals");
+        var firstSeason = await CreateSeasonAsync(testDatabase, firstTeam, "Summer", 2026);
+        var secondSeason = await CreateSeasonAsync(testDatabase, firstTeam, "Fall", 2026);
+        var otherTeamSeason = await CreateSeasonAsync(testDatabase, secondTeam, "Summer", 2026);
+        await CreateGameAsync(
+            testDatabase, firstTeam, firstSeason,
+            new DateTime(2026, 8, 20), new TimeSpan(18, 30, 0));
+        var repository = testDatabase.CreateGameRepository();
+
+        Assert.True((await repository.CreateForTeamAsync(
+            firstTeam.Id, firstSeason, [ValidGame(new TimeSpan(19, 30, 0))])).IsCompleteSuccess);
+        var differentDate = ValidGame();
+        differentDate.ScheduledDate = new DateTime(2026, 8, 21);
+        Assert.True((await repository.CreateForTeamAsync(
+            firstTeam.Id, firstSeason, [differentDate])).IsCompleteSuccess);
+        Assert.True((await repository.CreateForTeamAsync(
+            firstTeam.Id, secondSeason, [ValidGame()])).IsCompleteSuccess);
+        Assert.True((await repository.CreateForTeamAsync(
+            secondTeam.Id, otherTeamSeason, [ValidGame()])).IsCompleteSuccess);
+        Assert.Equal(5, (await testDatabase.GetGamesAsync()).Count);
+    }
+
+    [Fact]
+    public async Task CreateForTeamAsync_DuplicateRequestedDoubleheader_CreatesNothing()
+    {
+        await using var testDatabase = await TemporaryTestDatabase.CreateAsync();
+        var team = await CreateTeamAsync(testDatabase);
+        var newSeason = new Season { TeamId = team.Id, Name = "Summer", Year = 2026 };
+
+        var result = await testDatabase.CreateGameRepository().CreateForTeamAsync(
+            team.Id,
+            newSeason,
+            [ValidGame(), ValidGame()]);
+
+        Assert.False(result.IsCompleteSuccess);
+        Assert.Equal(CreateGamesFailure.DuplicateSchedule, result.FailureReason);
+        Assert.Empty(await testDatabase.GetGamesAsync());
+        Assert.Empty(await testDatabase.GetSeasonsAsync());
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public async Task CreateForTeamAsync_DoubleheaderConflictWithExistingGame_InsertsNeither(
+        bool firstRequestedGameConflicts)
+    {
+        await using var testDatabase = await TemporaryTestDatabase.CreateAsync();
+        var team = await CreateTeamAsync(testDatabase);
+        var season = await CreateSeasonAsync(testDatabase, team, "Summer", 2026);
+        var existing = await CreateGameAsync(
+            testDatabase, team, season,
+            new DateTime(2026, 8, 20), new TimeSpan(18, 30, 0), "Existing", "Field 1");
+        var nonconflicting = ValidGame(
+            firstRequestedGameConflicts ? new TimeSpan(19, 30, 0) : new TimeSpan(17, 30, 0));
+        var requestedGames = firstRequestedGameConflicts
+            ? new[] { ValidGame(), nonconflicting }
+            : new[] { nonconflicting, ValidGame() };
+
+        var result = await testDatabase.CreateGameRepository()
+            .CreateForTeamAsync(team.Id, season, requestedGames);
+
+        Assert.False(result.IsCompleteSuccess);
+        Assert.Equal(CreateGamesFailure.DuplicateSchedule, result.FailureReason);
+        var persisted = Assert.Single(await testDatabase.GetGamesAsync());
+        Assert.Equal(existing.Id, persisted.Id);
+    }
+
+    [Fact]
+    public async Task CreateForTeamAsync_DuplicateThroughProposedLogicalSeason_RollsBackWithoutNewRows()
+    {
+        await using var testDatabase = await TemporaryTestDatabase.CreateAsync();
+        var team = await CreateTeamAsync(testDatabase);
+        var existingSeason = await CreateSeasonAsync(testDatabase, team, "Summer 2", 2026);
+        var existingGame = await CreateGameAsync(
+            testDatabase, team, existingSeason,
+            new DateTime(2026, 8, 20), new TimeSpan(18, 30, 0));
+        var proposedSeason = new Season
+        {
+            TeamId = team.Id,
+            Name = "  summer 2  ",
+            Year = 2026,
+        };
+
+        var result = await testDatabase.CreateGameRepository()
+            .CreateForTeamAsync(team.Id, proposedSeason, [ValidGame()]);
+
+        Assert.False(result.IsCompleteSuccess);
+        Assert.Equal(CreateGamesFailure.DuplicateSchedule, result.FailureReason);
+        Assert.Equal(existingSeason.Id, Assert.Single(await testDatabase.GetSeasonsAsync()).Id);
+        Assert.Equal(existingGame.Id, Assert.Single(await testDatabase.GetGamesAsync()).Id);
+    }
+
     private static async Task<Team> CreateTeamAsync(
         TemporaryTestDatabase testDatabase,
         string name = "Tigers")
@@ -266,5 +606,16 @@ public sealed class GameRepositoryTests
 
         Assert.Equal(1, await testDatabase.SeedGameAsync(game));
         return game;
+    }
+
+    private static Game ValidGame(TimeSpan? scheduledTime = null)
+    {
+        return new Game
+        {
+            ScheduledDate = new DateTime(2026, 8, 20),
+            ScheduledTime = scheduledTime ?? new TimeSpan(18, 30, 0),
+            Opponent = "Beer Bellies",
+            Field = "Field 2",
+        };
     }
 }

@@ -14,7 +14,7 @@
         RowDefinitions="Auto,Auto,Auto,*,Auto"
         RowSpacing="24">
 
-        <controls:PrimarySectionNavigation Grid.Row="0" CurrentSection="Teams" />
+        <controls:PrimarySectionNavigation Grid.Row="0" CurrentSection="Teams" IsCurrentSectionRoot="True" />
 
         <Label
             Grid.Row="1"

@@ -68,7 +68,7 @@ public sealed class SeasonRepositoryTests
     }
 
     [Fact]
-    public async Task GetForTeamAsync_OrdersByYearThenDefaultNameThenId()
+    public async Task GetForTeamAsync_OrdersByYearThenCreationIdWithoutAlphabetizingName()
     {
         await using var testDatabase = await TemporaryTestDatabase.CreateAsync();
         var team = await CreateTeamAsync(testDatabase);
@@ -80,7 +80,7 @@ public sealed class SeasonRepositoryTests
         var seasons = await testDatabase.CreateSeasonRepository().GetForTeamAsync(team.Id);
 
         Assert.Equal(
-            [firstAlpha.Id, secondAlpha.Id, zulu.Id, laterYear.Id],
+            [zulu.Id, firstAlpha.Id, secondAlpha.Id, laterYear.Id],
             seasons.Select(season => season.Id));
     }
 
@@ -182,6 +182,99 @@ public sealed class SeasonRepositoryTests
         Assert.Equal(
             (season.Id, team.Id, "Rainout Makeup", 2025),
             (persisted.Id, persisted.TeamId, persisted.Name, persisted.Year));
+    }
+
+    [Fact]
+    public async Task GetOrCreateForTeamAsync_ValidSeason_TrimsAndPersistsValues()
+    {
+        await using var testDatabase = await TemporaryTestDatabase.CreateAsync();
+        var team = await CreateTeamAsync(testDatabase);
+
+        var season = await testDatabase.CreateSeasonRepository()
+            .GetOrCreateForTeamAsync(team.Id, "  Summer 2  ", 2026);
+
+        Assert.NotNull(season);
+        Assert.True(season.Id > 0);
+        Assert.Equal((team.Id, "Summer 2", 2026), (season.TeamId, season.Name, season.Year));
+        var persisted = Assert.Single(await testDatabase.GetSeasonsAsync());
+        Assert.Equal((season.Id, team.Id, "Summer 2", 2026),
+            (persisted.Id, persisted.TeamId, persisted.Name, persisted.Year));
+    }
+
+    [Fact]
+    public async Task GetOrCreateForTeamAsync_NormalizedDuplicate_ReusesExistingSeason()
+    {
+        await using var testDatabase = await TemporaryTestDatabase.CreateAsync();
+        var team = await CreateTeamAsync(testDatabase);
+        var existing = await CreateSeasonAsync(testDatabase, team, "Summer 2", 2026);
+        var repository = testDatabase.CreateSeasonRepository();
+
+        var resolved = await repository.GetOrCreateForTeamAsync(team.Id, "  summer 2  ", 2026);
+
+        Assert.NotNull(resolved);
+        Assert.Equal(existing.Id, resolved.Id);
+        Assert.Single(await testDatabase.GetSeasonsAsync());
+    }
+
+    [Fact]
+    public async Task GetOrCreateForTeamAsync_SameNameDifferentYear_CreatesIndependentSeason()
+    {
+        await using var testDatabase = await TemporaryTestDatabase.CreateAsync();
+        var team = await CreateTeamAsync(testDatabase);
+        var existing = await CreateSeasonAsync(testDatabase, team, "Summer", 2026);
+
+        var created = await testDatabase.CreateSeasonRepository()
+            .GetOrCreateForTeamAsync(team.Id, "Summer", 2027);
+
+        Assert.NotNull(created);
+        Assert.NotEqual(existing.Id, created.Id);
+        Assert.Equal(2, (await testDatabase.GetSeasonsAsync()).Count);
+    }
+
+    [Fact]
+    public async Task GetOrCreateForTeamAsync_SameNameDifferentTeam_CreatesIndependentSeason()
+    {
+        await using var testDatabase = await TemporaryTestDatabase.CreateAsync();
+        var firstTeam = await CreateTeamAsync(testDatabase, "Tigers");
+        var secondTeam = await CreateTeamAsync(testDatabase, "Royals");
+        var first = await CreateSeasonAsync(testDatabase, firstTeam, "Summer", 2026);
+
+        var second = await testDatabase.CreateSeasonRepository()
+            .GetOrCreateForTeamAsync(secondTeam.Id, "Summer", 2026);
+
+        Assert.NotNull(second);
+        Assert.NotEqual(first.Id, second.Id);
+        Assert.Equal(secondTeam.Id, second.TeamId);
+        Assert.Equal(2, (await testDatabase.GetSeasonsAsync()).Count);
+    }
+
+    [Fact]
+    public async Task GetOrCreateForTeamAsync_InvalidValues_CreateNothing()
+    {
+        await using var testDatabase = await TemporaryTestDatabase.CreateAsync();
+        var team = await CreateTeamAsync(testDatabase);
+        var repository = testDatabase.CreateSeasonRepository();
+
+        Assert.Null(await repository.GetOrCreateForTeamAsync(0, "Summer", 2026));
+        Assert.Null(await repository.GetOrCreateForTeamAsync(team.Id, null, 2026));
+        Assert.Null(await repository.GetOrCreateForTeamAsync(team.Id, string.Empty, 2026));
+        Assert.Null(await repository.GetOrCreateForTeamAsync(team.Id, "   ", 2026));
+        Assert.Null(await repository.GetOrCreateForTeamAsync(team.Id, "Summer", 0));
+        Assert.Null(await repository.GetOrCreateForTeamAsync(team.Id, "Summer", 10000));
+        Assert.Empty(await testDatabase.GetSeasonsAsync());
+    }
+
+    [Fact]
+    public async Task GetOrCreateForTeamAsync_MissingOrInactiveTeam_CreateNothing()
+    {
+        await using var testDatabase = await TemporaryTestDatabase.CreateAsync();
+        var team = await CreateTeamAsync(testDatabase);
+        Assert.Equal(1, await testDatabase.CreateTeamRepository().DeactivateAsync(team.Id));
+        var repository = testDatabase.CreateSeasonRepository();
+
+        Assert.Null(await repository.GetOrCreateForTeamAsync(int.MaxValue, "Summer", 2026));
+        Assert.Null(await repository.GetOrCreateForTeamAsync(team.Id, "Summer", 2026));
+        Assert.Empty(await testDatabase.GetSeasonsAsync());
     }
 
     private static async Task<Team> CreateTeamAsync(
