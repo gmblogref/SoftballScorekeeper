@@ -117,25 +117,102 @@
         </Label>
 
         <Grid Grid.Row="4" IsVisible="{Binding IsTeamLoaded}">
-            <VerticalStackLayout
-                Spacing="16"
-                HorizontalOptions="Fill"
-                VerticalOptions="Center"
+            <Grid
+                RowDefinitions="Auto,*"
+                RowSpacing="12"
                 IsVisible="{Binding IsGamesSectionSelected}">
                 <Label
                     Text="{x:Static strings:AppResources.GamesSectionLabel}"
                     Style="{StaticResource SubHeadline}"
                     HorizontalTextAlignment="Center"
                     SemanticProperties.HeadingLevel="Level2" />
-                <Label
-                    Text="{x:Static strings:AppResources.NoGamesMessage}"
-                    HorizontalTextAlignment="Center"
-                    IsVisible="{Binding HasNoGames}" />
-                <Label
-                    Text="{x:Static strings:AppResources.GamesAvailableMessage}"
-                    HorizontalTextAlignment="Center"
-                    IsVisible="{Binding HasGames}" />
-            </VerticalStackLayout>
+                <Grid Grid.Row="1">
+                    <Label
+                        Text="{x:Static strings:AppResources.NoGamesMessage}"
+                        HorizontalTextAlignment="Center"
+                        VerticalOptions="Center"
+                        IsVisible="{Binding HasNoGames}" />
+                    <CollectionView
+                        ItemsSource="{Binding ScheduleMonthGroups}"
+                        IsVisible="{Binding HasGames}"
+                        SelectionMode="None">
+                        <CollectionView.ItemTemplate>
+                            <DataTemplate x:DataType="viewModels:GameScheduleMonthGroup">
+                                <VerticalStackLayout Spacing="0">
+                                    <Button
+                                        Margin="0,4"
+                                        Padding="20,8"
+                                        MinimumHeightRequest="48"
+                                        HorizontalOptions="Fill"
+                                        HorizontalTextAlignment="Start"
+                                        Text="{Binding HeaderDisplay}"
+                                        Command="{Binding ToggleExpansionCommand}"
+                                        FontAttributes="Bold"
+                                        FontSize="18"
+                                        BackgroundColor="{AppThemeBinding Light={StaticResource Gray200}, Dark={StaticResource Gray600}}"
+                                        TextColor="{AppThemeBinding Light={StaticResource Gray900}, Dark={StaticResource White}}" />
+                                    <VerticalStackLayout
+                                        IsVisible="{Binding IsExpanded}"
+                                        BindableLayout.ItemsSource="{Binding Games}">
+                                        <BindableLayout.ItemTemplate>
+                                            <DataTemplate x:DataType="viewModels:GameScheduleItem">
+                                                <Grid
+                                                    Padding="12,8"
+                                                    MinimumHeightRequest="56"
+                                                    RowDefinitions="Auto,1"
+                                                    ColumnDefinitions="76,100,2*,110,*,*"
+                                                    ColumnSpacing="12">
+                                                    <Label
+                                                        Text="{Binding NextDisplay}"
+                                                        FontAttributes="Bold"
+                                                        FontSize="15"
+                                                        VerticalTextAlignment="Center" />
+                                                    <Label
+                                                        Grid.Column="1"
+                                                        Text="{Binding DateDisplay}"
+                                                        FontSize="17"
+                                                        VerticalTextAlignment="Center"
+                                                        LineBreakMode="NoWrap" />
+                                                    <Label
+                                                        Grid.Column="2"
+                                                        Text="{Binding OpponentDisplay}"
+                                                        FontSize="17"
+                                                        VerticalTextAlignment="Center"
+                                                        LineBreakMode="TailTruncation" />
+                                                    <Label
+                                                        Grid.Column="3"
+                                                        Text="{Binding TimeDisplay}"
+                                                        FontSize="17"
+                                                        VerticalTextAlignment="Center"
+                                                        LineBreakMode="NoWrap" />
+                                                    <Label
+                                                        Grid.Column="4"
+                                                        Text="{Binding FieldDisplay}"
+                                                        FontSize="15"
+                                                        VerticalTextAlignment="Center"
+                                                        LineBreakMode="TailTruncation" />
+                                                    <Label
+                                                        Grid.Column="5"
+                                                        Text="{Binding SeasonDisplay}"
+                                                        FontSize="15"
+                                                        VerticalTextAlignment="Center"
+                                                        LineBreakMode="TailTruncation" />
+                                                    <BoxView
+                                                        Grid.Row="1"
+                                                        Grid.ColumnSpan="6"
+                                                        Margin="0,7,0,0"
+                                                        HeightRequest="1"
+                                                        Color="{AppThemeBinding Light={StaticResource Gray200}, Dark={StaticResource Gray500}}" />
+                                                </Grid>
+                                            </DataTemplate>
+                                        </BindableLayout.ItemTemplate>
+                                    </VerticalStackLayout>
+                                </VerticalStackLayout>
+                            </DataTemplate>
+                        </CollectionView.ItemTemplate>
+                    </CollectionView>
+                </Grid>
+            </Grid>
 
             <Grid RowDefinitions="Auto,*" IsVisible="{Binding IsRosterSectionSelected}">
                 <VerticalStackLayout Grid.Row="0" Spacing="8">

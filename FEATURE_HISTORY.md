@@ -12,7 +12,7 @@ Stable product and architecture decisions belong in the project architecture doc
 
 - **Latest completed story:** Story 4.1.1 — Replace Default Startup Splash Branding
 - **Completed stories:** Stories 0.0 through 3.1, Stories 3.5 through 4.1, and Story 4.1.1; Stories 3.2 through 3.4 retain their recorded validation status
-- **Current story:** Story 4.1.1 — Replace Default Startup Splash Branding (complete; automated tests, Windows build, and Android tablet startup validation passed)
+- **Current story:** Story 4.2 — Team Games Schedule (implementation complete; automated tests passed; Android tablet validation pending)
 - **Current phase:** Team-scoped Game Management workspace foundation
 - **Foundation status:** Complete
 
@@ -1582,6 +1582,35 @@ Windows runtime splash appearance was not validated. No broader branding, theme,
 #### Intended Commit Message
 
 `Replace default startup splash branding`
+
+### Story 4.2 — Team Games Schedule
+
+**Status:** Implementation complete; automated tests passed; Android 10-inch tablet validation pending
+
+#### Implementation Summary
+
+- Replaced the Story 4.1 temporary Games-present placeholder with the selected Team's persisted, read-only Game schedule inside the existing Team Workspace Games section. The ViewModel now loads Team-scoped Games through `GameRepository.GetForTeamAsync` and Team-scoped Seasons through `SeasonRepository.GetForTeamAsync`; roster membership remains unrelated to schedule availability.
+- Added focused MAUI presentation models for schedule rows and expandable calendar-month groups without changing persisted `Game` or `Season` models. Groups use year/month identity, remain chronological, retain repository date/time/ID row ordering, and keep same-date Games as separate rows.
+- Month headers use culture-aware uppercase abbreviated month names when the complete schedule is within one calendar year and add the year when the schedule spans multiple years. Each header has a 48-DIP touch target and a visible resource-backed right/down indicator; groups expand independently and multiple groups may remain open.
+- When schedule state is first established for a Team, exactly one month expands: the month containing the earliest date on or after the local `DateTime.Today`, or the most recent Game month when every Game is in the past. Ordinary refreshes rebuild from repository truth while preserving expansion choices by year/month when possible, and changing Team context resets schedule state.
+- NEXT uses date-only local-device semantics. Every Game on the earliest distinct scheduled date on or after today receives the resource-backed NEXT marker, including all same-day doubleheader or tournament rows; later dates and all-past schedules receive no marker. A Game today remains NEXT regardless of its scheduled clock time.
+- Compact schedule rows show culture-aware date and time, persisted opponent, field, and Team-scoped Season name. Null, empty, or whitespace opponent and field values display resource-backed TBD without changing persisted data; an unexpectedly missing or blank Team-scoped Season also displays TBD rather than crashing or inventing a Season name.
+- Preserved the existing Games empty state, initial Games-versus-Roster selection, explicit section selection across refreshes, removal-mode cleanup when switching to Games, roster workflows, Team editing and deactivation, global navigation, and repository-backed `OnAppearing` refresh. Removed the unused `GamesAvailableMessage` resource and binding.
+- No Game CRUD, Season UI, lifecycle/status, scoring, lineup, Game Workspace, global Games navigation, Core, Infrastructure, database/schema, direct SQLite, dependency, or navigation-route change was introduced.
+
+#### Automated Tests and Validation
+
+- The complete repository suite passed 107 of 107 tests with zero failures and zero skips using `dotnet test SoftballScorekeeper.Tests\SoftballScorekeeper.Tests.csproj --no-restore --verbosity:minimal -nodeReuse:false`. No new tests were added because the new behavior is MAUI presentation logic and existing repository behavior did not change.
+- The Android command-line build was attempted but could not run because the environment cannot locate the Android SDK and reports `XA5300`. No Windows build or runtime validation was performed, consistent with this story's Android-only validation scope.
+- Android runtime validation has not yet been performed. Schedule rendering, Team isolation, month ordering and expansion, multi-year headers, NEXT scenarios, formatting and TBD display, empty/zero-roster schedules, roster regressions, navigation, light/dark themes, layout, bindings, duplicates, and runtime stability remain pending on the 10-inch Android tablet.
+
+#### Limitations and Deferred Work
+
+Production UI currently has no Add Game or Create Season workflow, and the repository contains no production seed utility. Populated-schedule Android scenarios therefore require safe external setup of Season and Game rows in the device-local database. Game and Season creation/editing/removal, lifecycle/status, Game Workspace, lineups, scoring, statistics, Beer Rules, and global Games navigation remain deferred.
+
+#### Intended Commit Message
+
+`Implement read-only Team Games schedule`
 
 ## Maintenance Rules
 
