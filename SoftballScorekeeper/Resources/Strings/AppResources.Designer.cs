@@ -434,9 +434,27 @@ namespace SoftballScorekeeper.Resources.Strings {
             }
         }
 
-        public static string GamesAvailableMessage {
+        public static string NextGameLabel {
             get {
-                return ResourceManager.GetString("GamesAvailableMessage", resourceCulture);
+                return ResourceManager.GetString("NextGameLabel", resourceCulture);
+            }
+        }
+
+        public static string ScheduleTbdText {
+            get {
+                return ResourceManager.GetString("ScheduleTbdText", resourceCulture);
+            }
+        }
+
+        public static string ExpandedScheduleMonthHeaderFormat {
+            get {
+                return ResourceManager.GetString("ExpandedScheduleMonthHeaderFormat", resourceCulture);
+            }
+        }
+
+        public static string CollapsedScheduleMonthHeaderFormat {
+            get {
+                return ResourceManager.GetString("CollapsedScheduleMonthHeaderFormat", resourceCulture);
             }
         }
 

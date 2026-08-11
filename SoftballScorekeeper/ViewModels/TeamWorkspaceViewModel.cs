@@ -13,8 +13,10 @@ public partial class TeamWorkspaceViewModel : ObservableObject, IQueryAttributab
     private readonly TeamRepository teamRepository;
     private readonly TeamPlayerRepository teamPlayerRepository;
     private readonly GameRepository gameRepository;
+    private readonly SeasonRepository seasonRepository;
     private bool hasGames;
     private bool hasInitialSectionSelection;
+    private bool hasInitialScheduleState;
     private bool hasValidTeamId;
     private bool isConfirmationPending;
     private IReadOnlyList<int> pendingPlayerIds = Array.Empty<int>();
@@ -79,18 +81,23 @@ public partial class TeamWorkspaceViewModel : ObservableObject, IQueryAttributab
     public TeamWorkspaceViewModel(
         TeamRepository teamRepository,
         TeamPlayerRepository teamPlayerRepository,
-        GameRepository gameRepository)
+        GameRepository gameRepository,
+        SeasonRepository seasonRepository)
     {
         ArgumentNullException.ThrowIfNull(teamRepository);
         ArgumentNullException.ThrowIfNull(teamPlayerRepository);
         ArgumentNullException.ThrowIfNull(gameRepository);
+        ArgumentNullException.ThrowIfNull(seasonRepository);
 
         this.teamRepository = teamRepository;
         this.teamPlayerRepository = teamPlayerRepository;
         this.gameRepository = gameRepository;
+        this.seasonRepository = seasonRepository;
     }
 
     public ObservableCollection<PlayerSelectionItem> RosterPlayers { get; } = new();
+
+    public ObservableCollection<GameScheduleMonthGroup> ScheduleMonthGroups { get; } = new();
 
     public Func<string, Task>? DeactivateTeamConfirmationRequested { get; set; }
 
@@ -195,7 +202,8 @@ public partial class TeamWorkspaceViewModel : ObservableObject, IQueryAttributab
             }
 
             var players = await teamPlayerRepository.GetActivePlayersForTeamAsync(TeamId);
-            var teamHasGames = await gameRepository.HasGamesForTeamAsync(TeamId);
+            var games = await gameRepository.GetForTeamAsync(TeamId);
+            var seasons = await seasonRepository.GetForTeamAsync(TeamId);
 
             loadedTeam = team;
             TeamName = team.Name;
@@ -208,7 +216,7 @@ public partial class TeamWorkspaceViewModel : ObservableObject, IQueryAttributab
 
             HasPlayers = RosterPlayers.Count > 0;
             HasNoPlayers = !HasPlayers;
-            HasGames = teamHasGames;
+            RebuildSchedule(games, seasons);
             if (!hasInitialSectionSelection)
             {
                 SelectedSection = HasGames
@@ -561,6 +569,8 @@ public partial class TeamWorkspaceViewModel : ObservableObject, IQueryAttributab
         HasNoPlayers = false;
         HasGames = false;
         hasInitialSectionSelection = false;
+        hasInitialScheduleState = false;
+        ScheduleMonthGroups.Clear();
         ValidationMessage = string.Empty;
         StatusMessage = string.Empty;
         IsEditingTeamName = false;
@@ -610,6 +620,99 @@ public partial class TeamWorkspaceViewModel : ObservableObject, IQueryAttributab
     {
         ClearRosterSelection();
         IsRemovingPlayers = false;
+    }
+
+    private void RebuildSchedule(IReadOnlyList<Game> games, IReadOnlyList<Season> seasons)
+    {
+        var previousExpansion = hasInitialScheduleState
+            ? ScheduleMonthGroups.ToDictionary(
+                group => (group.Year, group.Month),
+                group => group.IsExpanded)
+            : null;
+        var orderedGames = games
+            .OrderBy(game => game.ScheduledDate)
+            .ThenBy(game => game.ScheduledTime)
+            .ThenBy(game => game.Id)
+            .ToArray();
+        var seasonNames = seasons
+            .GroupBy(season => season.Id)
+            .ToDictionary(group => group.Key, group => group.First().Name);
+        var today = DateTime.Today;
+        var nextPlayingDate = orderedGames
+            .Select(game => game.ScheduledDate.Date)
+            .Where(date => date >= today)
+            .Cast<DateTime?>()
+            .FirstOrDefault();
+        var initialExpandedMonth = nextPlayingDate
+            ?? orderedGames.Select(game => (DateTime?)game.ScheduledDate.Date).LastOrDefault();
+        var spansMultipleYears = orderedGames
+            .Select(game => game.ScheduledDate.Year)
+            .Distinct()
+            .Skip(1)
+            .Any();
+
+        ScheduleMonthGroups.Clear();
+        foreach (var monthGames in orderedGames.GroupBy(
+                     game => (game.ScheduledDate.Year, game.ScheduledDate.Month)))
+        {
+            var key = monthGames.Key;
+            var headerFormat = spansMultipleYears ? "MMM yyyy" : "MMM";
+            var header = new DateTime(key.Year, key.Month, 1)
+                .ToString(headerFormat, CultureInfo.CurrentCulture)
+                .ToUpper(CultureInfo.CurrentCulture);
+            var scheduleItems = monthGames
+                .Select(game => CreateScheduleItem(game, seasonNames, nextPlayingDate))
+                .ToArray();
+            var isExpanded = previousExpansion is not null
+                ? previousExpansion.GetValueOrDefault(key)
+                : initialExpandedMonth is not null
+                    && key.Year == initialExpandedMonth.Value.Year
+                    && key.Month == initialExpandedMonth.Value.Month;
+
+            ScheduleMonthGroups.Add(new GameScheduleMonthGroup(
+                key.Year,
+                key.Month,
+                header,
+                scheduleItems,
+                isExpanded));
+        }
+
+        HasGames = ScheduleMonthGroups.Count > 0;
+        hasInitialScheduleState = HasGames;
+    }
+
+    private static GameScheduleItem CreateScheduleItem(
+        Game game,
+        IReadOnlyDictionary<int, string> seasonNames,
+        DateTime? nextPlayingDate)
+    {
+        var isNextPlayingDate = nextPlayingDate is not null
+            && game.ScheduledDate.Date == nextPlayingDate.Value;
+        var opponent = string.IsNullOrWhiteSpace(game.Opponent)
+            ? AppResources.ScheduleTbdText
+            : game.Opponent.Trim();
+        var field = string.IsNullOrWhiteSpace(game.Field)
+            ? AppResources.ScheduleTbdText
+            : game.Field.Trim();
+        var season = seasonNames.TryGetValue(game.SeasonId, out var persistedSeasonName)
+            && !string.IsNullOrWhiteSpace(persistedSeasonName)
+                ? persistedSeasonName.Trim()
+                : AppResources.ScheduleTbdText;
+
+        return new GameScheduleItem
+        {
+            GameId = game.Id,
+            ScheduledDate = game.ScheduledDate,
+            NextDisplay = isNextPlayingDate ? AppResources.NextGameLabel : string.Empty,
+            DateDisplay = game.ScheduledDate.ToString("MMM d", CultureInfo.CurrentCulture),
+            OpponentDisplay = opponent,
+            TimeDisplay = DateTime.Today
+                .Add(game.ScheduledTime)
+                .ToString("t", CultureInfo.CurrentCulture),
+            FieldDisplay = field,
+            SeasonDisplay = season,
+            IsNextPlayingDate = isNextPlayingDate,
+        };
     }
 
     private static bool TryParseTeamId(object? value, out int parsedTeamId)

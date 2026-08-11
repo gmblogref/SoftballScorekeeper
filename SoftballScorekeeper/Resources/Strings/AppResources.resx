@@ -244,8 +244,17 @@
   <data name="NoGamesMessage" xml:space="preserve">
     <value>No Games have been scheduled for this Team.</value>
   </data>
-  <data name="GamesAvailableMessage" xml:space="preserve">
-    <value>This Team has scheduled Games. Schedule details will appear here in a later update.</value>
+  <data name="NextGameLabel" xml:space="preserve">
+    <value>NEXT</value>
+  </data>
+  <data name="ScheduleTbdText" xml:space="preserve">
+    <value>TBD</value>
+  </data>
+  <data name="ExpandedScheduleMonthHeaderFormat" xml:space="preserve">
+    <value>{0} ▼</value>
+  </data>
+  <data name="CollapsedScheduleMonthHeaderFormat" xml:space="preserve">
+    <value>{0} ▶</value>
   </data>
   <data name="CurrentRosterHeading" xml:space="preserve">
     <value>Current Roster</value>
