@@ -1,3 +1,4 @@
+using SQLite;
 using SoftballScorekeeper.Core.Models;
 
 namespace SoftballScorekeeper.Infrastructure.Data.Repositories;
@@ -27,7 +28,7 @@ public sealed class SeasonRepository
             FROM Season
             INNER JOIN Team ON Team.Id = Season.TeamId
             WHERE Season.TeamId = ?
-            ORDER BY Season.Year, Season.Name, Season.Id
+            ORDER BY Season.Year, Season.Id
             """,
             teamId);
     }
@@ -72,5 +73,66 @@ public sealed class SeasonRepository
             teamId);
 
         return count > 0;
+    }
+
+    public async Task<Season?> GetOrCreateForTeamAsync(int teamId, string? name, int year)
+    {
+        if (!HasValidSeasonValues(teamId, name, year))
+        {
+            return null;
+        }
+
+        var connection = await database.GetConnectionAsync();
+        Season? resolvedSeason = null;
+        await connection.RunInTransactionAsync(transaction =>
+        {
+            resolvedSeason = ResolveOrCreateForActiveTeam(transaction, teamId, name!, year);
+        });
+
+        return resolvedSeason;
+    }
+
+    internal static Season? ResolveOrCreateForActiveTeam(
+        SQLiteConnection connection,
+        int teamId,
+        string name,
+        int year)
+    {
+        var normalizedName = name.Trim();
+        var activeTeam = connection.Table<Team>()
+            .FirstOrDefault(team => team.Id == teamId && team.IsActive);
+        if (activeTeam is null)
+        {
+            return null;
+        }
+
+        var existingSeason = connection.Table<Season>()
+            .Where(season => season.TeamId == teamId && season.Year == year)
+            .ToList()
+            .OrderBy(season => season.Id)
+            .FirstOrDefault(season => string.Equals(
+                season.Name.Trim(),
+                normalizedName,
+                StringComparison.OrdinalIgnoreCase));
+        if (existingSeason is not null)
+        {
+            return existingSeason;
+        }
+
+        var season = new Season
+        {
+            TeamId = teamId,
+            Name = normalizedName,
+            Year = year,
+        };
+
+        return connection.Insert(season) == 1 ? season : null;
+    }
+
+    internal static bool HasValidSeasonValues(int teamId, string? name, int year)
+    {
+        return teamId > 0
+            && !string.IsNullOrWhiteSpace(name)
+            && year is >= 1 and <= 9999;
     }
 }

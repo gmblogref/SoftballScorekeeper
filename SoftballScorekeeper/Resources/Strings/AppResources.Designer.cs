@@ -458,6 +458,162 @@ namespace SoftballScorekeeper.Resources.Strings {
             }
         }
 
+        public static string AddGameButton {
+            get {
+                return ResourceManager.GetString("AddGameButton", resourceCulture);
+            }
+        }
+
+        public static string AddGameTitle {
+            get {
+                return ResourceManager.GetString("AddGameTitle", resourceCulture);
+            }
+        }
+
+        public static string AddGameHeading {
+            get {
+                return ResourceManager.GetString("AddGameHeading", resourceCulture);
+            }
+        }
+
+        public static string SeasonLabel {
+            get {
+                return ResourceManager.GetString("SeasonLabel", resourceCulture);
+            }
+        }
+
+        public static string SelectSeasonPrompt {
+            get {
+                return ResourceManager.GetString("SelectSeasonPrompt", resourceCulture);
+            }
+        }
+
+        public static string CreateNewSeasonLabel {
+            get {
+                return ResourceManager.GetString("CreateNewSeasonLabel", resourceCulture);
+            }
+        }
+
+        public static string SeasonNameLabel {
+            get {
+                return ResourceManager.GetString("SeasonNameLabel", resourceCulture);
+            }
+        }
+
+        public static string SeasonNamePlaceholder {
+            get {
+                return ResourceManager.GetString("SeasonNamePlaceholder", resourceCulture);
+            }
+        }
+
+        public static string SeasonYearLabel {
+            get {
+                return ResourceManager.GetString("SeasonYearLabel", resourceCulture);
+            }
+        }
+
+        public static string SeasonYearPlaceholder {
+            get {
+                return ResourceManager.GetString("SeasonYearPlaceholder", resourceCulture);
+            }
+        }
+
+        public static string SeasonSelectionDisplayFormat {
+            get {
+                return ResourceManager.GetString("SeasonSelectionDisplayFormat", resourceCulture);
+            }
+        }
+
+        public static string GameDateLabel {
+            get {
+                return ResourceManager.GetString("GameDateLabel", resourceCulture);
+            }
+        }
+
+        public static string GameTimeLabel {
+            get {
+                return ResourceManager.GetString("GameTimeLabel", resourceCulture);
+            }
+        }
+
+        public static string OpponentLabel {
+            get {
+                return ResourceManager.GetString("OpponentLabel", resourceCulture);
+            }
+        }
+
+        public static string OpponentPlaceholder {
+            get {
+                return ResourceManager.GetString("OpponentPlaceholder", resourceCulture);
+            }
+        }
+
+        public static string FieldLabel {
+            get {
+                return ResourceManager.GetString("FieldLabel", resourceCulture);
+            }
+        }
+
+        public static string FieldPlaceholder {
+            get {
+                return ResourceManager.GetString("FieldPlaceholder", resourceCulture);
+            }
+        }
+
+        public static string AddSecondGameLabel {
+            get {
+                return ResourceManager.GetString("AddSecondGameLabel", resourceCulture);
+            }
+        }
+
+        public static string SecondGameTimeLabel {
+            get {
+                return ResourceManager.GetString("SecondGameTimeLabel", resourceCulture);
+            }
+        }
+
+        public static string SeasonRequired {
+            get {
+                return ResourceManager.GetString("SeasonRequired", resourceCulture);
+            }
+        }
+
+        public static string SeasonNameRequired {
+            get {
+                return ResourceManager.GetString("SeasonNameRequired", resourceCulture);
+            }
+        }
+
+        public static string SeasonYearInvalid {
+            get {
+                return ResourceManager.GetString("SeasonYearInvalid", resourceCulture);
+            }
+        }
+
+        public static string GameCreationFailed {
+            get {
+                return ResourceManager.GetString("GameCreationFailed", resourceCulture);
+            }
+        }
+
+        public static string DuplicateGameSchedule {
+            get {
+                return ResourceManager.GetString("DuplicateGameSchedule", resourceCulture);
+            }
+        }
+
+        public static string RequiredFieldIndicator {
+            get {
+                return ResourceManager.GetString("RequiredFieldIndicator", resourceCulture);
+            }
+        }
+
+        public static string SeasonSelectionHint {
+            get {
+                return ResourceManager.GetString("SeasonSelectionHint", resourceCulture);
+            }
+        }
+
         public static string CurrentRosterHeading {
             get {
                 return ResourceManager.GetString("CurrentRosterHeading", resourceCulture);

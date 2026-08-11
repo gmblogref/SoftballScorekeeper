@@ -18,6 +18,12 @@
     <Color x:Key="Magenta">#D600AA</Color>
     <Color x:Key="MidnightBlue">#190649</Color>
     <Color x:Key="OffBlack">#1f1f1f</Color>
+    <Color x:Key="Error">#B3261E</Color>
+    <Color x:Key="ErrorDark">#FFB4AB</Color>
+    <Color x:Key="WarningSurface">#FFF3CD</Color>
+    <Color x:Key="WarningSurfaceDark">#5A4200</Color>
+    <Color x:Key="WarningText">#3D2F00</Color>
+    <Color x:Key="WarningTextDark">#FFF4CF</Color>
 
     <Color x:Key="Gray100">#E1E1E1</Color>
     <Color x:Key="Gray200">#C8C8C8</Color>

@@ -13,7 +13,7 @@
         Padding="40"
         RowDefinitions="Auto,Auto,Auto,Auto,*,Auto"
         RowSpacing="20">
-        <controls:PrimarySectionNavigation Grid.Row="0" CurrentSection="Players" />
+        <controls:PrimarySectionNavigation Grid.Row="0" CurrentSection="Players" IsCurrentSectionRoot="True" />
 
         <Label
             Grid.Row="1"
