@@ -31,6 +31,18 @@
             MainShellContent.Content = mainPage;
         }
 
+        private async void OnTeamsClicked(object sender, EventArgs e)
+        {
+            FlyoutIsPresented = false;
+            await GoToAsync(TeamsSectionRoute);
+        }
+
+        private async void OnPlayersClicked(object sender, EventArgs e)
+        {
+            FlyoutIsPresented = false;
+            await GoToAsync(PlayersSectionRoute);
+        }
+
         private async void OnManageInactiveTeamsClicked(object sender, EventArgs e)
         {
             FlyoutIsPresented = false;

@@ -427,4 +427,37 @@
   <data name="NoTeamMembershipsMessage" xml:space="preserve">
     <value>This Player does not have any active Team memberships.</value>
   </data>
+  <data name="RemoveGamesButton" xml:space="preserve">
+    <value>Remove Games</value>
+  </data>
+  <data name="RemoveSelectedGamesButton" xml:space="preserve">
+    <value>Remove Selected</value>
+  </data>
+  <data name="SelectedGameCountSingularText" xml:space="preserve">
+    <value>{0} Game selected</value>
+  </data>
+  <data name="SelectedGameCountPluralText" xml:space="preserve">
+    <value>{0} Games selected</value>
+  </data>
+  <data name="RemoveGamesConfirmationTitle" xml:space="preserve">
+    <value>Remove Scheduled Games</value>
+  </data>
+  <data name="RemoveGameConfirmationMessage" xml:space="preserve">
+    <value>Permanently remove {0} selected scheduled Game?</value>
+  </data>
+  <data name="RemoveGamesConfirmationMessage" xml:space="preserve">
+    <value>Permanently remove {0} selected scheduled Games?</value>
+  </data>
+  <data name="ConfirmRemoveGamesButton" xml:space="preserve">
+    <value>Remove</value>
+  </data>
+  <data name="RemoveGamesPartialResultMessage" xml:space="preserve">
+    <value>{0} of {1} selected Games were permanently removed. The schedule has been refreshed.</value>
+  </data>
+  <data name="RemoveGamesBlockedMessage" xml:space="preserve">
+    <value>No selected Games were removed because dependent history must be preserved. The schedule has been refreshed.</value>
+  </data>
+  <data name="RemoveGamesNoOpMessage" xml:space="preserve">
+    <value>No selected Games were removed. The schedule has been refreshed.</value>
+  </data>
 </root>

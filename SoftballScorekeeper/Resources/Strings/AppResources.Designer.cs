@@ -800,5 +800,71 @@ namespace SoftballScorekeeper.Resources.Strings {
             }
         }
 
+        public static string RemoveGamesButton {
+            get {
+                return ResourceManager.GetString("RemoveGamesButton", resourceCulture);
+            }
+        }
+
+        public static string RemoveSelectedGamesButton {
+            get {
+                return ResourceManager.GetString("RemoveSelectedGamesButton", resourceCulture);
+            }
+        }
+
+        public static string SelectedGameCountSingularText {
+            get {
+                return ResourceManager.GetString("SelectedGameCountSingularText", resourceCulture);
+            }
+        }
+
+        public static string SelectedGameCountPluralText {
+            get {
+                return ResourceManager.GetString("SelectedGameCountPluralText", resourceCulture);
+            }
+        }
+
+        public static string RemoveGamesConfirmationTitle {
+            get {
+                return ResourceManager.GetString("RemoveGamesConfirmationTitle", resourceCulture);
+            }
+        }
+
+        public static string RemoveGameConfirmationMessage {
+            get {
+                return ResourceManager.GetString("RemoveGameConfirmationMessage", resourceCulture);
+            }
+        }
+
+        public static string RemoveGamesConfirmationMessage {
+            get {
+                return ResourceManager.GetString("RemoveGamesConfirmationMessage", resourceCulture);
+            }
+        }
+
+        public static string ConfirmRemoveGamesButton {
+            get {
+                return ResourceManager.GetString("ConfirmRemoveGamesButton", resourceCulture);
+            }
+        }
+
+        public static string RemoveGamesPartialResultMessage {
+            get {
+                return ResourceManager.GetString("RemoveGamesPartialResultMessage", resourceCulture);
+            }
+        }
+
+        public static string RemoveGamesBlockedMessage {
+            get {
+                return ResourceManager.GetString("RemoveGamesBlockedMessage", resourceCulture);
+            }
+        }
+
+        public static string RemoveGamesNoOpMessage {
+            get {
+                return ResourceManager.GetString("RemoveGamesNoOpMessage", resourceCulture);
+            }
+        }
+
     }
 }

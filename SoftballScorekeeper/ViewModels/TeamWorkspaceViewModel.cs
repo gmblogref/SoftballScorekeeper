@@ -19,7 +19,10 @@ public partial class TeamWorkspaceViewModel : ObservableObject, IQueryAttributab
     private bool hasInitialScheduleState;
     private bool hasValidTeamId;
     private bool isConfirmationPending;
+    private bool isRemovingGames;
+    private IReadOnlyList<int> pendingGameIds = Array.Empty<int>();
     private IReadOnlyList<int> pendingPlayerIds = Array.Empty<int>();
+    private int selectedGameCount;
     private int selectedPlayerCount;
     private TeamWorkspaceSection selectedSection = TeamWorkspaceSection.Roster;
     private Team? loadedTeam;
@@ -105,6 +108,48 @@ public partial class TeamWorkspaceViewModel : ObservableObject, IQueryAttributab
 
     public Func<int, string, Task>? RemovePlayersConfirmationRequested { get; set; }
 
+    public Func<int, Task>? RemoveGamesConfirmationRequested { get; set; }
+
+    public int SelectedGameCount
+    {
+        get => selectedGameCount;
+        private set
+        {
+            if (SetProperty(ref selectedGameCount, value))
+            {
+                OnPropertyChanged(nameof(HasSelectedGames));
+                OnPropertyChanged(nameof(SelectedGameCountText));
+                NotifyCommandStates();
+            }
+        }
+    }
+
+    public bool HasSelectedGames => SelectedGameCount > 0;
+
+    public bool IsRemovingGames
+    {
+        get => isRemovingGames;
+        private set
+        {
+            if (SetProperty(ref isRemovingGames, value))
+            {
+                foreach (var item in ScheduleMonthGroups.SelectMany(group => group.Games))
+                {
+                    item.IsSelectionVisible = value;
+                }
+
+                NotifyCommandStates();
+            }
+        }
+    }
+
+    public string SelectedGameCountText => string.Format(
+        CultureInfo.CurrentCulture,
+        SelectedGameCount == 1
+            ? AppResources.SelectedGameCountSingularText
+            : AppResources.SelectedGameCountPluralText,
+        SelectedGameCount);
+
     public int SelectedPlayerCount
     {
         get => selectedPlayerCount;
@@ -128,6 +173,7 @@ public partial class TeamWorkspaceViewModel : ObservableObject, IQueryAttributab
             if (SetProperty(ref hasGames, value))
             {
                 OnPropertyChanged(nameof(HasNoGames));
+                RemoveGamesCommand.NotifyCanExecuteChanged();
             }
         }
     }
@@ -144,6 +190,7 @@ public partial class TeamWorkspaceViewModel : ObservableObject, IQueryAttributab
                 OnPropertyChanged(nameof(IsGamesSectionSelected));
                 OnPropertyChanged(nameof(IsRosterSectionSelected));
                 AddGameCommand.NotifyCanExecuteChanged();
+                RemoveGamesCommand.NotifyCanExecuteChanged();
             }
         }
     }
@@ -231,6 +278,7 @@ public partial class TeamWorkspaceViewModel : ObservableObject, IQueryAttributab
             ValidationMessage = string.Empty;
             StatusMessage = string.Empty;
             ExitRemovePlayersMode();
+            ExitRemoveGamesMode();
             IsTeamLoaded = true;
         }
         finally
@@ -410,6 +458,7 @@ public partial class TeamWorkspaceViewModel : ObservableObject, IQueryAttributab
     [RelayCommand]
     private void SelectRosterSection()
     {
+        ExitRemoveGamesMode();
         SelectedSection = TeamWorkspaceSection.Roster;
         hasInitialSectionSelection = true;
     }
@@ -498,6 +547,96 @@ public partial class TeamWorkspaceViewModel : ObservableObject, IQueryAttributab
         }
     }
 
+    [RelayCommand(CanExecute = nameof(CanBeginRemoveGames))]
+    private void RemoveGames()
+    {
+        ClearGameSelection();
+        ValidationMessage = string.Empty;
+        IsRemovingGames = true;
+        NotifyCommandStates();
+    }
+
+    [RelayCommand(CanExecute = nameof(CanCancelRemoveGames))]
+    private void CancelRemoveGames()
+    {
+        ValidationMessage = string.Empty;
+        ExitRemoveGamesMode();
+        NotifyCommandStates();
+    }
+
+    [RelayCommand(CanExecute = nameof(CanRemoveSelectedGames))]
+    private async Task RemoveSelectedGamesAsync()
+    {
+        pendingGameIds = ScheduleMonthGroups
+            .SelectMany(group => group.Games)
+            .Where(item => item.IsSelected && item.GameId > 0)
+            .Select(item => item.GameId)
+            .Distinct()
+            .ToArray();
+
+        if (pendingGameIds.Count == 0)
+        {
+            UpdateGameSelectionState();
+            return;
+        }
+
+        isConfirmationPending = true;
+        NotifyCommandStates();
+        try
+        {
+            var confirmationRequested = RemoveGamesConfirmationRequested;
+            if (confirmationRequested is not null)
+            {
+                await confirmationRequested(pendingGameIds.Count);
+            }
+        }
+        finally
+        {
+            pendingGameIds = Array.Empty<int>();
+            isConfirmationPending = false;
+            NotifyCommandStates();
+        }
+    }
+
+    [RelayCommand(CanExecute = nameof(CanConfirmRemoveSelectedGames))]
+    private async Task ConfirmRemoveSelectedGamesAsync()
+    {
+        var requestedIds = pendingGameIds.ToArray();
+        IsBusy = true;
+        try
+        {
+            var result = await gameRepository.RemoveGamesAsync(TeamId, requestedIds);
+            await ReloadScheduleAsync(
+                result.SuccessfulRemovalCount == requestedIds.Length ? null : requestedIds);
+
+            if (result.SuccessfulRemovalCount == requestedIds.Length)
+            {
+                ValidationMessage = string.Empty;
+                ExitRemoveGamesMode();
+                return;
+            }
+
+            ValidationMessage = result.SuccessfulRemovalCount == 0
+                ? result.BlockedGameIds.Count > 0
+                    ? AppResources.RemoveGamesBlockedMessage
+                    : AppResources.RemoveGamesNoOpMessage
+                : string.Format(
+                    CultureInfo.CurrentCulture,
+                    AppResources.RemoveGamesPartialResultMessage,
+                    result.SuccessfulRemovalCount,
+                    requestedIds.Length);
+        }
+        catch
+        {
+            await ReloadScheduleAsync(requestedIds);
+            ValidationMessage = AppResources.RemoveGamesNoOpMessage;
+        }
+        finally
+        {
+            IsBusy = false;
+        }
+    }
+
     private bool CanBeginTeamNameEdit()
     {
         return CanManageTeam() && !IsEditingTeamName;
@@ -520,14 +659,28 @@ public partial class TeamWorkspaceViewModel : ObservableObject, IQueryAttributab
 
     private bool CanManageRoster()
     {
-        return CanManageTeam() && !IsEditingTeamName && !IsRemovingPlayers && !isConfirmationPending;
+        return CanManageTeam() && !IsEditingTeamName && !IsRemovingPlayers
+            && !IsRemovingGames && !isConfirmationPending;
     }
 
     private bool CanBeginRemovePlayers() => CanManageRoster() && HasPlayers;
 
     private bool CanAddGame() =>
         CanManageTeam() && !IsEditingTeamName && !IsRemovingPlayers
-        && !isConfirmationPending && IsGamesSectionSelected;
+        && !IsRemovingGames && !isConfirmationPending && IsGamesSectionSelected;
+
+    private bool CanBeginRemoveGames() =>
+        CanManageTeam() && !IsEditingTeamName && !IsRemovingPlayers
+        && !IsRemovingGames && !isConfirmationPending && IsGamesSectionSelected && HasGames;
+
+    private bool CanCancelRemoveGames() =>
+        CanManageTeam() && IsRemovingGames && !isConfirmationPending;
+
+    private bool CanRemoveSelectedGames() =>
+        CanCancelRemoveGames() && HasSelectedGames;
+
+    private bool CanConfirmRemoveSelectedGames() =>
+        CanManageTeam() && IsRemovingGames && isConfirmationPending && pendingGameIds.Count > 0;
 
     private bool CanCancelRemovePlayers() =>
         CanManageTeam() && IsRemovingPlayers && !isConfirmationPending;
@@ -567,6 +720,10 @@ public partial class TeamWorkspaceViewModel : ObservableObject, IQueryAttributab
         CancelRemovePlayersCommand.NotifyCanExecuteChanged();
         RemoveSelectedPlayersCommand.NotifyCanExecuteChanged();
         ConfirmRemoveSelectedPlayersCommand.NotifyCanExecuteChanged();
+        RemoveGamesCommand.NotifyCanExecuteChanged();
+        CancelRemoveGamesCommand.NotifyCanExecuteChanged();
+        RemoveSelectedGamesCommand.NotifyCanExecuteChanged();
+        ConfirmRemoveSelectedGamesCommand.NotifyCanExecuteChanged();
     }
 
     private void InvalidateTeam()
@@ -594,6 +751,7 @@ public partial class TeamWorkspaceViewModel : ObservableObject, IQueryAttributab
         StatusMessage = string.Empty;
         IsEditingTeamName = false;
         ExitRemovePlayersMode();
+        ExitRemoveGamesMode();
         SelectedSection = TeamWorkspaceSection.Roster;
         IsTeamLoaded = false;
     }
@@ -641,8 +799,43 @@ public partial class TeamWorkspaceViewModel : ObservableObject, IQueryAttributab
         IsRemovingPlayers = false;
     }
 
-    private void RebuildSchedule(IReadOnlyList<Game> games, IReadOnlyList<Season> seasons)
+    private async Task ReloadScheduleAsync(IReadOnlyCollection<int>? idsToReselect = null)
     {
+        var games = await gameRepository.GetForTeamAsync(TeamId);
+        var seasons = await seasonRepository.GetForTeamAsync(TeamId);
+        RebuildSchedule(games, seasons, idsToReselect);
+        UpdateGameSelectionState();
+    }
+
+    private void OnGameSelectionChanged(GameScheduleItem item) => UpdateGameSelectionState();
+
+    private void UpdateGameSelectionState() =>
+        SelectedGameCount = ScheduleMonthGroups
+            .SelectMany(group => group.Games)
+            .Count(item => item.IsSelected);
+
+    private void ClearGameSelection()
+    {
+        foreach (var item in ScheduleMonthGroups.SelectMany(group => group.Games))
+        {
+            item.IsSelected = false;
+        }
+
+        UpdateGameSelectionState();
+    }
+
+    private void ExitRemoveGamesMode()
+    {
+        ClearGameSelection();
+        IsRemovingGames = false;
+    }
+
+    private void RebuildSchedule(
+        IReadOnlyList<Game> games,
+        IReadOnlyList<Season> seasons,
+        IReadOnlyCollection<int>? idsToReselect = null)
+    {
+        var selectedIds = idsToReselect?.ToHashSet();
         var previousExpansion = hasInitialScheduleState
             ? ScheduleMonthGroups.ToDictionary(
                 group => (group.Year, group.Month),
@@ -682,6 +875,10 @@ public partial class TeamWorkspaceViewModel : ObservableObject, IQueryAttributab
             var scheduleItems = monthGames
                 .Select(game => CreateScheduleItem(game, seasonNames, nextPlayingDate))
                 .ToArray();
+            foreach (var item in scheduleItems)
+            {
+                item.IsSelected = selectedIds?.Contains(item.GameId) == true;
+            }
             var isExpanded = previousExpansion is not null
                 ? previousExpansion.GetValueOrDefault(key)
                 : initialExpandedMonth is not null
@@ -700,7 +897,7 @@ public partial class TeamWorkspaceViewModel : ObservableObject, IQueryAttributab
         hasInitialScheduleState = HasGames;
     }
 
-    private static GameScheduleItem CreateScheduleItem(
+    private GameScheduleItem CreateScheduleItem(
         Game game,
         IReadOnlyDictionary<int, string> seasonNames,
         DateTime? nextPlayingDate)
@@ -718,7 +915,7 @@ public partial class TeamWorkspaceViewModel : ObservableObject, IQueryAttributab
                 ? persistedSeasonName.Trim()
                 : AppResources.ScheduleTbdText;
 
-        return new GameScheduleItem
+        return new GameScheduleItem(OnGameSelectionChanged)
         {
             GameId = game.Id,
             ScheduledDate = game.ScheduledDate,
@@ -731,6 +928,7 @@ public partial class TeamWorkspaceViewModel : ObservableObject, IQueryAttributab
             FieldDisplay = field,
             SeasonDisplay = season,
             IsNextPlayingDate = isNextPlayingDate,
+            IsSelectionVisible = IsRemovingGames,
         };
     }
 
