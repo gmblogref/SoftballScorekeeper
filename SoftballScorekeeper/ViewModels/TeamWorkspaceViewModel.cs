@@ -447,6 +447,23 @@ public partial class TeamWorkspaceViewModel : ObservableObject, IQueryAttributab
         await Shell.Current.GoToAsync(AppShell.AddGameRoute, parameters);
     }
 
+    private async Task OpenGameAsync(GameScheduleItem item)
+    {
+        if (item.GameId <= 0) return;
+        if (IsRemovingGames)
+        {
+            item.IsSelected = !item.IsSelected;
+            return;
+        }
+
+        var parameters = new ShellNavigationQueryParameters
+        {
+            [AppShell.TeamIdQueryParameter] = TeamId,
+            [AppShell.GameIdQueryParameter] = item.GameId,
+        };
+        await Shell.Current.GoToAsync(AppShell.GameWorkspaceRoute, parameters);
+    }
+
     [RelayCommand]
     private void SelectGamesSection()
     {
@@ -915,7 +932,7 @@ public partial class TeamWorkspaceViewModel : ObservableObject, IQueryAttributab
                 ? persistedSeasonName.Trim()
                 : AppResources.ScheduleTbdText;
 
-        return new GameScheduleItem(OnGameSelectionChanged)
+        return new GameScheduleItem(OnGameSelectionChanged, OpenGameAsync)
         {
             GameId = game.Id,
             ScheduledDate = game.ScheduledDate,

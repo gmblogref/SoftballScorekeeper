@@ -74,6 +74,19 @@ public sealed class GameRepository
         return games.FirstOrDefault()?.SeasonId;
     }
 
+    public async Task<Game?> GetByIdForTeamAsync(int teamId, int gameId)
+    {
+        if (teamId <= 0 || gameId <= 0)
+        {
+            return null;
+        }
+
+        var connection = await database.GetConnectionAsync();
+        return await connection.Table<Game>()
+            .Where(game => game.Id == gameId && game.TeamId == teamId)
+            .FirstOrDefaultAsync();
+    }
+
     public async Task<CreateGamesResult> CreateForTeamAsync(
         int teamId,
         Season? season,
@@ -241,6 +254,95 @@ public sealed class GameRepository
             wrongTeamIds,
             blockedIds,
             ignoredIds);
+    }
+
+    public async Task<UpdateGameResult> UpdateForTeamAsync(
+        int teamId,
+        int gameId,
+        Season? season,
+        Game? requestedGame)
+    {
+        if (teamId <= 0 || gameId <= 0 || season is null || requestedGame is null
+            || requestedGame.ScheduledDate == default
+            || requestedGame.ScheduledTime < TimeSpan.Zero
+            || requestedGame.ScheduledTime >= TimeSpan.FromDays(1)
+            || (season.Id <= 0 && !SeasonRepository.HasValidSeasonValues(teamId, season.Name, season.Year)))
+        {
+            return new UpdateGameResult(gameId, 0, UpdateGameFailure.InvalidRequest);
+        }
+
+        var connection = await database.GetConnectionAsync();
+        var result = new UpdateGameResult(gameId, 0, UpdateGameFailure.InvalidTeamOrGame);
+        try
+        {
+            await connection.RunInTransactionAsync(transaction =>
+            {
+                if (transaction.Table<Team>().FirstOrDefault(team => team.Id == teamId && team.IsActive) is null)
+                {
+                    return;
+                }
+
+                var persistedGame = transaction.Find<Game>(gameId);
+                if (persistedGame?.TeamId != teamId)
+                {
+                    return;
+                }
+
+                Season? persistedSeason;
+                if (season.Id > 0)
+                {
+                    persistedSeason = transaction.Find<Season>(season.Id);
+                    if (persistedSeason?.TeamId != teamId)
+                    {
+                        result = new UpdateGameResult(gameId, 0, UpdateGameFailure.InvalidSeason);
+                        return;
+                    }
+                }
+                else
+                {
+                    persistedSeason = SeasonRepository.ResolveOrCreateForActiveTeam(
+                        transaction, teamId, season.Name, season.Year);
+                    if (persistedSeason is null)
+                    {
+                        result = new UpdateGameResult(gameId, 0, UpdateGameFailure.InvalidSeason);
+                        return;
+                    }
+                }
+
+                var conflict = transaction.Table<Game>().FirstOrDefault(game =>
+                    game.Id != gameId
+                    && game.TeamId == teamId
+                    && game.SeasonId == persistedSeason.Id
+                    && game.ScheduledDate == requestedGame.ScheduledDate.Date
+                    && game.ScheduledTime == requestedGame.ScheduledTime);
+                if (conflict is not null)
+                {
+                    throw new DuplicateScheduledGameException();
+                }
+
+                persistedGame.SeasonId = persistedSeason.Id;
+                persistedGame.ScheduledDate = requestedGame.ScheduledDate.Date;
+                persistedGame.ScheduledTime = requestedGame.ScheduledTime;
+                persistedGame.Opponent = NormalizeOptionalValue(requestedGame.Opponent);
+                persistedGame.Field = NormalizeOptionalValue(requestedGame.Field);
+                if (transaction.Update(persistedGame) != 1)
+                {
+                    throw new InvalidOperationException("Game update did not affect one row.");
+                }
+
+                result = new UpdateGameResult(gameId, persistedSeason.Id, UpdateGameFailure.None);
+            });
+        }
+        catch (DuplicateScheduledGameException)
+        {
+            return new UpdateGameResult(gameId, 0, UpdateGameFailure.DuplicateSchedule);
+        }
+        catch
+        {
+            return new UpdateGameResult(gameId, 0, UpdateGameFailure.Persistence);
+        }
+
+        return result;
     }
 
     private static bool HasValidRequest(int teamId, Season? season, IReadOnlyList<Game> games)

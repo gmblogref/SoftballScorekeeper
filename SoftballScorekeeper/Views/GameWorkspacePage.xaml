@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:controls="clr-namespace:SoftballScorekeeper.Views.Controls"
+             xmlns:strings="clr-namespace:SoftballScorekeeper.Resources.Strings"
+             xmlns:viewModels="clr-namespace:SoftballScorekeeper.ViewModels"
+             x:Class="SoftballScorekeeper.Views.GameWorkspacePage"
+             x:DataType="viewModels:GameWorkspaceViewModel"
+             Title="{x:Static strings:AppResources.GameWorkspaceTitle}">
+    <Grid Padding="40" RowDefinitions="Auto,Auto,Auto,*,Auto" RowSpacing="20">
+        <controls:PrimarySectionNavigation Grid.Row="0" CurrentSection="Teams" />
+        <VerticalStackLayout Grid.Row="1" Spacing="6" IsVisible="{Binding IsLoaded}">
+            <Label Text="{Binding TeamName}" Style="{StaticResource Headline}" SemanticProperties.HeadingLevel="Level1" />
+            <Label Text="{x:Static strings:AppResources.GameDetailsHeading}" Style="{StaticResource SubHeadline}" SemanticProperties.HeadingLevel="Level2" />
+        </VerticalStackLayout>
+        <Label Grid.Row="2" Text="{Binding ValidationMessage}" HorizontalTextAlignment="Center">
+            <Label.Triggers>
+                <DataTrigger TargetType="Label" Binding="{Binding ValidationMessage}" Value="">
+                    <Setter Property="IsVisible" Value="False" />
+                </DataTrigger>
+            </Label.Triggers>
+        </Label>
+        <Grid Grid.Row="3" IsVisible="{Binding IsLoaded}" RowDefinitions="Auto,Auto,Auto" ColumnDefinitions="*,*" ColumnSpacing="32" RowSpacing="20" Padding="0,12">
+            <VerticalStackLayout Spacing="6">
+                <Label Text="{x:Static strings:AppResources.OpponentLabel}" FontAttributes="Bold" />
+                <Label Text="{Binding OpponentDisplay}" FontSize="22" />
+            </VerticalStackLayout>
+            <VerticalStackLayout Grid.Column="1" Spacing="6">
+                <Label Text="{x:Static strings:AppResources.SeasonLabel}" FontAttributes="Bold" />
+                <Label Text="{Binding SeasonDisplay}" FontSize="22" />
+            </VerticalStackLayout>
+            <VerticalStackLayout Grid.Row="1" Spacing="6">
+                <Label Text="{x:Static strings:AppResources.GameDateLabel}" FontAttributes="Bold" />
+                <Label Text="{Binding DateDisplay}" FontSize="22" />
+            </VerticalStackLayout>
+            <VerticalStackLayout Grid.Row="1" Grid.Column="1" Spacing="6">
+                <Label Text="{x:Static strings:AppResources.GameTimeLabel}" FontAttributes="Bold" />
+                <Label Text="{Binding TimeDisplay}" FontSize="22" />
+            </VerticalStackLayout>
+            <VerticalStackLayout Grid.Row="2" Spacing="6">
+                <Label Text="{x:Static strings:AppResources.FieldLabel}" FontAttributes="Bold" />
+                <Label Text="{Binding FieldDisplay}" FontSize="22" />
+            </VerticalStackLayout>
+        </Grid>
+        <Button Grid.Row="4"
+                Text="{x:Static strings:AppResources.EditGameTitle}"
+                Command="{Binding EditGameCommand}"
+                IsVisible="{Binding IsLoaded}"
+                MinimumHeightRequest="52"
+                MinimumWidthRequest="200"
+                HorizontalOptions="Center"
+                Padding="24,14" />
+    </Grid>
+</ContentPage>

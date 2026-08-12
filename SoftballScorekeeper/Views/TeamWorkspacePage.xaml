@@ -170,6 +170,9 @@
                                                     RowDefinitions="Auto,1"
                                                     ColumnDefinitions="76,100,2*,110,*,*,Auto"
                                                     ColumnSpacing="12">
+                                                    <Grid.GestureRecognizers>
+                                                        <TapGestureRecognizer Command="{Binding OpenCommand}" />
+                                                    </Grid.GestureRecognizers>
                                                     <Label
                                                         Text="{Binding NextDisplay}"
                                                         FontAttributes="Bold"

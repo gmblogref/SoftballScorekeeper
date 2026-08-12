@@ -10,9 +10,9 @@ Stable product and architecture decisions belong in the project architecture doc
 
 ## Current Project Status
 
-- **Latest completed story:** Story 4.4 — Remove Games
-- **Completed stories:** Stories 0.0 through 3.1 and Stories 3.5 through 4.4; Stories 3.2 through 3.4 retain their recorded validation status
-- **Current story:** None; Story 4.4 — Remove Games is complete
+- **Latest completed story:** Story 4.5 — Edit Game
+- **Completed stories:** Stories 0.0 through 3.1 and Stories 3.5 through 4.5; Stories 3.2 through 3.4 retain their recorded validation status
+- **Current story:** None; Story 4.5 — Edit Game is complete
 - **Current phase:** Team-scoped Game Management workspace foundation
 - **Foundation status:** Complete
 
@@ -1680,6 +1680,37 @@ Real dependent Game history does not yet exist, so blocked and mixed production 
 #### Intended Commit Message
 
 `Implement inline Game removal`
+
+### Story 4.5 — Edit Game
+
+**Status:** Complete on `task/edit-games`; automated tests, Windows build, and Android 10-inch tablet validation passed
+
+#### Implementation Summary
+
+- Team Workspace Game rows are now the normal-mode navigation target and open a transient Game Workspace using only `teamId` and `gameId`; the schedule no longer exposes Edit directly on each row. In Remove Games mode, the same row interaction only toggles removal selection and cannot navigate.
+- Game Workspace reloads the active Team, Team-scoped Game, and Team-scoped Season from repository truth whenever it appears. It presents the selected Game's opponent, date, time, field, and Season with resource-backed labels and established formatting, and provides the focused Edit Game action. It is the intended home for later Game-specific actions without implementing or displaying lineup, start-game, scoring, or lifecycle behavior.
+- Edit Game is entered from Game Workspace with ID-only navigation. Its existing relative Save and Cancel navigation now returns naturally to Game Workspace without stack duplication; Game Workspace reloads persisted values on appearance, and later Back navigation returns to Team Workspace, whose existing appearance reload refreshes schedule grouping and NEXT state.
+- Corrected Game Workspace query handling so Shell reappearance after Edit Game does not clear the existing Team/Game context when query parameters are not resent. Save and Cancel reveal the same workspace instance, which retains its IDs and reloads repository truth; legitimate navigation to a different Game replaces the context, while malformed or invalid ID contexts still produce the missing-Game state.
+- Edit Game reloads the active Team, Team-scoped Game, and Team-scoped Seasons from repositories and initializes the existing Season, persisted date/time, opponent, and field rather than Add Game defaults. The focused form reuses established Season display/creation, validation, resources, busy protection, and relative Save/Cancel navigation without doubleheader controls.
+- Added Team-scoped Game lookup and a focused transactional update result/API. Updates validate active Team, authoritative persisted Game ownership, target Season ownership, date/time, and duplicate schedule while excluding the current Game. They update the existing row in place, preserve `Game.Id` and `Game.TeamId`, normalize optional opponent/field values, and leave unrelated Games unchanged.
+- Existing or transactionally resolved logical Seasons may be selected; failed validation makes no Game mutation, and transaction failure cannot leave an orphan new Season. Moving a Game never deletes its old Season. Same-date/doubleheader rows remain independent and no pairing behavior was introduced.
+- Successful Save preserves the existing in-place persistence behavior. Cancel performs no persistence. Editing remains roster-independent.
+- Editing remains supported for Teams with zero roster Players. Existing Add Game behavior was preserved alongside Game Workspace navigation and Remove Games selection behavior.
+
+#### Automated Tests and Validation
+
+- Added 7 focused `GameRepositoryTests` for Team-scoped lookup, invalid/missing/wrong-Team IDs, in-place field/date/time normalization, identity preservation, unchanged self-save, duplicate rejection with original/unrelated-row preservation, Game/Season ownership rejection, Season movement/preservation, independent same-date Games, and logical Season reuse.
+- Focused Game repository validation passed 40 of 40 tests with zero failures and zero skips. The complete suite increased from 136 to 143 tests and passed 143 of 143 with zero failures and zero skips.
+- The Windows target build succeeded with zero errors and 89 warnings. Warning categories remain `CS8602`, `MVVMTK0045`, and `XC0025`; the additional warnings are `MVVMTK0045` warnings from the new CommunityToolkit-generated Game Workspace observable properties. Windows runtime validation was not performed.
+- Android 10-inch tablet validation passed for the complete Story 4.5 workflow. It covered Game-row entry into the correct Game Workspace, displayed details, Edit entry, repeated Save and Cancel returns with retained context, repository-backed refresh, one-step Back behavior, navigation between different Games without stale context, schedule ordering/month grouping/NEXT recalculation, Remove Games suppression and selection, Add Game, Games/Roster switching, light/dark themes, layout, bindings, and runtime stability.
+
+#### Limitations and Deferred Work
+
+Game lifecycle/status, completion/cancellation, rainout/rescheduling, lineup actions and persistence, start-game behavior, scoring, statistics, Beer Rules, Season editing/removal, linked-doubleheader behavior, and global Games navigation remain deferred. Story 4.5 adds no schema, Core, dependency, or generic CRUD/form/transaction framework.
+
+#### Intended Commit Message
+
+`Implement Edit Game workflow`
 
 ## Maintenance Rules
 

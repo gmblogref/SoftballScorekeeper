@@ -866,5 +866,11 @@ namespace SoftballScorekeeper.Resources.Strings {
             }
         }
 
+        public static string EditButton { get { return ResourceManager.GetString("EditButton", resourceCulture); } }
+        public static string EditGameTitle { get { return ResourceManager.GetString("EditGameTitle", resourceCulture); } }
+        public static string GameWorkspaceTitle { get { return ResourceManager.GetString("GameWorkspaceTitle", resourceCulture); } }
+        public static string GameDetailsHeading { get { return ResourceManager.GetString("GameDetailsHeading", resourceCulture); } }
+        public static string GameNotFound { get { return ResourceManager.GetString("GameNotFound", resourceCulture); } }
+        public static string GameUpdateFailed { get { return ResourceManager.GetString("GameUpdateFailed", resourceCulture); } }
     }
 }
