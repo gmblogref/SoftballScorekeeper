@@ -28,6 +28,8 @@ public sealed class TemporaryTestDatabaseTests
             ScheduledTime = new TimeSpan(18, 30, 0),
         };
         var gameRowsInserted = await testDatabase.SeedGameAsync(game);
+        var lineupRowsInserted = await testDatabase.SeedGameLineupPlayerAsync(
+            new GameLineupPlayer { GameId = game.Id, PlayerId = player.Id, BattingOrder = 1 });
         await testDatabase.SeedTeamPlayerAsync(
             new TeamPlayer { TeamId = team.Id, PlayerId = player.Id });
         await testDatabase.Database.InitializeAsync();
@@ -36,12 +38,14 @@ public sealed class TemporaryTestDatabaseTests
         var roster = await teamPlayerRepository.GetActivePlayersForTeamAsync(team.Id);
         var seasons = await testDatabase.GetSeasonsAsync();
         var games = await testDatabase.GetGamesAsync();
+        var lineup = await testDatabase.GetGameLineupPlayersAsync();
 
         Assert.Equal(1, teamRowsInserted);
         Assert.Equal(1, playerRowsInserted);
         Assert.Equal(1, fallSeasonRowsInserted);
         Assert.Equal(1, springSeasonRowsInserted);
         Assert.Equal(1, gameRowsInserted);
+        Assert.Equal(1, lineupRowsInserted);
         Assert.Equal(team.Id, Assert.Single(teams).Id);
         Assert.Equal(player.Id, Assert.Single(players).Id);
         Assert.Equal(player.Id, Assert.Single(roster).Id);
@@ -53,6 +57,7 @@ public sealed class TemporaryTestDatabaseTests
             ],
             seasons.Select(season => (season.Id, season.TeamId, season.Name, season.Year)));
         Assert.Equal(game.Id, Assert.Single(games).Id);
+        Assert.Equal((game.Id, player.Id, 1), (Assert.Single(lineup).GameId, lineup[0].PlayerId, lineup[0].BattingOrder));
         Assert.True(File.Exists(testDatabase.DatabasePath));
         Assert.Equal("repository-tests.db3", Path.GetFileName(testDatabase.DatabasePath));
         Assert.NotEqual("SoftballScorekeeper.db3", Path.GetFileName(testDatabase.DatabasePath));
