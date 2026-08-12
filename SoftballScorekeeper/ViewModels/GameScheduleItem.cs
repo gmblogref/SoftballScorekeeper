@@ -1,4 +1,5 @@
 using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.Input;
 
 namespace SoftballScorekeeper.ViewModels;
 
@@ -8,9 +9,13 @@ public sealed class GameScheduleItem : ObservableObject
     private bool isSelectionVisible;
     private bool isSelected;
 
-    public GameScheduleItem(Action<GameScheduleItem>? selectionChanged = null)
+    public GameScheduleItem(
+        Action<GameScheduleItem>? selectionChanged = null,
+        Func<GameScheduleItem, Task>? openRequested = null)
     {
         this.selectionChanged = selectionChanged;
+        OpenCommand = new AsyncRelayCommand(
+            () => openRequested is null ? Task.CompletedTask : openRequested(this));
     }
 
     public required int GameId { get; init; }
@@ -31,6 +36,8 @@ public sealed class GameScheduleItem : ObservableObject
 
     public required bool IsNextPlayingDate { get; init; }
 
+    public IAsyncRelayCommand OpenCommand { get; }
+
     public bool IsSelected
     {
         get => isSelected;
@@ -46,6 +53,9 @@ public sealed class GameScheduleItem : ObservableObject
     public bool IsSelectionVisible
     {
         get => isSelectionVisible;
-        set => SetProperty(ref isSelectionVisible, value);
+        set
+        {
+            SetProperty(ref isSelectionVisible, value);
+        }
     }
 }

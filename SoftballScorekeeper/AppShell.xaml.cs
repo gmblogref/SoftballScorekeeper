@@ -11,8 +11,11 @@
         public const string TeamWorkspaceRoute = "team-workspace";
         public const string AddPlayersToTeamRoute = "add-players-to-team";
         public const string AddGameRoute = "add-game";
+        public const string EditGameRoute = "edit-game";
+        public const string GameWorkspaceRoute = "game-workspace";
         public const string TeamIdQueryParameter = "teamId";
         public const string PlayerIdQueryParameter = "playerId";
+        public const string GameIdQueryParameter = "gameId";
         public const string TeamsSectionRoute = "//teams/team-manager";
         public const string PlayersSectionRoute = "//players/player-manager";
 
@@ -28,6 +31,8 @@
             Routing.RegisterRoute(TeamWorkspaceRoute, typeof(Views.TeamWorkspacePage));
             Routing.RegisterRoute(AddPlayersToTeamRoute, typeof(Views.AddPlayersToTeamPage));
             Routing.RegisterRoute(AddGameRoute, typeof(Views.AddGamePage));
+            Routing.RegisterRoute(EditGameRoute, typeof(Views.EditGamePage));
+            Routing.RegisterRoute(GameWorkspaceRoute, typeof(Views.GameWorkspacePage));
             MainShellContent.Content = mainPage;
         }
 

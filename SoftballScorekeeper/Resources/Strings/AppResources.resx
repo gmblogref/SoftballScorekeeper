@@ -460,4 +460,10 @@
   <data name="RemoveGamesNoOpMessage" xml:space="preserve">
     <value>No selected Games were removed. The schedule has been refreshed.</value>
   </data>
+  <data name="EditButton" xml:space="preserve"><value>Edit</value></data>
+  <data name="EditGameTitle" xml:space="preserve"><value>Edit Game</value></data>
+  <data name="GameWorkspaceTitle" xml:space="preserve"><value>Game</value></data>
+  <data name="GameDetailsHeading" xml:space="preserve"><value>Game Details</value></data>
+  <data name="GameNotFound" xml:space="preserve"><value>The selected Game could not be found for this Team.</value></data>
+  <data name="GameUpdateFailed" xml:space="preserve"><value>The Game could not be updated. Review the details and try again.</value></data>
 </root>
