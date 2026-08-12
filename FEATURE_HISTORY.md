@@ -1712,6 +1712,34 @@ Game lifecycle/status, completion/cancellation, rainout/rescheduling, lineup act
 
 `Implement Edit Game workflow`
 
+### Story 5.0 — Game Lineup Foundation
+
+**Status:** Complete on `task/game-lineup-foundation`; automated tests, Windows build, and focused Android tablet validation passed
+
+#### Implementation Summary
+
+- Added additive `GameLineupPlayer` persistence with Game, global Player, and mutable one-based `BattingOrder` data plus a unique Game/Player index. Lineups remain isolated by Game, and existing Team, Player, TeamPlayer, Season, and Game schema/data remain intact.
+- Added a focused Game-lineup repository. Eligible selection is restricted to active global Players with active memberships on the Game's Team. Initial save revalidates Game ownership and every Player transactionally, rejects partial saves and existing-lineup conflicts, normalizes duplicate IDs while preserving first occurrence, and assigns batting order from the supplied selection sequence.
+- Added the Game-owned Set Lineup workflow using established checkbox rows and Shell ID navigation. Eligible additions require both an active global Player and active TeamPlayer membership for the Game's Team; other-Team-only Players are rejected. Presentation state separately records checkbox click order; unchecking removes the pending Player and selecting again appends that Player to the end. Duplicate supplied IDs preserve first-occurrence order without duplicate rows. Empty rosters open safely with a resource-backed state, and zero selections cannot create or extend a lineup.
+- Game Workspace reloads and displays the persisted ordered lineup and keeps Set Lineup available throughout the pre-game workflow. Reopening Set Lineup shows existing historical entries separately from currently eligible additions; existing entries cannot be removed on this page, and newly selected Players append after the current highest batting order in click order without rebuilding or duplicating the lineup.
+- Persisted lineups are historical snapshots: later Team-roster removal or global Player deactivation does not delete or hide saved rows. Game removal now treats lineup rows as dependent history, blocking those Games while allowing unrelated selected Games to be removed.
+- The persisted model remains in Core, SQLite validation and repository behavior remain in Infrastructure, and selection/presentation state remains in MAUI. ViewModels contain no direct SQLite access, and all new runtime text is centralized in `AppResources`.
+
+#### Automated Tests and Validation
+
+- Added 8 focused repository tests covering selection-order persistence and duplicate normalization, active eligibility, Team isolation and all-or-nothing rejection, empty/missing/wrong-Team/existing-lineup failures, append ordering with existing-order preservation, existing-Player no-op protection, failed-append atomicity, same-Player cross-Game participation, historical independence after roster/global deactivation, ordered reload, and mixed safe Game removal.
+- The complete suite increased from 143 to 151 tests and passed 151 of 151 with zero failures and zero skips.
+- The final Windows target build succeeded with zero errors and 1 `CS8602` warning; Windows runtime validation was not performed. Earlier clean compilation in this story also reported the repository's existing `MVVMTK0045` and XAML compiler `XC0025` warning categories.
+- Focused Android tablet validation passed for the corrected pre-game flow: Set Lineup remained available after saving, reopened successfully, and allowed additional eligible Players to append to the existing lineup. No broader Android scenarios are claimed by this closeout.
+
+#### Limitations and Deferred Work
+
+Removing Players from an existing pre-game lineup is deferred to the next focused story. Drag-and-drop and other manual batting-order editing, Order by OBP, Use Previous Lineup, Score Game, in-game add/remove/substitution behavior, scoring, statistics, and Beer Rules also remain deferred.
+
+#### Intended Commit Message
+
+`Implement Game lineup foundation`
+
 ## Maintenance Rules
 
 Every future story must update this file before the story is committed. A story is not complete until its accurate feature-history entry is included in the same story-focused commit as its implementation.

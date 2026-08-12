@@ -466,4 +466,14 @@
   <data name="GameDetailsHeading" xml:space="preserve"><value>Game Details</value></data>
   <data name="GameNotFound" xml:space="preserve"><value>The selected Game could not be found for this Team.</value></data>
   <data name="GameUpdateFailed" xml:space="preserve"><value>The Game could not be updated. Review the details and try again.</value></data>
+  <data name="SetLineupTitle" xml:space="preserve"><value>Set Lineup</value></data>
+  <data name="SaveLineupButton" xml:space="preserve"><value>Save Lineup</value></data>
+  <data name="LineupHeading" xml:space="preserve"><value>Lineup</value></data>
+  <data name="NoEligibleLineupPlayers" xml:space="preserve"><value>This Team has no eligible roster Players for the lineup.</value></data>
+  <data name="LineupSelectionRequired" xml:space="preserve"><value>Select at least one Player for the lineup.</value></data>
+  <data name="LineupAlreadyExists" xml:space="preserve"><value>This Game already has a saved lineup. Review it in the Game workspace.</value></data>
+  <data name="LineupPlayersIneligible" xml:space="preserve"><value>The lineup was not saved because one or more Players are no longer eligible.</value></data>
+  <data name="LineupPlayerFormat" xml:space="preserve"><value>{0}. {1}</value></data>
+  <data name="CurrentLineupHeading" xml:space="preserve"><value>Current Lineup</value></data>
+  <data name="NoAdditionalEligibleLineupPlayers" xml:space="preserve"><value>There are no additional eligible roster Players to add.</value></data>
 </root>

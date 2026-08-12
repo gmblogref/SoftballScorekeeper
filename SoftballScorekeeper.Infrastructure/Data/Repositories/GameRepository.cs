@@ -399,9 +399,7 @@ public sealed class GameRepository
 
     private static bool HasDependentHistory(SQLite.SQLiteConnection transaction, int gameId)
     {
-        // The current schema has no persisted Game-owned lineup or scoring history.
-        // Future history tables can extend this Infrastructure guard without changing the UI contract.
-        return false;
+        return transaction.Table<GameLineupPlayer>().Any(item => item.GameId == gameId);
     }
 
     private sealed class DuplicateScheduledGameException : Exception;

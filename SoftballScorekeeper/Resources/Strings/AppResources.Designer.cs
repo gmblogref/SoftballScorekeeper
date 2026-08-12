@@ -872,5 +872,15 @@ namespace SoftballScorekeeper.Resources.Strings {
         public static string GameDetailsHeading { get { return ResourceManager.GetString("GameDetailsHeading", resourceCulture); } }
         public static string GameNotFound { get { return ResourceManager.GetString("GameNotFound", resourceCulture); } }
         public static string GameUpdateFailed { get { return ResourceManager.GetString("GameUpdateFailed", resourceCulture); } }
+        public static string SetLineupTitle { get { return ResourceManager.GetString("SetLineupTitle", resourceCulture); } }
+        public static string SaveLineupButton { get { return ResourceManager.GetString("SaveLineupButton", resourceCulture); } }
+        public static string LineupHeading { get { return ResourceManager.GetString("LineupHeading", resourceCulture); } }
+        public static string NoEligibleLineupPlayers { get { return ResourceManager.GetString("NoEligibleLineupPlayers", resourceCulture); } }
+        public static string LineupSelectionRequired { get { return ResourceManager.GetString("LineupSelectionRequired", resourceCulture); } }
+        public static string LineupAlreadyExists { get { return ResourceManager.GetString("LineupAlreadyExists", resourceCulture); } }
+        public static string LineupPlayersIneligible { get { return ResourceManager.GetString("LineupPlayersIneligible", resourceCulture); } }
+        public static string LineupPlayerFormat { get { return ResourceManager.GetString("LineupPlayerFormat", resourceCulture); } }
+        public static string CurrentLineupHeading { get { return ResourceManager.GetString("CurrentLineupHeading", resourceCulture); } }
+        public static string NoAdditionalEligibleLineupPlayers { get { return ResourceManager.GetString("NoAdditionalEligibleLineupPlayers", resourceCulture); } }
     }
 }
