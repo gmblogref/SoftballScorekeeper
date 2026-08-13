@@ -476,4 +476,14 @@
   <data name="LineupPlayerFormat" xml:space="preserve"><value>{0}. {1}</value></data>
   <data name="CurrentLineupHeading" xml:space="preserve"><value>Current Lineup</value></data>
   <data name="NoAdditionalEligibleLineupPlayers" xml:space="preserve"><value>There are no additional eligible roster Players to add.</value></data>
+  <data name="RemoveLineupPlayersButton" xml:space="preserve"><value>Remove Players</value></data>
+  <data name="RemoveSelectedLineupPlayersButton" xml:space="preserve"><value>Remove Selected</value></data>
+  <data name="LineupRemovalSelectedCountSingular" xml:space="preserve"><value>{0} Player selected</value></data>
+  <data name="LineupRemovalSelectedCountPlural" xml:space="preserve"><value>{0} Players selected</value></data>
+  <data name="LineupRemovalConfirmationTitle" xml:space="preserve"><value>Remove Lineup Players</value></data>
+  <data name="LineupRemovalConfirmationSingular" xml:space="preserve"><value>Remove {0} selected Player from this Game's lineup only? Their Player record and Team roster membership will remain, and eligible Players can be added back before scoring begins.</value></data>
+  <data name="LineupRemovalConfirmationPlural" xml:space="preserve"><value>Remove {0} selected Players from this Game's lineup only? Their Player records and Team roster memberships will remain, and eligible Players can be added back before scoring begins.</value></data>
+  <data name="ConfirmRemoveLineupPlayersButton" xml:space="preserve"><value>Remove</value></data>
+  <data name="LineupRemovalPartialMessage" xml:space="preserve"><value>{0} of {1} selected Players were removed. The lineup has been refreshed.</value></data>
+  <data name="LineupRemovalNoOpMessage" xml:space="preserve"><value>No selected Players were removed. The lineup has been refreshed.</value></data>
 </root>

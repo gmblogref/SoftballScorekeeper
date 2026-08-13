@@ -96,6 +96,12 @@ internal sealed class TemporaryTestDatabase : IAsyncDisposable
             connection => connection.Table<TeamPlayer>().OrderBy(item => item.Id).ToListAsync());
     }
 
+    public Task<List<Player>> GetPlayersAsync()
+    {
+        return UseSeedingConnectionAsync(
+            connection => connection.Table<Player>().OrderBy(item => item.Id).ToListAsync());
+    }
+
     public Task<List<Season>> GetSeasonsAsync()
     {
         return UseSeedingConnectionAsync(
