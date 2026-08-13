@@ -882,5 +882,15 @@ namespace SoftballScorekeeper.Resources.Strings {
         public static string LineupPlayerFormat { get { return ResourceManager.GetString("LineupPlayerFormat", resourceCulture); } }
         public static string CurrentLineupHeading { get { return ResourceManager.GetString("CurrentLineupHeading", resourceCulture); } }
         public static string NoAdditionalEligibleLineupPlayers { get { return ResourceManager.GetString("NoAdditionalEligibleLineupPlayers", resourceCulture); } }
+        public static string RemoveLineupPlayersButton { get { return ResourceManager.GetString("RemoveLineupPlayersButton", resourceCulture); } }
+        public static string RemoveSelectedLineupPlayersButton { get { return ResourceManager.GetString("RemoveSelectedLineupPlayersButton", resourceCulture); } }
+        public static string LineupRemovalSelectedCountSingular { get { return ResourceManager.GetString("LineupRemovalSelectedCountSingular", resourceCulture); } }
+        public static string LineupRemovalSelectedCountPlural { get { return ResourceManager.GetString("LineupRemovalSelectedCountPlural", resourceCulture); } }
+        public static string LineupRemovalConfirmationTitle { get { return ResourceManager.GetString("LineupRemovalConfirmationTitle", resourceCulture); } }
+        public static string LineupRemovalConfirmationSingular { get { return ResourceManager.GetString("LineupRemovalConfirmationSingular", resourceCulture); } }
+        public static string LineupRemovalConfirmationPlural { get { return ResourceManager.GetString("LineupRemovalConfirmationPlural", resourceCulture); } }
+        public static string ConfirmRemoveLineupPlayersButton { get { return ResourceManager.GetString("ConfirmRemoveLineupPlayersButton", resourceCulture); } }
+        public static string LineupRemovalPartialMessage { get { return ResourceManager.GetString("LineupRemovalPartialMessage", resourceCulture); } }
+        public static string LineupRemovalNoOpMessage { get { return ResourceManager.GetString("LineupRemovalNoOpMessage", resourceCulture); } }
     }
 }

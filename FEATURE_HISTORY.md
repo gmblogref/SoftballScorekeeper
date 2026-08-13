@@ -1740,6 +1740,34 @@ Removing Players from an existing pre-game lineup is deferred to the next focuse
 
 `Implement Game lineup foundation`
 
+### Story 5.1 — Remove Players from Lineup
+
+**Status:** Implementation complete on `task/remove-players-from-lineup`; automated tests and Windows build passed; Android validation remains pending
+
+#### Implementation Summary
+
+- Added a temporary checkbox-based removal mode to Set Lineup for persisted pre-game lineup Players. Remove Players remains on the same page, shows the current persisted batting-order numbers with right-side checkboxes, starts with zero selections, uses singular/plural selected-count text, disables Remove Selected until needed and while confirmation or persistence is active, and offers Cancel without persistence. Long-press was not used because the established explicit checkbox pattern is more discoverable and touch-appropriate.
+- Add and removal state remain separate presentation concerns. Entering removal mode clears pending Add selections and hides the eligible-Player/Add controls; Cancel and native Back clear removal selections and restore the normal Add workflow. Canceling the native confirmation preserves the removal mode, selections, and count.
+- Added a focused transactional `GameLineupRepository.RemovePlayersAsync` operation and result. It deduplicates requested IDs, safely handles null, empty, invalid, and missing IDs, removes only matching rows for the requested Game, reports removed/missing/ignored IDs, and never changes Player, TeamPlayer, or another Game's lineup rows.
+- Surviving lineup rows are resequenced contiguously from one in their existing relative order. Removing the entire lineup leaves no lineup rows, makes `HasLineupAsync` false, reloads Set Lineup into its no-lineup state, and naturally removes the existing Game-deletion guard when no other dependent history exists.
+- Repository-truth reloads after removal make eligible removed Players addable again; the existing append behavior places them after the current highest batting order rather than restoring an old position. Former Team members and globally inactive Players can be removed from persisted lineups without reactivating their Player or TeamPlayer state and do not become addable unless normal eligibility is restored.
+- This remains a pre-game-only destructive operation. No scoring-history lifecycle, scoring, substitutions, in-game lineup changes, or generic lineup-mutation framework was introduced; removal rules will require revisiting when persisted scoring history exists.
+
+#### Automated Tests and Validation
+
+- Expanded `GameLineupRepositoryTests` with 9 test cases covering first, middle, last, multiple, and entire-lineup removal; contiguous order and relative-order preservation; duplicate/non-positive/missing/null/empty input; accurate result reporting; Player and TeamPlayer preservation; historical roster/global-inactive behavior; cross-Game isolation; dynamic Game-removal protection; and eligible re-add-at-end behavior without duplicates or old-position restoration.
+- Focused Game-lineup repository validation passed 17 of 17 tests with zero failures and zero skips. The complete suite increased from 151 to 160 tests and passed 160 of 160 with zero failures and zero skips.
+- The Windows `net9.0-windows10.0.19041.0` target build succeeded with zero errors and 99 warnings. Warning categories are `CS8602`, `MVVMTK0045`, and `XC0025`. Windows runtime validation was not performed.
+- Android 10-inch tablet/emulator validation was not performed in this environment and remains required for the removal-mode interaction, layout, themes/orientations, confirmation wording, workspace refresh, and broader UI regression checklist.
+
+#### Limitations and Deferred Work
+
+Manual batting-order management remains Story 5.2 work. Drag-and-drop, ordering helpers, previous-lineup reuse, new-Player creation from Set Lineup, scoring, scoring-history-aware lineup lifecycle, in-game changes, substitutions, injuries, defensive positions, statistics, and Beer Rules remain deferred.
+
+#### Intended Commit Message
+
+`Implement pre-game lineup player removal`
+
 ## Maintenance Rules
 
 Every future story must update this file before the story is committed. A story is not complete until its accurate feature-history entry is included in the same story-focused commit as its implementation.

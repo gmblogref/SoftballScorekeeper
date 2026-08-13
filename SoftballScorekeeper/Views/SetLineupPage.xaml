@@ -3,14 +3,34 @@
  xmlns:strings="clr-namespace:SoftballScorekeeper.Resources.Strings" xmlns:viewModels="clr-namespace:SoftballScorekeeper.ViewModels"
  x:Class="SoftballScorekeeper.Views.SetLineupPage" x:DataType="viewModels:SetLineupViewModel" Title="{x:Static strings:AppResources.SetLineupTitle}">
  <Grid Padding="40" RowDefinitions="Auto,Auto,Auto,*,Auto" RowSpacing="20">
-  <Grid ColumnDefinitions="*,Auto"><Label Text="{x:Static strings:AppResources.SetLineupTitle}" Style="{StaticResource Headline}"/><Label Grid.Column="1" Text="{Binding SelectedPlayerCount, StringFormat={x:Static strings:AppResources.SelectedPlayerCountText}}"/></Grid>
+  <Grid ColumnDefinitions="*,Auto">
+   <Label Text="{x:Static strings:AppResources.SetLineupTitle}" Style="{StaticResource Headline}"/>
+   <Label Grid.Column="1" Text="{Binding SelectedPlayerCount, StringFormat={x:Static strings:AppResources.SelectedPlayerCountText}}" IsVisible="{Binding IsNormalMode}"/>
+   <Label Grid.Column="1" Text="{Binding SelectedRemovalCountText}" IsVisible="{Binding IsRemovalMode}"/>
+  </Grid>
   <Label Grid.Row="1" Text="{Binding ValidationMessage}" HorizontalTextAlignment="Center"/>
-  <VerticalStackLayout Grid.Row="2" IsVisible="{Binding HasExistingLineup}" Spacing="6"><Label Text="{x:Static strings:AppResources.CurrentLineupHeading}" Style="{StaticResource SubHeadline}"/><CollectionView ItemsSource="{Binding ExistingLineupPlayers}" SelectionMode="None"><CollectionView.ItemTemplate><DataTemplate x:DataType="x:String"><Label Text="{Binding .}" FontSize="20" Padding="8,3"/></DataTemplate></CollectionView.ItemTemplate></CollectionView></VerticalStackLayout>
-  <Grid Grid.Row="3" RowDefinitions="Auto,*" RowSpacing="8">
+  <VerticalStackLayout Grid.Row="2" IsVisible="{Binding HasExistingLineup}" Spacing="6">
+   <Grid ColumnDefinitions="*,Auto">
+    <Label Text="{x:Static strings:AppResources.CurrentLineupHeading}" Style="{StaticResource SubHeadline}"/>
+    <Button Grid.Column="1" Text="{x:Static strings:AppResources.RemoveLineupPlayersButton}" Command="{Binding EnterRemovalModeCommand}" IsVisible="{Binding IsNormalMode}" MinimumHeightRequest="52" MinimumWidthRequest="180"/>
+   </Grid>
+   <CollectionView ItemsSource="{Binding ExistingLineupPlayers}" SelectionMode="None">
+    <CollectionView.ItemTemplate>
+     <DataTemplate x:DataType="viewModels:LineupPlayerSelectionItem">
+      <Grid Padding="8,3" ColumnDefinitions="*,Auto" MinimumHeightRequest="56">
+       <Label Text="{Binding DisplayText}" FontSize="20" VerticalOptions="Center"/>
+       <CheckBox Grid.Column="1" IsChecked="{Binding IsSelected, Mode=TwoWay}" IsVisible="{Binding IsSelectionVisible}" MinimumHeightRequest="48" MinimumWidthRequest="48"/>
+      </Grid>
+     </DataTemplate>
+    </CollectionView.ItemTemplate>
+   </CollectionView>
+  </VerticalStackLayout>
+  <Grid Grid.Row="3" RowDefinitions="Auto,*" RowSpacing="8" IsVisible="{Binding IsNormalMode}">
    <Label Text="{x:Static strings:AppResources.EligiblePlayersHeading}" Style="{StaticResource SubHeadline}"/>
    <Label Grid.Row="1" Text="{x:Static strings:AppResources.NoAdditionalEligibleLineupPlayers}" HorizontalTextAlignment="Center" VerticalOptions="Center" IsVisible="{Binding HasNoPlayers}"/>
    <CollectionView Grid.Row="1" ItemsSource="{Binding Players}" IsVisible="{Binding HasPlayers}" SelectionMode="None"><CollectionView.ItemTemplate><DataTemplate x:DataType="viewModels:PlayerSelectionItem"><Grid Padding="20,12" RowDefinitions="Auto,1" ColumnDefinitions="*,Auto" MinimumHeightRequest="72"><Label Text="{Binding DisplayName}" FontSize="20" VerticalOptions="Center"/><CheckBox Grid.Column="1" IsChecked="{Binding IsSelected, Mode=TwoWay}" MinimumHeightRequest="48" MinimumWidthRequest="48"/><BoxView Grid.Row="1" Grid.ColumnSpan="2" Margin="0,11,0,0" HeightRequest="1" Color="{AppThemeBinding Light={StaticResource Gray200}, Dark={StaticResource Gray500}}"/></Grid></DataTemplate></CollectionView.ItemTemplate></CollectionView>
   </Grid>
-  <HorizontalStackLayout Grid.Row="4" HorizontalOptions="Center" Spacing="20"><Button Text="{x:Static strings:AppResources.CancelButton}" Command="{Binding CancelCommand}" MinimumHeightRequest="52" MinimumWidthRequest="160"/><Button Text="{x:Static strings:AppResources.SaveLineupButton}" Command="{Binding SaveCommand}" MinimumHeightRequest="52" MinimumWidthRequest="200"/></HorizontalStackLayout>
+  <HorizontalStackLayout Grid.Row="4" HorizontalOptions="Center" Spacing="20" IsVisible="{Binding IsNormalMode}"><Button Text="{x:Static strings:AppResources.CancelButton}" Command="{Binding CancelCommand}" MinimumHeightRequest="52" MinimumWidthRequest="160"/><Button Text="{x:Static strings:AppResources.SaveLineupButton}" Command="{Binding SaveCommand}" MinimumHeightRequest="52" MinimumWidthRequest="200"/></HorizontalStackLayout>
+  <HorizontalStackLayout Grid.Row="4" HorizontalOptions="Center" Spacing="20" IsVisible="{Binding IsRemovalMode}"><Button Text="{x:Static strings:AppResources.CancelButton}" Command="{Binding CancelRemovalModeCommand}" MinimumHeightRequest="52" MinimumWidthRequest="160"/><Button Text="{x:Static strings:AppResources.RemoveSelectedLineupPlayersButton}" Command="{Binding RequestRemovalCommand}" MinimumHeightRequest="52" MinimumWidthRequest="200"/></HorizontalStackLayout>
  </Grid>
 </ContentPage>

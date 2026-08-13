@@ -52,6 +52,59 @@ public sealed class GameLineupRepository
     public async Task<SaveGameLineupResult> AppendAsync(int teamId, int gameId, IEnumerable<int>? playerIds)
         => await SaveAsync(teamId, gameId, playerIds, allowExistingLineup: true);
 
+    public async Task<RemoveGameLineupPlayersResult> RemovePlayersAsync(
+        int gameId,
+        IReadOnlyCollection<int>? playerIds)
+    {
+        var requestedIds = playerIds?.Distinct().ToArray() ?? Array.Empty<int>();
+        var ignoredIds = requestedIds.Where(id => id <= 0).ToArray();
+        var positiveIds = requestedIds.Where(id => id > 0).ToArray();
+        if (gameId <= 0 || positiveIds.Length == 0)
+            return new(gameId, requestedIds, [], positiveIds, ignoredIds, false);
+
+        var connection = await database.GetConnectionAsync();
+        var result = new RemoveGameLineupPlayersResult(
+            gameId, requestedIds, [], positiveIds, ignoredIds, false);
+        try
+        {
+            await connection.RunInTransactionAsync(transaction =>
+            {
+                if (transaction.Find<Game>(gameId) is null) return;
+
+                var lineup = transaction.Table<GameLineupPlayer>()
+                    .Where(item => item.GameId == gameId)
+                    .OrderBy(item => item.BattingOrder)
+                    .ThenBy(item => item.Id)
+                    .ToList();
+                var requestedSet = positiveIds.ToHashSet();
+                var removedIds = lineup
+                    .Where(item => requestedSet.Contains(item.PlayerId))
+                    .Select(item => item.PlayerId)
+                    .ToArray();
+                var removedSet = removedIds.ToHashSet();
+                var missingIds = positiveIds.Where(id => !removedSet.Contains(id)).ToArray();
+
+                foreach (var item in lineup.Where(item => removedSet.Contains(item.PlayerId)))
+                    transaction.Delete(item);
+
+                var survivors = lineup.Where(item => !removedSet.Contains(item.PlayerId)).ToArray();
+                for (var index = 0; index < survivors.Length; index++)
+                {
+                    survivors[index].BattingOrder = index + 1;
+                    transaction.Update(survivors[index]);
+                }
+
+                result = new(gameId, requestedIds, removedIds, missingIds, ignoredIds, true);
+            });
+        }
+        catch
+        {
+            return new(gameId, requestedIds, [], positiveIds, ignoredIds, false);
+        }
+
+        return result;
+    }
+
     private async Task<SaveGameLineupResult> SaveAsync(
         int teamId,
         int gameId,
