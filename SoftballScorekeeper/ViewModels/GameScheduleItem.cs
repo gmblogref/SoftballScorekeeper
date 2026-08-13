@@ -36,6 +36,12 @@ public sealed class GameScheduleItem : ObservableObject
 
     public required bool IsNextPlayingDate { get; init; }
 
+    public required bool HasLineup { get; init; }
+
+    public required string LineupStatusText { get; init; }
+
+    public required string LineupStatusSemanticDescription { get; init; }
+
     public IAsyncRelayCommand OpenCommand { get; }
 
     public bool IsSelected

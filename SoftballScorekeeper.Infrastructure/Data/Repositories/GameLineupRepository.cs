@@ -46,6 +46,19 @@ public sealed class GameLineupRepository
 
     public async Task<bool> HasLineupAsync(int gameId) => (await GetForGameAsync(gameId)).Count > 0;
 
+    public async Task<IReadOnlySet<int>> GetGameIdsWithLineupsAsync(IEnumerable<int>? gameIds)
+    {
+        var requestedIds = (gameIds ?? []).Where(id => id > 0).Distinct().ToArray();
+        if (requestedIds.Length == 0) return new HashSet<int>();
+
+        var connection = await database.GetConnectionAsync();
+        var placeholders = string.Join(",", requestedIds.Select(_ => "?"));
+        var rows = await connection.QueryAsync<GameLineupPlayer>(
+            $"SELECT DISTINCT GameId FROM GameLineupPlayer WHERE GameId IN ({placeholders})",
+            requestedIds.Cast<object>().ToArray());
+        return rows.Select(item => item.GameId).ToHashSet();
+    }
+
     public async Task<SaveGameLineupResult> SaveInitialAsync(int teamId, int gameId, IEnumerable<int>? playerIds)
         => await SaveAsync(teamId, gameId, playerIds, allowExistingLineup: false);
 

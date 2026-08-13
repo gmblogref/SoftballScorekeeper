@@ -168,7 +168,7 @@
                                                     Padding="12,8"
                                                     MinimumHeightRequest="56"
                                                     RowDefinitions="Auto,1"
-                                                    ColumnDefinitions="76,100,2*,110,*,*,Auto"
+                                                    ColumnDefinitions="76,110,100,2*,110,*,*,Auto"
                                                     ColumnSpacing="12">
                                                     <Grid.GestureRecognizers>
                                                         <TapGestureRecognizer Command="{Binding OpenCommand}" />
@@ -180,36 +180,54 @@
                                                         VerticalTextAlignment="Center" />
                                                     <Label
                                                         Grid.Column="1"
+                                                        Text="{Binding LineupStatusText}"
+                                                        IsVisible="{Binding IsNextPlayingDate}"
+                                                        SemanticProperties.Description="{Binding LineupStatusSemanticDescription}"
+                                                        FontAttributes="Bold"
+                                                        FontSize="14"
+                                                        VerticalTextAlignment="Center"
+                                                        LineBreakMode="NoWrap">
+                                                        <Label.Triggers>
+                                                            <DataTrigger TargetType="Label" Binding="{Binding HasLineup}" Value="True">
+                                                                <Setter Property="TextColor" Value="{AppThemeBinding Light={StaticResource Primary}, Dark={StaticResource PrimaryDark}}" />
+                                                            </DataTrigger>
+                                                            <DataTrigger TargetType="Label" Binding="{Binding HasLineup}" Value="False">
+                                                                <Setter Property="TextColor" Value="{AppThemeBinding Light={StaticResource WarningText}, Dark={StaticResource WarningTextDark}}" />
+                                                            </DataTrigger>
+                                                        </Label.Triggers>
+                                                    </Label>
+                                                    <Label
+                                                        Grid.Column="2"
                                                         Text="{Binding DateDisplay}"
                                                         FontSize="17"
                                                         VerticalTextAlignment="Center"
                                                         LineBreakMode="NoWrap" />
                                                     <Label
-                                                        Grid.Column="2"
+                                                        Grid.Column="3"
                                                         Text="{Binding OpponentDisplay}"
                                                         FontSize="17"
                                                         VerticalTextAlignment="Center"
                                                         LineBreakMode="TailTruncation" />
                                                     <Label
-                                                        Grid.Column="3"
+                                                        Grid.Column="4"
                                                         Text="{Binding TimeDisplay}"
                                                         FontSize="17"
                                                         VerticalTextAlignment="Center"
                                                         LineBreakMode="NoWrap" />
                                                     <Label
-                                                        Grid.Column="4"
+                                                        Grid.Column="5"
                                                         Text="{Binding FieldDisplay}"
                                                         FontSize="15"
                                                         VerticalTextAlignment="Center"
                                                         LineBreakMode="TailTruncation" />
                                                     <Label
-                                                        Grid.Column="5"
+                                                        Grid.Column="6"
                                                         Text="{Binding SeasonDisplay}"
                                                         FontSize="15"
                                                         VerticalTextAlignment="Center"
                                                         LineBreakMode="TailTruncation" />
                                                     <CheckBox
-                                                        Grid.Column="6"
+                                                        Grid.Column="7"
                                                         IsChecked="{Binding IsSelected, Mode=TwoWay}"
                                                         IsVisible="{Binding IsSelectionVisible}"
                                                         MinimumHeightRequest="48"
@@ -218,7 +236,7 @@
                                                         VerticalOptions="Center" />
                                                     <BoxView
                                                         Grid.Row="1"
-                                                        Grid.ColumnSpan="7"
+                                                        Grid.ColumnSpan="8"
                                                         Margin="0,7,0,0"
                                                         HeightRequest="1"
                                                         Color="{AppThemeBinding Light={StaticResource Gray200}, Dark={StaticResource Gray500}}" />
