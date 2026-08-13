@@ -1742,7 +1742,7 @@ Removing Players from an existing pre-game lineup is deferred to the next focuse
 
 ### Story 5.1 — Remove Players from Lineup
 
-**Status:** Implementation complete on `task/remove-players-from-lineup`; automated tests and Windows build passed; Android validation remains pending
+**Status:** Complete on `task/remove-players-from-lineup`; automated tests, Windows build, and Android manual validation passed
 
 #### Implementation Summary
 
@@ -1758,11 +1758,14 @@ Removing Players from an existing pre-game lineup is deferred to the next focuse
 - Expanded `GameLineupRepositoryTests` with 9 test cases covering first, middle, last, multiple, and entire-lineup removal; contiguous order and relative-order preservation; duplicate/non-positive/missing/null/empty input; accurate result reporting; Player and TeamPlayer preservation; historical roster/global-inactive behavior; cross-Game isolation; dynamic Game-removal protection; and eligible re-add-at-end behavior without duplicates or old-position restoration.
 - Focused Game-lineup repository validation passed 17 of 17 tests with zero failures and zero skips. The complete suite increased from 151 to 160 tests and passed 160 of 160 with zero failures and zero skips.
 - The Windows `net9.0-windows10.0.19041.0` target build succeeded with zero errors and 99 warnings. Warning categories are `CS8602`, `MVVMTK0045`, and `XC0025`. Windows runtime validation was not performed.
-- Android 10-inch tablet/emulator validation was not performed in this environment and remains required for the removal-mode interaction, layout, themes/orientations, confirmation wording, workspace refresh, and broader UI regression checklist.
+- The final Android manual regression pass succeeded after the emulator was reset. It confirmed normal portrait touch interaction and verified the Remove Players workflow, including entry into removal mode, right-side checkbox selection, selected-count and singular/plural presentation, confirmation and cancellation behavior, persisted removal, contiguous batting-order resequencing, eligible Player re-addition at the end, and native Back exiting removal mode before navigating away. The completed workflow displayed and behaved correctly.
+- Before the successful pass, the Android emulator developed an environmental mouse/touch coordinate-mapping problem that also affected the Android launcher: home-screen icons required clicks at incorrect locations, while `adb shell input tap` successfully activated application controls. Android input/window diagnostics showed the application was resumed, focused, touchable, and responsive. Resetting/correcting the emulator restored normal portrait interaction; this was an emulator issue, not a Softball Scorekeeper defect.
 
 #### Limitations and Deferred Work
 
-Manual batting-order management remains Story 5.2 work. Drag-and-drop, ordering helpers, previous-lineup reuse, new-Player creation from Set Lineup, scoring, scoring-history-aware lineup lifecycle, in-game changes, substitutions, injuries, defensive positions, statistics, and Beer Rules remain deferred.
+- Story 5.1.1 — NEXT Game Lineup Status Indicator remains deferred. The planned direction is a compact, readiness-only NEXT Game indicator: zero persisted lineup Players shows a warning such as `⚠ Lineup`, while one or more shows a positive status such as `✓ Lineup`. It will communicate readiness without locking or requiring a lineup.
+- Story 5.1.2 — Lineup Manager Refinement remains deferred. The planned direction is to evolve the existing Set Lineup page into the single long-term lineup-management page for adding and removing Players and, later, batting-order reordering and OBP ordering. Game Workspace will display `Set Lineup` when no lineup exists and `Edit Lineup` when one exists. Reordering and OBP behavior remain future work.
+- Manual batting-order management remains Story 5.2 work. Drag-and-drop, ordering helpers, previous-lineup reuse, new-Player creation from Set Lineup, scoring, scoring-history-aware lineup lifecycle, in-game changes, substitutions, injuries, defensive positions, statistics, and Beer Rules remain deferred.
 
 #### Intended Commit Message
 
