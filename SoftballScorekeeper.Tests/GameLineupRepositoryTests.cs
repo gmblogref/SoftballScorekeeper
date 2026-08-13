@@ -88,6 +88,47 @@ public sealed class GameLineupRepositoryTests
     }
 
     [Fact]
+    public async Task GetGameIdsWithLineupsAsync_ReportsPersistedRowsPerGameAndTracksRemoval()
+    {
+        await using var db = await TemporaryTestDatabase.CreateAsync();
+        var setup = await SetupAsync(db, 3);
+        var secondGame = new Game { TeamId = setup.Team.Id, SeasonId = setup.Game.SeasonId, ScheduledDate = setup.Game.ScheduledDate, ScheduledTime = setup.Game.ScheduledTime + TimeSpan.FromHours(1) };
+        var thirdGame = new Game { TeamId = setup.Team.Id, SeasonId = setup.Game.SeasonId, ScheduledDate = setup.Game.ScheduledDate, ScheduledTime = setup.Game.ScheduledTime + TimeSpan.FromHours(2) };
+        await db.SeedGameAsync(secondGame);
+        await db.SeedGameAsync(thirdGame);
+        var repository = db.CreateGameLineupRepository();
+
+        Assert.Empty(await repository.GetGameIdsWithLineupsAsync(null));
+        Assert.Empty(await repository.GetGameIdsWithLineupsAsync([0, -1, setup.Game.Id]));
+
+        Assert.True((await repository.SaveInitialAsync(
+            setup.Team.Id,
+            setup.Game.Id,
+            [setup.Players[0].Id, setup.Players[1].Id])).IsSuccess);
+        Assert.True((await repository.SaveInitialAsync(
+            setup.Team.Id,
+            secondGame.Id,
+            [setup.Players[2].Id])).IsSuccess);
+
+        var withLineups = await repository.GetGameIdsWithLineupsAsync(
+            [setup.Game.Id, secondGame.Id, thirdGame.Id, setup.Game.Id, 0]);
+        Assert.Equal([setup.Game.Id, secondGame.Id], withLineups.Order());
+
+        await repository.RemovePlayersAsync(setup.Game.Id, [setup.Players[0].Id]);
+        Assert.Contains(setup.Game.Id, await repository.GetGameIdsWithLineupsAsync([setup.Game.Id]));
+
+        await db.CreateTeamPlayerRepository().RemovePlayersFromTeamAsync(
+            setup.Team.Id,
+            [setup.Players[1].Id]);
+        await db.CreatePlayerRepository().DeactivateAsync([setup.Players[1].Id]);
+        Assert.Contains(setup.Game.Id, await repository.GetGameIdsWithLineupsAsync([setup.Game.Id]));
+
+        await repository.RemovePlayersAsync(setup.Game.Id, [setup.Players[1].Id]);
+        Assert.DoesNotContain(setup.Game.Id, await repository.GetGameIdsWithLineupsAsync([setup.Game.Id]));
+        Assert.Contains(secondGame.Id, await repository.GetGameIdsWithLineupsAsync([secondGame.Id]));
+    }
+
+    [Fact]
     public async Task RemoveGamesAsync_BlocksLineupGameButRemovesUnrelatedGame()
     {
         await using var db = await TemporaryTestDatabase.CreateAsync();

@@ -247,6 +247,18 @@
   <data name="NextGameLabel" xml:space="preserve">
     <value>NEXT</value>
   </data>
+  <data name="LineupNotSetStatusText" xml:space="preserve">
+    <value>⚠ Lineup</value>
+  </data>
+  <data name="LineupReadyStatusText" xml:space="preserve">
+    <value>✓ Lineup</value>
+  </data>
+  <data name="LineupNotSetSemanticDescription" xml:space="preserve">
+    <value>Lineup not set</value>
+  </data>
+  <data name="LineupReadySemanticDescription" xml:space="preserve">
+    <value>Lineup set</value>
+  </data>
   <data name="ScheduleTbdText" xml:space="preserve">
     <value>TBD</value>
   </data>

@@ -1771,6 +1771,35 @@ Removing Players from an existing pre-game lineup is deferred to the next focuse
 
 `Implement pre-game lineup player removal`
 
+### Story 5.1.1 — NEXT Game Lineup Status Indicator
+
+**Status:** Complete on `task/lineup-indicator`; automated tests, Windows build, and Android 10-inch tablet manual validation passed
+
+#### Implementation Summary
+
+- Added a compact, resource-backed lineup-readiness indicator beside NEXT in Team Workspace schedule rows. NEXT Games with zero persisted `GameLineupPlayer` rows show `⚠ Lineup` and NEXT Games with one or more show `✓ Lineup`; non-NEXT Games show no lineup status. Separate semantic descriptions communicate `Lineup not set` and `Lineup set` without relying on symbols or color alone.
+- Preserved Story 4.2 NEXT calculation unchanged. Every Game on the next playing date evaluates its own persisted lineup independently, so same-date Games can show different readiness states. No-future schedules have neither NEXT nor lineup-readiness indicators.
+- Added a focused `GameLineupRepository.GetGameIdsWithLineupsAsync` batch query so Team Workspace can load lineup presence for the schedule in one database read rather than issuing one query per Game. Readiness remains derived, is not persisted, and does not depend on current roster membership or global Player activity.
+- `GameScheduleItem` owns the presentation state, while Team Workspace obtains readiness from repository-backed persisted lineup data. Core `Game` was unchanged, no schema change was required, and no readiness state is persisted.
+- Team Workspace reloads Games, Seasons, and lineup presence from repository truth whenever it appears and after its existing schedule mutations. Returning from Set Lineup or Remove Players therefore refreshes warning to positive after the first Player is added, positive to warning after the entire lineup is removed, and retains positive after partial removal without manually patching presentation state or changing lineup, Game-removal, scheduling, lifecycle, or scoring rules.
+- Story 5.1.1 changed `FEATURE_HISTORY.md`, `GameLineupRepository.cs`, `GameLineupRepositoryTests.cs`, `AppResources.resx`, `AppResources.Designer.cs`, `GameScheduleItem.cs`, `TeamWorkspaceViewModel.cs`, and `TeamWorkspacePage.xaml`.
+
+#### Automated Tests and Validation
+
+- Added one focused repository test covering empty/invalid input, zero-, one-, and multi-row lineup presence, duplicate requested IDs, per-Game isolation on a shared date, partial and complete removal transitions, and persisted-lineup independence from roster removal and global Player deactivation.
+- Focused Game-lineup repository validation passed 18 of 18 tests with zero failures and zero skips. The complete suite increased from 160 to 161 tests and passed 161 of 161 with zero failures and zero skips.
+- The Windows `net9.0-windows10.0.19041.0` target build succeeded with zero errors and 99 warnings. Warning categories remain `CS8602`, `MVVMTK0045`, and `XC0025`. Windows runtime validation was not performed.
+- Android 10-inch tablet manual validation passed. It confirmed that a NEXT Game without a lineup shows the warning state, a persisted lineup shows the positive state, adding the first Player refreshes warning to positive, complete removal refreshes positive to warning, partial removal retains positive, same-date NEXT Games can show independent mixed states, and non-NEXT Games show no lineup indicator. Existing schedule and lineup workflows remained usable, with no clipping, overlap, binding failure, or runtime exception observed. Orientation and theme variants are not claimed because the supplied validation record did not state that they were specifically exercised.
+- Final `git diff --check` validation passed.
+
+#### Limitations and Deferred Work
+
+The indicator is informational only and does not require a lineup or introduce completeness, minimum-size, batting-order, scoring, start-Game, or lifecycle validation. Story 5.1.2 Lineup Manager Refinement, Story 5.2 Manual Batting Order Management, drag-and-drop lineup reordering, Order Lineup by OBP, Use Previous Lineup, lineup minimum/start requirements, Score Game, in-game lineup changes, statistics, and Beer Rules remain deferred.
+
+#### Intended Commit Message
+
+`Add NEXT Game lineup status`
+
 ## Maintenance Rules
 
 Every future story must update this file before the story is committed. A story is not complete until its accurate feature-history entry is included in the same story-focused commit as its implementation.

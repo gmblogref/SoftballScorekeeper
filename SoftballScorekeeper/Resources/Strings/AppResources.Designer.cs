@@ -440,6 +440,30 @@ namespace SoftballScorekeeper.Resources.Strings {
             }
         }
 
+        public static string LineupNotSetStatusText {
+            get {
+                return ResourceManager.GetString("LineupNotSetStatusText", resourceCulture);
+            }
+        }
+
+        public static string LineupReadyStatusText {
+            get {
+                return ResourceManager.GetString("LineupReadyStatusText", resourceCulture);
+            }
+        }
+
+        public static string LineupNotSetSemanticDescription {
+            get {
+                return ResourceManager.GetString("LineupNotSetSemanticDescription", resourceCulture);
+            }
+        }
+
+        public static string LineupReadySemanticDescription {
+            get {
+                return ResourceManager.GetString("LineupReadySemanticDescription", resourceCulture);
+            }
+        }
+
         public static string ScheduleTbdText {
             get {
                 return ResourceManager.GetString("ScheduleTbdText", resourceCulture);
