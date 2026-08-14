@@ -202,6 +202,12 @@
                 MinimumWidthRequest="180"
                 Padding="24,12" />
             <Button
+                Text="{x:Static strings:AppResources.SaveAndAddAnotherButton}"
+                Command="{Binding SaveAndAddAnotherCommand}"
+                MinimumHeightRequest="52"
+                MinimumWidthRequest="180"
+                Padding="24,12" />
+            <Button
                 Text="{x:Static strings:AppResources.CancelButton}"
                 Command="{Binding CancelCommand}"
                 MinimumHeightRequest="52"

@@ -54,11 +54,13 @@ public partial class AddGameViewModel : ObservableObject, IQueryAttributable
 
     [ObservableProperty]
     [NotifyCanExecuteChangedFor(nameof(SaveCommand))]
+    [NotifyCanExecuteChangedFor(nameof(SaveAndAddAnotherCommand))]
     [NotifyCanExecuteChangedFor(nameof(CancelCommand))]
     private bool isBusy;
 
     [ObservableProperty]
     [NotifyCanExecuteChangedFor(nameof(SaveCommand))]
+    [NotifyCanExecuteChangedFor(nameof(SaveAndAddAnotherCommand))]
     [NotifyCanExecuteChangedFor(nameof(CancelCommand))]
     private bool isTeamLoaded;
 
@@ -211,7 +213,12 @@ public partial class AddGameViewModel : ObservableObject, IQueryAttributable
     }
 
     [RelayCommand(CanExecute = nameof(CanSave))]
-    private async Task SaveAsync()
+    private Task SaveAsync() => SaveCoreAsync(addAnother: false);
+
+    [RelayCommand(CanExecute = nameof(CanSave))]
+    private Task SaveAndAddAnotherAsync() => SaveCoreAsync(addAnother: true);
+
+    private async Task SaveCoreAsync(bool addAnother)
     {
         if (!CanSave())
         {
@@ -249,6 +256,12 @@ public partial class AddGameViewModel : ObservableObject, IQueryAttributable
                 ValidationMessage = result.FailureReason == CreateGamesFailure.DuplicateSchedule
                     ? AppResources.DuplicateGameSchedule
                     : AppResources.GameCreationFailed;
+                return;
+            }
+
+            if (addAnother)
+            {
+                await PrepareForAnotherGameAsync(result.SeasonId);
                 return;
             }
 
@@ -326,6 +339,59 @@ public partial class AddGameViewModel : ObservableObject, IQueryAttributable
     private bool CanSave() => !IsBusy && IsTeamLoaded && hasValidTeamId;
 
     private bool CanCancel() => !IsBusy;
+
+    private async Task PrepareForAnotherGameAsync(int resolvedSeasonId)
+    {
+        var nextDate = ScheduledDate.AddDays(7);
+        var scheduledGames = await gameRepository.GetForTeamAsync(TeamId);
+        var occupiedTimes = scheduledGames
+            .Where(game => game.SeasonId == resolvedSeasonId
+                && game.ScheduledDate.Date == nextDate.Date)
+            .Select(game => game.ScheduledTime)
+            .ToHashSet();
+        var nextTime = FindNextAvailableStandardTime(occupiedTimes, AddSecondGame);
+
+        var resolvedSelection = Seasons.FirstOrDefault(
+            item => item.Season.Id == resolvedSeasonId);
+        if (resolvedSelection is null)
+        {
+            var resolvedSeason = await seasonRepository.GetByIdForTeamAsync(TeamId, resolvedSeasonId);
+            if (resolvedSeason is not null)
+            {
+                resolvedSelection = new SeasonSelectionItem(resolvedSeason);
+                Seasons.Add(resolvedSelection);
+            }
+        }
+
+        SelectedSeason = resolvedSelection;
+        IsCreatingNewSeason = false;
+        SeasonName = string.Empty;
+
+        ScheduledDate = nextDate;
+        secondGameTimeEdited = false;
+        ScheduledTime = nextTime;
+        ValidationMessage = string.Empty;
+    }
+
+    private static TimeSpan FindNextAvailableStandardTime(
+        IReadOnlySet<TimeSpan> occupiedTimes,
+        bool requiresConsecutiveSecondTime)
+    {
+        var candidate = DefaultGameTime;
+        for (var slot = 0; slot < 24; slot++)
+        {
+            var secondTime = AddOneHour(candidate);
+            if (!occupiedTimes.Contains(candidate)
+                && (!requiresConsecutiveSecondTime || !occupiedTimes.Contains(secondTime)))
+            {
+                return candidate;
+            }
+
+            candidate = secondTime;
+        }
+
+        throw new InvalidOperationException("No standard Game time is available on the selected date.");
+    }
 
     private void ResetTeamState()
     {
