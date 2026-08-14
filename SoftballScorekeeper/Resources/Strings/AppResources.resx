@@ -500,6 +500,7 @@
   <data name="CurrentLineupHeading" xml:space="preserve"><value>Current Lineup</value></data>
   <data name="NoAdditionalEligibleLineupPlayers" xml:space="preserve"><value>There are no additional eligible roster Players to add.</value></data>
   <data name="RemoveLineupPlayersButton" xml:space="preserve"><value>Remove Players</value></data>
+  <data name="LineupReorderFailed" xml:space="preserve"><value>The batting order could not be changed. The persisted lineup has been restored.</value></data>
   <data name="RemoveSelectedLineupPlayersButton" xml:space="preserve"><value>Remove Selected</value></data>
   <data name="LineupRemovalSelectedCountSingular" xml:space="preserve"><value>{0} Player selected</value></data>
   <data name="LineupRemovalSelectedCountPlural" xml:space="preserve"><value>{0} Players selected</value></data>

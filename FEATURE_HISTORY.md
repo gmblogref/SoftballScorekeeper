@@ -10,9 +10,9 @@ Stable product and architecture decisions belong in the project architecture doc
 
 ## Current Project Status
 
-- **Latest completed story:** Story 5.1.4 — Global Rapid Entry Pattern
-- **Completed stories:** Stories 0.0 through 5.1.4; Stories 3.2 through 3.4 retain their recorded validation status
-- **Current story:** None; Story 5.1.4 — Global Rapid Entry Pattern is complete
+- **Latest completed story:** Story 5.2 — Manual Batting Order Management
+- **Completed stories:** Stories 0.0 through 5.2; Stories 3.2 through 3.4 retain their recorded validation status
+- **Current story:** None; Story 5.2 — Manual Batting Order Management is complete
 - **Current phase:** Team-scoped Game Management workspace foundation
 - **Foundation status:** Complete
 
@@ -1888,6 +1888,36 @@ Bulk, CSV, spreadsheet, and paste import; Team and schedule templates; automatic
 #### Intended Commit Message
 
 `Add global rapid-entry pattern`
+
+### Story 5.2 — Manual Batting Order Management
+
+**Status:** Complete on `task/manual-batting-order`; automated tests, Windows build, and focused Android 10-inch tablet manual validation passed
+
+#### Implementation Summary
+
+- Added direct drag-and-drop batting-order management to the normal persisted-lineup `CollectionView` using the built-in .NET MAUI `DragGestureRecognizer` and `DropGestureRecognizer`. Framework-standard press/hold drag initiation keeps ordinary vertical scrolling available without a Reorder action, separate Reorder mode, Move Up/Move Down buttons, third-party dependency, or platform-specific handler. During a drag, transient item presentation state lifts and highlights the source row, while the current valid target displays an accent insertion gap that displaces rows and shows where the Player will land. Empty and single-Player lineups perform no reorder.
+- A centralized cleanup clears the dragged Player ID/reference, drop-target reference, drag-in-progress and drop-completion guards, and every current or tracked row's `IsDragged`, `IsDropGapBefore`, and `IsDropGapAfter` state. It runs before persistence, after repository reload in `finally`, on invalid/canceled/failed paths, on page exit, and after initial page load. The completion guard prevents late gesture callbacks from restoring target state during the asynchronous reload. Because virtualized `CollectionView` rows could otherwise reuse drag styling, the normal row state explicitly restores scale 1, opacity 1, transparent background and stroke, and stroke thickness 0.
+- A completed drop identifies the source and target persisted Player rows at the View boundary, then the ViewModel submits the complete resulting Player-ID order to `GameLineupRepository.ReorderAsync` and reloads repository truth. Dragging is accepted only in Normal mode with at least two Players and is unavailable in Add or Remove mode. There is no page-level Save Lineup, Apply Changes, or pending reorder session; Done and native Back retain their established Normal/Add/Remove behavior, and completed drops are already persisted.
+- Existing Normal, Add, and Remove modes remain unchanged. Add Players appends after the reordered lineup; Create New Player still creates the Player, TeamPlayer, and lineup relationship and appends it; Remove Players preserves remaining relative order and resequences contiguously. NEXT Game readiness remains based only on lineup existence, Game-removal protection is unchanged, and Game Workspace continues to expose Set Lineup/Edit Lineup without a detailed lineup preview.
+- The repository accepts the complete desired lineup order and validates a positive persisted Game, non-null and distinct positive requested Player IDs, and exact equality with the complete persisted lineup Player set. Invalid or missing Games, null input, incomplete lineups, extra/non-lineup Players, duplicate IDs, cross-Game Players, and otherwise mismatched requests are rejected without writes. Reordering does not apply current roster or global Player eligibility, so historical persisted lineup Players remain reorderable after roster removal or global deactivation.
+- Complete reorder updates run in the existing SQLite transaction pattern and assign contiguous `BattingOrder` values 1 through N. The existing schema uniquely indexes `(GameId, PlayerId)` but not `BattingOrder`, so direct transactional order updates do not create temporary uniqueness conflicts. Successful operations preserve every `GameLineupPlayer.Id`, `GameId`, and `PlayerId`, modify only `BattingOrder`, and leave other Games unchanged. Failure reloads persisted order and displays a resource-backed error.
+- Gesture and transient presentation logic remain at the MAUI View boundary, reorder calculation/workflow remains in the ViewModel and repository layers, and SQLite ownership remains in Infrastructure. No Core change, schema migration, NuGet package, third-party drag/drop dependency, generic reorder framework, Game Workspace preview, readiness-rule change, Game-removal-protection change, or page-level persistence abstraction was added.
+
+#### Automated Tests and Validation
+
+- Added 4 focused repository tests covering two-Player reorder, multi-Player first-to-last and last-to-first movement, contiguous order, identifier preservation, Game isolation, null/invalid/duplicate/missing/extra/other-Game request rejection with unchanged state, and historical Player reordering after roster removal or global deactivation.
+- Focused `GameLineupRepository` validation passed 22 of 22 tests with zero failures and zero skips. The complete suite increased from 166 to 170 tests and passed 170 of 170 with zero failures and zero skips.
+- The Windows `net9.0-windows10.0.19041.0` target build succeeded with zero errors and 99 warnings. Warning categories remain `CS8602`, `MVVMTK0045`, and `XC0025`; no new warning category was introduced. Windows runtime validation was not performed.
+- Focused Android 10-inch tablet manual validation exercised direct drag/drop and reviewed the visual pickup and placement behavior. Validation reproduced stale purple post-drop highlighting, after which the cleanup, completion-guard, and virtualized-row normal-state fix was applied. The final retest was reported as much better and acceptable, and the user approved Story 5.2 closeout and PR preparation. This does not claim exhaustive coverage of every orientation or theme, every canceled/invalid/persistence-failure path, 10–15 Player auto-scroll, historical inactive-Player dragging, or rapid repeated interactions.
+- `git diff --check` passed; only line-ending notices were emitted.
+
+#### Limitations and Deferred Work
+
+Story 5.3 Order Lineup by OBP, Story 5.4 Use Previous Lineup, scoring, statistics, substitutions, in-game lineup changes, innings, runners, outs, Undo/Redo, Beer Rules, and lineup minimum or start requirements remain deferred.
+
+#### Intended Commit Message
+
+`Add manual batting order management`
 
 ## Maintenance Rules
 

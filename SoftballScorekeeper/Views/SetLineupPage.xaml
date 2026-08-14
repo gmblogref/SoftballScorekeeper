@@ -15,9 +15,39 @@
    <CollectionView Grid.Row="1" ItemsSource="{Binding ExistingLineupPlayers}" IsVisible="{Binding HasExistingLineup}" SelectionMode="None">
     <CollectionView.ItemTemplate>
      <DataTemplate x:DataType="viewModels:LineupPlayerSelectionItem">
-      <Grid Padding="8,3" ColumnDefinitions="*,Auto" MinimumHeightRequest="56">
-       <Label Text="{Binding DisplayText}" FontSize="20" VerticalOptions="Center"/>
-       <CheckBox Grid.Column="1" IsChecked="{Binding IsSelected, Mode=TwoWay}" IsVisible="{Binding IsSelectionVisible}" MinimumHeightRequest="48" MinimumWidthRequest="48"/>
+      <Grid RowDefinitions="Auto,Auto,Auto">
+       <Grid.GestureRecognizers>
+        <DragGestureRecognizer DragStarting="OnLineupPlayerDragStarting" DropCompleted="OnLineupPlayerDropCompleted" />
+        <DropGestureRecognizer AllowDrop="True" DragOver="OnLineupPlayerDragOver" DragLeave="OnLineupPlayerDragLeave" Drop="OnLineupPlayerDrop" />
+       </Grid.GestureRecognizers>
+       <Grid HeightRequest="18" IsVisible="{Binding IsDropGapBefore}">
+        <BoxView Margin="12,7" HeightRequest="4" CornerRadius="2" Color="{StaticResource Primary}"/>
+       </Grid>
+       <Border Grid.Row="1" Padding="8,3" MinimumHeightRequest="56" Scale="1" Opacity="1" Stroke="Transparent" StrokeThickness="0" BackgroundColor="Transparent">
+        <Border.Triggers>
+         <DataTrigger TargetType="Border" Binding="{Binding IsDragged}" Value="False">
+          <Setter Property="Scale" Value="1"/>
+          <Setter Property="Opacity" Value="1"/>
+          <Setter Property="Stroke" Value="Transparent"/>
+          <Setter Property="StrokeThickness" Value="0"/>
+          <Setter Property="BackgroundColor" Value="Transparent"/>
+         </DataTrigger>
+         <DataTrigger TargetType="Border" Binding="{Binding IsDragged}" Value="True">
+          <Setter Property="Scale" Value="1.03"/>
+          <Setter Property="Opacity" Value="0.82"/>
+          <Setter Property="Stroke" Value="{StaticResource Primary}"/>
+          <Setter Property="StrokeThickness" Value="2"/>
+          <Setter Property="BackgroundColor" Value="{AppThemeBinding Light={StaticResource Secondary}, Dark={StaticResource Gray600}}"/>
+         </DataTrigger>
+        </Border.Triggers>
+        <Grid ColumnDefinitions="*,Auto">
+         <Label Text="{Binding DisplayText}" FontSize="20" VerticalOptions="Center"/>
+         <CheckBox Grid.Column="1" IsChecked="{Binding IsSelected, Mode=TwoWay}" IsVisible="{Binding IsSelectionVisible}" MinimumHeightRequest="48" MinimumWidthRequest="48"/>
+        </Grid>
+       </Border>
+       <Grid Grid.Row="2" HeightRequest="18" IsVisible="{Binding IsDropGapAfter}">
+        <BoxView Margin="12,7" HeightRequest="4" CornerRadius="2" Color="{StaticResource Primary}"/>
+       </Grid>
       </Grid>
      </DataTemplate>
     </CollectionView.ItemTemplate>

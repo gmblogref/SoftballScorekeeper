@@ -40,6 +40,7 @@ public partial class SetLineupViewModel : ObservableObject, IQueryAttributable
     public bool IsAddMode => Mode == LineupManagerMode.Add;
     public bool IsRemovalMode => Mode == LineupManagerMode.Remove;
     public bool IsCurrentLineupVisible => !IsAddMode;
+    public bool CanReorderLineup => IsNormalMode && !IsBusy && ExistingLineupPlayers.Count > 1;
     public bool HasEmptyLineup => !HasExistingLineup;
     public bool ShowNoEligiblePlayersMessage => IsAddMode && HasNoPlayers && !HasExistingLineup;
     public bool ShowNoAdditionalPlayersMessage => IsAddMode && HasNoPlayers && HasExistingLineup;
@@ -98,6 +99,7 @@ public partial class SetLineupViewModel : ObservableObject, IQueryAttributable
         HasNoPlayers = !HasPlayers;
         SelectedPlayerCount = 0;
         UpdateRemovalSelection();
+        OnPropertyChanged(nameof(CanReorderLineup));
         if (!HasExistingLineup && IsRemovalMode) ExitTemporaryMode();
     }
 
@@ -173,6 +175,34 @@ public partial class SetLineupViewModel : ObservableObject, IQueryAttributable
         finally { IsBusy = false; }
     }
 
+    public async Task ReorderPlayerAsync(int sourcePlayerId, int targetPlayerId)
+    {
+        if (!CanReorderLineup || sourcePlayerId == targetPlayerId) return;
+
+        var orderedIds = ExistingLineupPlayers.Select(player => player.Player.Id).ToList();
+        var sourceIndex = orderedIds.IndexOf(sourcePlayerId);
+        var targetIndex = orderedIds.IndexOf(targetPlayerId);
+        if (sourceIndex < 0 || targetIndex < 0) return;
+        orderedIds.RemoveAt(sourceIndex);
+        orderedIds.Insert(targetIndex, sourcePlayerId);
+
+        IsBusy = true;
+        try
+        {
+            var result = await repository.ReorderAsync(GameId, orderedIds);
+            await ReloadAsync();
+            ValidationMessage = result.IsSuccess
+                ? string.Empty
+                : AppResources.LineupReorderFailed;
+        }
+        catch
+        {
+            await ReloadAsync();
+            ValidationMessage = AppResources.LineupReorderFailed;
+        }
+        finally { IsBusy = false; }
+    }
+
     [RelayCommand(CanExecute = nameof(CanCreatePlayer))]
     private Task CreatePlayerAsync() => Shell.Current.GoToAsync(
         AppShell.CreatePlayerRoute,
@@ -193,11 +223,11 @@ public partial class SetLineupViewModel : ObservableObject, IQueryAttributable
     private bool CanRequestRemoval() => !IsBusy && IsRemovalMode && !isConfirmationPending && HasSelectedRemovals;
     private bool CanConfirmRemoval() => !IsBusy && IsRemovalMode && isConfirmationPending && pendingRemovalIds.Count > 0;
     private bool CanDone() => !IsBusy && IsNormalMode && !isConfirmationPending;
-    partial void OnIsBusyChanged(bool value) => NotifyCommands();
+    partial void OnIsBusyChanged(bool value) { OnPropertyChanged(nameof(CanReorderLineup)); NotifyCommands(); }
     partial void OnModeChanged(LineupManagerMode value)
     {
         foreach (var item in ExistingLineupPlayers) item.IsSelectionVisible = IsRemovalMode;
-        OnPropertyChanged(nameof(IsNormalMode)); OnPropertyChanged(nameof(IsAddMode)); OnPropertyChanged(nameof(IsRemovalMode)); OnPropertyChanged(nameof(IsCurrentLineupVisible)); OnPropertyChanged(nameof(ShowNoEligiblePlayersMessage)); OnPropertyChanged(nameof(ShowNoAdditionalPlayersMessage));
+        OnPropertyChanged(nameof(IsNormalMode)); OnPropertyChanged(nameof(IsAddMode)); OnPropertyChanged(nameof(IsRemovalMode)); OnPropertyChanged(nameof(IsCurrentLineupVisible)); OnPropertyChanged(nameof(CanReorderLineup)); OnPropertyChanged(nameof(ShowNoEligiblePlayersMessage)); OnPropertyChanged(nameof(ShowNoAdditionalPlayersMessage));
         NotifyCommands();
     }
     partial void OnHasExistingLineupChanged(bool value) { OnPropertyChanged(nameof(HasEmptyLineup)); OnPropertyChanged(nameof(ShowNoEligiblePlayersMessage)); OnPropertyChanged(nameof(ShowNoAdditionalPlayersMessage)); NotifyCommands(); }
