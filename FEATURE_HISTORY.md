@@ -1800,6 +1800,36 @@ The indicator is informational only and does not require a lineup or introduce c
 
 `Add NEXT Game lineup status`
 
+### Story 5.1.2 — Lineup Manager Refinement
+
+**Status:** Implementation complete on `task/lineup-manager-refinement`; automated tests and Windows build passed; Android manual validation pending
+
+#### Implementation Summary
+
+- Refined the existing Set Lineup page into the single permanent pre-game Lineup Manager for reviewing the current persisted lineup and performing Add or Remove operations. The existing `SetLineupPage` and `SetLineupViewModel` internal names and route remain to avoid a broad terminology-only rename; the user-facing page title is Lineup Manager.
+- Game Workspace now derives its resource-backed Set Lineup or Edit Lineup action from persisted lineup existence reloaded whenever the workspace appears, so adding the first Player and removing the entire lineup update the action without a separate lineup-set flag. It deliberately does not duplicate batting-order numbers or Player names; detailed persisted-order review and management belong exclusively to Lineup Manager.
+- Added a focused local Normal/Add/Remove mode enum. Normal mode presents Current Lineup, Add Players, Remove Players, and Done; an empty lineup has a distinct resource-backed empty state, Add remains available, Remove is disabled, and the no-eligible-roster message remains distinct from the no-additional-eligible-Players message.
+- Add mode displays only currently eligible non-lineup Team Players with checkboxes and a selected count. Existing persisted lineup Players remain protected from duplicate selection. Pending selection order remains append order, and unchecking then reselecting moves a Player to the end. Add Selected persists immediately through the existing append operation, reloads repository truth, clears temporary state, and returns to Normal mode; Cancel and native Back discard pending additions without persistence.
+- Remove mode preserves Story 5.1 behavior: existing historical lineup rows receive distinct removal checkboxes and a selected count, confirmation is required, successful removal persists immediately through the existing transactional removal operation, batting order is resequenced, and repository truth is reloaded before returning to Normal mode. Cancel and native Back discard removal state without persistence, including when removing the entire lineup.
+- Done is navigation only, is available in Normal mode for empty or populated lineups, clears temporary selections, and returns to Game Workspace without a final Save Lineup operation. There is no page-level unsaved lineup session.
+- Existing Infrastructure behavior was reused without changes. Current eligibility remains limited to active Players with active Team memberships, while persisted historical lineup Players remain visible after later roster or activity changes. Existing per-Game isolation, NEXT readiness derivation, and Game-deletion protection therefore remain repository-driven and unchanged.
+- Lineup Manager remains the sole detailed lineup presentation: its current-lineup rows display Player names in authoritative persisted `BattingOrder` and own the Add and Remove operations. Outside the manager, the existing NEXT Game readiness indicator continues providing schedule-level warning or positive lineup status.
+- The current lineup row remains a simple persisted-order row with a trailing operation area that can accommodate future Story 5.2 interaction without adding drag handles, reorder controls, or ordering behavior now.
+
+#### Automated Tests and Validation
+
+- No tests were added because this story changes presentation workflow only and reuses already-covered repository behavior. The complete automated test project passed 161 of 161 tests with zero failures and zero skips. A solution-wide test invocation also ran all 161 tests successfully but returned a nonzero process result because the local Android SDK directory could not be found while evaluating the MAUI Android target.
+- The Windows `net9.0-windows10.0.19041.0` target build succeeded with zero errors and 99 warnings in the repository's existing `CS8602`, `MVVMTK0045`, and `XC0025` categories; no new warning category was introduced. Windows runtime validation was not performed.
+- Android runtime and 10-inch tablet interaction validation remain pending. No Android runtime behavior, orientations, themes, clipping, or touch results are claimed from this implementation session because the Android SDK was unavailable to the command-line environment.
+
+#### Limitations and Deferred Work
+
+Manual batting-order reordering remains Story 5.2 work. Drag-and-drop, up/down controls, OBP ordering, Previous Lineup reuse, new-Player creation from Lineup Manager, lineup minimums, Game-start validation, Score Game, in-game substitutions or injuries, scoring, statistics, and Beer Rules remain deferred.
+
+#### Intended Commit Message
+
+`Refine pre-game lineup manager`
+
 ## Maintenance Rules
 
 Every future story must update this file before the story is committed. A story is not complete until its accurate feature-history entry is included in the same story-focused commit as its implementation.
