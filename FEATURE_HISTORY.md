@@ -1830,6 +1830,35 @@ Manual batting-order reordering remains Story 5.2 work. Drag-and-drop, up/down c
 
 `Refine pre-game lineup manager`
 
+### Story 5.1.3 — Player Entry and Lineup Integration
+
+**Status:** Complete on `task/bulk-player-entry`; automated tests, Windows build, and focused Android manual validation passed
+
+#### Implementation Summary
+
+- Completed rapid consecutive Player entry by adding a resource-backed Save & Add Another action to the existing Create Player page. Global, Team, and Game Lineup contexts share the established First Name/Last Name trimming and validation rules, allow duplicate names, and share one busy guard so Save and Save & Add Another cannot persist concurrently.
+- A successful Save & Add Another remains on Create Player, preserves its immutable Team ID and optional Game ID context, and clears First Name, Last Name, and validation/result state. Normal Save preserves existing navigation: global creation returns to Player Manager, Team-scoped creation returns through the existing Add Players workflow, and lineup creation returns one level to Lineup Manager. Cancel performs no persistence and returns one level to the invoking workflow.
+- Create Player now interprets query IDs as explicit Global, Team, or Game Lineup context without passing mutable domain objects. Lineup Manager Add mode exposes the existing resource-backed Create New Player action and passes its Team and Game IDs while preserving eligible checkbox selection, Add Selected, Cancel, and Remove-mode separation.
+- Added focused transactional `PlayerRepository` operations for Team and Game Lineup creation. They validate the active Team and, for lineup creation, the persisted Game and Team ownership before atomically inserting the active Player and TeamPlayer; lineup creation also inserts exactly one `GameLineupPlayer` at the current highest persisted `BattingOrder + 1`, or order 1 for an empty lineup. Existing lineup rows, other Games, and other Teams are unchanged, and the existing unique Game/Player index remains the final duplicate-lineup safeguard.
+- Team-scoped creation now avoids the former partial-success case in which Player creation could succeed before TeamPlayer creation failed. Any exception in the new Team or lineup persistence chain rolls back all inserts, returns a failure result, leaves entered fields visible, and never reports complete UI success. Existing TeamPlayer reactivation behavior for adding existing Players remains unchanged; newly created Players receive their single new active membership in the same transaction.
+- No timers, delayed focus calls, platform-specific focus services, or programmatic refocus were added. Successful consecutive entry simply clears the fields and accepts natural platform focus behavior.
+- Android validation identified and corrected a return-navigation regression: relative navigation from Create Player re-applied an empty Shell query to the existing Lineup Manager, whose query handler incorrectly cleared its valid Team/Game context to zero and displayed the missing-Game state. Lineup Manager now retains established IDs for an empty return query while still rejecting partial, malformed, or invalid new contexts, then reloads repository truth on appearance. The Player → TeamPlayer → GameLineupPlayer transactions had already completed before navigation and were not changed by this fix.
+
+#### Automated Tests and Validation
+
+- Added 5 focused `PlayerRepository` tests covering atomic Team Player/membership creation, inactive-Team rollback, empty-lineup order 1, repeated creation order after a non-contiguous existing maximum with other-Game isolation, and wrong-Team Game ownership rollback. Focused Player repository validation passed 68 of 68 tests with zero failures and zero skips.
+- The complete automated suite increased from 161 to 166 tests and passed 166 of 166 with zero failures and zero skips.
+- The Windows `net9.0-windows10.0.19041.0` target build succeeded with zero errors and 99 warnings. Warning categories remain `CS8602`, `MVVMTK0045`, and `XC0025`; no new warning category was introduced. Windows runtime validation was not performed.
+- Focused Android validation passed for the confirmed Story 5.1.3 workflows. Global Player Manager Save & Add Another and Team/Roster Save & Add Another each remained open and successfully created multiple Players. In the Game Lineup Create New Player flow, Save & Add Another remained open and persisted the Player, TeamPlayer, and GameLineupPlayer chain; after the targeted empty-query fix, final Save returned directly to the correct Lineup Manager without the missing-Game error, repository truth reloaded, and the newly created Players appeared in the updated persisted lineup. No broader rapid-tap, remaining Cancel, theme, orientation, or layout scenarios are claimed beyond these recorded checks.
+
+#### Limitations and Deferred Work
+
+This story implements rapid consecutive single-Player entry, not true bulk import. CSV, spreadsheet and paste import, roster templates, batch forms, Player editing/merge, jersey numbers, manual lineup reordering, OBP ordering, Previous Lineup reuse, lineup minimum/start requirements, scoring, substitutions, statistics, and Beer Rules remain deferred.
+
+#### Intended Commit Message
+
+`Integrate rapid Player entry with lineups`
+
 ## Maintenance Rules
 
 Every future story must update this file before the story is committed. A story is not complete until its accurate feature-history entry is included in the same story-focused commit as its implementation.

@@ -483,6 +483,9 @@
   <data name="LineupManagerTitle" xml:space="preserve"><value>Lineup Manager</value></data>
   <data name="AddLineupPlayersButton" xml:space="preserve"><value>Add Players</value></data>
   <data name="AddSelectedLineupPlayersButton" xml:space="preserve"><value>Add Selected</value></data>
+  <data name="SaveAndAddAnotherButton" xml:space="preserve"><value>Save &amp; Add Another</value></data>
+  <data name="PlayerLineupCreationFailed" xml:space="preserve"><value>The Player could not be created and added to this Game's lineup. No changes were saved.</value></data>
+  <data name="PlayerTeamCreationFailed" xml:space="preserve"><value>The Player could not be created and added to this Team. No changes were saved.</value></data>
   <data name="DoneButton" xml:space="preserve"><value>Done</value></data>
   <data name="EmptyLineupMessage" xml:space="preserve"><value>No Players are currently in this lineup.</value></data>
   <data name="SaveLineupButton" xml:space="preserve"><value>Save Lineup</value></data>

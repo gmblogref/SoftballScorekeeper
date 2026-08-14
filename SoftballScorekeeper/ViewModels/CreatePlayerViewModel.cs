@@ -6,114 +6,90 @@ using SoftballScorekeeper.Resources.Strings;
 
 namespace SoftballScorekeeper.ViewModels;
 
+public enum CreatePlayerContext
+{
+    Global,
+    Team,
+    GameLineup,
+}
+
 public partial class CreatePlayerViewModel : ObservableObject, IQueryAttributable
 {
     private readonly PlayerRepository playerRepository;
-    private readonly TeamRepository teamRepository;
-    private readonly TeamPlayerRepository teamPlayerRepository;
     private string firstName = string.Empty;
     private string lastName = string.Empty;
     private string validationMessage = string.Empty;
     private bool isBusy;
-    private bool hasInvalidTeamContext;
-    private bool hasTeamContext;
-    private bool playerCreated;
+    private bool hasInvalidContext;
     private int teamId;
+    private int gameId;
+    private CreatePlayerContext context;
 
-    public string FirstName
-    {
-        get => firstName;
-        set => SetProperty(ref firstName, value);
-    }
-
-    public string LastName
-    {
-        get => lastName;
-        set => SetProperty(ref lastName, value);
-    }
-
-    public string ValidationMessage
-    {
-        get => validationMessage;
-        set => SetProperty(ref validationMessage, value);
-    }
-
+    public string FirstName { get => firstName; set => SetProperty(ref firstName, value); }
+    public string LastName { get => lastName; set => SetProperty(ref lastName, value); }
+    public string ValidationMessage { get => validationMessage; set => SetProperty(ref validationMessage, value); }
     public bool IsBusy
     {
         get => isBusy;
         set
         {
-            if (SetProperty(ref isBusy, value))
-            {
-                SaveCommand.NotifyCanExecuteChanged();
-            }
+            if (SetProperty(ref isBusy, value)) NotifyCommands();
         }
     }
 
-    public CreatePlayerViewModel(
-        PlayerRepository playerRepository,
-        TeamRepository teamRepository,
-        TeamPlayerRepository teamPlayerRepository)
+    public CreatePlayerViewModel(PlayerRepository playerRepository)
     {
         ArgumentNullException.ThrowIfNull(playerRepository);
-        ArgumentNullException.ThrowIfNull(teamRepository);
-        ArgumentNullException.ThrowIfNull(teamPlayerRepository);
-
         this.playerRepository = playerRepository;
-        this.teamRepository = teamRepository;
-        this.teamPlayerRepository = teamPlayerRepository;
     }
 
     public void ApplyQueryAttributes(IDictionary<string, object> query)
     {
-        teamId = 0;
-        hasTeamContext = false;
-        hasInvalidTeamContext = false;
+        teamId = gameId = 0;
+        context = CreatePlayerContext.Global;
+        hasInvalidContext = false;
 
-        if (!query.TryGetValue(AppShell.TeamIdQueryParameter, out var value))
+        var hasTeamId = query.TryGetValue(AppShell.TeamIdQueryParameter, out var teamValue);
+        var hasGameId = query.TryGetValue(AppShell.GameIdQueryParameter, out var gameValue);
+        if (!hasTeamId && !hasGameId) { NotifyCommands(); return; }
+
+        if (!hasTeamId || !TryParseId(teamValue, out teamId))
         {
+            InvalidateContext(AppResources.TeamNotFound);
             return;
         }
 
-        if (!TryParseTeamId(value, out teamId))
+        context = CreatePlayerContext.Team;
+        if (!hasGameId) { NotifyCommands(); return; }
+        if (!TryParseId(gameValue, out gameId))
         {
-            hasInvalidTeamContext = true;
-            ValidationMessage = AppResources.TeamNotFound;
-            SaveCommand.NotifyCanExecuteChanged();
+            InvalidateContext(AppResources.GameNotFound);
             return;
         }
 
-        hasTeamContext = true;
+        context = CreatePlayerContext.GameLineup;
+        NotifyCommands();
     }
 
     [RelayCommand(CanExecute = nameof(CanSave))]
-    private async Task SaveAsync()
-    {
-        if (!CanSave())
-        {
-            return;
-        }
+    private Task SaveAsync() => SaveCoreAsync(addAnother: false);
 
+    [RelayCommand(CanExecute = nameof(CanSave))]
+    private Task SaveAndAddAnotherAsync() => SaveCoreAsync(addAnother: true);
+
+    private async Task SaveCoreAsync(bool addAnother)
+    {
+        if (!CanSave()) return;
         IsBusy = true;
         try
         {
             var trimmedFirstName = FirstName?.Trim() ?? string.Empty;
             var trimmedLastName = LastName?.Trim() ?? string.Empty;
-
             FirstName = trimmedFirstName;
             LastName = trimmedLastName;
-
             if (string.IsNullOrWhiteSpace(trimmedFirstName))
             {
                 ValidationMessage = AppResources.FirstNameRequired;
-                return;
-            }
-
-            if (hasTeamContext && await teamRepository.GetActiveByIdAsync(teamId) is null)
-            {
-                hasInvalidTeamContext = true;
-                ValidationMessage = AppResources.TeamNotFound;
-                SaveCommand.NotifyCanExecuteChanged();
                 return;
             }
 
@@ -124,76 +100,67 @@ public partial class CreatePlayerViewModel : ObservableObject, IQueryAttributabl
                 IsActive = true,
             };
 
-            if (await playerRepository.CreateAsync(player) != 1)
+            var result = await CreateAsync(player);
+            if (!result.IsSuccess)
             {
-                ValidationMessage = AppResources.PlayerCreationFailed;
+                ValidationMessage = FailureMessage(result.Failure);
                 return;
             }
 
-            playerCreated = true;
-            SaveCommand.NotifyCanExecuteChanged();
-
-            if (hasTeamContext)
+            ValidationMessage = string.Empty;
+            if (addAnother)
             {
-                var result = await teamPlayerRepository.AddPlayersToTeamAsync(teamId, [player.Id]);
-                if (result.SuccessfullyActiveMembershipCount != 1)
-                {
-                    ValidationMessage = AppResources.PlayerCreatedTeamMembershipFailed;
-                    return;
-                }
+                FirstName = LastName = string.Empty;
+                return;
             }
 
-            ValidationMessage = string.Empty;
-            await Shell.Current.GoToAsync(hasTeamContext ? "../.." : "..");
+            await Shell.Current.GoToAsync(context switch
+            {
+                CreatePlayerContext.Team => "../..",
+                _ => "..",
+            });
         }
         catch
         {
-            ValidationMessage = playerCreated
-                ? AppResources.PlayerCreatedTeamMembershipFailed
-                : AppResources.PlayerCreationFailed;
+            ValidationMessage = context == CreatePlayerContext.GameLineup
+                ? AppResources.PlayerLineupCreationFailed
+                : context == CreatePlayerContext.Team
+                    ? AppResources.PlayerTeamCreationFailed
+                    : AppResources.PlayerCreationFailed;
         }
-        finally
-        {
-            IsBusy = false;
-        }
+        finally { IsBusy = false; }
+    }
+
+    private async Task<CreatePlayerResult> CreateAsync(Player player)
+    {
+        if (context == CreatePlayerContext.Team)
+            return await playerRepository.CreateForTeamAsync(player, teamId);
+        if (context == CreatePlayerContext.GameLineup)
+            return await playerRepository.CreateForGameLineupAsync(player, teamId, gameId);
+        return await playerRepository.CreateAsync(player) == 1
+            ? new(player.Id, CreatePlayerFailure.None)
+            : new(0, CreatePlayerFailure.Persistence);
     }
 
     [RelayCommand]
     private async Task CancelAsync()
     {
-        if (IsBusy)
-        {
-            return;
-        }
-
-        FirstName = string.Empty;
-        LastName = string.Empty;
-        ValidationMessage = string.Empty;
+        if (IsBusy) return;
+        FirstName = LastName = ValidationMessage = string.Empty;
         await Shell.Current.GoToAsync("..");
     }
 
-    private bool CanSave()
+    private bool CanSave() => !IsBusy && !hasInvalidContext;
+    private string FailureMessage(CreatePlayerFailure failure) => failure switch
     {
-        return !IsBusy && !playerCreated && !hasInvalidTeamContext;
-    }
-
-    private static bool TryParseTeamId(object? value, out int parsedTeamId)
-    {
-        if (value is int integerValue && integerValue > 0)
-        {
-            parsedTeamId = integerValue;
-            return true;
-        }
-
-        if (value is string stringValue
-            && int.TryParse(stringValue, out var stringTeamId)
-            && stringTeamId > 0)
-        {
-            parsedTeamId = stringTeamId;
-            return true;
-        }
-
-        parsedTeamId = 0;
-        return false;
-    }
+        CreatePlayerFailure.InvalidTeam => AppResources.TeamNotFound,
+        CreatePlayerFailure.InvalidGame or CreatePlayerFailure.TeamMismatch => AppResources.GameNotFound,
+        _ when context == CreatePlayerContext.GameLineup => AppResources.PlayerLineupCreationFailed,
+        _ when context == CreatePlayerContext.Team => AppResources.PlayerTeamCreationFailed,
+        _ => AppResources.PlayerCreationFailed,
+    };
+    private void InvalidateContext(string message) { hasInvalidContext = true; ValidationMessage = message; NotifyCommands(); }
+    private void NotifyCommands() { SaveCommand.NotifyCanExecuteChanged(); SaveAndAddAnotherCommand.NotifyCanExecuteChanged(); }
+    private static bool TryParseId(object? value, out int id)
+    { id = 0; return value is int number ? (id = number) > 0 : value is string text && int.TryParse(text, out id) && id > 0; }
 }

@@ -901,6 +901,9 @@ namespace SoftballScorekeeper.Resources.Strings {
         public static string LineupManagerTitle { get { return ResourceManager.GetString("LineupManagerTitle", resourceCulture); } }
         public static string AddLineupPlayersButton { get { return ResourceManager.GetString("AddLineupPlayersButton", resourceCulture); } }
         public static string AddSelectedLineupPlayersButton { get { return ResourceManager.GetString("AddSelectedLineupPlayersButton", resourceCulture); } }
+        public static string SaveAndAddAnotherButton { get { return ResourceManager.GetString("SaveAndAddAnotherButton", resourceCulture); } }
+        public static string PlayerLineupCreationFailed { get { return ResourceManager.GetString("PlayerLineupCreationFailed", resourceCulture); } }
+        public static string PlayerTeamCreationFailed { get { return ResourceManager.GetString("PlayerTeamCreationFailed", resourceCulture); } }
         public static string DoneButton { get { return ResourceManager.GetString("DoneButton", resourceCulture); } }
         public static string EmptyLineupMessage { get { return ResourceManager.GetString("EmptyLineupMessage", resourceCulture); } }
         public static string SaveLineupButton { get { return ResourceManager.GetString("SaveLineupButton", resourceCulture); } }
