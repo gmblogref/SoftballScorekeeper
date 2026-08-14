@@ -171,6 +171,105 @@ public sealed class GameLineupRepository
         return result;
     }
 
+    public async Task<UsePreviousLineupResult> UsePreviousAsync(int teamId, int targetGameId)
+    {
+        if (teamId <= 0 || targetGameId <= 0)
+            return PreviousFailure(targetGameId, UsePreviousLineupFailure.InvalidContext);
+
+        var connection = await database.GetConnectionAsync();
+        var result = PreviousFailure(targetGameId, UsePreviousLineupFailure.InvalidContext);
+        await connection.RunInTransactionAsync(transaction =>
+        {
+            var team = transaction.Find<Team>(teamId);
+            var targetGame = transaction.Find<Game>(targetGameId);
+            if (team is null || !team.IsActive || targetGame is null || targetGame.TeamId != teamId)
+                return;
+
+            var priorGames = transaction.Table<Game>()
+                .Where(game => game.TeamId == teamId)
+                .ToList()
+                .Where(game => IsBefore(game, targetGame))
+                .OrderByDescending(game => game.ScheduledDate)
+                .ThenByDescending(game => game.ScheduledTime)
+                .ThenByDescending(game => game.Id)
+                .ToArray();
+            var priorGameIds = priorGames.Select(game => game.Id).ToHashSet();
+            var allPriorRows = transaction.Table<GameLineupPlayer>()
+                .ToList()
+                .Where(item => priorGameIds.Contains(item.GameId))
+                .ToArray();
+            var gamesWithLineups = allPriorRows.Select(item => item.GameId).ToHashSet();
+            var sourceGame = priorGames.FirstOrDefault(game => gamesWithLineups.Contains(game.Id));
+            if (sourceGame is null)
+            {
+                result = PreviousFailure(targetGameId, UsePreviousLineupFailure.NoPreviousLineup);
+                return;
+            }
+
+            var sourceRows = allPriorRows
+                .Where(item => item.GameId == sourceGame.Id)
+                .OrderBy(item => item.BattingOrder)
+                .ThenBy(item => item.Id)
+                .ToArray();
+            var activePlayerIds = transaction.Table<Player>()
+                .Where(player => player.IsActive)
+                .ToList()
+                .Select(player => player.Id)
+                .ToHashSet();
+            var activeMemberIds = transaction.Table<TeamPlayer>()
+                .Where(item => item.TeamId == teamId && item.IsActive)
+                .ToList()
+                .Select(item => item.PlayerId)
+                .ToHashSet();
+            var copiedIds = sourceRows
+                .Where(item => activePlayerIds.Contains(item.PlayerId)
+                    && activeMemberIds.Contains(item.PlayerId))
+                .Select(item => item.PlayerId)
+                .ToArray();
+            var copiedSet = copiedIds.ToHashSet();
+            var skippedIds = sourceRows
+                .Select(item => item.PlayerId)
+                .Where(id => !copiedSet.Contains(id))
+                .ToArray();
+            if (copiedIds.Length == 0)
+            {
+                result = new(
+                    targetGameId,
+                    sourceGame.Id,
+                    [],
+                    skippedIds,
+                    UsePreviousLineupFailure.NoEligiblePlayers);
+                return;
+            }
+
+            foreach (var existing in transaction.Table<GameLineupPlayer>()
+                .Where(item => item.GameId == targetGameId)
+                .ToList())
+            {
+                transaction.Delete(existing);
+            }
+
+            for (var index = 0; index < copiedIds.Length; index++)
+            {
+                transaction.Insert(new GameLineupPlayer
+                {
+                    GameId = targetGameId,
+                    PlayerId = copiedIds[index],
+                    BattingOrder = index + 1,
+                });
+            }
+
+            result = new(
+                targetGameId,
+                sourceGame.Id,
+                copiedIds,
+                skippedIds,
+                UsePreviousLineupFailure.None);
+        });
+
+        return result;
+    }
+
     private async Task<SaveGameLineupResult> SaveAsync(
         int teamId,
         int gameId,
@@ -226,4 +325,14 @@ public sealed class GameLineupRepository
     private static ReorderGameLineupResult ReorderFailure(
         int gameId,
         ReorderGameLineupFailure failure) => new(gameId, [], failure);
+
+    private static UsePreviousLineupResult PreviousFailure(
+        int targetGameId,
+        UsePreviousLineupFailure failure) => new(targetGameId, null, [], [], failure);
+
+    private static bool IsBefore(Game candidate, Game target) =>
+        candidate.ScheduledDate < target.ScheduledDate
+        || candidate.ScheduledDate == target.ScheduledDate
+            && (candidate.ScheduledTime < target.ScheduledTime
+                || candidate.ScheduledTime == target.ScheduledTime && candidate.Id < target.Id);
 }

@@ -10,10 +10,10 @@ Stable product and architecture decisions belong in the project architecture doc
 
 ## Current Project Status
 
-- **Latest completed story:** Story 5.2 — Manual Batting Order Management
-- **Completed stories:** Stories 0.0 through 5.2; Stories 3.2 through 3.4 retain their recorded validation status
-- **Current story:** None; Story 5.2 — Manual Batting Order Management is complete
-- **Current phase:** Team-scoped Game Management workspace foundation
+- **Latest completed story:** Story 5.3 — Use Previous Lineup
+- **Completed stories:** Stories 0.0 through 5.3; Stories 3.2 through 3.4 retain their recorded validation status
+- **Current story:** None; Story 5.3 — Use Previous Lineup is complete
+- **Current phase:** Preparation for Score Game
 - **Foundation status:** Complete
 
 The repository contains a four-project .NET 9 solution: the Android- and Windows-targeted .NET MAUI application, platform-independent Core, Infrastructure, and the automated test project. Its implemented foundation includes repository guidance, pragmatic layered dependencies, CommunityToolkit.Mvvm, MAUI dependency injection, device-local SQLite initialization, centralized user-facing resources, strongly typed application settings, and isolated xUnit repository integration tests. Team Workspace contains local Games and Roster sections, supports adding or removing existing active Players, and supports creating a global Player with immediate TeamPlayer membership from the Team-scoped Add Players workflow. Player Workspace shows active Team memberships, and Player Manager retains bulk lifecycle actions; Game schedule management and other later softball workflows remain deferred.
@@ -1918,6 +1918,35 @@ Story 5.3 Order Lineup by OBP, Story 5.4 Use Previous Lineup, scoring, statistic
 #### Intended Commit Message
 
 `Add manual batting order management`
+
+### Story 5.3 — Use Previous Lineup
+
+**Status:** Complete on `task/use-previous-lineup`; automated tests, Windows build, and focused Android tablet manual validation passed
+
+#### Implementation Summary
+
+- Added a resource-backed Use Previous Lineup action to Normal mode in the existing Lineup Manager. Empty targets copy immediately; populated targets require explicit confirmation that the current Game lineup will be replaced while the previous Game and its historical lineup remain unchanged. Cancel performs no persistence. Existing Add Players, Create New Player, Remove Players, direct drag/drop reorder, Done, Set Lineup/Edit Lineup, NEXT readiness, and Game-removal protection behavior remains repository-driven and unchanged; no Game Workspace lineup preview was added.
+- Added focused `GameLineupRepository.UsePreviousAsync(teamId, targetGameId)` behavior. Within one SQLite transaction it validates the active Team and target ownership, considers only same-Team Games ordered before the target by `ScheduledDate`, `ScheduledTime`, then `Id`, skips prior Games without persisted lineup rows, and selects the most recent qualifying source. The current Game, future Games, and other Teams cannot qualify, and source selection avoids per-Game lineup queries.
+- The source lineup is read as historical persisted truth in `BattingOrder` and row-ID fallback order without current eligibility filtering. When creating the target, the operation retains only globally active Players with an active `TeamPlayer` membership for the target Team, preserves their relative historical order, skips ineligible Players without reactivation, and writes contiguous target `BattingOrder` values `1..N`.
+- Copied rows are independent target-owned `GameLineupPlayer` records; source rows, identifiers, ownership, and order are never moved or changed. Full replacement intentionally recreates target rows and does not preserve prior target row IDs. Validation, source lookup, eligibility filtering, target deletion, and insertion share one transaction; target deletion begins only after a valid source and nonempty eligible subset are known. SQLite rollback preserves the prior target on unexpected persistence failure.
+- Added focused `UsePreviousLineupResult` outcomes for success, invalid context, no previous lineup, and no currently eligible source Players, with source Game ID, copied Player IDs, and skipped Player IDs/count where applicable. No-source and zero-eligible results perform no writes, including for an existing target. Partial eligibility succeeds with the eligible subset and resource-backed singular/plural skipped-Player feedback. The ViewModel reloads repository truth after every attempted operation and uses its existing busy/confirmation gates; Story 5.2 drag gesture and cleanup code was not modified.
+- Story 5.3 changed `GameLineupRepository`, added `UsePreviousLineupResult`, expanded focused repository tests, and updated Lineup Manager ViewModel, View, code-behind confirmation, and string resources. No Core model, schema, migration, NuGet package, generic copy/reorder framework, statistics, scoring, or OBP implementation was added. Order Lineup by OBP is deferred until meaningful Player statistics exist; the next roadmap direction is preparation for Score Game, with OBP ordering returning only after scoring/statistics infrastructure exists.
+
+#### Automated Tests and Validation
+
+- Added 4 scenario-dense `GameLineupRepository` tests covering most-recent prior source selection, persisted and relative order, contiguous target order, source/target row independence and identifier behavior, same-Team and other-Game isolation, skipped empty prior Games, future/current exclusion, same-date and same-time ID ordering, global and membership eligibility filtering without reactivation, partial and zero eligibility, safe no-source behavior, ownership validation, and existing-target replacement/preservation. Focused `GameLineupRepositoryTests` passed 26 of 26 with zero failures and zero skips. There is no focused `SetLineupViewModel` test fixture.
+- The complete automated suite increased from 170 to 174 tests and passed 174 of 174 with zero failures and zero skips.
+- The Windows `net9.0-windows10.0.19041.0` target build succeeded with zero errors and 99 warnings. Warning categories remain `CS8602`, `MVVMTK0045`, and `XC0025`; Windows runtime was not exercised.
+- Focused Android tablet manual validation passed for the two primary flows actually exercised: Use Previous Lineup successfully copied and displayed a previous lineup for an empty current Game, and replacement confirmation/replacement successfully replaced an existing current lineup. Android validation did not specifically exercise intervening empty-Game lookup, doubleheader lookup, inactive Player or membership filtering, partial-skipped feedback, source-history inspection after filtering, Add/Create/Remove/drag after copy, NEXT readiness, Game-removal protection, rapid repeated taps, failure paths, alternate themes, or additional orientations.
+- `git diff --check` passed; only line-ending notices were emitted.
+
+#### Limitations and Deferred Work
+
+Order Lineup by OBP remains deferred until meaningful scoring and Player statistics exist. Score Game preparation is next; scoring, substitutions, in-game lineup changes, innings, runners, outs, Undo/Redo, statistics, Beer Rules, and lineup minimum or start requirements remain deferred.
+
+#### Intended Commit Message
+
+`Add previous lineup reuse`
 
 ## Maintenance Rules
 

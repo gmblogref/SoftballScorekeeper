@@ -56,6 +56,7 @@
   <HorizontalStackLayout Grid.Row="3" HorizontalOptions="Center" Spacing="16" IsVisible="{Binding IsNormalMode}">
    <Button Text="{x:Static strings:AppResources.AddLineupPlayersButton}" Command="{Binding EnterAddModeCommand}" MinimumHeightRequest="52" MinimumWidthRequest="160"/>
    <Button Text="{x:Static strings:AppResources.RemoveLineupPlayersButton}" Command="{Binding EnterRemovalModeCommand}" MinimumHeightRequest="52" MinimumWidthRequest="160"/>
+   <Button Text="{x:Static strings:AppResources.UsePreviousLineupButton}" Command="{Binding UsePreviousLineupCommand}" MinimumHeightRequest="52" MinimumWidthRequest="190"/>
    <Button Text="{x:Static strings:AppResources.DoneButton}" Command="{Binding DoneCommand}" MinimumHeightRequest="52" MinimumWidthRequest="140"/>
   </HorizontalStackLayout>
   <Grid Grid.Row="2" RowDefinitions="Auto,*" RowSpacing="8" IsVisible="{Binding IsAddMode}">

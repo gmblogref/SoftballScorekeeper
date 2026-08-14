@@ -931,5 +931,14 @@ namespace SoftballScorekeeper.Resources.Strings {
         public static string ConfirmRemoveLineupPlayersButton { get { return ResourceManager.GetString("ConfirmRemoveLineupPlayersButton", resourceCulture); } }
         public static string LineupRemovalPartialMessage { get { return ResourceManager.GetString("LineupRemovalPartialMessage", resourceCulture); } }
         public static string LineupRemovalNoOpMessage { get { return ResourceManager.GetString("LineupRemovalNoOpMessage", resourceCulture); } }
+        public static string UsePreviousLineupButton { get { return ResourceManager.GetString("UsePreviousLineupButton", resourceCulture); } }
+        public static string PreviousLineupReplacementTitle { get { return ResourceManager.GetString("PreviousLineupReplacementTitle", resourceCulture); } }
+        public static string PreviousLineupReplacementMessage { get { return ResourceManager.GetString("PreviousLineupReplacementMessage", resourceCulture); } }
+        public static string ConfirmPreviousLineupReplacementButton { get { return ResourceManager.GetString("ConfirmPreviousLineupReplacementButton", resourceCulture); } }
+        public static string NoPreviousLineupMessage { get { return ResourceManager.GetString("NoPreviousLineupMessage", resourceCulture); } }
+        public static string NoEligiblePreviousLineupPlayersMessage { get { return ResourceManager.GetString("NoEligiblePreviousLineupPlayersMessage", resourceCulture); } }
+        public static string PreviousLineupCopiedWithSkippedPlayer { get { return ResourceManager.GetString("PreviousLineupCopiedWithSkippedPlayer", resourceCulture); } }
+        public static string PreviousLineupCopiedWithSkippedPlayers { get { return ResourceManager.GetString("PreviousLineupCopiedWithSkippedPlayers", resourceCulture); } }
+        public static string PreviousLineupFailed { get { return ResourceManager.GetString("PreviousLineupFailed", resourceCulture); } }
     }
 }

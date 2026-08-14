@@ -510,4 +510,13 @@
   <data name="ConfirmRemoveLineupPlayersButton" xml:space="preserve"><value>Remove</value></data>
   <data name="LineupRemovalPartialMessage" xml:space="preserve"><value>{0} of {1} selected Players were removed. The lineup has been refreshed.</value></data>
   <data name="LineupRemovalNoOpMessage" xml:space="preserve"><value>No selected Players were removed. The lineup has been refreshed.</value></data>
+  <data name="UsePreviousLineupButton" xml:space="preserve"><value>Use Previous Lineup</value></data>
+  <data name="PreviousLineupReplacementTitle" xml:space="preserve"><value>Replace Current Lineup?</value></data>
+  <data name="PreviousLineupReplacementMessage" xml:space="preserve"><value>The current Game's lineup will be replaced with the most recent previous eligible lineup. The previous Game and its lineup will not be changed.</value></data>
+  <data name="ConfirmPreviousLineupReplacementButton" xml:space="preserve"><value>Replace Lineup</value></data>
+  <data name="NoPreviousLineupMessage" xml:space="preserve"><value>No previous lineup is available for this Team.</value></data>
+  <data name="NoEligiblePreviousLineupPlayersMessage" xml:space="preserve"><value>No Players from the previous lineup are currently eligible for this Team. The current lineup was not changed.</value></data>
+  <data name="PreviousLineupCopiedWithSkippedPlayer" xml:space="preserve"><value>Lineup copied. {0} Player was skipped because they are no longer on the active roster.</value></data>
+  <data name="PreviousLineupCopiedWithSkippedPlayers" xml:space="preserve"><value>Lineup copied. {0} Players were skipped because they are no longer on the active roster.</value></data>
+  <data name="PreviousLineupFailed" xml:space="preserve"><value>The previous lineup could not be applied. The persisted lineup has been restored.</value></data>
 </root>
