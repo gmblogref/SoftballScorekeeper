@@ -97,6 +97,9 @@
   <data name="TeamNameRequired" xml:space="preserve">
     <value>Team name is required.</value>
   </data>
+  <data name="TeamCreationFailed" xml:space="preserve">
+    <value>The Team could not be created. No changes were saved.</value>
+  </data>
   <data name="DuplicateTeamName" xml:space="preserve">
     <value>An active team with this name already exists.</value>
   </data>

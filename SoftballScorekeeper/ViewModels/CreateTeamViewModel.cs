@@ -17,6 +17,9 @@ public partial class CreateTeamViewModel : ObservableObject
     private string validationMessage = string.Empty;
 
     [ObservableProperty]
+    [NotifyCanExecuteChangedFor(nameof(SaveCommand))]
+    [NotifyCanExecuteChangedFor(nameof(SaveAndAddAnotherCommand))]
+    [NotifyCanExecuteChangedFor(nameof(CancelCommand))]
     private bool isBusy;
 
     [ObservableProperty]
@@ -29,10 +32,15 @@ public partial class CreateTeamViewModel : ObservableObject
         this.teamRepository = teamRepository;
     }
 
-    [RelayCommand]
-    private async Task SaveAsync()
+    [RelayCommand(CanExecute = nameof(CanSave))]
+    private Task SaveAsync() => SaveCoreAsync(addAnother: false);
+
+    [RelayCommand(CanExecute = nameof(CanSave))]
+    private Task SaveAndAddAnotherAsync() => SaveCoreAsync(addAnother: true);
+
+    private async Task SaveCoreAsync(bool addAnother)
     {
-        if (IsBusy)
+        if (!CanSave())
         {
             return;
         }
@@ -51,9 +59,25 @@ public partial class CreateTeamViewModel : ObservableObject
                 Name = TeamName,
             };
 
-            await teamRepository.CreateAsync(team);
+            if (await teamRepository.CreateAsync(team) != 1)
+            {
+                ValidationMessage = AppResources.TeamCreationFailed;
+                return;
+            }
+
+            ValidationMessage = string.Empty;
+            if (addAnother)
+            {
+                TeamName = string.Empty;
+                return;
+            }
+
             IsSaved = true;
             await Shell.Current.GoToAsync("..");
+        }
+        catch
+        {
+            ValidationMessage = AppResources.TeamCreationFailed;
         }
         finally
         {
@@ -61,7 +85,7 @@ public partial class CreateTeamViewModel : ObservableObject
         }
     }
 
-    [RelayCommand]
+    [RelayCommand(CanExecute = nameof(CanSave))]
     private async Task CancelAsync()
     {
         TeamName = string.Empty;
@@ -96,4 +120,6 @@ public partial class CreateTeamViewModel : ObservableObject
         ValidationMessage = string.Empty;
         return true;
     }
+
+    private bool CanSave() => !IsBusy;
 }

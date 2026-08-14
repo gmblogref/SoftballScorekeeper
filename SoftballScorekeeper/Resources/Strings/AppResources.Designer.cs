@@ -138,6 +138,12 @@ namespace SoftballScorekeeper.Resources.Strings {
             }
         }
 
+        public static string TeamCreationFailed {
+            get {
+                return ResourceManager.GetString("TeamCreationFailed", resourceCulture);
+            }
+        }
+
         public static string DuplicateTeamName {
             get {
                 return ResourceManager.GetString("DuplicateTeamName", resourceCulture);

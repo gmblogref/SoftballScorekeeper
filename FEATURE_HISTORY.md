@@ -10,9 +10,9 @@ Stable product and architecture decisions belong in the project architecture doc
 
 ## Current Project Status
 
-- **Latest completed story:** Story 4.5 — Edit Game
-- **Completed stories:** Stories 0.0 through 3.1 and Stories 3.5 through 4.5; Stories 3.2 through 3.4 retain their recorded validation status
-- **Current story:** None; Story 4.5 — Edit Game is complete
+- **Latest completed story:** Story 5.1.4 — Global Rapid Entry Pattern
+- **Completed stories:** Stories 0.0 through 5.1.4; Stories 3.2 through 3.4 retain their recorded validation status
+- **Current story:** None; Story 5.1.4 — Global Rapid Entry Pattern is complete
 - **Current phase:** Team-scoped Game Management workspace foundation
 - **Foundation status:** Complete
 
@@ -1858,6 +1858,36 @@ This story implements rapid consecutive single-Player entry, not true bulk impor
 #### Intended Commit Message
 
 `Integrate rapid Player entry with lineups`
+
+### Story 5.1.4 — Global Rapid Entry Pattern
+
+**Status:** Complete on `task/global-rapid-entry`; automated tests, Windows build, and focused Android manual validation passed
+
+#### Implementation Summary
+
+- Extended the resource-backed Save & Add Another repeated-entry pattern from Story 5.1.3 Player creation to Create Team and Add Game. Existing global, Team-scoped, and Game Lineup Player behavior remains unchanged.
+- Create Team Save and Save & Add Another now share one authoritative operation for trimming, required-name validation, case-insensitive active and inactive duplicate protection, persistence, persistence-failure handling, and busy-state protection. Normal Save retains existing return navigation; successful Save & Add Another creates exactly one Team, remains on the form, and clears Team Name and validation state. Failed operations retain the normalized entered name and do not reset or navigate.
+- Add Game Save and Save & Add Another now share one authoritative operation that uses the existing transactional `GameRepository.CreateForTeamAsync` workflow. Single-Game and doubleheader counts, logical Season resolution/reuse, Team and Season ownership validation, optional Opponent and Field normalization, duplicate-schedule protection, and all-or-nothing Game/new-Season persistence therefore remain repository-controlled and unchanged.
+- Successful Add Game Save & Add Another retains Team, resolved Season, Opponent, Field, and the Add Second Game choice while advancing Date by exactly seven days. A newly created or logically reused Season becomes the selected persisted Season and exits Create New Season mode. The next weekly entry searches the existing authoritative Team/Season/date schedule from 6:30 PM in one-hour increments and selects the earliest available slot; a doubleheader requires both the candidate first time and its consecutive one-hour-later second time to be available. Prior manual second-time override tracking is cleared, and the fresh entry restores the normal one-hour second-time default.
+- Add Game validation or persistence failure retains the current form and times, performs no carry-forward or time advancement, and shows the existing resource-backed failure state. Both save actions share the existing busy guard, so they are disabled together during the complete persistence and post-success preparation operation.
+- No Core model, database schema, repository, or Infrastructure behavior changed. No generic rapid-entry framework or new application layer was introduced.
+
+#### Automated Tests and Validation
+
+- No automated tests were added because the changed behavior is confined to MAUI view models and XAML, while the automated test project intentionally references Core and Infrastructure but not the MAUI presentation project. Existing repository coverage remains the authoritative automated coverage for Team duplicate checks and Game transactions, Season ownership/reuse, duplicate schedules, and normalization.
+- Focused Team, Game, Season, and Player repository validation passed 146 of 146 tests with zero failures and zero skips.
+- The complete automated suite passed 166 of 166 tests with zero failures and zero skips.
+- The Windows `net9.0-windows10.0.19041.0` target build succeeded with zero errors and 99 warnings. Warning categories remain `CS8602`, `MVVMTK0045`, and `XC0025`; no new warning category was introduced. Windows runtime validation was not performed.
+- Final `git diff --check` validation passed.
+- Focused Android tablet validation passed. Create Team Save & Add Another remained on Create Team and prepared another Team entry. Add Game Save & Add Another retained Team, Season, Opponent, Field, and the Add Second Game choice; single-Game entry advanced to the same weekday exactly seven days later, selected the standard 6:30 PM slot when available, and advanced to the next available hourly slot when the normal slot was occupied. Normal Save remained intact, and the rapid-entry UX worked correctly on the Android tablet. Custom doubleheader time combinations, rapid multi-tap stress, every duplicate or ownership failure path, and all theme or orientation combinations were not reported as manually exercised and are not claimed.
+
+#### Limitations and Deferred Work
+
+Bulk, CSV, spreadsheet, and paste import; Team and schedule templates; automatic full-season scheduling; Season Manager; lineup and batting-order changes; scoring; statistics; and Beer Rules remain deferred. Broader Android regression coverage for custom doubleheader time combinations, rapid multi-tap stress, every duplicate or ownership failure path, and all theme or orientation combinations was not part of the reported focused validation.
+
+#### Intended Commit Message
+
+`Add global rapid-entry pattern`
 
 ## Maintenance Rules
 

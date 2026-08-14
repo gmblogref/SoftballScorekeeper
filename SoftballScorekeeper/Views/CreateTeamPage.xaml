@@ -41,20 +41,18 @@
                 Spacing="16">
                 <Button
                     Text="{x:Static strings:AppResources.SaveButton}"
-                    Command="{Binding SaveCommand}">
-                    <Button.Triggers>
-                        <DataTrigger
-                            TargetType="Button"
-                            Binding="{Binding IsBusy}"
-                            Value="True">
-                            <Setter Property="IsEnabled" Value="False" />
-                        </DataTrigger>
-                    </Button.Triggers>
-                </Button>
+                    Command="{Binding SaveCommand}"
+                    MinimumHeightRequest="52" />
+
+                <Button
+                    Text="{x:Static strings:AppResources.SaveAndAddAnotherButton}"
+                    Command="{Binding SaveAndAddAnotherCommand}"
+                    MinimumHeightRequest="52" />
 
                 <Button
                     Text="{x:Static strings:AppResources.CancelButton}"
-                    Command="{Binding CancelCommand}" />
+                    Command="{Binding CancelCommand}"
+                    MinimumHeightRequest="52" />
             </HorizontalStackLayout>
         </VerticalStackLayout>
     </ScrollView>
