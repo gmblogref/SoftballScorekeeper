@@ -469,6 +469,111 @@ public sealed class PlayerRepositoryTests
         Assert.Empty(await repository.GetActiveAsync());
     }
 
+    [Fact]
+    public async Task CreateForTeamAsync_AtomicallyCreatesPlayerAndCorrectActiveMembership()
+    {
+        await using var db = await TemporaryTestDatabase.CreateAsync();
+        var team = new Team { Name = "Tigers" };
+        Assert.Equal(1, await db.CreateTeamRepository().CreateAsync(team));
+        var player = new Player { FirstName = "Amy", LastName = "Able" };
+
+        var result = await db.CreatePlayerRepository().CreateForTeamAsync(player, team.Id);
+
+        Assert.True(result.IsSuccess);
+        Assert.Equal(player.Id, result.PlayerId);
+        Assert.Equal(player.Id, Assert.Single(await db.GetPlayersAsync()).Id);
+        var membership = Assert.Single(await db.GetTeamPlayersAsync());
+        Assert.Equal(team.Id, membership.TeamId);
+        Assert.Equal(player.Id, membership.PlayerId);
+        Assert.True(membership.IsActive);
+    }
+
+    [Fact]
+    public async Task CreateForTeamAsync_InvalidOrInactiveTeamRollsBackPlayer()
+    {
+        await using var db = await TemporaryTestDatabase.CreateAsync();
+        var team = new Team { Name = "Tigers" };
+        Assert.Equal(1, await db.CreateTeamRepository().CreateAsync(team));
+        Assert.Equal(1, await db.CreateTeamRepository().DeactivateAsync(team.Id));
+
+        var result = await db.CreatePlayerRepository().CreateForTeamAsync(
+            new Player { FirstName = "Amy" }, team.Id);
+
+        Assert.Equal(CreatePlayerFailure.InvalidTeam, result.Failure);
+        Assert.Empty(await db.GetPlayersAsync());
+        Assert.Empty(await db.GetTeamPlayersAsync());
+    }
+
+    [Fact]
+    public async Task CreateForGameLineupAsync_EmptyLineupCreatesCompleteChainAtOrderOne()
+    {
+        await using var db = await TemporaryTestDatabase.CreateAsync();
+        var (team, game) = await CreateGameContextAsync(db, "Tigers");
+        var player = new Player { FirstName = "Amy" };
+
+        var result = await db.CreatePlayerRepository().CreateForGameLineupAsync(player, team.Id, game.Id);
+
+        Assert.True(result.IsSuccess);
+        Assert.Equal(player.Id, Assert.Single(await db.GetPlayersAsync()).Id);
+        var membership = Assert.Single(await db.GetTeamPlayersAsync());
+        Assert.Equal((team.Id, player.Id, true), (membership.TeamId, membership.PlayerId, membership.IsActive));
+        var lineup = Assert.Single(await db.GetGameLineupPlayersAsync());
+        Assert.Equal((game.Id, player.Id, 1), (lineup.GameId, lineup.PlayerId, lineup.BattingOrder));
+    }
+
+    [Fact]
+    public async Task CreateForGameLineupAsync_RepeatedPlayersAppendWithoutChangingExistingOrOtherGame()
+    {
+        await using var db = await TemporaryTestDatabase.CreateAsync();
+        var (team, game) = await CreateGameContextAsync(db, "Tigers");
+        var otherGame = new Game { TeamId = team.Id, SeasonId = game.SeasonId, ScheduledDate = game.ScheduledDate.AddDays(1), ScheduledTime = game.ScheduledTime };
+        Assert.Equal(1, await db.SeedGameAsync(otherGame));
+        var existing = new Player { FirstName = "Existing" };
+        Assert.Equal(1, await db.CreatePlayerRepository().CreateAsync(existing));
+        Assert.Equal(1, await db.SeedTeamPlayerAsync(new TeamPlayer { TeamId = team.Id, PlayerId = existing.Id }));
+        Assert.Equal(1, await db.SeedGameLineupPlayerAsync(new GameLineupPlayer { GameId = game.Id, PlayerId = existing.Id, BattingOrder = 4 }));
+        var first = new Player { FirstName = "Amy" };
+        var second = new Player { FirstName = "Bob" };
+
+        Assert.True((await db.CreatePlayerRepository().CreateForGameLineupAsync(first, team.Id, game.Id)).IsSuccess);
+        Assert.True((await db.CreatePlayerRepository().CreateForGameLineupAsync(second, team.Id, game.Id)).IsSuccess);
+
+        var lineup = await db.CreateGameLineupRepository().GetForGameAsync(game.Id);
+        Assert.Equal([existing.Id, first.Id, second.Id], lineup.Select(item => item.PlayerId));
+        Assert.Equal([4, 5, 6], lineup.Select(item => item.BattingOrder));
+        Assert.Empty(await db.CreateGameLineupRepository().GetForGameAsync(otherGame.Id));
+        Assert.Equal(3, (await db.GetTeamPlayersAsync()).Select(item => item.PlayerId).Distinct().Count());
+    }
+
+    [Fact]
+    public async Task CreateForGameLineupAsync_WrongTeamOwnershipRejectsEntireChain()
+    {
+        await using var db = await TemporaryTestDatabase.CreateAsync();
+        var (gameTeam, game) = await CreateGameContextAsync(db, "Tigers");
+        var otherTeam = new Team { Name = "Bears" };
+        Assert.Equal(1, await db.CreateTeamRepository().CreateAsync(otherTeam));
+
+        var result = await db.CreatePlayerRepository().CreateForGameLineupAsync(
+            new Player { FirstName = "Amy" }, otherTeam.Id, game.Id);
+
+        Assert.Equal(CreatePlayerFailure.TeamMismatch, result.Failure);
+        Assert.Empty(await db.GetPlayersAsync());
+        Assert.Empty(await db.GetTeamPlayersAsync());
+        Assert.Empty(await db.GetGameLineupPlayersAsync());
+        Assert.NotEqual(gameTeam.Id, otherTeam.Id);
+    }
+
+    private static async Task<(Team Team, Game Game)> CreateGameContextAsync(TemporaryTestDatabase db, string teamName)
+    {
+        var team = new Team { Name = teamName };
+        Assert.Equal(1, await db.CreateTeamRepository().CreateAsync(team));
+        var season = new Season { TeamId = team.Id, Name = "Summer", Year = 2026 };
+        Assert.Equal(1, await db.SeedSeasonAsync(season));
+        var game = new Game { TeamId = team.Id, SeasonId = season.Id, ScheduledDate = new(2026, 8, 20), ScheduledTime = new(18, 30, 0) };
+        Assert.Equal(1, await db.SeedGameAsync(game));
+        return (team, game);
+    }
+
     private static async Task<Player> CreatePlayerAsync(
         PlayerRepository repository,
         string firstName,

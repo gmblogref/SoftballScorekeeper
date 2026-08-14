@@ -55,6 +55,14 @@ public partial class SetLineupViewModel : ObservableObject, IQueryAttributable
 
     public void ApplyQueryAttributes(IDictionary<string, object> query)
     {
+        var hasTeamId = query.ContainsKey(AppShell.TeamIdQueryParameter);
+        var hasGameId = query.ContainsKey(AppShell.GameIdQueryParameter);
+        if (!hasTeamId && !hasGameId)
+        {
+            if (!hasContext) ValidationMessage = AppResources.GameNotFound;
+            return;
+        }
+
         if (!TryId(query, AppShell.TeamIdQueryParameter, out var teamId) || !TryId(query, AppShell.GameIdQueryParameter, out var gameId))
         { Reset(); ValidationMessage = AppResources.GameNotFound; return; }
         TeamId = teamId; GameId = gameId; hasContext = true;
@@ -165,10 +173,20 @@ public partial class SetLineupViewModel : ObservableObject, IQueryAttributable
         finally { IsBusy = false; }
     }
 
+    [RelayCommand(CanExecute = nameof(CanCreatePlayer))]
+    private Task CreatePlayerAsync() => Shell.Current.GoToAsync(
+        AppShell.CreatePlayerRoute,
+        new ShellNavigationQueryParameters
+        {
+            [AppShell.TeamIdQueryParameter] = TeamId,
+            [AppShell.GameIdQueryParameter] = GameId,
+        });
+
     [RelayCommand(CanExecute = nameof(CanDone))]
     private async Task DoneAsync() { ExitTemporaryMode(); await Shell.Current.GoToAsync(".."); }
 
     private bool CanAddSelected() => !IsBusy && IsAddMode && !isConfirmationPending && hasContext && SelectedPlayerCount > 0;
+    private bool CanCreatePlayer() => !IsBusy && IsAddMode && !isConfirmationPending && hasContext;
     private bool CanEnterAddMode() => !IsBusy && IsNormalMode && !isConfirmationPending;
     private bool CanEnterRemovalMode() => !IsBusy && IsNormalMode && !isConfirmationPending && HasExistingLineup;
     private bool CanCancelTemporaryMode() => !IsBusy && !IsNormalMode && !isConfirmationPending;
@@ -184,7 +202,7 @@ public partial class SetLineupViewModel : ObservableObject, IQueryAttributable
     }
     partial void OnHasExistingLineupChanged(bool value) { OnPropertyChanged(nameof(HasEmptyLineup)); OnPropertyChanged(nameof(ShowNoEligiblePlayersMessage)); OnPropertyChanged(nameof(ShowNoAdditionalPlayersMessage)); NotifyCommands(); }
     partial void OnHasNoPlayersChanged(bool value) { OnPropertyChanged(nameof(ShowNoEligiblePlayersMessage)); OnPropertyChanged(nameof(ShowNoAdditionalPlayersMessage)); }
-    private void NotifyCommands() { AddSelectedCommand.NotifyCanExecuteChanged(); EnterAddModeCommand.NotifyCanExecuteChanged(); EnterRemovalModeCommand.NotifyCanExecuteChanged(); CancelTemporaryModeCommand.NotifyCanExecuteChanged(); RequestRemovalCommand.NotifyCanExecuteChanged(); ConfirmRemovalCommand.NotifyCanExecuteChanged(); DoneCommand.NotifyCanExecuteChanged(); }
+    private void NotifyCommands() { AddSelectedCommand.NotifyCanExecuteChanged(); CreatePlayerCommand.NotifyCanExecuteChanged(); EnterAddModeCommand.NotifyCanExecuteChanged(); EnterRemovalModeCommand.NotifyCanExecuteChanged(); CancelTemporaryModeCommand.NotifyCanExecuteChanged(); RequestRemovalCommand.NotifyCanExecuteChanged(); ConfirmRemovalCommand.NotifyCanExecuteChanged(); DoneCommand.NotifyCanExecuteChanged(); }
     private void ClearSelections() { foreach (var item in Players) item.IsSelected = false; foreach (var item in ExistingLineupPlayers) item.IsSelected = false; selectionOrder.Clear(); SelectedPlayerCount = 0; UpdateRemovalSelection(); }
     private void ExitTemporaryMode() { ClearSelections(); Mode = LineupManagerMode.Normal; }
     private void Reset() { TeamId = GameId = 0; hasContext = false; Players.Clear(); ExistingLineupPlayers.Clear(); selectionOrder.Clear(); SelectedPlayerCount = 0; SelectedRemovalCount = 0; Mode = LineupManagerMode.Normal; }
