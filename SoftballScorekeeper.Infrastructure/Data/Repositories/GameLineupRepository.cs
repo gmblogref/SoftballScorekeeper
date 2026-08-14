@@ -118,6 +118,59 @@ public sealed class GameLineupRepository
         return result;
     }
 
+    public async Task<ReorderGameLineupResult> ReorderAsync(
+        int gameId,
+        IReadOnlyCollection<int>? orderedPlayerIds)
+    {
+        if (gameId <= 0 || orderedPlayerIds is null)
+            return ReorderFailure(gameId, ReorderGameLineupFailure.InvalidRequest);
+
+        var requestedIds = orderedPlayerIds.ToArray();
+        if (requestedIds.Any(id => id <= 0)
+            || requestedIds.Distinct().Count() != requestedIds.Length)
+            return ReorderFailure(gameId, ReorderGameLineupFailure.InvalidRequest);
+
+        var connection = await database.GetConnectionAsync();
+        var result = ReorderFailure(gameId, ReorderGameLineupFailure.InvalidGame);
+        try
+        {
+            await connection.RunInTransactionAsync(transaction =>
+            {
+                if (transaction.Find<Game>(gameId) is null) return;
+
+                var lineup = transaction.Table<GameLineupPlayer>()
+                    .Where(item => item.GameId == gameId)
+                    .OrderBy(item => item.BattingOrder)
+                    .ThenBy(item => item.Id)
+                    .ToList();
+                var persistedIds = lineup.Select(item => item.PlayerId).ToHashSet();
+                if (requestedIds.Length != lineup.Count
+                    || requestedIds.Any(id => !persistedIds.Contains(id)))
+                {
+                    result = ReorderFailure(gameId, ReorderGameLineupFailure.LineupMismatch);
+                    return;
+                }
+
+                var rowsByPlayerId = lineup.ToDictionary(item => item.PlayerId);
+                for (var index = 0; index < requestedIds.Length; index++)
+                {
+                    var row = rowsByPlayerId[requestedIds[index]];
+                    row.BattingOrder = index + 1;
+                    if (transaction.Update(row) != 1)
+                        throw new InvalidOperationException("Lineup reorder did not update one row.");
+                }
+
+                result = new(gameId, requestedIds, ReorderGameLineupFailure.None);
+            });
+        }
+        catch
+        {
+            return ReorderFailure(gameId, ReorderGameLineupFailure.Persistence);
+        }
+
+        return result;
+    }
+
     private async Task<SaveGameLineupResult> SaveAsync(
         int teamId,
         int gameId,
@@ -169,4 +222,8 @@ public sealed class GameLineupRepository
     }
 
     private static SaveGameLineupResult Failure(int gameId, SaveGameLineupFailure failure) => new(gameId, [], [], failure);
+
+    private static ReorderGameLineupResult ReorderFailure(
+        int gameId,
+        ReorderGameLineupFailure failure) => new(gameId, [], failure);
 }

@@ -7,6 +7,9 @@ namespace SoftballScorekeeper.ViewModels;
 public partial class LineupPlayerSelectionItem : ObservableObject
 {
     private readonly Action<LineupPlayerSelectionItem>? selectionChanged;
+    private bool isDragged;
+    private bool isDropGapAfter;
+    private bool isDropGapBefore;
     private bool isSelected;
     [ObservableProperty] private bool isSelectionVisible;
 
@@ -36,5 +39,23 @@ public partial class LineupPlayerSelectionItem : ObservableObject
         {
             if (SetProperty(ref isSelected, value)) selectionChanged?.Invoke(this);
         }
+    }
+
+    public bool IsDragged
+    {
+        get => isDragged;
+        set => SetProperty(ref isDragged, value);
+    }
+
+    public bool IsDropGapBefore
+    {
+        get => isDropGapBefore;
+        set => SetProperty(ref isDropGapBefore, value);
+    }
+
+    public bool IsDropGapAfter
+    {
+        get => isDropGapAfter;
+        set => SetProperty(ref isDropGapAfter, value);
     }
 }

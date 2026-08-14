@@ -921,6 +921,7 @@ namespace SoftballScorekeeper.Resources.Strings {
         public static string CurrentLineupHeading { get { return ResourceManager.GetString("CurrentLineupHeading", resourceCulture); } }
         public static string NoAdditionalEligibleLineupPlayers { get { return ResourceManager.GetString("NoAdditionalEligibleLineupPlayers", resourceCulture); } }
         public static string RemoveLineupPlayersButton { get { return ResourceManager.GetString("RemoveLineupPlayersButton", resourceCulture); } }
+        public static string LineupReorderFailed { get { return ResourceManager.GetString("LineupReorderFailed", resourceCulture); } }
         public static string RemoveSelectedLineupPlayersButton { get { return ResourceManager.GetString("RemoveSelectedLineupPlayersButton", resourceCulture); } }
         public static string LineupRemovalSelectedCountSingular { get { return ResourceManager.GetString("LineupRemovalSelectedCountSingular", resourceCulture); } }
         public static string LineupRemovalSelectedCountPlural { get { return ResourceManager.GetString("LineupRemovalSelectedCountPlural", resourceCulture); } }
