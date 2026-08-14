@@ -15,7 +15,7 @@ public partial class SetLineupPage : ContentPage
     }
     protected override async void OnAppearing() { base.OnAppearing(); await viewModel.LoadAsync(); }
 
-    protected override bool OnBackButtonPressed() => viewModel.TryExitRemovalMode() || base.OnBackButtonPressed();
+    protected override bool OnBackButtonPressed() => viewModel.TryExitTemporaryMode() || base.OnBackButtonPressed();
 
     private async Task ConfirmRemovalAsync(int selectedCount)
     {

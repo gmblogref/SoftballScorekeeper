@@ -1,5 +1,4 @@
 using System.Globalization;
-using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using SoftballScorekeeper.Infrastructure.Data.Repositories;
@@ -40,7 +39,7 @@ public partial class GameWorkspaceViewModel : ObservableObject, IQueryAttributab
         this.lineupRepository = lineupRepository;
     }
 
-    public ObservableCollection<string> LineupPlayers { get; } = [];
+    public string LineupActionText => HasLineup ? AppResources.EditLineupButton : AppResources.SetLineupTitle;
 
     public void ApplyQueryAttributes(IDictionary<string, object> query)
     {
@@ -112,12 +111,7 @@ public partial class GameWorkspaceViewModel : ObservableObject, IQueryAttributab
                 season.Name,
                 season.Year);
             ValidationMessage = string.Empty;
-            LineupPlayers.Clear();
-            var lineupPlayers = await lineupRepository.GetPlayersForGameAsync(GameId);
-            for (var index = 0; index < lineupPlayers.Count; index++)
-                LineupPlayers.Add(string.Format(CultureInfo.CurrentCulture, AppResources.LineupPlayerFormat, index + 1,
-                    string.Join(" ", new[] { lineupPlayers[index].FirstName, lineupPlayers[index].LastName }.Where(value => !string.IsNullOrWhiteSpace(value)))));
-            HasLineup = LineupPlayers.Count > 0;
+            HasLineup = await lineupRepository.HasLineupAsync(GameId);
             IsLoaded = true;
         }
         finally
@@ -148,6 +142,8 @@ public partial class GameWorkspaceViewModel : ObservableObject, IQueryAttributab
 
     private bool CanSetLineup() => !IsBusy && IsLoaded && hasValidContext;
 
+    partial void OnHasLineupChanged(bool value) => OnPropertyChanged(nameof(LineupActionText));
+
     private static string DisplayOrTbd(string? value) =>
         string.IsNullOrWhiteSpace(value) ? AppResources.ScheduleTbdText : value.Trim();
 
@@ -156,7 +152,7 @@ public partial class GameWorkspaceViewModel : ObservableObject, IQueryAttributab
         TeamId = GameId = 0;
         TeamName = OpponentDisplay = DateDisplay = TimeDisplay = FieldDisplay = SeasonDisplay = string.Empty;
         ValidationMessage = string.Empty;
-        LineupPlayers.Clear(); HasLineup = false;
+        HasLineup = false;
         IsLoaded = false;
         hasValidContext = false;
     }

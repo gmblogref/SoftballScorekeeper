@@ -479,8 +479,13 @@
   <data name="GameNotFound" xml:space="preserve"><value>The selected Game could not be found for this Team.</value></data>
   <data name="GameUpdateFailed" xml:space="preserve"><value>The Game could not be updated. Review the details and try again.</value></data>
   <data name="SetLineupTitle" xml:space="preserve"><value>Set Lineup</value></data>
+  <data name="EditLineupButton" xml:space="preserve"><value>Edit Lineup</value></data>
+  <data name="LineupManagerTitle" xml:space="preserve"><value>Lineup Manager</value></data>
+  <data name="AddLineupPlayersButton" xml:space="preserve"><value>Add Players</value></data>
+  <data name="AddSelectedLineupPlayersButton" xml:space="preserve"><value>Add Selected</value></data>
+  <data name="DoneButton" xml:space="preserve"><value>Done</value></data>
+  <data name="EmptyLineupMessage" xml:space="preserve"><value>No Players are currently in this lineup.</value></data>
   <data name="SaveLineupButton" xml:space="preserve"><value>Save Lineup</value></data>
-  <data name="LineupHeading" xml:space="preserve"><value>Lineup</value></data>
   <data name="NoEligibleLineupPlayers" xml:space="preserve"><value>This Team has no eligible roster Players for the lineup.</value></data>
   <data name="LineupSelectionRequired" xml:space="preserve"><value>Select at least one Player for the lineup.</value></data>
   <data name="LineupAlreadyExists" xml:space="preserve"><value>This Game already has a saved lineup. Review it in the Game workspace.</value></data>
