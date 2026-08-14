@@ -17,6 +17,7 @@ public partial class SetLineupPage : ContentPage
         InitializeComponent();
         BindingContext = this.viewModel = viewModel;
         viewModel.RemovalConfirmationRequested = ConfirmRemovalAsync;
+        viewModel.PreviousLineupReplacementConfirmationRequested = ConfirmPreviousLineupReplacementAsync;
     }
     protected override async void OnAppearing()
     {
@@ -166,4 +167,10 @@ public partial class SetLineupPage : ContentPage
         if (confirmed && viewModel.ConfirmRemovalCommand.CanExecute(null))
             await viewModel.ConfirmRemovalCommand.ExecuteAsync(null);
     }
+
+    private Task<bool> ConfirmPreviousLineupReplacementAsync() => DisplayAlert(
+        AppResources.PreviousLineupReplacementTitle,
+        AppResources.PreviousLineupReplacementMessage,
+        AppResources.ConfirmPreviousLineupReplacementButton,
+        AppResources.CancelButton);
 }

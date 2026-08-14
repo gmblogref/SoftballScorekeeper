@@ -36,6 +36,7 @@ public partial class SetLineupViewModel : ObservableObject, IQueryAttributable
     public ObservableCollection<PlayerSelectionItem> Players { get; } = [];
     public ObservableCollection<LineupPlayerSelectionItem> ExistingLineupPlayers { get; } = [];
     public Func<int, Task>? RemovalConfirmationRequested { get; set; }
+    public Func<Task<bool>>? PreviousLineupReplacementConfirmationRequested { get; set; }
     public bool IsNormalMode => Mode == LineupManagerMode.Normal;
     public bool IsAddMode => Mode == LineupManagerMode.Add;
     public bool IsRemovalMode => Mode == LineupManagerMode.Remove;
@@ -203,6 +204,51 @@ public partial class SetLineupViewModel : ObservableObject, IQueryAttributable
         finally { IsBusy = false; }
     }
 
+    [RelayCommand(CanExecute = nameof(CanUsePreviousLineup))]
+    private async Task UsePreviousLineupAsync()
+    {
+        if (HasExistingLineup)
+        {
+            isConfirmationPending = true;
+            NotifyCommands();
+            try
+            {
+                if (PreviousLineupReplacementConfirmationRequested is null
+                    || !await PreviousLineupReplacementConfirmationRequested())
+                    return;
+            }
+            finally
+            {
+                isConfirmationPending = false;
+                NotifyCommands();
+            }
+        }
+
+        IsBusy = true;
+        try
+        {
+            var result = await repository.UsePreviousAsync(TeamId, GameId);
+            await ReloadAsync();
+            ValidationMessage = result.FailureReason switch
+            {
+                UsePreviousLineupFailure.None when result.SkippedPlayerCount == 1 =>
+                    string.Format(CultureInfo.CurrentCulture, AppResources.PreviousLineupCopiedWithSkippedPlayer, 1),
+                UsePreviousLineupFailure.None when result.SkippedPlayerCount > 1 =>
+                    string.Format(CultureInfo.CurrentCulture, AppResources.PreviousLineupCopiedWithSkippedPlayers, result.SkippedPlayerCount),
+                UsePreviousLineupFailure.None => string.Empty,
+                UsePreviousLineupFailure.NoPreviousLineup => AppResources.NoPreviousLineupMessage,
+                UsePreviousLineupFailure.NoEligiblePlayers => AppResources.NoEligiblePreviousLineupPlayersMessage,
+                _ => AppResources.PreviousLineupFailed,
+            };
+        }
+        catch
+        {
+            await ReloadAsync();
+            ValidationMessage = AppResources.PreviousLineupFailed;
+        }
+        finally { IsBusy = false; }
+    }
+
     [RelayCommand(CanExecute = nameof(CanCreatePlayer))]
     private Task CreatePlayerAsync() => Shell.Current.GoToAsync(
         AppShell.CreatePlayerRoute,
@@ -221,6 +267,7 @@ public partial class SetLineupViewModel : ObservableObject, IQueryAttributable
     private bool CanEnterRemovalMode() => !IsBusy && IsNormalMode && !isConfirmationPending && HasExistingLineup;
     private bool CanCancelTemporaryMode() => !IsBusy && !IsNormalMode && !isConfirmationPending;
     private bool CanRequestRemoval() => !IsBusy && IsRemovalMode && !isConfirmationPending && HasSelectedRemovals;
+    private bool CanUsePreviousLineup() => !IsBusy && IsNormalMode && !isConfirmationPending && hasContext;
     private bool CanConfirmRemoval() => !IsBusy && IsRemovalMode && isConfirmationPending && pendingRemovalIds.Count > 0;
     private bool CanDone() => !IsBusy && IsNormalMode && !isConfirmationPending;
     partial void OnIsBusyChanged(bool value) { OnPropertyChanged(nameof(CanReorderLineup)); NotifyCommands(); }
@@ -232,7 +279,7 @@ public partial class SetLineupViewModel : ObservableObject, IQueryAttributable
     }
     partial void OnHasExistingLineupChanged(bool value) { OnPropertyChanged(nameof(HasEmptyLineup)); OnPropertyChanged(nameof(ShowNoEligiblePlayersMessage)); OnPropertyChanged(nameof(ShowNoAdditionalPlayersMessage)); NotifyCommands(); }
     partial void OnHasNoPlayersChanged(bool value) { OnPropertyChanged(nameof(ShowNoEligiblePlayersMessage)); OnPropertyChanged(nameof(ShowNoAdditionalPlayersMessage)); }
-    private void NotifyCommands() { AddSelectedCommand.NotifyCanExecuteChanged(); CreatePlayerCommand.NotifyCanExecuteChanged(); EnterAddModeCommand.NotifyCanExecuteChanged(); EnterRemovalModeCommand.NotifyCanExecuteChanged(); CancelTemporaryModeCommand.NotifyCanExecuteChanged(); RequestRemovalCommand.NotifyCanExecuteChanged(); ConfirmRemovalCommand.NotifyCanExecuteChanged(); DoneCommand.NotifyCanExecuteChanged(); }
+    private void NotifyCommands() { AddSelectedCommand.NotifyCanExecuteChanged(); CreatePlayerCommand.NotifyCanExecuteChanged(); EnterAddModeCommand.NotifyCanExecuteChanged(); EnterRemovalModeCommand.NotifyCanExecuteChanged(); CancelTemporaryModeCommand.NotifyCanExecuteChanged(); RequestRemovalCommand.NotifyCanExecuteChanged(); ConfirmRemovalCommand.NotifyCanExecuteChanged(); UsePreviousLineupCommand.NotifyCanExecuteChanged(); DoneCommand.NotifyCanExecuteChanged(); }
     private void ClearSelections() { foreach (var item in Players) item.IsSelected = false; foreach (var item in ExistingLineupPlayers) item.IsSelected = false; selectionOrder.Clear(); SelectedPlayerCount = 0; UpdateRemovalSelection(); }
     private void ExitTemporaryMode() { ClearSelections(); Mode = LineupManagerMode.Normal; }
     private void Reset() { TeamId = GameId = 0; hasContext = false; Players.Clear(); ExistingLineupPlayers.Clear(); selectionOrder.Clear(); SelectedPlayerCount = 0; SelectedRemovalCount = 0; Mode = LineupManagerMode.Normal; }

@@ -439,6 +439,154 @@ public sealed class GameLineupRepositoryTests
             (await repository.GetForGameAsync(setup.Game.Id)).Select(item => item.PlayerId));
     }
 
+    [Fact]
+    public async Task UsePreviousAsync_CopiesLatestPriorLineupAndTransactionallyReplacesTarget()
+    {
+        await using var db = await TemporaryTestDatabase.CreateAsync();
+        var setup = await SetupAsync(db, 5);
+        var ids = setup.Players.Select(player => player.Id).ToArray();
+        var emptyPrior = await AddGameAsync(db, setup, setup.Game.ScheduledDate.AddDays(1), setup.Game.ScheduledTime);
+        var target = await AddGameAsync(db, setup, setup.Game.ScheduledDate.AddDays(2), setup.Game.ScheduledTime);
+        var future = await AddGameAsync(db, setup, setup.Game.ScheduledDate.AddDays(3), setup.Game.ScheduledTime);
+        var repository = db.CreateGameLineupRepository();
+        Assert.True((await repository.SaveInitialAsync(setup.Team.Id, setup.Game.Id, [ids[2], ids[0], ids[1]])).IsSuccess);
+        Assert.True((await repository.SaveInitialAsync(setup.Team.Id, target.Id, [ids[4]])).IsSuccess);
+        Assert.True((await repository.SaveInitialAsync(setup.Team.Id, future.Id, [ids[3]])).IsSuccess);
+        var sourceBefore = await repository.GetForGameAsync(setup.Game.Id);
+        var targetBefore = await repository.GetForGameAsync(target.Id);
+
+        var result = await repository.UsePreviousAsync(setup.Team.Id, target.Id);
+
+        Assert.True(result.IsSuccess);
+        Assert.Equal(setup.Game.Id, result.SourceGameId);
+        Assert.Equal([ids[2], ids[0], ids[1]], result.CopiedPlayerIds);
+        Assert.Empty(result.SkippedPlayerIds);
+        var targetAfter = await repository.GetForGameAsync(target.Id);
+        Assert.Equal([ids[2], ids[0], ids[1]], targetAfter.Select(item => item.PlayerId));
+        Assert.Equal([1, 2, 3], targetAfter.Select(item => item.BattingOrder));
+        Assert.All(targetAfter, item => Assert.Equal(target.Id, item.GameId));
+        Assert.DoesNotContain(targetAfter, after => sourceBefore.Any(source => source.Id == after.Id));
+        Assert.DoesNotContain(targetAfter, after => targetBefore.Any(before => before.Id == after.Id));
+        var sourceAfter = await repository.GetForGameAsync(setup.Game.Id);
+        Assert.Equal(sourceBefore.Select(item => (item.Id, item.GameId, item.PlayerId, item.BattingOrder)),
+            sourceAfter.Select(item => (item.Id, item.GameId, item.PlayerId, item.BattingOrder)));
+        Assert.Empty(await repository.GetForGameAsync(emptyPrior.Id));
+        Assert.Equal(ids[3], Assert.Single(await repository.GetForGameAsync(future.Id)).PlayerId);
+        Assert.Equal(targetAfter.Count, targetAfter.Select(item => item.PlayerId).Distinct().Count());
+    }
+
+    [Fact]
+    public async Task UsePreviousAsync_UsesDateTimeIdOrderAndNeverAnotherTeam()
+    {
+        await using var db = await TemporaryTestDatabase.CreateAsync();
+        var setup = await SetupAsync(db, 3);
+        var ids = setup.Players.Select(player => player.Id).ToArray();
+        var sameTimeTarget = await AddGameAsync(db, setup, setup.Game.ScheduledDate, setup.Game.ScheduledTime);
+        var repository = db.CreateGameLineupRepository();
+        Assert.True((await repository.SaveInitialAsync(setup.Team.Id, setup.Game.Id, [ids[1], ids[0]])).IsSuccess);
+
+        var otherTeam = new Team { Name = "Other" };
+        await db.CreateTeamRepository().CreateAsync(otherTeam);
+        var otherSeason = new Season { TeamId = otherTeam.Id, Name = "Other", Year = 2026 };
+        await db.SeedSeasonAsync(otherSeason);
+        var otherGame = new Game { TeamId = otherTeam.Id, SeasonId = otherSeason.Id, ScheduledDate = setup.Game.ScheduledDate, ScheduledTime = setup.Game.ScheduledTime };
+        await db.SeedGameAsync(otherGame);
+        await db.SeedGameLineupPlayerAsync(new GameLineupPlayer { GameId = otherGame.Id, PlayerId = ids[2], BattingOrder = 1 });
+
+        var result = await repository.UsePreviousAsync(setup.Team.Id, sameTimeTarget.Id);
+
+        Assert.True(result.IsSuccess);
+        Assert.Equal(setup.Game.Id, result.SourceGameId);
+        Assert.Equal([ids[1], ids[0]], (await repository.GetForGameAsync(sameTimeTarget.Id)).Select(item => item.PlayerId));
+        Assert.Equal(ids[2], Assert.Single(await repository.GetForGameAsync(otherGame.Id)).PlayerId);
+
+        var reverse = await repository.UsePreviousAsync(setup.Team.Id, setup.Game.Id);
+        Assert.Equal(UsePreviousLineupFailure.NoPreviousLineup, reverse.FailureReason);
+        Assert.Equal([ids[1], ids[0]], (await repository.GetForGameAsync(setup.Game.Id)).Select(item => item.PlayerId));
+    }
+
+    [Fact]
+    public async Task UsePreviousAsync_FiltersCurrentEligibilityWithoutChangingHistoricalState()
+    {
+        await using var db = await TemporaryTestDatabase.CreateAsync();
+        var setup = await SetupAsync(db, 4);
+        var ids = setup.Players.Select(player => player.Id).ToArray();
+        var target = await AddGameAsync(db, setup, setup.Game.ScheduledDate.AddDays(1), setup.Game.ScheduledTime);
+        var noEligibleTarget = await AddGameAsync(db, setup, setup.Game.ScheduledDate.AddDays(2), setup.Game.ScheduledTime);
+        var repository = db.CreateGameLineupRepository();
+        Assert.True((await repository.SaveInitialAsync(setup.Team.Id, setup.Game.Id, [ids[0], ids[1], ids[2]])).IsSuccess);
+        Assert.True((await repository.SaveInitialAsync(setup.Team.Id, noEligibleTarget.Id, [ids[3]])).IsSuccess);
+        var sourceBefore = await repository.GetForGameAsync(setup.Game.Id);
+        await db.CreatePlayerRepository().DeactivateAsync([ids[1]]);
+        await db.CreateTeamPlayerRepository().RemovePlayersFromTeamAsync(setup.Team.Id, [ids[2]]);
+
+        var partial = await repository.UsePreviousAsync(setup.Team.Id, target.Id);
+
+        Assert.True(partial.IsSuccess);
+        Assert.Equal([ids[0]], partial.CopiedPlayerIds);
+        Assert.Equal([ids[1], ids[2]], partial.SkippedPlayerIds);
+        Assert.Equal(ids[0], Assert.Single(await repository.GetForGameAsync(target.Id)).PlayerId);
+        var sourceAfterPartial = await repository.GetForGameAsync(setup.Game.Id);
+        Assert.Equal(sourceBefore.Select(item => (item.Id, item.GameId, item.PlayerId, item.BattingOrder)),
+            sourceAfterPartial.Select(item => (item.Id, item.GameId, item.PlayerId, item.BattingOrder)));
+        Assert.False((await db.GetPlayersAsync()).Single(player => player.Id == ids[1]).IsActive);
+        Assert.False((await db.GetTeamPlayersAsync()).Single(item => item.TeamId == setup.Team.Id && item.PlayerId == ids[2]).IsActive);
+
+        await db.CreatePlayerRepository().DeactivateAsync([ids[0]]);
+        var existingBefore = await repository.GetForGameAsync(noEligibleTarget.Id);
+        var noEligible = await repository.UsePreviousAsync(setup.Team.Id, noEligibleTarget.Id);
+
+        Assert.Equal(UsePreviousLineupFailure.NoEligiblePlayers, noEligible.FailureReason);
+        Assert.Equal(target.Id, noEligible.SourceGameId);
+        var existingAfter = await repository.GetForGameAsync(noEligibleTarget.Id);
+        Assert.Equal(existingBefore.Select(item => (item.Id, item.GameId, item.PlayerId, item.BattingOrder)),
+            existingAfter.Select(item => (item.Id, item.GameId, item.PlayerId, item.BattingOrder)));
+        var sourceAfterNoOp = await repository.GetForGameAsync(setup.Game.Id);
+        Assert.Equal(sourceBefore.Select(item => (item.Id, item.GameId, item.PlayerId, item.BattingOrder)),
+            sourceAfterNoOp.Select(item => (item.Id, item.GameId, item.PlayerId, item.BattingOrder)));
+    }
+
+    [Fact]
+    public async Task UsePreviousAsync_NoSourceAndInvalidOwnershipPreserveTarget()
+    {
+        await using var db = await TemporaryTestDatabase.CreateAsync();
+        var setup = await SetupAsync(db, 1);
+        var repository = db.CreateGameLineupRepository();
+        Assert.True((await repository.SaveInitialAsync(setup.Team.Id, setup.Game.Id, [setup.Players[0].Id])).IsSuccess);
+        var before = await repository.GetForGameAsync(setup.Game.Id);
+        var otherTeam = new Team { Name = "Other" };
+        await db.CreateTeamRepository().CreateAsync(otherTeam);
+
+        Assert.Equal(UsePreviousLineupFailure.NoPreviousLineup,
+            (await repository.UsePreviousAsync(setup.Team.Id, setup.Game.Id)).FailureReason);
+        Assert.Equal(UsePreviousLineupFailure.InvalidContext,
+            (await repository.UsePreviousAsync(otherTeam.Id, setup.Game.Id)).FailureReason);
+        Assert.Equal(UsePreviousLineupFailure.InvalidContext,
+            (await repository.UsePreviousAsync(setup.Team.Id, int.MaxValue)).FailureReason);
+        Assert.Equal(UsePreviousLineupFailure.InvalidContext,
+            (await repository.UsePreviousAsync(0, setup.Game.Id)).FailureReason);
+        var after = await repository.GetForGameAsync(setup.Game.Id);
+        Assert.Equal(before.Select(item => (item.Id, item.GameId, item.PlayerId, item.BattingOrder)),
+            after.Select(item => (item.Id, item.GameId, item.PlayerId, item.BattingOrder)));
+    }
+
+    private static async Task<Game> AddGameAsync(
+        TemporaryTestDatabase db,
+        (Team Team, Game Game, List<Player> Players) setup,
+        DateTime date,
+        TimeSpan time)
+    {
+        var game = new Game
+        {
+            TeamId = setup.Team.Id,
+            SeasonId = setup.Game.SeasonId,
+            ScheduledDate = date,
+            ScheduledTime = time,
+        };
+        await db.SeedGameAsync(game);
+        return game;
+    }
+
     private static async Task<(Team Team, Game Game, List<Player> Players)> SetupAsync(TemporaryTestDatabase db, int playerCount)
     {
         var team = new Team { Name = "Tigers" }; await db.CreateTeamRepository().CreateAsync(team);
