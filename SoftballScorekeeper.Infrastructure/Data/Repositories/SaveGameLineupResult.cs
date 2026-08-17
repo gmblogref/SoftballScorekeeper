@@ -8,6 +8,7 @@ public enum SaveGameLineupFailure
     EmptySelection,
     IneligiblePlayers,
     LineupAlreadyExists,
+    ScoringStarted,
     Persistence,
 }
 

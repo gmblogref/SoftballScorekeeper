@@ -519,4 +519,21 @@
   <data name="PreviousLineupCopiedWithSkippedPlayer" xml:space="preserve"><value>Lineup copied. {0} Player was skipped because they are no longer on the active roster.</value></data>
   <data name="PreviousLineupCopiedWithSkippedPlayers" xml:space="preserve"><value>Lineup copied. {0} Players were skipped because they are no longer on the active roster.</value></data>
   <data name="PreviousLineupFailed" xml:space="preserve"><value>The previous lineup could not be applied. The persisted lineup has been restored.</value></data>
+  <data name="ScoreGameButton" xml:space="preserve"><value>Score Game</value></data>
+  <data name="ResumeGameButton" xml:space="preserve"><value>Resume Game</value></data>
+  <data name="HomeAwayPromptTitle" xml:space="preserve"><value>Is our Team Home or Away?</value></data>
+  <data name="AwayButton" xml:space="preserve"><value>Away</value></data>
+  <data name="HomeButton" xml:space="preserve"><value>Home</value></data>
+  <data name="InProgressStatus" xml:space="preserve"><value>In Progress</value></data>
+  <data name="CompletedStatus" xml:space="preserve"><value>Completed</value></data>
+  <data name="ExitGameButton" xml:space="preserve"><value>Exit Game</value></data>
+  <data name="ScoringMenuAccessibility" xml:space="preserve"><value>Open scoring menu</value></data>
+  <data name="ScoringTitle" xml:space="preserve"><value>Scoring</value></data>
+  <data name="OurTeamLabel" xml:space="preserve"><value>Our Team</value></data>
+  <data name="HomeAwayLabel" xml:space="preserve"><value>Home / Away</value></data>
+  <data name="StatusLabel" xml:space="preserve"><value>Status</value></data>
+  <data name="OfficialStartingLineupHeading" xml:space="preserve"><value>Official Starting Lineup</value></data>
+  <data name="ScoringSessionNotFound" xml:space="preserve"><value>The scoring session could not be found.</value></data>
+  <data name="ScoringSessionStartFailed" xml:space="preserve"><value>The Game could not enter scoring mode. Please try again.</value></data>
+  <data name="ScoringLineupInvalidMessage" xml:space="preserve"><value>The saved lineup is missing or has an invalid batting order.</value></data>
 </root>

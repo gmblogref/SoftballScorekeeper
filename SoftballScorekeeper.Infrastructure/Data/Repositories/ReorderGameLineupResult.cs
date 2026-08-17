@@ -6,6 +6,7 @@ public enum ReorderGameLineupFailure
     InvalidRequest,
     InvalidGame,
     LineupMismatch,
+    ScoringStarted,
     Persistence,
 }
 
