@@ -20,7 +20,10 @@ public partial class ScoringViewModel : ObservableObject, IQueryAttributable
     [ObservableProperty] private int visitorScore;
     [ObservableProperty] private string currentBatterDisplayName = string.Empty;
     [ObservableProperty] private string validationMessage = string.Empty;
-    [ObservableProperty] private bool isLoaded;
+    [ObservableProperty, NotifyCanExecuteChangedFor(nameof(CompletePlateAppearanceCommand))]
+    private bool isLoaded;
+    [ObservableProperty, NotifyCanExecuteChangedFor(nameof(CompletePlateAppearanceCommand))]
+    private bool isCompletingPlateAppearance;
 
     public ScoringViewModel(TeamRepository teamRepository, GameRepository gameRepository,
         GameScoringSessionRepository sessionRepository)
@@ -95,6 +98,32 @@ public partial class ScoringViewModel : ObservableObject, IQueryAttributable
 
     [RelayCommand]
     public Task ExitGameAsync() => Shell.Current.GoToAsync("..");
+
+    [RelayCommand(CanExecute = nameof(CanCompletePlateAppearance))]
+    private async Task CompletePlateAppearanceAsync()
+    {
+        if (!CanCompletePlateAppearance()) return;
+
+        IsCompletingPlateAppearance = true;
+        try
+        {
+            var result = await sessionRepository.CompletePlateAppearanceAsync(GameId);
+            if (!result.IsSuccess)
+            {
+                ValidationMessage = AppResources.PlateAppearanceCompletionFailed;
+                return;
+            }
+
+            await LoadAsync();
+        }
+        finally
+        {
+            IsCompletingPlateAppearance = false;
+        }
+    }
+
+    private bool CanCompletePlateAppearance() =>
+        hasValidContext && IsLoaded && !IsCompletingPlateAppearance;
 
     private void ResetPresentation()
     {

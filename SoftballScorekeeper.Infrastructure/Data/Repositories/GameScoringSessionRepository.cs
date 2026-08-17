@@ -30,15 +30,100 @@ public sealed class GameScoringSessionRepository
             .Where(item => item.GameScoringSessionId == session.Id)
             .OrderBy(item => item.BattingPosition)
             .ToListAsync();
+        var plateAppearances = await connection.Table<GamePlateAppearance>()
+            .Where(item => item.GameScoringSessionId == session.Id)
+            .OrderBy(item => item.PlateAppearanceNumber)
+            .ToListAsync();
         if (sequence.Count == 0)
-            return new(session, sequence, new Dictionary<int, Player>());
+            return new(session, sequence, new Dictionary<int, Player>(), plateAppearances);
 
         var playerIds = sequence.Select(item => item.PlayerId).Distinct().ToArray();
         var placeholders = string.Join(",", playerIds.Select(_ => "?"));
         var players = await connection.QueryAsync<Player>(
             $"SELECT * FROM Player WHERE Id IN ({placeholders})",
             playerIds.Cast<object>().ToArray());
-        return new(session, sequence, players.ToDictionary(player => player.Id));
+        return new(
+            session,
+            sequence,
+            players.ToDictionary(player => player.Id),
+            plateAppearances);
+    }
+
+    public async Task<CompletePlateAppearanceResult> CompletePlateAppearanceAsync(int gameId)
+    {
+        if (gameId <= 0)
+            return CompleteFailure(CompletePlateAppearanceFailure.InvalidRequest);
+
+        var connection = await database.GetConnectionAsync();
+        var result = CompleteFailure(CompletePlateAppearanceFailure.SessionNotFound);
+        try
+        {
+            await connection.RunInTransactionAsync(transaction =>
+            {
+                var session = transaction.Table<GameScoringSession>()
+                    .FirstOrDefault(item => item.GameId == gameId);
+                if (session is null) return;
+                if (session.Status != GameScoringStatus.InProgress)
+                {
+                    result = CompleteFailure(CompletePlateAppearanceFailure.GameCompleted);
+                    return;
+                }
+
+                var sequence = transaction.Table<GameScoringLineupPlayer>()
+                    .Where(item => item.GameScoringSessionId == session.Id)
+                    .OrderBy(item => item.BattingPosition)
+                    .ThenBy(item => item.Id)
+                    .ToList();
+                if (sequence.Count == 0
+                    || sequence.Any(item => item.BattingPosition <= 0 || item.PlayerId <= 0)
+                    || sequence.Select(item => item.BattingPosition).Distinct().Count() != sequence.Count)
+                {
+                    result = CompleteFailure(CompletePlateAppearanceFailure.InvalidScoringState);
+                    return;
+                }
+
+                var currentIndex = sequence.FindIndex(item =>
+                    item.BattingPosition == session.CurrentBatterPosition);
+                if (currentIndex < 0)
+                {
+                    result = CompleteFailure(CompletePlateAppearanceFailure.InvalidScoringState);
+                    return;
+                }
+
+                var previousAppearances = transaction.Table<GamePlateAppearance>()
+                    .Where(item => item.GameScoringSessionId == session.Id)
+                    .ToList();
+                var appearance = new GamePlateAppearance
+                {
+                    GameScoringSessionId = session.Id,
+                    PlayerId = sequence[currentIndex].PlayerId,
+                    BattingPosition = sequence[currentIndex].BattingPosition,
+                    PlateAppearanceNumber = previousAppearances.Count == 0
+                        ? 1
+                        : previousAppearances.Max(item => item.PlateAppearanceNumber) + 1,
+                };
+                if (transaction.Insert(appearance) != 1)
+                    throw new InvalidOperationException(
+                        "Plate-appearance insertion did not affect one row.");
+
+                var nextIndex = (currentIndex + 1) % sequence.Count;
+                session.CurrentBatterPosition = sequence[nextIndex].BattingPosition;
+                if (transaction.Update(session) != 1)
+                    throw new InvalidOperationException(
+                        "Current-batter advancement did not affect one row.");
+
+                result = new(
+                    appearance,
+                    session.CurrentBatterPosition,
+                    CompletePlateAppearanceFailure.None);
+            });
+        }
+        catch
+        {
+            return CompleteFailure(CompletePlateAppearanceFailure.Persistence);
+        }
+
+        return result;
     }
 
     public async Task<InitializeScoringSessionResult> InitializeAsync(
@@ -125,4 +210,8 @@ public sealed class GameScoringSessionRepository
 
     private static InitializeScoringSessionResult Failure(InitializeScoringSessionFailure failure) =>
         new(null, false, failure);
+
+    private static CompletePlateAppearanceResult CompleteFailure(
+        CompletePlateAppearanceFailure failure) =>
+        new(null, 0, failure);
 }

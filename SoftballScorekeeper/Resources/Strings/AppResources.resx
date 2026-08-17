@@ -539,4 +539,6 @@
   <data name="HomeScoreboardHeading" xml:space="preserve"><value>HOME</value></data>
   <data name="VisitorScoreboardHeading" xml:space="preserve"><value>VISITOR</value></data>
   <data name="CurrentBatterHeading" xml:space="preserve"><value>CURRENT BATTER</value></data>
+  <data name="CompletePlateAppearanceButton" xml:space="preserve"><value>Next Batter</value></data>
+  <data name="PlateAppearanceCompletionFailed" xml:space="preserve"><value>The plate appearance could not be completed. The scoring state was not changed.</value></data>
 </root>

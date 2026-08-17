@@ -98,5 +98,14 @@
                    FontSize="32"
                    HorizontalTextAlignment="Center" />
         </VerticalStackLayout>
+        <Button Grid.Row="4"
+                Text="{x:Static strings:AppResources.CompletePlateAppearanceButton}"
+                Command="{Binding CompletePlateAppearanceCommand}"
+                IsVisible="{Binding IsLoaded}"
+                MinimumHeightRequest="56"
+                MinimumWidthRequest="260"
+                HorizontalOptions="Center"
+                VerticalOptions="Start"
+                Padding="24,14" />
     </Grid>
 </ContentPage>
