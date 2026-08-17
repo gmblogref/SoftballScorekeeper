@@ -2015,6 +2015,37 @@ Story 6.1 does not implement plate appearances, batter-result buttons, batter ad
 
 `Add scoring home foundation`
 
+### Story 6.2 — Plate Appearance Foundation and Batter Advancement
+
+**Status:** Complete on `task/plate-appearance-foundation`; automated tests and Windows build passed, with focused Android tablet validation of live-lineup advancement
+
+#### Implementation Summary
+
+- Added persisted `GamePlateAppearance` history owned by `GameScoringSession`, and therefore by its Game. Each record preserves the historical batter Player ID, batting-position context, and a unique sequential appearance number within the scoring session. Scoring-state loading now returns this ordered history with the session and live lineup.
+- Added authoritative transactional plate-appearance completion. The current batter's appearance is inserted and `GameScoringSession.CurrentBatterPosition` is advanced together; insertion or session-update failure rolls back the entire operation so no partial appearance or advancement remains.
+- Batter advancement follows the ordered `GameScoringLineupPlayer` live sequence, moves exactly one live position, wraps from the last row to the first, and leaves a one-Player lineup on its sole position. The advanced position is persisted, and subsequent state loads and Resume use that repository truth.
+- Preserved historical boundaries. A plate appearance does not rewrite frozen `GameLineupPlayer` history or alter the contents or ordering of `GameScoringLineupPlayer`. Historical inactive or roster-removed Players already present in the live sequence remain valid scoring participants; current Team roster eligibility is not reapplied during completion.
+- Story 6.2 plate appearances do not change `HomeScore` or `VisitorScore`.
+- Added the plate-appearance table through additive sqlite-net initialization. Existing scoring-session and lineup data is preserved, no destructive reset occurs, and no fake or backfilled plate appearances are created.
+- Added the resource-backed **Next Batter** scoring control. The UI deliberately uses plain scorekeeper language while the domain/repository operation remains plate-appearance completion. Next Batter is the explicit user signal that the current play or plate appearance is resolved and scoring may advance. The command retains busy/double-tap protection and reloads authoritative scoring state after success.
+
+#### Automated Tests and Validation
+
+- Expanded focused scoring coverage from 24 to 33 tests. Added scenario-dense validation for multi-batter advancement and wraparound, deterministic persisted appearance history, one-Player lineups, historical inactive and roster-removed Players, independent Games, invalid or completed scoring state, unchanged scores and lineup state, and transactional rollback. Focused tests passed 33 of 33 with zero failures and zero skips.
+- The complete automated suite increased from the repository-verified Story 6.1 baseline of 198 to 207 tests and passed 207 of 207 with zero failures and zero skips.
+- An earlier external Story 6.1 report referenced 215 tests, but the committed Story 6.1 history records 198 of 198 and the current branch contains nine Story 6.2 additions. Repository history provides no evidence establishing a 215-test baseline, so that figure could not be reconciled and is not treated as a verified repository result.
+- The final Windows `net9.0-windows10.0.19041.0` target build succeeded with zero warnings and zero errors. Windows runtime validation was not performed.
+- Android CLI build remained unavailable because no Android SDK directory was configured; the attempt failed with `XA5300` despite the installed .NET Android tooling. Focused manual validation on the Android tablet confirmed that the completion/advancement action moved successfully through the live batting lineup. That report does not establish rapid double-tap behavior, one-Player behavior, Exit/Resume persistence, score preservation, wraparound specifically, malformed/failure states, orientation/theme combinations, live-lineup mutation, substitutions, or statistics.
+- Final `git diff --check` passed with line-ending notices only. No generated build output, database/test-database artifacts, secrets, or machine-specific files were included.
+
+#### Limitations and Deferred Work
+
+Story 6.2 does not implement batting results, hits, walks, fielder's choices, strikeouts, double plays, runner/base movement, outs, innings, score calculation, statistics, Undo/Redo, substitutions, live lineup mutation, Game Over, or completed-game correction. A future scoring-mode quick-navigation bar is expected to provide SCORE, LINEUP, and STATS destinations: LINEUP will use `GameScoringLineupPlayer` without rewriting frozen `GameLineupPlayer`, and statistics should preferably derive from persisted scoring/result events. Those navigation, lineup-management, result, and statistics designs remain future scope.
+
+#### Intended Commit Message
+
+`Add plate appearance foundation`
+
 ## Maintenance Rules
 
 Every future story must update this file before the story is committed. A story is not complete until its accurate feature-history entry is included in the same story-focused commit as its implementation.

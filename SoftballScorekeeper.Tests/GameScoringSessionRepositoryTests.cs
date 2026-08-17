@@ -5,6 +5,181 @@ namespace SoftballScorekeeper.Tests;
 
 public sealed class GameScoringSessionRepositoryTests
 {
+    [Fact]
+    public async Task Complete_plate_appearance_persists_batter_advances_wraps_and_preserves_scoring_foundations()
+    {
+        await using var db = await TemporaryTestDatabase.CreateAsync();
+        var context = await CreateReadyGameAsync(db, DateTime.Today, null, null, 3);
+        var repository = db.CreateGameScoringSessionRepository();
+        var initialized = await repository.InitializeAsync(
+            context.Team.Id, context.Game.Id, TeamGameSide.Home);
+        await db.UpdateScoringStateAsync(initialized.Session!.Id, 4, 6, 1);
+        var frozenBefore = (await db.GetGameLineupPlayersAsync()).ToArray();
+        var sequenceBefore = (await db.GetGameScoringLineupPlayersAsync()).ToArray();
+
+        var first = await repository.CompletePlateAppearanceAsync(context.Game.Id);
+        var second = await repository.CompletePlateAppearanceAsync(context.Game.Id);
+        var third = await repository.CompletePlateAppearanceAsync(context.Game.Id);
+        var state = await repository.GetStateForGameAsync(context.Game.Id);
+
+        Assert.True(first.IsSuccess);
+        Assert.True(second.IsSuccess);
+        Assert.True(third.IsSuccess);
+        Assert.Equal([2, 3, 1],
+            new[] { first.CurrentBatterPosition, second.CurrentBatterPosition, third.CurrentBatterPosition });
+        Assert.Equal(
+            sequenceBefore.Select((item, index) =>
+                (Number: index + 1, item.PlayerId, item.BattingPosition)),
+            state!.PlateAppearances.Select(item =>
+                (item.PlateAppearanceNumber, item.PlayerId, item.BattingPosition)));
+        Assert.All(state.PlateAppearances,
+            item => Assert.Equal(state.Session.Id, item.GameScoringSessionId));
+        Assert.Equal(1, state.Session.CurrentBatterPosition);
+        Assert.Equal((4, 6), (state.Session.HomeScore, state.Session.VisitorScore));
+        Assert.Equal(LineupValues(frozenBefore), LineupValues(await db.GetGameLineupPlayersAsync()));
+        Assert.Equal(SequenceValues(sequenceBefore),
+            SequenceValues(await db.GetGameScoringLineupPlayersAsync()));
+    }
+
+    [Fact]
+    public async Task Complete_plate_appearance_one_player_records_distinct_events_and_keeps_same_batter()
+    {
+        await using var db = await TemporaryTestDatabase.CreateAsync();
+        var context = await CreateReadyGameAsync(db, DateTime.Today, null, null, 1);
+        var repository = db.CreateGameScoringSessionRepository();
+        await repository.InitializeAsync(context.Team.Id, context.Game.Id, TeamGameSide.Away);
+
+        var first = await repository.CompletePlateAppearanceAsync(context.Game.Id);
+        var second = await repository.CompletePlateAppearanceAsync(context.Game.Id);
+        var loaded = await repository.GetStateForGameAsync(context.Game.Id);
+
+        Assert.True(first.IsSuccess);
+        Assert.True(second.IsSuccess);
+        Assert.NotEqual(first.PlateAppearance!.Id, second.PlateAppearance!.Id);
+        Assert.Equal([1, 2], loaded!.PlateAppearances.Select(item => item.PlateAppearanceNumber));
+        Assert.Single(loaded.BattingSequence);
+        Assert.All(loaded.PlateAppearances,
+            item => Assert.Equal(loaded.BattingSequence[0].PlayerId, item.PlayerId));
+        Assert.Equal(1, loaded.Session.CurrentBatterPosition);
+    }
+
+    [Fact]
+    public async Task Complete_plate_appearance_uses_historical_live_players_without_current_eligibility()
+    {
+        await using var db = await TemporaryTestDatabase.CreateAsync();
+        var context = await CreateReadyGameAsync(db, DateTime.Today, null, null, 2);
+        var frozen = await db.GetGameLineupPlayersAsync();
+        await db.CreatePlayerRepository().DeactivateAsync([frozen[0].PlayerId]);
+        await db.CreateTeamPlayerRepository()
+            .RemovePlayersFromTeamAsync(context.Team.Id, [frozen[1].PlayerId]);
+        var repository = db.CreateGameScoringSessionRepository();
+        await repository.InitializeAsync(context.Team.Id, context.Game.Id, TeamGameSide.Home);
+
+        var first = await repository.CompletePlateAppearanceAsync(context.Game.Id);
+        var second = await repository.CompletePlateAppearanceAsync(context.Game.Id);
+
+        Assert.Equal(frozen.Select(item => item.PlayerId),
+            new[] { first.PlateAppearance!.PlayerId, second.PlateAppearance!.PlayerId });
+    }
+
+    [Fact]
+    public async Task Complete_plate_appearance_is_independent_between_games()
+    {
+        await using var db = await TemporaryTestDatabase.CreateAsync();
+        var first = await CreateReadyGameAsync(db, DateTime.Today, null, null, 2);
+        var secondGame = new Game
+        {
+            TeamId = first.Team.Id,
+            SeasonId = first.Game.SeasonId,
+            ScheduledDate = DateTime.Today.AddDays(1),
+            ScheduledTime = TimeSpan.FromHours(18),
+        };
+        await db.SeedGameAsync(secondGame);
+        var secondPlayer = await CreateEligiblePlayerAsync(db, first.Team.Id, "OtherGame");
+        await db.SeedGameLineupPlayerAsync(new()
+        {
+            GameId = secondGame.Id,
+            PlayerId = secondPlayer.Id,
+            BattingOrder = 1,
+        });
+        var repository = db.CreateGameScoringSessionRepository();
+        await repository.InitializeAsync(first.Team.Id, first.Game.Id, TeamGameSide.Home);
+        await repository.InitializeAsync(first.Team.Id, secondGame.Id, TeamGameSide.Away);
+
+        await repository.CompletePlateAppearanceAsync(first.Game.Id);
+        var firstState = await repository.GetStateForGameAsync(first.Game.Id);
+        var secondState = await repository.GetStateForGameAsync(secondGame.Id);
+
+        Assert.Single(firstState!.PlateAppearances);
+        Assert.Empty(secondState!.PlateAppearances);
+        Assert.Equal(2, firstState.Session.CurrentBatterPosition);
+        Assert.Equal(1, secondState.Session.CurrentBatterPosition);
+    }
+
+    [Theory]
+    [InlineData("missing-session")]
+    [InlineData("missing-sequence")]
+    [InlineData("invalid-current-position")]
+    [InlineData("completed-session")]
+    public async Task Complete_plate_appearance_rejects_invalid_state_without_changes(string scenario)
+    {
+        await using var db = await TemporaryTestDatabase.CreateAsync();
+        var context = await CreateReadyGameAsync(db, DateTime.Today, null, null, 2);
+        var repository = db.CreateGameScoringSessionRepository();
+        GameScoringSession? session = null;
+        if (scenario != "missing-session")
+        {
+            session = (await repository.InitializeAsync(
+                context.Team.Id, context.Game.Id, TeamGameSide.Home)).Session!;
+            if (scenario == "missing-sequence")
+                await db.ExecuteAsync(
+                    "DELETE FROM GameScoringLineupPlayer WHERE GameScoringSessionId = ?", session.Id);
+            else if (scenario == "invalid-current-position")
+                await db.UpdateScoringStateAsync(session.Id, 3, 2, 99);
+            else if (scenario == "completed-session")
+                await db.ExecuteAsync(
+                    "UPDATE GameScoringSession SET Status = ? WHERE Id = ?",
+                    GameScoringStatus.Completed, session.Id);
+        }
+        var frozenBefore = (await db.GetGameLineupPlayersAsync()).ToArray();
+        var sequenceBefore = (await db.GetGameScoringLineupPlayersAsync()).ToArray();
+
+        var result = await repository.CompletePlateAppearanceAsync(context.Game.Id);
+
+        Assert.False(result.IsSuccess);
+        Assert.Empty(await db.GetGamePlateAppearancesAsync());
+        Assert.Equal(LineupValues(frozenBefore), LineupValues(await db.GetGameLineupPlayersAsync()));
+        Assert.Equal(SequenceValues(sequenceBefore),
+            SequenceValues(await db.GetGameScoringLineupPlayersAsync()));
+        if (session is not null)
+        {
+            var persisted = Assert.Single(await db.GetGameScoringSessionsAsync());
+            Assert.Equal(scenario == "invalid-current-position" ? 99 : 1,
+                persisted.CurrentBatterPosition);
+            Assert.Equal((scenario == "invalid-current-position" ? 3 : 0,
+                scenario == "invalid-current-position" ? 2 : 0),
+                (persisted.HomeScore, persisted.VisitorScore));
+        }
+    }
+
+    [Fact]
+    public async Task Complete_plate_appearance_rolls_back_insert_when_batter_update_fails()
+    {
+        await using var db = await TemporaryTestDatabase.CreateAsync();
+        var context = await CreateReadyGameAsync(db, DateTime.Today, null, null, 2);
+        var repository = db.CreateGameScoringSessionRepository();
+        await repository.InitializeAsync(context.Team.Id, context.Game.Id, TeamGameSide.Home);
+        await db.ExecuteAsync(
+            "CREATE TRIGGER FailBatterAdvance BEFORE UPDATE OF CurrentBatterPosition ON GameScoringSession BEGIN SELECT RAISE(ABORT, 'test failure'); END");
+
+        var result = await repository.CompletePlateAppearanceAsync(context.Game.Id);
+        var session = Assert.Single(await db.GetGameScoringSessionsAsync());
+
+        Assert.Equal(CompletePlateAppearanceFailure.Persistence, result.FailureReason);
+        Assert.Empty(await db.GetGamePlateAppearancesAsync());
+        Assert.Equal(1, session.CurrentBatterPosition);
+    }
+
     [Theory]
     [InlineData(1)]
     [InlineData(4)]

@@ -86,6 +86,12 @@ internal sealed class TemporaryTestDatabase : IAsyncDisposable
             .ThenBy(item => item.BattingPosition)
             .ToListAsync());
 
+    public Task<List<GamePlateAppearance>> GetGamePlateAppearancesAsync() =>
+        UseSeedingConnectionAsync(connection => connection.Table<GamePlateAppearance>()
+            .OrderBy(item => item.GameScoringSessionId)
+            .ThenBy(item => item.PlateAppearanceNumber)
+            .ToListAsync());
+
     public Task<int> UpdateScoringStateAsync(
         int sessionId,
         int homeScore,
