@@ -20,6 +20,27 @@ public sealed class GameScoringSessionRepository
     public async Task<bool> ExistsForGameAsync(int gameId) =>
         await GetForGameAsync(gameId) is not null;
 
+    public async Task<GameScoringState?> GetStateForGameAsync(int gameId)
+    {
+        var session = await GetForGameAsync(gameId);
+        if (session is null) return null;
+
+        var connection = await database.GetConnectionAsync();
+        var sequence = await connection.Table<GameScoringLineupPlayer>()
+            .Where(item => item.GameScoringSessionId == session.Id)
+            .OrderBy(item => item.BattingPosition)
+            .ToListAsync();
+        if (sequence.Count == 0)
+            return new(session, sequence, new Dictionary<int, Player>());
+
+        var playerIds = sequence.Select(item => item.PlayerId).Distinct().ToArray();
+        var placeholders = string.Join(",", playerIds.Select(_ => "?"));
+        var players = await connection.QueryAsync<Player>(
+            $"SELECT * FROM Player WHERE Id IN ({placeholders})",
+            playerIds.Cast<object>().ToArray());
+        return new(session, sequence, players.ToDictionary(player => player.Id));
+    }
+
     public async Task<InitializeScoringSessionResult> InitializeAsync(
         int teamId,
         int gameId,
@@ -68,9 +89,25 @@ public sealed class GameScoringSessionRepository
                     GameId = gameId,
                     Status = GameScoringStatus.InProgress,
                     TeamSide = teamSide,
+                    HomeScore = 0,
+                    VisitorScore = 0,
+                    CurrentBatterPosition = 1,
                 };
                 if (transaction.Insert(session) != 1)
                     throw new InvalidOperationException("Scoring session insertion did not affect one row.");
+
+                foreach (var lineupPlayer in lineup)
+                {
+                    var sequencePlayer = new GameScoringLineupPlayer
+                    {
+                        GameScoringSessionId = session.Id,
+                        PlayerId = lineupPlayer.PlayerId,
+                        BattingPosition = lineupPlayer.BattingOrder,
+                    };
+                    if (transaction.Insert(sequencePlayer) != 1)
+                        throw new InvalidOperationException(
+                            "Live batting-sequence insertion did not affect one row.");
+                }
 
                 result = new(session, true, InitializeScoringSessionFailure.None);
             });

@@ -44,15 +44,59 @@
             </Border>
         </Grid>
         <Label Grid.Row="1" Text="{Binding ValidationMessage}" HorizontalTextAlignment="Center" />
-        <Grid Grid.Row="2" ColumnDefinitions="*,*,*,*" ColumnSpacing="16" IsVisible="{Binding IsLoaded}">
-            <VerticalStackLayout><Label Text="{x:Static strings:AppResources.OurTeamLabel}" FontAttributes="Bold"/><Label Text="{Binding TeamName}" FontSize="22"/></VerticalStackLayout>
-            <VerticalStackLayout Grid.Column="1"><Label Text="{x:Static strings:AppResources.OpponentLabel}" FontAttributes="Bold"/><Label Text="{Binding OpponentDisplay}" FontSize="22"/></VerticalStackLayout>
-            <VerticalStackLayout Grid.Column="2"><Label Text="{x:Static strings:AppResources.HomeAwayLabel}" FontAttributes="Bold"/><Label Text="{Binding TeamSideDisplay}" FontSize="22"/></VerticalStackLayout>
-            <VerticalStackLayout Grid.Column="3"><Label Text="{x:Static strings:AppResources.StatusLabel}" FontAttributes="Bold"/><Label Text="{Binding StatusDisplay}" FontSize="22"/></VerticalStackLayout>
-        </Grid>
-        <Label Grid.Row="3" Text="{x:Static strings:AppResources.OfficialStartingLineupHeading}" Style="{StaticResource SubHeadline}" IsVisible="{Binding IsLoaded}" />
-        <CollectionView Grid.Row="4" ItemsSource="{Binding StartingLineup}" IsVisible="{Binding IsLoaded}" SelectionMode="None">
-            <CollectionView.ItemTemplate><DataTemplate x:DataType="x:String"><Label Text="{Binding .}" FontSize="20" Padding="12,8" /></DataTemplate></CollectionView.ItemTemplate>
-        </CollectionView>
+        <Border Grid.Row="2"
+                IsVisible="{Binding IsLoaded}"
+                Stroke="{AppThemeBinding Light={StaticResource Gray300}, Dark={StaticResource Gray600}}"
+                StrokeShape="RoundRectangle 12"
+                Padding="24,16">
+            <Grid ColumnDefinitions="*,1,*" ColumnSpacing="24">
+                <VerticalStackLayout Spacing="4" HorizontalOptions="Fill">
+                    <Label Text="{x:Static strings:AppResources.HomeScoreboardHeading}"
+                           FontSize="20"
+                           FontAttributes="Bold"
+                           HorizontalTextAlignment="Center" />
+                    <Label Text="{Binding HomeTeamDisplayName}"
+                           FontSize="24"
+                           FontAttributes="Bold"
+                           HorizontalTextAlignment="Center"
+                           LineBreakMode="TailTruncation"
+                           MaxLines="1" />
+                    <Label Text="{Binding HomeScore}"
+                           FontSize="64"
+                           FontAttributes="Bold"
+                           HorizontalTextAlignment="Center" />
+                </VerticalStackLayout>
+                <BoxView Grid.Column="1"
+                         BackgroundColor="{AppThemeBinding Light={StaticResource Gray300}, Dark={StaticResource Gray600}}" />
+                <VerticalStackLayout Grid.Column="2" Spacing="4" HorizontalOptions="Fill">
+                    <Label Text="{x:Static strings:AppResources.VisitorScoreboardHeading}"
+                           FontSize="20"
+                           FontAttributes="Bold"
+                           HorizontalTextAlignment="Center" />
+                    <Label Text="{Binding VisitorTeamDisplayName}"
+                           FontSize="24"
+                           FontAttributes="Bold"
+                           HorizontalTextAlignment="Center"
+                           LineBreakMode="TailTruncation"
+                           MaxLines="1" />
+                    <Label Text="{Binding VisitorScore}"
+                           FontSize="64"
+                           FontAttributes="Bold"
+                           HorizontalTextAlignment="Center" />
+                </VerticalStackLayout>
+            </Grid>
+        </Border>
+        <VerticalStackLayout Grid.Row="3"
+                             IsVisible="{Binding IsLoaded}"
+                             Spacing="6"
+                             HorizontalOptions="Center">
+            <Label Text="{x:Static strings:AppResources.CurrentBatterHeading}"
+                   FontSize="20"
+                   FontAttributes="Bold"
+                   HorizontalTextAlignment="Center" />
+            <Label Text="{Binding CurrentBatterDisplayName}"
+                   FontSize="32"
+                   HorizontalTextAlignment="Center" />
+        </VerticalStackLayout>
     </Grid>
 </ContentPage>

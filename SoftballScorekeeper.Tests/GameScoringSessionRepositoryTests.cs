@@ -5,6 +5,136 @@ namespace SoftballScorekeeper.Tests;
 
 public sealed class GameScoringSessionRepositoryTests
 {
+    [Theory]
+    [InlineData(1)]
+    [InlineData(4)]
+    public async Task Initialize_creates_zeroed_session_and_ordered_live_sequence_without_changing_frozen_lineup(
+        int playerCount)
+    {
+        await using var db = await TemporaryTestDatabase.CreateAsync();
+        var context = await CreateReadyGameAsync(db, DateTime.Today, null, null, playerCount);
+        var frozenBefore = (await db.GetGameLineupPlayersAsync()).ToArray();
+
+        var result = await db.CreateGameScoringSessionRepository()
+            .InitializeAsync(context.Team.Id, context.Game.Id, TeamGameSide.Home);
+        var state = await db.CreateGameScoringSessionRepository().GetStateForGameAsync(context.Game.Id);
+
+        Assert.True(result.IsSuccess);
+        Assert.True(result.WasCreated);
+        Assert.Equal(0, state!.Session.HomeScore);
+        Assert.Equal(0, state.Session.VisitorScore);
+        Assert.Equal(1, state.Session.CurrentBatterPosition);
+        Assert.Equal(
+            frozenBefore.Select(item => (state.Session.Id, item.PlayerId, item.BattingOrder)),
+            state.BattingSequence.Select(item =>
+                (item.GameScoringSessionId, item.PlayerId, item.BattingPosition)));
+        Assert.Equal(LineupValues(frozenBefore), LineupValues(await db.GetGameLineupPlayersAsync()));
+        Assert.Equal(frozenBefore.Select(item => item.PlayerId).Order(), state.PlayersById.Keys.Order());
+    }
+
+    [Fact]
+    public async Task Initialize_uses_frozen_historical_players_without_current_eligibility()
+    {
+        await using var db = await TemporaryTestDatabase.CreateAsync();
+        var context = await CreateReadyGameAsync(db, DateTime.Today, null, null, 2);
+        var frozen = await db.GetGameLineupPlayersAsync();
+        await db.CreatePlayerRepository().DeactivateAsync([frozen[0].PlayerId]);
+        await db.CreateTeamPlayerRepository()
+            .RemovePlayersFromTeamAsync(context.Team.Id, [frozen[1].PlayerId]);
+
+        var result = await db.CreateGameScoringSessionRepository()
+            .InitializeAsync(context.Team.Id, context.Game.Id, TeamGameSide.Away);
+        var state = await db.CreateGameScoringSessionRepository().GetStateForGameAsync(context.Game.Id);
+
+        Assert.True(result.IsSuccess);
+        Assert.Equal(frozen.Select(item => item.PlayerId),
+            state!.BattingSequence.Select(item => item.PlayerId));
+        Assert.Equal(frozen.Select(item => item.PlayerId).Order(), state.PlayersById.Keys.Order());
+    }
+
+    [Fact]
+    public async Task Load_and_repeated_initialization_preserve_scores_current_batter_and_sequence()
+    {
+        await using var db = await TemporaryTestDatabase.CreateAsync();
+        var context = await CreateReadyGameAsync(db, DateTime.Today, null, null, 3);
+        var repository = db.CreateGameScoringSessionRepository();
+        var created = await repository.InitializeAsync(
+            context.Team.Id, context.Game.Id, TeamGameSide.Away);
+        var originalSequence = await db.GetGameScoringLineupPlayersAsync();
+        await db.UpdateScoringStateAsync(created.Session!.Id, 7, 5, 3);
+
+        var repeated = await repository.InitializeAsync(
+            context.Team.Id, context.Game.Id, TeamGameSide.Home);
+        var loaded = await repository.GetStateForGameAsync(context.Game.Id);
+
+        Assert.True(repeated.IsSuccess);
+        Assert.False(repeated.WasCreated);
+        Assert.Equal(created.Session.Id, repeated.Session!.Id);
+        Assert.Equal(TeamGameSide.Away, loaded!.Session.TeamSide);
+        Assert.Equal(7, loaded.Session.HomeScore);
+        Assert.Equal(5, loaded.Session.VisitorScore);
+        Assert.Equal(3, loaded.Session.CurrentBatterPosition);
+        Assert.Equal(SequenceValues(originalSequence), SequenceValues(loaded.BattingSequence));
+        Assert.Equal(SequenceValues(originalSequence),
+            SequenceValues(await db.GetGameScoringLineupPlayersAsync()));
+    }
+
+    [Fact]
+    public async Task Initialization_rolls_back_session_and_sequence_when_sequence_insert_fails()
+    {
+        await using var db = await TemporaryTestDatabase.CreateAsync();
+        var context = await CreateReadyGameAsync(db, DateTime.Today, null, null, 2);
+        await db.ExecuteAsync(
+            "CREATE TRIGGER FailLiveSequence BEFORE INSERT ON GameScoringLineupPlayer BEGIN SELECT RAISE(ABORT, 'test failure'); END");
+
+        var result = await db.CreateGameScoringSessionRepository()
+            .InitializeAsync(context.Team.Id, context.Game.Id, TeamGameSide.Home);
+
+        Assert.Equal(InitializeScoringSessionFailure.Persistence, result.FailureReason);
+        Assert.Empty(await db.GetGameScoringSessionsAsync());
+        Assert.Empty(await db.GetGameScoringLineupPlayersAsync());
+    }
+
+    [Fact]
+    public async Task Story60_database_upgrade_preserves_history_and_backfills_live_state_once()
+    {
+        await using var db = await TemporaryTestDatabase.CreateUninitializedAsync();
+        var legacy = await SeedLegacyStory60DatabaseAsync(db, validLineup: true);
+
+        await db.Database.InitializeAsync();
+        await db.Database.InitializeAsync();
+
+        var session = Assert.Single(await db.GetGameScoringSessionsAsync());
+        var sequence = await db.GetGameScoringLineupPlayersAsync();
+        var lineup = await db.GetGameLineupPlayersAsync();
+        Assert.Equal(legacy.SessionId, session.Id);
+        Assert.Equal(legacy.GameId, session.GameId);
+        Assert.Equal(TeamGameSide.Away, session.TeamSide);
+        Assert.Equal(GameScoringStatus.InProgress, session.Status);
+        Assert.Equal((0, 0, 1),
+            (session.HomeScore, session.VisitorScore, session.CurrentBatterPosition));
+        Assert.Equal(legacy.LineupValues, LineupValues(lineup));
+        Assert.Equal(
+            legacy.LineupValues.Select(item => (legacy.SessionId, item.PlayerId, item.BattingOrder)),
+            sequence.Select(item =>
+                (item.GameScoringSessionId, item.PlayerId, item.BattingPosition)));
+    }
+
+    [Fact]
+    public async Task Story60_database_upgrade_rejects_malformed_lineup_without_partial_live_state()
+    {
+        await using var db = await TemporaryTestDatabase.CreateUninitializedAsync();
+        var legacy = await SeedLegacyStory60DatabaseAsync(db, validLineup: false);
+
+        await Assert.ThrowsAsync<InvalidOperationException>(() => db.Database.InitializeAsync());
+
+        var sessions = await db.GetGameScoringSessionsAsync();
+        Assert.Equal(legacy.SessionId, Assert.Single(sessions).Id);
+        Assert.Equal(0, sessions[0].CurrentBatterPosition);
+        Assert.Empty(await db.GetGameScoringLineupPlayersAsync());
+        Assert.Equal(legacy.LineupValues, LineupValues(await db.GetGameLineupPlayersAsync()));
+    }
+
     [Fact]
     public async Task Initialize_rejects_game_without_lineup_and_leaves_no_session()
     {
@@ -115,6 +245,9 @@ public sealed class GameScoringSessionRepositoryTests
         Assert.Single(sessions);
         Assert.All(results, result => Assert.Equal(sessions[0].Id, result.Session!.Id));
         Assert.Equal(TeamGameSide.Away, sessions[0].TeamSide);
+        var sequence = await db.GetGameScoringLineupPlayersAsync();
+        Assert.Single(sequence);
+        Assert.Equal(sessions[0].Id, sequence[0].GameScoringSessionId);
     }
 
     [Fact]
@@ -133,6 +266,18 @@ public sealed class GameScoringSessionRepositoryTests
 
         Assert.Equal(LineupValues(before), LineupValues(await db.GetGameLineupPlayersAsync()));
         Assert.Null(await db.CreateGameScoringSessionRepository().GetForGameAsync(secondGame.Id));
+        await db.CreateGameScoringSessionRepository().InitializeAsync(
+            first.Team.Id, secondGame.Id, TeamGameSide.Away);
+        var states = new[]
+        {
+            await db.CreateGameScoringSessionRepository().GetStateForGameAsync(first.Game.Id),
+            await db.CreateGameScoringSessionRepository().GetStateForGameAsync(secondGame.Id),
+        };
+        Assert.NotEqual(states[0]!.Session.Id, states[1]!.Session.Id);
+        Assert.Equal(2, states[0]!.BattingSequence.Count);
+        Assert.Single(states[1]!.BattingSequence);
+        Assert.NotEqual(states[0]!.BattingSequence[0].PlayerId,
+            states[1]!.BattingSequence[0].PlayerId);
     }
 
     [Fact]
@@ -226,4 +371,89 @@ public sealed class GameScoringSessionRepositoryTests
     private static IEnumerable<(int Id, int GameId, int PlayerId, int BattingOrder)> LineupValues(
         IEnumerable<GameLineupPlayer> rows) =>
         rows.Select(row => (row.Id, row.GameId, row.PlayerId, row.BattingOrder));
+
+    private static IEnumerable<(int Id, int SessionId, int PlayerId, int Position)> SequenceValues(
+        IEnumerable<GameScoringLineupPlayer> rows) =>
+        rows.Select(row =>
+            (row.Id, row.GameScoringSessionId, row.PlayerId, row.BattingPosition));
+
+    private static async Task<LegacyContext> SeedLegacyStory60DatabaseAsync(
+        TemporaryTestDatabase db,
+        bool validLineup)
+    {
+        return await db.UseConnectionAsync<LegacyContext>(async connection =>
+        {
+            await connection.CreateTableAsync<Team>();
+            await connection.CreateTableAsync<Player>();
+            await connection.CreateTableAsync<TeamPlayer>();
+            await connection.CreateTableAsync<Season>();
+            await connection.CreateTableAsync<Game>();
+            await connection.CreateTableAsync<GameLineupPlayer>();
+            await connection.CreateTableAsync<LegacyGameScoringSession>();
+
+            var team = new Team { Name = "Legacy Team", IsActive = true };
+            await connection.InsertAsync(team);
+            var season = new Season { TeamId = team.Id, Name = "Legacy", Year = 2026 };
+            await connection.InsertAsync(season);
+            var game = new Game
+            {
+                TeamId = team.Id,
+                SeasonId = season.Id,
+                ScheduledDate = DateTime.Today,
+                ScheduledTime = TimeSpan.FromHours(18),
+            };
+            await connection.InsertAsync(game);
+
+            var lineup = new List<GameLineupPlayer>();
+            for (var index = 0; index < 2; index++)
+            {
+                var player = new Player
+                {
+                    FirstName = $"Legacy{index}",
+                    LastName = "Player",
+                    IsActive = index != 0,
+                };
+                await connection.InsertAsync(player);
+                var lineupPlayer = new GameLineupPlayer
+                {
+                    GameId = game.Id,
+                    PlayerId = player.Id,
+                    BattingOrder = validLineup ? index + 1 : index + 2,
+                };
+                await connection.InsertAsync(lineupPlayer);
+                lineup.Add(lineupPlayer);
+            }
+
+            var session = new LegacyGameScoringSession
+            {
+                GameId = game.Id,
+                Status = GameScoringStatus.InProgress,
+                TeamSide = TeamGameSide.Away,
+            };
+            await connection.InsertAsync(session);
+            return new LegacyContext(
+                session.Id,
+                game.Id,
+                LineupValues(lineup).ToArray());
+        });
+    }
+
+    private sealed record LegacyContext(
+        int SessionId,
+        int GameId,
+        IReadOnlyList<(int Id, int GameId, int PlayerId, int BattingOrder)> LineupValues);
+
+    [SQLite.Table("GameScoringSession")]
+    private sealed class LegacyGameScoringSession
+    {
+        [SQLite.PrimaryKey, SQLite.AutoIncrement]
+        public int Id { get; set; }
+
+        [SQLite.Indexed("UX_GameScoringSession_Game", 1, Unique = true)]
+        public int GameId { get; set; }
+
+        public GameScoringStatus Status { get; set; }
+
+        public TeamGameSide TeamSide { get; set; }
+    }
 }

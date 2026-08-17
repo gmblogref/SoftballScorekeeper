@@ -54,6 +54,8 @@ public sealed class AppDatabase
             await connection.CreateTableAsync<Game>();
             await connection.CreateTableAsync<GameLineupPlayer>();
             await connection.CreateTableAsync<GameScoringSession>();
+            await connection.CreateTableAsync<GameScoringLineupPlayer>();
+            await connection.RunInTransactionAsync(UpgradeStory60ScoringSessions);
             isInitialized = true;
         }
         finally
@@ -66,4 +68,66 @@ public sealed class AppDatabase
     {
         return connection.CloseAsync();
     }
+
+    private static void UpgradeStory60ScoringSessions(SQLiteConnection transaction)
+    {
+        var sessions = transaction.Table<GameScoringSession>().ToList();
+        foreach (var session in sessions)
+        {
+            var existingSequence = transaction.Table<GameScoringLineupPlayer>()
+                .Where(item => item.GameScoringSessionId == session.Id)
+                .ToList();
+            if (existingSequence.Count > 0)
+            {
+                continue;
+            }
+
+            if (session.CurrentBatterPosition != 0)
+            {
+                throw new InvalidOperationException(
+                    $"Scoring session {session.Id} has incomplete live scoring state.");
+            }
+
+            var lineup = transaction.Table<GameLineupPlayer>()
+                .Where(item => item.GameId == session.GameId)
+                .OrderBy(item => item.BattingOrder)
+                .ThenBy(item => item.Id)
+                .ToList();
+            if (!IsStructurallyValid(lineup))
+            {
+                throw new InvalidOperationException(
+                    $"Scoring session {session.Id} cannot be upgraded from an invalid frozen lineup.");
+            }
+
+            foreach (var lineupPlayer in lineup)
+            {
+                var sequencePlayer = new GameScoringLineupPlayer
+                {
+                    GameScoringSessionId = session.Id,
+                    PlayerId = lineupPlayer.PlayerId,
+                    BattingPosition = lineupPlayer.BattingOrder,
+                };
+                if (transaction.Insert(sequencePlayer) != 1)
+                {
+                    throw new InvalidOperationException(
+                        "Live batting-sequence insertion did not affect one row.");
+                }
+            }
+
+            session.HomeScore = 0;
+            session.VisitorScore = 0;
+            session.CurrentBatterPosition = 1;
+            if (transaction.Update(session) != 1)
+            {
+                throw new InvalidOperationException(
+                    "Scoring-session compatibility update did not affect one row.");
+            }
+        }
+    }
+
+    private static bool IsStructurallyValid(IReadOnlyList<GameLineupPlayer> lineup) =>
+        lineup.Count > 0
+        && lineup.Select(item => item.PlayerId).Distinct().Count() == lineup.Count
+        && lineup.Select(item => item.BattingOrder)
+            .SequenceEqual(Enumerable.Range(1, lineup.Count));
 }
