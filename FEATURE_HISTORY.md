@@ -10,10 +10,10 @@ Stable product and architecture decisions belong in the project architecture doc
 
 ## Current Project Status
 
-- **Latest completed story:** Story 5.3 — Use Previous Lineup
-- **Completed stories:** Stories 0.0 through 5.3; Stories 3.2 through 3.4 retain their recorded validation status
-- **Current story:** None; Story 5.3 — Use Previous Lineup is complete
-- **Current phase:** Preparation for Score Game
+- **Latest completed story:** Story 6.0 — Scoring Session Foundation
+- **Completed stories:** Stories 0.0 through 6.0; Stories 3.2 through 3.4 retain their recorded validation status
+- **Current story:** None; Story 6.0 — Scoring Session Foundation is complete
+- **Current phase:** Preparation for live scoring mechanics
 - **Foundation status:** Complete
 
 The repository contains a four-project .NET 9 solution: the Android- and Windows-targeted .NET MAUI application, platform-independent Core, Infrastructure, and the automated test project. Its implemented foundation includes repository guidance, pragmatic layered dependencies, CommunityToolkit.Mvvm, MAUI dependency injection, device-local SQLite initialization, centralized user-facing resources, strongly typed application settings, and isolated xUnit repository integration tests. Team Workspace contains local Games and Roster sections, supports adding or removing existing active Players, and supports creating a global Player with immediate TeamPlayer membership from the Team-scoped Add Players workflow. Player Workspace shows active Team memberships, and Player Manager retains bulk lifecycle actions; Game schedule management and other later softball workflows remain deferred.
@@ -1947,6 +1947,40 @@ Order Lineup by OBP remains deferred until meaningful scoring and Player statist
 #### Intended Commit Message
 
 `Add previous lineup reuse`
+
+### Story 6.0 — Scoring Session Foundation
+
+**Status:** Complete on `task/add-scoring-foundation`; automated tests, Windows build, and focused Android tablet manual validation passed
+
+#### Implementation Summary
+
+- Established the lifecycle boundary `Ready to Score -> In Progress -> Exit -> Resume`. Ready to Score is derived from persisted Game, lineup, and scoring-session state rather than stored separately. Reset Game and Game Over remain deferred.
+- Added the focused persisted `GameScoringSession` model and SQLite table. A unique Game association enforces at most one scoring session per Game; the session persists the selected Home/Away side and represents `InProgress` and `Completed` lifecycle states. Story 6.0 creates only `InProgress` sessions. First initialization validates and writes within one transaction and is idempotent: an existing valid session is returned without replacement or duplicate creation.
+- Scoring initialization requires a persisted Game owned by the selected Team, no Completed scoring session, and one or more structurally valid persisted lineup rows. Lineup Player uniqueness and contiguous batting order are validated, but no league minimum beyond one Player is enforced and current roster eligibility is not reapplied. Schedule date/time does not affect readiness, so past, present, and future Games may start; missing Opponent or Field values do not block scoring.
+- First Score Game requires an explicit Home/Away choice. The side is not inferred from doubleheader position, scheduled time, Game ID, or schedule order; cancel creates no scoring state. The selected side is stored on the session, and Resume loads the existing choice without prompting or reinitializing.
+- Once a scoring session exists, the existing `GameLineupPlayer` rows become that Game's immutable official starting-lineup history; no redundant lineup snapshot was added. Infrastructure rejects Add, Remove, Reorder, Use Previous Lineup, and lineup-scoped Create New Player mutations after scoring starts. Use Previous Lineup therefore continues to read historical starting-lineup data. Future substitutions, additions, removals, and order changes belong to scoring-session/live-game state rather than rewriting `GameLineupPlayer`.
+- Scoring-session existence independently counts as dependent Game history and blocks normal Game hard deletion, even if lineup rows are otherwise absent.
+- Updated Game Workspace state presentation: no lineup exposes Set Lineup; a ready Game exposes Edit Lineup in the existing management area and Score Game directly beneath Game Details; In Progress exposes Resume Game in that same primary-action position and no pre-game Edit Lineup; Completed exposes neither Score Game nor Resume Game.
+- Added a dedicated scoring page and ViewModel displaying Team/Game context, Home/Away, status, and the immutable official starting lineup. Normal Teams/Players management navigation is unavailable, and the visible Shell Back arrow is hidden. Android/native Back remains intercepted and routed through the same safe Exit semantics.
+- Established a scoring-specific hamburger/menu boundary for future scoring commands. Story 6.0 contains only Exit Game; Game Over, Reset Game, manual overrides, and other future commands are not implemented. The hamburger remains compact independently of menu width, and the menu uses a white surface, black command text, a thin black item-divider pattern, and no persistent purple command background.
+- Exit Game preserves the scoring session, `InProgress` state, Home/Away selection, and official starting lineup, then returns to the same Game Workspace. Resume loads that existing session and original lineup without reinitialization or another Home/Away prompt.
+
+#### Automated Tests and Validation
+
+- Added 17 focused `GameScoringSessionRepositoryTests` covering successful and idempotent initialization, unique session ownership, invalid Game/Team/completed/lineup cases, structurally valid lineup rules, schedule and optional-field independence, historical roster state, lineup mutation guards, and scoring-history Game deletion protection. Focused validation passed 17 of 17 tests with zero failures and zero skips.
+- The complete automated suite increased from 174 to 191 tests and passed 191 of 191 with zero failures and zero skips.
+- The final Windows `net9.0-windows10.0.19041.0` target build succeeded with zero errors and 109 warnings. Warning categories were `CS8602`, `MVVMTK0045`, and `XC0025`. Windows runtime validation was not performed.
+- Focused Android tablet validation confirmed that a no-lineup Game cannot start scoring; a ready Game exposes Score Game directly beneath Game Details; Resume Game occupies the same primary location after scoring starts; and past and future Games with valid lineups can start. The dedicated scoring presentation, absent visible Back arrow, scoring hamburger/menu, compact hamburger sizing, white menu surface, removal of the persistent purple command background, black divider treatment, and overall revised scoring UX were reviewed and accepted as looking good.
+- Android validation did not explicitly report exercising every repository failure/rollback path, a today Game, missing Opponent or Field, one-Player and malformed-lineup boundaries, Home/Away cancel and repeat-prompt behavior, completed-state presentation, Android/native Back exit, session preservation across application restart, or every orientation/theme; those scenarios are not claimed as manually validated.
+- Final `git diff --check` passed with line-ending notices only. No generated build output, database/test-database artifacts, secrets, or machine-specific files were included.
+
+#### Limitations and Deferred Work
+
+Story 6.0 does not implement Reset Game, Game Over, plate appearances, batter results, runner movement, base state, outs, innings or inning transitions, scoring events, score calculation, statistics, OBP ordering, Beer Rules, completed-game correction, or Undo/Redo. The global application dropdown may later retain its white surface while adopting the scoring menu's thin black dividers between item areas; that visual follow-up is not part of Story 6.0.
+
+#### Intended Commit Message
+
+`Add scoring session foundation`
 
 ## Maintenance Rules
 

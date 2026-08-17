@@ -7,7 +7,7 @@
              x:Class="SoftballScorekeeper.Views.GameWorkspacePage"
              x:DataType="viewModels:GameWorkspaceViewModel"
              Title="{x:Static strings:AppResources.GameWorkspaceTitle}">
-    <Grid Padding="40" RowDefinitions="Auto,Auto,Auto,*,Auto" RowSpacing="20">
+    <Grid Padding="40" RowDefinitions="Auto,Auto,Auto,Auto,Auto,*,Auto" RowSpacing="20">
         <controls:PrimarySectionNavigation Grid.Row="0" CurrentSection="Teams" />
         <VerticalStackLayout Grid.Row="1" Spacing="6" IsVisible="{Binding IsLoaded}">
             <Label Text="{Binding TeamName}" Style="{StaticResource Headline}" SemanticProperties.HeadingLevel="Level1" />
@@ -42,8 +42,12 @@
                 <Label Text="{Binding FieldDisplay}" FontSize="22" />
             </VerticalStackLayout>
         </Grid>
-        <HorizontalStackLayout Grid.Row="4" HorizontalOptions="Center" Spacing="20">
-        <Button
+        <Grid Grid.Row="4" HorizontalOptions="Center" IsVisible="{Binding IsLoaded}">
+            <Button Text="{x:Static strings:AppResources.ScoreGameButton}" Clicked="OnScoreGameClicked" IsVisible="{Binding ShowScoreGame}" MinimumHeightRequest="52" MinimumWidthRequest="200" Padding="24,14" />
+            <Button Text="{x:Static strings:AppResources.ResumeGameButton}" Command="{Binding ResumeGameCommand}" IsVisible="{Binding ShowResumeGame}" MinimumHeightRequest="52" MinimumWidthRequest="200" Padding="24,14" />
+        </Grid>
+        <HorizontalStackLayout Grid.Row="6" HorizontalOptions="Center" Spacing="20">
+            <Button
                 Text="{x:Static strings:AppResources.EditGameTitle}"
                 Command="{Binding EditGameCommand}"
                 IsVisible="{Binding IsLoaded}"
@@ -51,7 +55,7 @@
                 MinimumWidthRequest="200"
                 HorizontalOptions="Center"
                 Padding="24,14" />
-        <Button Text="{Binding LineupActionText}" Command="{Binding SetLineupCommand}" IsVisible="{Binding IsLoaded}" MinimumHeightRequest="52" MinimumWidthRequest="200" Padding="24,14" />
+            <Button Text="{Binding LineupActionText}" Command="{Binding SetLineupCommand}" IsVisible="{Binding ShowLineupAction}" MinimumHeightRequest="52" MinimumWidthRequest="200" Padding="24,14" />
         </HorizontalStackLayout>
     </Grid>
 </ContentPage>

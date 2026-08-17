@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:strings="clr-namespace:SoftballScorekeeper.Resources.Strings"
+             xmlns:viewModels="clr-namespace:SoftballScorekeeper.ViewModels"
+             x:Class="SoftballScorekeeper.Views.ScoringPage"
+             x:DataType="viewModels:ScoringViewModel"
+             Shell.FlyoutBehavior="Disabled"
+             Shell.NavBarIsVisible="False"
+             Title="{x:Static strings:AppResources.ScoringTitle}">
+    <Grid Padding="40" RowDefinitions="Auto,Auto,Auto,Auto,*" RowSpacing="18">
+        <Grid RowDefinitions="Auto,Auto" ColumnDefinitions="Auto,*">
+            <Button Text="&#x2630;"
+                    Clicked="OnScoringMenuClicked"
+                    FontSize="28"
+                    MinimumHeightRequest="52"
+                    MinimumWidthRequest="64"
+                    HorizontalOptions="Start"
+                    Padding="12,6"
+                    SemanticProperties.Description="{x:Static strings:AppResources.ScoringMenuAccessibility}" />
+            <Label Grid.Column="1"
+                   Text="{x:Static strings:AppResources.ScoringTitle}"
+                   Style="{StaticResource Headline}"
+                   VerticalOptions="Center"
+                   SemanticProperties.HeadingLevel="Level1" />
+            <Border x:Name="ScoringMenu"
+                    Grid.Row="1"
+                    IsVisible="False"
+                    HorizontalOptions="Start"
+                    BackgroundColor="White"
+                    Stroke="Black"
+                    StrokeShape="RoundRectangle 8"
+                    Padding="0">
+                <VerticalStackLayout Spacing="0">
+                    <Button Text="{x:Static strings:AppResources.ExitGameButton}"
+                            Clicked="OnExitGameClicked"
+                            BackgroundColor="Transparent"
+                            TextColor="Black"
+                            MinimumHeightRequest="52"
+                            MinimumWidthRequest="180"
+                            Padding="20,12" />
+                    <BoxView BackgroundColor="Black" HeightRequest="1" />
+                </VerticalStackLayout>
+            </Border>
+        </Grid>
+        <Label Grid.Row="1" Text="{Binding ValidationMessage}" HorizontalTextAlignment="Center" />
+        <Grid Grid.Row="2" ColumnDefinitions="*,*,*,*" ColumnSpacing="16" IsVisible="{Binding IsLoaded}">
+            <VerticalStackLayout><Label Text="{x:Static strings:AppResources.OurTeamLabel}" FontAttributes="Bold"/><Label Text="{Binding TeamName}" FontSize="22"/></VerticalStackLayout>
+            <VerticalStackLayout Grid.Column="1"><Label Text="{x:Static strings:AppResources.OpponentLabel}" FontAttributes="Bold"/><Label Text="{Binding OpponentDisplay}" FontSize="22"/></VerticalStackLayout>
+            <VerticalStackLayout Grid.Column="2"><Label Text="{x:Static strings:AppResources.HomeAwayLabel}" FontAttributes="Bold"/><Label Text="{Binding TeamSideDisplay}" FontSize="22"/></VerticalStackLayout>
+            <VerticalStackLayout Grid.Column="3"><Label Text="{x:Static strings:AppResources.StatusLabel}" FontAttributes="Bold"/><Label Text="{Binding StatusDisplay}" FontSize="22"/></VerticalStackLayout>
+        </Grid>
+        <Label Grid.Row="3" Text="{x:Static strings:AppResources.OfficialStartingLineupHeading}" Style="{StaticResource SubHeadline}" IsVisible="{Binding IsLoaded}" />
+        <CollectionView Grid.Row="4" ItemsSource="{Binding StartingLineup}" IsVisible="{Binding IsLoaded}" SelectionMode="None">
+            <CollectionView.ItemTemplate><DataTemplate x:DataType="x:String"><Label Text="{Binding .}" FontSize="20" Padding="12,8" /></DataTemplate></CollectionView.ItemTemplate>
+        </CollectionView>
+    </Grid>
+</ContentPage>

@@ -58,6 +58,13 @@ public sealed class PlayerRepository
                         result = new(0, CreatePlayerFailure.TeamMismatch);
                         return;
                     }
+
+                    if (transaction.Table<GameScoringSession>()
+                        .Any(session => session.GameId == game.Id))
+                    {
+                        result = new(0, CreatePlayerFailure.ScoringStarted);
+                        return;
+                    }
                 }
 
                 player.Id = 0;

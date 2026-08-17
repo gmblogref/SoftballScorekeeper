@@ -83,6 +83,11 @@ public sealed class GameLineupRepository
             await connection.RunInTransactionAsync(transaction =>
             {
                 if (transaction.Find<Game>(gameId) is null) return;
+                if (HasScoringSession(transaction, gameId))
+                {
+                    result = new(gameId, requestedIds, [], positiveIds, ignoredIds, true);
+                    return;
+                }
 
                 var lineup = transaction.Table<GameLineupPlayer>()
                     .Where(item => item.GameId == gameId)
@@ -137,6 +142,11 @@ public sealed class GameLineupRepository
             await connection.RunInTransactionAsync(transaction =>
             {
                 if (transaction.Find<Game>(gameId) is null) return;
+                if (HasScoringSession(transaction, gameId))
+                {
+                    result = ReorderFailure(gameId, ReorderGameLineupFailure.ScoringStarted);
+                    return;
+                }
 
                 var lineup = transaction.Table<GameLineupPlayer>()
                     .Where(item => item.GameId == gameId)
@@ -184,6 +194,11 @@ public sealed class GameLineupRepository
             var targetGame = transaction.Find<Game>(targetGameId);
             if (team is null || !team.IsActive || targetGame is null || targetGame.TeamId != teamId)
                 return;
+            if (HasScoringSession(transaction, targetGameId))
+            {
+                result = PreviousFailure(targetGameId, UsePreviousLineupFailure.ScoringStarted);
+                return;
+            }
 
             var priorGames = transaction.Table<Game>()
                 .Where(game => game.TeamId == teamId)
@@ -291,6 +306,11 @@ public sealed class GameLineupRepository
                     result = Failure(gameId, SaveGameLineupFailure.TeamMismatch);
                     return;
                 }
+                if (HasScoringSession(transaction, gameId))
+                {
+                    result = Failure(gameId, SaveGameLineupFailure.ScoringStarted);
+                    return;
+                }
                 var existingLineup = transaction.Table<GameLineupPlayer>()
                     .Where(item => item.GameId == gameId).ToList();
                 if (!allowExistingLineup && existingLineup.Count > 0)
@@ -335,4 +355,7 @@ public sealed class GameLineupRepository
         || candidate.ScheduledDate == target.ScheduledDate
             && (candidate.ScheduledTime < target.ScheduledTime
                 || candidate.ScheduledTime == target.ScheduledTime && candidate.Id < target.Id);
+
+    private static bool HasScoringSession(SQLite.SQLiteConnection transaction, int gameId) =>
+        transaction.Table<GameScoringSession>().Any(session => session.GameId == gameId);
 }

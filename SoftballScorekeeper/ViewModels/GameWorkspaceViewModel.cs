@@ -12,6 +12,7 @@ public partial class GameWorkspaceViewModel : ObservableObject, IQueryAttributab
     private readonly SeasonRepository seasonRepository;
     private readonly GameRepository gameRepository;
     private readonly GameLineupRepository lineupRepository;
+    private readonly GameScoringSessionRepository scoringSessionRepository;
     private bool hasValidContext;
 
     [ObservableProperty] private int teamId;
@@ -24,6 +25,8 @@ public partial class GameWorkspaceViewModel : ObservableObject, IQueryAttributab
     [ObservableProperty] private string seasonDisplay = string.Empty;
     [ObservableProperty] private string validationMessage = string.Empty;
     [ObservableProperty] private bool hasLineup;
+    [ObservableProperty] private bool hasScoringSession;
+    [ObservableProperty] private bool isScoringCompleted;
     [ObservableProperty, NotifyCanExecuteChangedFor(nameof(EditGameCommand)), NotifyCanExecuteChangedFor(nameof(SetLineupCommand))] private bool isBusy;
     [ObservableProperty, NotifyCanExecuteChangedFor(nameof(EditGameCommand)), NotifyCanExecuteChangedFor(nameof(SetLineupCommand))] private bool isLoaded;
 
@@ -31,15 +34,20 @@ public partial class GameWorkspaceViewModel : ObservableObject, IQueryAttributab
         TeamRepository teamRepository,
         SeasonRepository seasonRepository,
         GameRepository gameRepository,
-        GameLineupRepository lineupRepository)
+        GameLineupRepository lineupRepository,
+        GameScoringSessionRepository scoringSessionRepository)
     {
         this.teamRepository = teamRepository;
         this.seasonRepository = seasonRepository;
         this.gameRepository = gameRepository;
         this.lineupRepository = lineupRepository;
+        this.scoringSessionRepository = scoringSessionRepository;
     }
 
     public string LineupActionText => HasLineup ? AppResources.EditLineupButton : AppResources.SetLineupTitle;
+    public bool ShowLineupAction => IsLoaded && !HasScoringSession;
+    public bool ShowScoreGame => IsLoaded && HasLineup && !HasScoringSession;
+    public bool ShowResumeGame => IsLoaded && HasScoringSession && !IsScoringCompleted;
 
     public void ApplyQueryAttributes(IDictionary<string, object> query)
     {
@@ -112,7 +120,11 @@ public partial class GameWorkspaceViewModel : ObservableObject, IQueryAttributab
                 season.Year);
             ValidationMessage = string.Empty;
             HasLineup = await lineupRepository.HasLineupAsync(GameId);
+            var session = await scoringSessionRepository.GetForGameAsync(GameId);
+            HasScoringSession = session is not null;
+            IsScoringCompleted = session?.Status == Core.Models.GameScoringStatus.Completed;
             IsLoaded = true;
+            NotifyStateChanged();
         }
         finally
         {
@@ -142,7 +154,57 @@ public partial class GameWorkspaceViewModel : ObservableObject, IQueryAttributab
 
     private bool CanSetLineup() => !IsBusy && IsLoaded && hasValidContext;
 
-    partial void OnHasLineupChanged(bool value) => OnPropertyChanged(nameof(LineupActionText));
+    public async Task<bool> InitializeScoringAsync(Core.Models.TeamGameSide teamSide)
+    {
+        if (IsBusy || !IsLoaded || !hasValidContext) return false;
+        IsBusy = true;
+        try
+        {
+            var result = await scoringSessionRepository.InitializeAsync(TeamId, GameId, teamSide);
+            if (!result.IsSuccess)
+            {
+                ValidationMessage = result.FailureReason == InitializeScoringSessionFailure.InvalidLineup
+                    ? AppResources.ScoringLineupInvalidMessage
+                    : AppResources.ScoringSessionStartFailed;
+                return false;
+            }
+
+            await NavigateToScoringAsync();
+            return true;
+        }
+        finally
+        {
+            IsBusy = false;
+        }
+    }
+
+    [RelayCommand]
+    private Task ResumeGameAsync() => NavigateToScoringAsync();
+
+    private Task NavigateToScoringAsync() => Shell.Current.GoToAsync(
+        AppShell.ScoringRoute,
+        new ShellNavigationQueryParameters
+        {
+            [AppShell.TeamIdQueryParameter] = TeamId,
+            [AppShell.GameIdQueryParameter] = GameId,
+        });
+
+    partial void OnHasLineupChanged(bool value)
+    {
+        OnPropertyChanged(nameof(LineupActionText));
+        NotifyStateChanged();
+    }
+
+    partial void OnHasScoringSessionChanged(bool value) => NotifyStateChanged();
+    partial void OnIsScoringCompletedChanged(bool value) => NotifyStateChanged();
+    partial void OnIsLoadedChanged(bool value) => NotifyStateChanged();
+
+    private void NotifyStateChanged()
+    {
+        OnPropertyChanged(nameof(ShowLineupAction));
+        OnPropertyChanged(nameof(ShowScoreGame));
+        OnPropertyChanged(nameof(ShowResumeGame));
+    }
 
     private static string DisplayOrTbd(string? value) =>
         string.IsNullOrWhiteSpace(value) ? AppResources.ScheduleTbdText : value.Trim();
@@ -153,6 +215,8 @@ public partial class GameWorkspaceViewModel : ObservableObject, IQueryAttributab
         TeamName = OpponentDisplay = DateDisplay = TimeDisplay = FieldDisplay = SeasonDisplay = string.Empty;
         ValidationMessage = string.Empty;
         HasLineup = false;
+        HasScoringSession = false;
+        IsScoringCompleted = false;
         IsLoaded = false;
         hasValidContext = false;
     }

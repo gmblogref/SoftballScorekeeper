@@ -904,6 +904,23 @@ namespace SoftballScorekeeper.Resources.Strings {
         public static string GameUpdateFailed { get { return ResourceManager.GetString("GameUpdateFailed", resourceCulture); } }
         public static string SetLineupTitle { get { return ResourceManager.GetString("SetLineupTitle", resourceCulture); } }
         public static string EditLineupButton { get { return ResourceManager.GetString("EditLineupButton", resourceCulture); } }
+        public static string ScoreGameButton { get { return ResourceManager.GetString("ScoreGameButton", resourceCulture); } }
+        public static string ResumeGameButton { get { return ResourceManager.GetString("ResumeGameButton", resourceCulture); } }
+        public static string HomeAwayPromptTitle { get { return ResourceManager.GetString("HomeAwayPromptTitle", resourceCulture); } }
+        public static string AwayButton { get { return ResourceManager.GetString("AwayButton", resourceCulture); } }
+        public static string HomeButton { get { return ResourceManager.GetString("HomeButton", resourceCulture); } }
+        public static string InProgressStatus { get { return ResourceManager.GetString("InProgressStatus", resourceCulture); } }
+        public static string CompletedStatus { get { return ResourceManager.GetString("CompletedStatus", resourceCulture); } }
+        public static string ExitGameButton { get { return ResourceManager.GetString("ExitGameButton", resourceCulture); } }
+        public static string ScoringMenuAccessibility { get { return ResourceManager.GetString("ScoringMenuAccessibility", resourceCulture); } }
+        public static string ScoringTitle { get { return ResourceManager.GetString("ScoringTitle", resourceCulture); } }
+        public static string OurTeamLabel { get { return ResourceManager.GetString("OurTeamLabel", resourceCulture); } }
+        public static string HomeAwayLabel { get { return ResourceManager.GetString("HomeAwayLabel", resourceCulture); } }
+        public static string StatusLabel { get { return ResourceManager.GetString("StatusLabel", resourceCulture); } }
+        public static string OfficialStartingLineupHeading { get { return ResourceManager.GetString("OfficialStartingLineupHeading", resourceCulture); } }
+        public static string ScoringSessionNotFound { get { return ResourceManager.GetString("ScoringSessionNotFound", resourceCulture); } }
+        public static string ScoringSessionStartFailed { get { return ResourceManager.GetString("ScoringSessionStartFailed", resourceCulture); } }
+        public static string ScoringLineupInvalidMessage { get { return ResourceManager.GetString("ScoringLineupInvalidMessage", resourceCulture); } }
         public static string LineupManagerTitle { get { return ResourceManager.GetString("LineupManagerTitle", resourceCulture); } }
         public static string AddLineupPlayersButton { get { return ResourceManager.GetString("AddLineupPlayersButton", resourceCulture); } }
         public static string AddSelectedLineupPlayersButton { get { return ResourceManager.GetString("AddSelectedLineupPlayersButton", resourceCulture); } }

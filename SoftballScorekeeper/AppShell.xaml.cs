@@ -14,6 +14,7 @@
         public const string EditGameRoute = "edit-game";
         public const string GameWorkspaceRoute = "game-workspace";
         public const string SetLineupRoute = "set-lineup";
+        public const string ScoringRoute = "scoring";
         public const string TeamIdQueryParameter = "teamId";
         public const string PlayerIdQueryParameter = "playerId";
         public const string GameIdQueryParameter = "gameId";
@@ -35,6 +36,7 @@
             Routing.RegisterRoute(EditGameRoute, typeof(Views.EditGamePage));
             Routing.RegisterRoute(GameWorkspaceRoute, typeof(Views.GameWorkspacePage));
             Routing.RegisterRoute(SetLineupRoute, typeof(Views.SetLineupPage));
+            Routing.RegisterRoute(ScoringRoute, typeof(Views.ScoringPage));
             MainShellContent.Content = mainPage;
         }
 

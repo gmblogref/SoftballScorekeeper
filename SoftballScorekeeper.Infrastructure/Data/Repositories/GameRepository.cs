@@ -399,7 +399,8 @@ public sealed class GameRepository
 
     private static bool HasDependentHistory(SQLite.SQLiteConnection transaction, int gameId)
     {
-        return transaction.Table<GameLineupPlayer>().Any(item => item.GameId == gameId);
+        return transaction.Table<GameLineupPlayer>().Any(item => item.GameId == gameId)
+            || transaction.Table<GameScoringSession>().Any(session => session.GameId == gameId);
     }
 
     private sealed class DuplicateScheduledGameException : Exception;

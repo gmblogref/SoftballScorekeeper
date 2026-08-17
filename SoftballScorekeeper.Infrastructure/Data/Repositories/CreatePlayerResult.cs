@@ -6,6 +6,7 @@ public enum CreatePlayerFailure
     InvalidTeam,
     InvalidGame,
     TeamMismatch,
+    ScoringStarted,
     Persistence,
 }
 

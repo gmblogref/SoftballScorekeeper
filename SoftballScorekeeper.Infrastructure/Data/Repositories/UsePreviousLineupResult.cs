@@ -6,6 +6,7 @@ public enum UsePreviousLineupFailure
     InvalidContext,
     NoPreviousLineup,
     NoEligiblePlayers,
+    ScoringStarted,
 }
 
 public sealed record UsePreviousLineupResult(
