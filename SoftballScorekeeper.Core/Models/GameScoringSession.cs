@@ -13,6 +13,12 @@ public sealed class GameScoringSession
     public GameScoringStatus Status { get; set; }
 
     public TeamGameSide TeamSide { get; set; }
+
+    public int HomeScore { get; set; }
+
+    public int VisitorScore { get; set; }
+
+    public int CurrentBatterPosition { get; set; }
 }
 
 public enum GameScoringStatus

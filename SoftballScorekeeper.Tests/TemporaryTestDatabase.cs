@@ -27,11 +27,10 @@ internal sealed class TemporaryTestDatabase : IAsyncDisposable
 
     public static async Task<TemporaryTestDatabase> CreateAsync()
     {
-        var testDatabase = new TemporaryTestDatabase();
+        var testDatabase = await CreateUninitializedAsync();
 
         try
         {
-            Directory.CreateDirectory(testDatabase.DirectoryPath);
             await testDatabase.Database.InitializeAsync();
             return testDatabase;
         }
@@ -40,6 +39,13 @@ internal sealed class TemporaryTestDatabase : IAsyncDisposable
             await testDatabase.DisposeAsync();
             throw;
         }
+    }
+
+    public static Task<TemporaryTestDatabase> CreateUninitializedAsync()
+    {
+        var testDatabase = new TemporaryTestDatabase();
+        Directory.CreateDirectory(testDatabase.DirectoryPath);
+        return Task.FromResult(testDatabase);
     }
 
     public TeamRepository CreateTeamRepository()
@@ -73,6 +79,28 @@ internal sealed class TemporaryTestDatabase : IAsyncDisposable
 
     public Task<List<GameScoringSession>> GetGameScoringSessionsAsync() =>
         UseSeedingConnectionAsync(connection => connection.Table<GameScoringSession>().OrderBy(item => item.Id).ToListAsync());
+
+    public Task<List<GameScoringLineupPlayer>> GetGameScoringLineupPlayersAsync() =>
+        UseSeedingConnectionAsync(connection => connection.Table<GameScoringLineupPlayer>()
+            .OrderBy(item => item.GameScoringSessionId)
+            .ThenBy(item => item.BattingPosition)
+            .ToListAsync());
+
+    public Task<int> UpdateScoringStateAsync(
+        int sessionId,
+        int homeScore,
+        int visitorScore,
+        int currentBatterPosition) =>
+        UseSeedingConnectionAsync(connection => connection.ExecuteAsync(
+            "UPDATE GameScoringSession SET HomeScore = ?, VisitorScore = ?, CurrentBatterPosition = ? WHERE Id = ?",
+            homeScore, visitorScore, currentBatterPosition, sessionId));
+
+    public Task<int> ExecuteAsync(string command, params object[] arguments) =>
+        UseSeedingConnectionAsync(connection => connection.ExecuteAsync(command, arguments));
+
+    public Task<TResult> UseConnectionAsync<TResult>(
+        Func<SQLiteAsyncConnection, Task<TResult>> operation) =>
+        UseSeedingConnectionAsync(operation);
 
     public Task<int> DeleteGameLineupAsync(int gameId) =>
         UseSeedingConnectionAsync(connection => connection.ExecuteAsync(
@@ -164,7 +192,7 @@ internal sealed class TemporaryTestDatabase : IAsyncDisposable
     {
         var connection = new SQLiteAsyncConnection(
             DatabasePath,
-            SQLiteOpenFlags.ReadWrite | SQLiteOpenFlags.SharedCache);
+            SQLiteOpenFlags.ReadWrite | SQLiteOpenFlags.Create | SQLiteOpenFlags.SharedCache);
 
         try
         {

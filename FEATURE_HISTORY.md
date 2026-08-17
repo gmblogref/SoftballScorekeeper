@@ -10,10 +10,10 @@ Stable product and architecture decisions belong in the project architecture doc
 
 ## Current Project Status
 
-- **Latest completed story:** Story 6.0 — Scoring Session Foundation
-- **Completed stories:** Stories 0.0 through 6.0; Stories 3.2 through 3.4 retain their recorded validation status
-- **Current story:** None; Story 6.0 — Scoring Session Foundation is complete
-- **Current phase:** Preparation for live scoring mechanics
+- **Latest completed story:** Story 6.1 — Scoring Home, Scoreboard, and Current Batter Foundation
+- **Completed stories:** Stories 0.0 through 6.1; Stories 3.2 through 3.4 retain their recorded validation status
+- **Current story:** None; Story 6.1 — Scoring Home, Scoreboard, and Current Batter Foundation is complete
+- **Current phase:** Preparation for plate-appearance and scoring behavior
 - **Foundation status:** Complete
 
 The repository contains a four-project .NET 9 solution: the Android- and Windows-targeted .NET MAUI application, platform-independent Core, Infrastructure, and the automated test project. Its implemented foundation includes repository guidance, pragmatic layered dependencies, CommunityToolkit.Mvvm, MAUI dependency injection, device-local SQLite initialization, centralized user-facing resources, strongly typed application settings, and isolated xUnit repository integration tests. Team Workspace contains local Games and Roster sections, supports adding or removing existing active Players, and supports creating a global Player with immediate TeamPlayer membership from the Team-scoped Add Players workflow. Player Workspace shows active Team memberships, and Player Manager retains bulk lifecycle actions; Game schedule management and other later softball workflows remain deferred.
@@ -1981,6 +1981,39 @@ Story 6.0 does not implement Reset Game, Game Over, plate appearances, batter re
 #### Intended Commit Message
 
 `Add scoring session foundation`
+
+### Story 6.1 — Scoring Home, Scoreboard, and Current Batter Foundation
+
+**Status:** Complete on `task/scoring-home-foundation`; automated tests, Windows build, and focused Android tablet manual validation passed
+
+#### Implementation Summary
+
+- Extended `GameScoringSession` with persisted Home score, Visitor score, and current-batter position. New sessions start `0–0` with the current batter at position 1, and those values remain persisted across Exit and Resume.
+- Preserved the core historical boundary: `GameLineupPlayer` remains the frozen official starting lineup, and scoring initialization does not rewrite its rows, IDs, Player IDs, Game IDs, or batting order. Historical starting-lineup semantics remain intact, including Use Previous Lineup reading that frozen Game history.
+- Added the separately persisted, scoring-owned `GameScoringLineupPlayer` live batting sequence. First initialization copies Player identity and order directly from the frozen lineup exactly once without reapplying current Player activity or Team membership. Historical inactive or roster-removed Players therefore remain in the initial live sequence. Sequence positions are unique within a session, while Player uniqueness is intentionally not constrained because substitution and re-entry rules remain deferred. Future live-order changes can operate on this state without modifying starting-lineup history.
+- Extended the authoritative Infrastructure initialization transaction so the session, Home/Away choice, `0–0` score, live sequence, current position 1, and `InProgress` status are established atomically. Sequence-insert failure rolls back both session and sequence, while repeated and concurrent initialization retains the original session and live state without duplicate rows.
+- Added focused `GameScoringState` loading for Resume, returning the persisted session, ordered live sequence, and referenced Players. Resume does not copy the frozen lineup again, reset scores or current position, create another session, or prompt for Home/Away again.
+- Added a narrow additive startup compatibility upgrade for existing Story 6.0 databases. sqlite-net adds the new session columns and live table; one transaction preserves existing scoring-session IDs, Game, Team-side/status state, Team/Game data, and every frozen lineup row/ID/order while initializing missing Story 6.1 state. The upgrade is idempotent, resets no installed Team/Game/Lineup data, and rejects malformed frozen legacy lineups without fabricating partial live state.
+- Replaced the generic scoring details/starting-lineup presentation with the permanent compact quick-glance scoreboard. HOME and VISITOR remain fixed visual roles; persisted `TeamSide` places our Team on the correct side and the scheduled Opponent on the other. Blank Opponent values display the existing resource-backed `TBD`, and the score labels bind to persisted Home/Visitor values rather than hardcoded zeroes.
+- Added a resource-backed CURRENT BATTER section beneath the scoreboard. The ViewModel resolves the Player from persisted current position and `GameScoringLineupPlayer` state, uses the established trimmed nonblank Player-name presentation, and never derives or rebuilds current-batter state from `GameLineupPlayer`. Missing or inconsistent live state uses the existing error feedback without silently rebuilding or fabricating state.
+- Preserved Story 6.0 dedicated scoring behavior: the compact scoring hamburger and accepted menu styling remain, the visible Shell Back and global/management navigation remain unavailable, Exit Game keeps the session `InProgress`, and Exit/Resume returns to the same persisted scoring state.
+
+#### Automated Tests and Validation
+
+- Expanded focused scoring coverage from 17 to 24 tests. Added scenario-dense validation for zeroed scores, position-1 current batter, one- and multi-Player live sequences, session ownership and order, unchanged frozen rows/IDs/order, historical inactive and roster-removed Players, persisted Resume state, repeated/concurrent initialization, independent Games, forced transactional rollback, genuine Story 6.0 schema upgrade, upgrade preservation/idempotency, and malformed legacy rejection. Focused tests passed 24 of 24 with zero failures and zero skips.
+- The complete automated suite increased from 191 to 198 tests and passed 198 of 198 with zero failures and zero skips.
+- The final Windows `net9.0-windows10.0.19041.0` target build succeeded with zero errors and 110 warnings. Warning categories were `CS8602`, `MVVMTK0045`, and `XC0025`; Windows runtime validation was not performed.
+- Android CLI build/deployment was unavailable in the implementation environment because no Android SDK or `adb` was configured. Focused manual validation was subsequently completed through the normal Android tablet workflow. The permanent 10-inch-tablet scoreboard was accepted as large, easy to see, and suitable for scoring: the compact hamburger remained; HOME and VISITOR, team names, prominent scores, and CURRENT BATTER were clear; and clean space remained for later controls. Away mapping visibly placed blank Opponent `TBD` under HOME and our Team under VISITOR with `0–0` and the correct current batter. Home mapping and Exit/Resume behavior were subsequently reported as good.
+- Android validation did not explicitly report a one-Player lineup, nonzero persisted scores/current position, malformed live-state error presentation, every long-name boundary, native/system Back, every orientation/theme, or application-restart persistence; those scenarios are not claimed as manually validated.
+- Final `git diff --check` passed with line-ending notices only. No generated build output, database/test-database artifacts, secrets, machine-specific files, unrelated formatting churn, or unrelated feature changes were included.
+
+#### Limitations and Deferred Work
+
+Story 6.1 does not implement plate appearances, batter-result buttons, batter advancement, runner/base state, outs, innings or inning transitions, score-changing actions, Undo/Redo, statistics, OBP, substitutions, Reset Game, or Game Over. The next scoring story can begin actual plate-appearance and scoring behavior from the persisted live-state and quick-glance presentation foundation.
+
+#### Intended Commit Message
+
+`Add scoring home foundation`
 
 ## Maintenance Rules
 
