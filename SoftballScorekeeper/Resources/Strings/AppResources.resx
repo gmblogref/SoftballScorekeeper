@@ -541,4 +541,28 @@
   <data name="CurrentBatterHeading" xml:space="preserve"><value>CURRENT BATTER</value></data>
   <data name="CompletePlateAppearanceButton" xml:space="preserve"><value>Next Batter</value></data>
   <data name="PlateAppearanceCompletionFailed" xml:space="preserve"><value>The plate appearance could not be completed. The scoring state was not changed.</value></data>
+  <data name="SingleResultLabel" xml:space="preserve"><value>Single</value></data>
+  <data name="DoubleResultLabel" xml:space="preserve"><value>Double</value></data>
+  <data name="TripleResultLabel" xml:space="preserve"><value>Triple</value></data>
+  <data name="HomeRunResultLabel" xml:space="preserve"><value>Home Run</value></data>
+  <data name="FirstBaseLabel" xml:space="preserve"><value>First</value></data>
+  <data name="SecondBaseLabel" xml:space="preserve"><value>Second</value></data>
+  <data name="ThirdBaseLabel" xml:space="preserve"><value>Third</value></data>
+  <data name="FirstBaseHeadingLabel" xml:space="preserve"><value>1ST</value></data>
+  <data name="SecondBaseHeadingLabel" xml:space="preserve"><value>2ND</value></data>
+  <data name="ThirdBaseHeadingLabel" xml:space="preserve"><value>3RD</value></data>
+  <data name="ScoresDestinationLabel" xml:space="preserve"><value>Scores</value></data>
+  <data name="EmptyBaseLabel" xml:space="preserve"><value>Empty</value></data>
+  <data name="BasesHeading" xml:space="preserve"><value>BASE RUNNERS</value></data>
+  <data name="SelectedResultFormat" xml:space="preserve"><value>Selected result: {0}</value></data>
+  <data name="DuplicateBaseDestinationMessage" xml:space="preserve"><value>Only one runner can finish on each base. The runner destinations were restored.</value></data>
+  <data name="ScoringProposalFailed" xml:space="preserve"><value>The current play could not be saved. The score and base runners were not changed.</value></data>
+  <data name="BatterBadgeLabel" xml:space="preserve"><value>◆ BATTER</value></data>
+  <data name="RunnerBadgeLabel" xml:space="preserve"><value>● RUNNER</value></data>
+  <data name="BatterResultMenuFormat" xml:space="preserve"><value>What did {0} do?</value></data>
+  <data name="RunnerDestinationMenuFormat" xml:space="preserve"><value>Move {0} To</value></data>
+  <data name="RunsOnPlayFormat" xml:space="preserve"><value>RUNS: {0}</value></data>
+  <data name="ScoredHeading" xml:space="preserve"><value>SCORED</value></data>
+  <data name="TapBatterHint" xml:space="preserve"><value>Tap batter to choose or change result</value></data>
+  <data name="ScoredPlayerCardFormat" xml:space="preserve"><value>{0}&#xA;{1}</value></data>
 </root>

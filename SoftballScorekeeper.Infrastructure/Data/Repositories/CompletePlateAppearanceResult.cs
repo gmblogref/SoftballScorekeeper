@@ -8,6 +8,7 @@ public enum CompletePlateAppearanceFailure
     InvalidRequest,
     SessionNotFound,
     GameCompleted,
+    PendingPlayNotFound,
     InvalidScoringState,
     Persistence,
 }
@@ -15,6 +16,7 @@ public enum CompletePlateAppearanceFailure
 public sealed record CompletePlateAppearanceResult(
     GamePlateAppearance? PlateAppearance,
     int CurrentBatterPosition,
+    int RunsScored,
     CompletePlateAppearanceFailure FailureReason)
 {
     public bool IsSuccess => FailureReason == CompletePlateAppearanceFailure.None

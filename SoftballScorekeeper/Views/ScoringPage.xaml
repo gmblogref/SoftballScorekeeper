@@ -86,26 +86,129 @@
                 </VerticalStackLayout>
             </Grid>
         </Border>
-        <VerticalStackLayout Grid.Row="3"
-                             IsVisible="{Binding IsLoaded}"
-                             Spacing="6"
-                             HorizontalOptions="Center">
-            <Label Text="{x:Static strings:AppResources.CurrentBatterHeading}"
-                   FontSize="20"
-                   FontAttributes="Bold"
-                   HorizontalTextAlignment="Center" />
-            <Label Text="{Binding CurrentBatterDisplayName}"
-                   FontSize="32"
-                   HorizontalTextAlignment="Center" />
-        </VerticalStackLayout>
-        <Button Grid.Row="4"
-                Text="{x:Static strings:AppResources.CompletePlateAppearanceButton}"
-                Command="{Binding CompletePlateAppearanceCommand}"
-                IsVisible="{Binding IsLoaded}"
-                MinimumHeightRequest="56"
-                MinimumWidthRequest="260"
-                HorizontalOptions="Center"
-                VerticalOptions="Start"
-                Padding="24,14" />
+        <ScrollView Grid.Row="3" Grid.RowSpan="2" IsVisible="{Binding IsLoaded}">
+            <VerticalStackLayout Spacing="10">
+                <Label Text="{x:Static strings:AppResources.BasesHeading}"
+                       FontAttributes="Bold" HorizontalTextAlignment="Center" />
+                <Grid ColumnDefinitions="*,Auto,*"
+                      RowDefinitions="Auto,Auto,Auto,Auto,Auto"
+                      RowSpacing="12">
+                    <VerticalStackLayout Grid.Row="0" Grid.Column="1"
+                                         Spacing="6" WidthRequest="160">
+                        <Label Text="{Binding SecondBaseRunner.BaseLabel}"
+                               FontAttributes="Bold" HorizontalTextAlignment="Center" />
+                        <Button CommandParameter="{Binding SecondBaseRunner}"
+                                Text="{Binding SecondBaseRunner.PlayerName}"
+                                IsEnabled="{Binding SecondBaseRunner.IsOccupied}"
+                                Clicked="OnRunnerButtonClicked" BackgroundColor="White"
+                                BorderColor="{StaticResource Gray400}" BorderWidth="1"
+                                TextColor="Black" MinimumWidthRequest="160"
+                                MinimumHeightRequest="66" FontSize="16"
+                                FontAttributes="Bold" Padding="14,8" />
+                        <Label Text="{Binding SecondBaseRunner.RoleLabel}"
+                               IsVisible="{Binding SecondBaseRunner.IsCurrentBatter}"
+                               FontSize="12" FontAttributes="Bold"
+                               TextColor="{StaticResource Primary}"
+                               HorizontalTextAlignment="Center" />
+                    </VerticalStackLayout>
+                    <VerticalStackLayout Grid.Row="1" Grid.Column="0"
+                                         Spacing="6" WidthRequest="160"
+                                         HorizontalOptions="Center">
+                        <Label Text="{Binding ThirdBaseRunner.BaseLabel}"
+                               FontAttributes="Bold" HorizontalTextAlignment="Center" />
+                        <Button CommandParameter="{Binding ThirdBaseRunner}"
+                                Text="{Binding ThirdBaseRunner.PlayerName}"
+                                IsEnabled="{Binding ThirdBaseRunner.IsOccupied}"
+                                Clicked="OnRunnerButtonClicked" BackgroundColor="White"
+                                BorderColor="{StaticResource Gray400}" BorderWidth="1"
+                                TextColor="Black" MinimumWidthRequest="160"
+                                MinimumHeightRequest="66" FontSize="16"
+                                FontAttributes="Bold" Padding="14,8" />
+                        <Label Text="{Binding ThirdBaseRunner.RoleLabel}"
+                               IsVisible="{Binding ThirdBaseRunner.IsCurrentBatter}"
+                               FontSize="12" FontAttributes="Bold"
+                               TextColor="{StaticResource Primary}"
+                               HorizontalTextAlignment="Center" />
+                    </VerticalStackLayout>
+                    <VerticalStackLayout Grid.Row="1" Grid.Column="2"
+                                         Spacing="6" WidthRequest="160"
+                                         HorizontalOptions="Center">
+                        <Label Text="{Binding FirstBaseRunner.BaseLabel}"
+                               FontAttributes="Bold" HorizontalTextAlignment="Center" />
+                        <Button CommandParameter="{Binding FirstBaseRunner}"
+                                Text="{Binding FirstBaseRunner.PlayerName}"
+                                IsEnabled="{Binding FirstBaseRunner.IsOccupied}"
+                                Clicked="OnRunnerButtonClicked" BackgroundColor="White"
+                                BorderColor="{StaticResource Gray400}" BorderWidth="1"
+                                TextColor="Black" MinimumWidthRequest="160"
+                                MinimumHeightRequest="66" FontSize="16"
+                                FontAttributes="Bold" Padding="14,8" />
+                        <Label Text="{Binding FirstBaseRunner.RoleLabel}"
+                               IsVisible="{Binding FirstBaseRunner.IsCurrentBatter}"
+                               FontSize="12" FontAttributes="Bold"
+                               TextColor="{StaticResource Primary}"
+                               HorizontalTextAlignment="Center" />
+                    </VerticalStackLayout>
+                    <Button Grid.Row="2" Grid.Column="1"
+                            Text="{x:Static strings:AppResources.CompletePlateAppearanceButton}"
+                            Command="{Binding CompletePlateAppearanceCommand}"
+                            MinimumHeightRequest="56"
+                            MinimumWidthRequest="260"
+                            HorizontalOptions="Center"
+                            Padding="24,14" />
+                    <Label Grid.Row="3" Grid.Column="1"
+                           Text="{Binding RunsOnPlayDisplay}"
+                           IsVisible="{Binding HasPendingPlay}"
+                           FontSize="18"
+                           FontAttributes="Bold"
+                           HorizontalTextAlignment="Center" />
+                    <Border Grid.Row="4" Grid.Column="1"
+                            IsVisible="{Binding IsAwaitingResult}"
+                            Stroke="{StaticResource Primary}"
+                            StrokeThickness="2"
+                            StrokeShape="RoundRectangle 12"
+                            Padding="18,10"
+                            HorizontalOptions="Center"
+                            MinimumWidthRequest="360">
+                        <Border.GestureRecognizers>
+                            <TapGestureRecognizer Tapped="OnBatterTapped" />
+                        </Border.GestureRecognizers>
+                        <VerticalStackLayout Spacing="2" HorizontalOptions="Center">
+                            <Label Text="{x:Static strings:AppResources.BatterBadgeLabel}"
+                                   FontAttributes="Bold"
+                                   TextColor="{StaticResource Primary}"
+                                   HorizontalTextAlignment="Center" />
+                            <Label Text="{Binding CurrentBatterDisplayName}"
+                                   FontSize="28"
+                                   FontAttributes="Bold"
+                                   HorizontalTextAlignment="Center" />
+                            <Label Text="{x:Static strings:AppResources.TapBatterHint}"
+                                   FontSize="13"
+                                   HorizontalTextAlignment="Center" />
+                        </VerticalStackLayout>
+                    </Border>
+                    <VerticalStackLayout Grid.Row="4" Grid.Column="0" Grid.ColumnSpan="3"
+                                         IsVisible="{Binding HasPendingPlay}"
+                                         Spacing="6" HorizontalOptions="Center">
+                        <Label Text="{x:Static strings:AppResources.ScoredHeading}"
+                               FontAttributes="Bold" HorizontalTextAlignment="Center" />
+                        <CollectionView ItemsSource="{Binding ScoredPlayers}" SelectionMode="None"
+                                        ItemsLayout="HorizontalList" HorizontalOptions="Center">
+                            <CollectionView.ItemTemplate>
+                                <DataTemplate x:DataType="viewModels:ScoredPlayerViewModel">
+                                    <Button Text="{Binding DisplayText}" Clicked="OnRunnerButtonClicked"
+                                            Margin="6,0" MinimumWidthRequest="190"
+                                            MinimumHeightRequest="68" FontSize="16"
+                                            FontAttributes="Bold" Padding="14,8" />
+                                </DataTemplate>
+                            </CollectionView.ItemTemplate>
+                        </CollectionView>
+                        <Label Text="{x:Static strings:AppResources.EmptyBaseLabel}"
+                               IsVisible="{Binding HasNoScoredPlayers}"
+                               HorizontalTextAlignment="Center" />
+                    </VerticalStackLayout>
+                </Grid>
+            </VerticalStackLayout>
+        </ScrollView>
     </Grid>
 </ContentPage>
