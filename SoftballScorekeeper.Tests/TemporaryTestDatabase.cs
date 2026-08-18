@@ -92,6 +92,25 @@ internal sealed class TemporaryTestDatabase : IAsyncDisposable
             .ThenBy(item => item.PlateAppearanceNumber)
             .ToListAsync());
 
+    public Task<List<GameScoringBaseRunner>> GetGameScoringBaseRunnersAsync() =>
+        UseSeedingConnectionAsync(connection => connection.Table<GameScoringBaseRunner>()
+            .OrderBy(item => item.GameScoringSessionId).ThenBy(item => item.Base).ToListAsync());
+
+    public Task<List<GamePlateAppearanceRunnerMovement>> GetPlateAppearanceRunnerMovementsAsync() =>
+        UseSeedingConnectionAsync(connection => connection.Table<GamePlateAppearanceRunnerMovement>()
+            .OrderBy(item => item.GamePlateAppearanceId).ThenBy(item => item.Id).ToListAsync());
+
+    public Task<List<GameScoringPendingPlay>> GetPendingScoringPlaysAsync() =>
+        UseSeedingConnectionAsync(connection => connection.Table<GameScoringPendingPlay>()
+            .OrderBy(item => item.Id).ToListAsync());
+
+    public Task<List<GameScoringPendingRunnerMovement>> GetPendingRunnerMovementsAsync() =>
+        UseSeedingConnectionAsync(connection => connection.Table<GameScoringPendingRunnerMovement>()
+            .OrderBy(item => item.GameScoringPendingPlayId).ThenBy(item => item.Id).ToListAsync());
+
+    public Task<int> SeedBaseRunnerAsync(GameScoringBaseRunner runner) =>
+        UseSeedingConnectionAsync(connection => connection.InsertAsync(runner));
+
     public Task<int> UpdateScoringStateAsync(
         int sessionId,
         int homeScore,

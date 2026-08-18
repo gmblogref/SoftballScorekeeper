@@ -17,9 +17,9 @@ public sealed class GameScoringSessionRepositoryTests
         var frozenBefore = (await db.GetGameLineupPlayersAsync()).ToArray();
         var sequenceBefore = (await db.GetGameScoringLineupPlayersAsync()).ToArray();
 
-        var first = await repository.CompletePlateAppearanceAsync(context.Game.Id);
-        var second = await repository.CompletePlateAppearanceAsync(context.Game.Id);
-        var third = await repository.CompletePlateAppearanceAsync(context.Game.Id);
+        var first = await CompleteHitAsync(repository, context.Game.Id);
+        var second = await CompleteHitAsync(repository, context.Game.Id);
+        var third = await CompleteHitAsync(repository, context.Game.Id);
         var state = await repository.GetStateForGameAsync(context.Game.Id);
 
         Assert.True(first.IsSuccess);
@@ -49,8 +49,8 @@ public sealed class GameScoringSessionRepositoryTests
         var repository = db.CreateGameScoringSessionRepository();
         await repository.InitializeAsync(context.Team.Id, context.Game.Id, TeamGameSide.Away);
 
-        var first = await repository.CompletePlateAppearanceAsync(context.Game.Id);
-        var second = await repository.CompletePlateAppearanceAsync(context.Game.Id);
+        var first = await CompleteHitAsync(repository, context.Game.Id, BatterResult.HomeRun);
+        var second = await CompleteHitAsync(repository, context.Game.Id, BatterResult.HomeRun);
         var loaded = await repository.GetStateForGameAsync(context.Game.Id);
 
         Assert.True(first.IsSuccess);
@@ -75,8 +75,8 @@ public sealed class GameScoringSessionRepositoryTests
         var repository = db.CreateGameScoringSessionRepository();
         await repository.InitializeAsync(context.Team.Id, context.Game.Id, TeamGameSide.Home);
 
-        var first = await repository.CompletePlateAppearanceAsync(context.Game.Id);
-        var second = await repository.CompletePlateAppearanceAsync(context.Game.Id);
+        var first = await CompleteHitAsync(repository, context.Game.Id);
+        var second = await CompleteHitAsync(repository, context.Game.Id);
 
         Assert.Equal(frozen.Select(item => item.PlayerId),
             new[] { first.PlateAppearance!.PlayerId, second.PlateAppearance!.PlayerId });
@@ -106,7 +106,7 @@ public sealed class GameScoringSessionRepositoryTests
         await repository.InitializeAsync(first.Team.Id, first.Game.Id, TeamGameSide.Home);
         await repository.InitializeAsync(first.Team.Id, secondGame.Id, TeamGameSide.Away);
 
-        await repository.CompletePlateAppearanceAsync(first.Game.Id);
+        await CompleteHitAsync(repository, first.Game.Id);
         var firstState = await repository.GetStateForGameAsync(first.Game.Id);
         var secondState = await repository.GetStateForGameAsync(secondGame.Id);
 
@@ -169,6 +169,7 @@ public sealed class GameScoringSessionRepositoryTests
         var context = await CreateReadyGameAsync(db, DateTime.Today, null, null, 2);
         var repository = db.CreateGameScoringSessionRepository();
         await repository.InitializeAsync(context.Team.Id, context.Game.Id, TeamGameSide.Home);
+        await repository.SelectBatterResultAsync(context.Game.Id, BatterResult.Single);
         await db.ExecuteAsync(
             "CREATE TRIGGER FailBatterAdvance BEFORE UPDATE OF CurrentBatterPosition ON GameScoringSession BEGIN SELECT RAISE(ABORT, 'test failure'); END");
 
@@ -521,6 +522,15 @@ public sealed class GameScoringSessionRepositoryTests
             await db.SeedGameLineupPlayerAsync(new() { GameId = context.Game.Id, PlayerId = player.Id, BattingOrder = index + 1 });
         }
         return context;
+    }
+
+    private static async Task<CompletePlateAppearanceResult> CompleteHitAsync(
+        GameScoringSessionRepository repository, int gameId,
+        BatterResult result = BatterResult.Single)
+    {
+        var selected = await repository.SelectBatterResultAsync(gameId, result);
+        Assert.True(selected.IsSuccess);
+        return await repository.CompletePlateAppearanceAsync(gameId);
     }
 
     private static async Task<(Team Team, Game Game)> CreateGameAsync(

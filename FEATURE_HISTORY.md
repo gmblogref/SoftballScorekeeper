@@ -10,10 +10,10 @@ Stable product and architecture decisions belong in the project architecture doc
 
 ## Current Project Status
 
-- **Latest completed story:** Story 6.1 — Scoring Home, Scoreboard, and Current Batter Foundation
-- **Completed stories:** Stories 0.0 through 6.1; Stories 3.2 through 3.4 retain their recorded validation status
-- **Current story:** None; Story 6.1 — Scoring Home, Scoreboard, and Current Batter Foundation is complete
-- **Current phase:** Preparation for plate-appearance and scoring behavior
+- **Latest completed story:** Story 6.3 — Batter Results, Base Runners, and Run Scoring Foundation
+- **Completed stories:** Stories 0.0 through 6.3; Stories 3.2 through 3.4 retain their recorded validation status
+- **Current story:** None; Story 6.3 — Batter Results, Base Runners, and Run Scoring Foundation is complete
+- **Current phase:** Scoring interaction refinement
 - **Foundation status:** Complete
 
 The repository contains a four-project .NET 9 solution: the Android- and Windows-targeted .NET MAUI application, platform-independent Core, Infrastructure, and the automated test project. Its implemented foundation includes repository guidance, pragmatic layered dependencies, CommunityToolkit.Mvvm, MAUI dependency injection, device-local SQLite initialization, centralized user-facing resources, strongly typed application settings, and isolated xUnit repository integration tests. Team Workspace contains local Games and Roster sections, supports adding or removing existing active Players, and supports creating a global Player with immediate TeamPlayer membership from the Team-scoped Add Players workflow. Player Workspace shows active Team memberships, and Player Manager retains bulk lifecycle actions; Game schedule management and other later softball workflows remain deferred.
@@ -2045,6 +2045,50 @@ Story 6.2 does not implement batting results, hits, walks, fielder's choices, st
 #### Intended Commit Message
 
 `Add plate appearance foundation`
+
+### Story 6.3 — Batter Results, Base Runners, and Run Scoring Foundation
+
+**Status:** Complete on `task/batter-result-runner-foundation`; automated tests and Windows build passed, with focused physical Android tablet interaction and layout validation
+
+#### Implementation Summary
+
+- Added strong persisted `BatterResult` values for Single, Double, Triple, and Home Run. `GamePlateAppearance.Result` is nullable so existing Story 6.2 resultless history remains loadable after the additive schema upgrade; no other batter-result types were introduced.
+- Added scoring-session-owned committed occupancy for First, Second, and Third using `GameScoringBaseRunner`. Rows persist Player identity rather than display text, enforce one occupant per base and one base per Player within a session, and remain separate from `Game`, frozen `GameLineupPlayer` history, and the `GameScoringLineupPlayer` live batting sequence.
+- Added persisted `GamePlateAppearanceRunnerMovement` history. Each completed plate appearance now retains its batter and batting-position context, sequence number, result, participating Player identities, starting locations, final destinations, batter movement, and scored Players. Historical movement rows remain distinct from current committed base occupancy.
+- Implemented default movement from the committed pre-play state: a Single advances existing runners one base, a Double advances them two, a Triple scores all existing runners and places the batter on Third, and a Home Run scores every existing runner plus the batter and clears the bases.
+- Single, Double, and Triple selection creates a persisted unresolved play without changing committed bases, permanent score, or current batter. The board immediately renders its destinations; Exit/Resume restores the selected result, adjustments, current-play base layout, SCORED Players, and derived run count. Changing the result regenerates the unresolved play from authoritative committed pre-play bases rather than compounding earlier adjustments.
+- Added direct correction for Players on occupied bases and in SCORED. Valid destinations are the applicable subset of First, Second, Third, and Scores; `Out` is not supported. Moving between a base and SCORED immediately updates the unresolved board and `RUNS: n`.
+- Added the focused Core `PendingRunnerCorrection` calculation and reused it for Infrastructure validation and application. Moving a runner backward onto an occupied base displaces that occupant backward one base and continues until an empty base is reached while preserving Player identity and relative order. The current PA batter is a hard boundary that cannot be displaced backward, and destinations requiring an impossible cascade are excluded and independently rejected by Infrastructure.
+- Made Next Batter the sole commit action for unresolved Single, Double, and Triple plays. One Infrastructure transaction inserts the completed PA and result, persists final movement history, replaces committed base occupancy, applies runs to the correct score, advances through the existing live batting sequence, and clears pending state. A failure rolls back the complete operation and preserves the prior authoritative and unresolved state.
+- Kept Home Run as an intentional immediate-completion shortcut. Its authoritative transaction discards any unresolved adjustment, rebuilds from committed pre-play bases, scores all runners and the batter, clears bases, persists PA/result/movement history, updates the correct score, advances or wraps the batter, clears pending state, and presents the next batter without an intermediate SCORED/RUNS review or Next Batter tap.
+- Offensive runs update `HomeScore` when our Team is Home and `VisitorScore` when our Team is Away; the opponent score is unchanged. Single/Double/Triple runs remain unresolved until Next Batter, while Home Run runs appear after its immediate transaction succeeds. The permanent HOME/VISITOR scoreboard remains authoritative.
+- Exit/Resume restores committed Home and Visitor scores, base occupancy and Player identity, current batter, PA results and history, and runner-movement history. It also restores unresolved non-HR result/destination state without advancing the batter.
+- Preserved lineup boundaries: `GameLineupPlayer` remains frozen official starting-lineup history; `GameScoringLineupPlayer` remains the live batting sequence; ordinary scoring does not rewrite either set of rows; and batter advancement continues through the existing live sequence. Story 6.3 adds no substitutions or live-lineup management.
+
+#### Scoring Presentation and Interaction
+
+- Replaced the single current-batter/Next Batter presentation with the resource-backed BASE RUNNERS scoring surface in a fan-perspective diamond: Second is top-center, Third left, First right, Home/SCORED bottom-center, and Next Batter centered in the approximate pitcher's-mound position.
+- Before result selection, the current batter appears in the bottom Home area and opens the Single, Double, Triple, and Home Run action sheet. After an unresolved Single/Double/Triple, the batter appears only at the resulting base and Home becomes SCORED; tapping that batter by Player identity reopens the result sheet and regenerates a changed result from committed state. The temporary `◆ BATTER` distinction remains pending a follow-up custom-icon refinement; ordinary occupied bases no longer show the temporary RUNNER marker.
+- Native base buttons provide reliable Android touch handling and bind display, enabled state, and click identity to the same current-play Player state. The accepted controls use a white surface, black centered Player text, subtle gray border, label above the button, and stable 160×66 dimensions. Empty bases display `Empty`, are disabled/non-interactive, and produce no normal empty-base error. Occupied bases and SCORED Players remain tappable, and no separate RUNNERS, proposed-movement, or textual movement-history section is shown.
+- The context-sensitive SCORED area lists Players currently scoring on the unresolved play and keeps them available for correction; it is not historical movement presentation. The compact `RUNS: n` display remains between Next Batter and Home/SCORED.
+
+#### Automated Tests and Validation
+
+- Expanded focused scoring coverage from 33 to 68 tests. Added table-driven repository and Core coverage for result defaults across base states, Home/Away score mapping, committed bases, movement history, unresolved persistence and regeneration, runner corrections, backward cascades and batter boundaries, impossible-destination filtering, transactional rollback, Home Run immediate completion and replacement of an unresolved result, one-Player and wraparound advancement, independent Games, unchanged frozen/live lineup rows, and additive Story 6.2 compatibility. Focused scoring passed 68 of 68 tests with zero failures and zero skips.
+- The complete automated suite increased from 207 to 242 tests and passed 242 of 242 with zero failures and zero skips. Tests used isolated temporary SQLite databases.
+- The final Windows `net9.0-windows10.0.19041.0` target build succeeded with zero errors and 114 warning instances. Warning categories were `CS8602`, `MVVMTK0045`, and `XC0025`; Windows runtime validation was not performed.
+- Android CLI build remained unavailable in the Codex environment because the Android SDK directory was not configured. The attempt ended with `XA5300`, zero warnings, and one error; this is an environment/tooling limitation rather than a functional Android result.
+- Focused physical Android tablet validation confirmed that empty First/Second/Third display correctly, empty bases are non-clickable without error feedback, selecting Single immediately places the batter on First, occupied First shows the correct Player, and tapping an occupied base opens correction with First/Second/Third/Scores wording. The diamond/fan-perspective direction, white base controls, base-runner movement and correction, current-batter interaction from the field, centered Next Batter position, Home/SCORED context, and overall current-play interaction were reviewed and accepted as working and looking good.
+- The final 160×66 sizing and removal of the ordinary RUNNER marker were applied after the accepted physical-tablet review and are not claimed as subsequently rechecked on-device. Manual Android validation also did not explicitly establish a complete scored-runner backward cascade after final implementation, bases-loaded impossible-destination filtering, unresolved Exit/Resume after a cascade, committed Exit/Resume, both Home and Away score mappings, Home Run with empty or occupied bases, rapid Home Run taps, changing an unresolved hit to Home Run, one-Player behavior, or portrait/orientation/theme combinations. Automated coverage for related rules is not presented as Android UI validation.
+- Final `git diff --check` passed with line-ending normalization notices only. The final diff contained no generated build output, database/test-database artifacts, secrets, machine-specific files, or unrelated changes.
+
+#### Limitations and Deferred Work
+
+Story 6.3 does not implement Walk, batter or runner Out, Error/Reach on Error, Fielder's Choice, Sacrifice Fly, Double Play, Triple Play, authoritative outs or inning state/transitions, opponent offense, substitutions or live-lineup management, SCORE/LINEUP/STATS navigation, statistics including AVG or OBP, Undo/Redo, Reset Game, Game Over, Beer Rules, or completed-game correction. Global game Undo remains deferred, and the removed result-clearing interaction is not Undo. The immediate follow-up direction may refine custom batter and runner icons; Story 6.3 intentionally retains only the temporary `◆ BATTER` marker and adds no custom icon assets.
+
+#### Intended Commit Message
+
+`Add batter results and runner scoring foundation`
 
 ## Maintenance Rules
 

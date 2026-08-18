@@ -926,6 +926,30 @@ namespace SoftballScorekeeper.Resources.Strings {
         public static string CurrentBatterHeading { get { return ResourceManager.GetString("CurrentBatterHeading", resourceCulture); } }
         public static string CompletePlateAppearanceButton { get { return ResourceManager.GetString("CompletePlateAppearanceButton", resourceCulture); } }
         public static string PlateAppearanceCompletionFailed { get { return ResourceManager.GetString("PlateAppearanceCompletionFailed", resourceCulture); } }
+        public static string SingleResultLabel { get { return ResourceManager.GetString("SingleResultLabel", resourceCulture); } }
+        public static string DoubleResultLabel { get { return ResourceManager.GetString("DoubleResultLabel", resourceCulture); } }
+        public static string TripleResultLabel { get { return ResourceManager.GetString("TripleResultLabel", resourceCulture); } }
+        public static string HomeRunResultLabel { get { return ResourceManager.GetString("HomeRunResultLabel", resourceCulture); } }
+        public static string FirstBaseLabel { get { return ResourceManager.GetString("FirstBaseLabel", resourceCulture); } }
+        public static string SecondBaseLabel { get { return ResourceManager.GetString("SecondBaseLabel", resourceCulture); } }
+        public static string ThirdBaseLabel { get { return ResourceManager.GetString("ThirdBaseLabel", resourceCulture); } }
+        public static string FirstBaseHeadingLabel { get { return ResourceManager.GetString("FirstBaseHeadingLabel", resourceCulture); } }
+        public static string SecondBaseHeadingLabel { get { return ResourceManager.GetString("SecondBaseHeadingLabel", resourceCulture); } }
+        public static string ThirdBaseHeadingLabel { get { return ResourceManager.GetString("ThirdBaseHeadingLabel", resourceCulture); } }
+        public static string ScoresDestinationLabel { get { return ResourceManager.GetString("ScoresDestinationLabel", resourceCulture); } }
+        public static string EmptyBaseLabel { get { return ResourceManager.GetString("EmptyBaseLabel", resourceCulture); } }
+        public static string BasesHeading { get { return ResourceManager.GetString("BasesHeading", resourceCulture); } }
+        public static string SelectedResultFormat { get { return ResourceManager.GetString("SelectedResultFormat", resourceCulture); } }
+        public static string DuplicateBaseDestinationMessage { get { return ResourceManager.GetString("DuplicateBaseDestinationMessage", resourceCulture); } }
+        public static string ScoringProposalFailed { get { return ResourceManager.GetString("ScoringProposalFailed", resourceCulture); } }
+        public static string BatterBadgeLabel { get { return ResourceManager.GetString("BatterBadgeLabel", resourceCulture); } }
+        public static string RunnerBadgeLabel { get { return ResourceManager.GetString("RunnerBadgeLabel", resourceCulture); } }
+        public static string BatterResultMenuFormat { get { return ResourceManager.GetString("BatterResultMenuFormat", resourceCulture); } }
+        public static string RunnerDestinationMenuFormat { get { return ResourceManager.GetString("RunnerDestinationMenuFormat", resourceCulture); } }
+        public static string RunsOnPlayFormat { get { return ResourceManager.GetString("RunsOnPlayFormat", resourceCulture); } }
+        public static string ScoredHeading { get { return ResourceManager.GetString("ScoredHeading", resourceCulture); } }
+        public static string TapBatterHint { get { return ResourceManager.GetString("TapBatterHint", resourceCulture); } }
+        public static string ScoredPlayerCardFormat { get { return ResourceManager.GetString("ScoredPlayerCardFormat", resourceCulture); } }
         public static string LineupManagerTitle { get { return ResourceManager.GetString("LineupManagerTitle", resourceCulture); } }
         public static string AddLineupPlayersButton { get { return ResourceManager.GetString("AddLineupPlayersButton", resourceCulture); } }
         public static string AddSelectedLineupPlayersButton { get { return ResourceManager.GetString("AddSelectedLineupPlayersButton", resourceCulture); } }

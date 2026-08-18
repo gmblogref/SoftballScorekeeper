@@ -56,6 +56,10 @@ public sealed class AppDatabase
             await connection.CreateTableAsync<GameScoringSession>();
             await connection.CreateTableAsync<GameScoringLineupPlayer>();
             await connection.CreateTableAsync<GamePlateAppearance>();
+            await connection.CreateTableAsync<GameScoringBaseRunner>();
+            await connection.CreateTableAsync<GamePlateAppearanceRunnerMovement>();
+            await connection.CreateTableAsync<GameScoringPendingPlay>();
+            await connection.CreateTableAsync<GameScoringPendingRunnerMovement>();
             await connection.RunInTransactionAsync(UpgradeStory60ScoringSessions);
             isInitialized = true;
         }
