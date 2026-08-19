@@ -14,6 +14,7 @@ public partial class ScoringViewModel : ObservableObject, IQueryAttributable
     private readonly GameScoringSessionRepository sessionRepository;
     private bool hasValidContext;
     private int currentBatterPlayerId;
+    private TeamGameSide currentTeamSide;
 
     [ObservableProperty] private int teamId;
     [ObservableProperty] private int gameId;
@@ -25,14 +26,23 @@ public partial class ScoringViewModel : ObservableObject, IQueryAttributable
     [ObservableProperty] private string validationMessage = string.Empty;
     [ObservableProperty] private string selectedResultDisplay = string.Empty;
     [ObservableProperty] private string runsOnPlayDisplay = string.Empty;
-    [ObservableProperty, NotifyPropertyChangedFor(nameof(IsAwaitingResult))]
+    private string inningOutDisplay = string.Empty;
+    [ObservableProperty, NotifyPropertyChangedFor(nameof(IsAwaitingResult)),
+        NotifyPropertyChangedFor(nameof(CanCompletePlateAppearance))]
     private bool hasPendingPlay;
-    [ObservableProperty, NotifyCanExecuteChangedFor(nameof(CompletePlateAppearanceCommand))]
+    [ObservableProperty, NotifyPropertyChangedFor(nameof(CanCompletePlateAppearance))]
     private bool isLoaded;
-    [ObservableProperty, NotifyCanExecuteChangedFor(nameof(CompletePlateAppearanceCommand))]
+    [ObservableProperty, NotifyPropertyChangedFor(nameof(CanCompletePlateAppearance))]
     private bool isCompletingPlateAppearance;
 
     public ObservableCollection<ScoredPlayerViewModel> ScoredPlayers { get; } = [];
+
+    public string InningOutDisplay
+    {
+        get => inningOutDisplay;
+        private set => SetProperty(ref inningOutDisplay, value);
+    }
+
     public BaseRunnerViewModel FirstBaseRunner { get; private set; } =
         EmptyBaseRunner(AppResources.FirstBaseHeadingLabel);
     public BaseRunnerViewModel SecondBaseRunner { get; private set; } =
@@ -42,6 +52,8 @@ public partial class ScoringViewModel : ObservableObject, IQueryAttributable
     public bool HasScoredPlayers => ScoredPlayers.Count > 0;
     public bool HasNoScoredPlayers => !HasScoredPlayers;
     public bool IsAwaitingResult => !HasPendingPlay;
+    public bool CanCompletePlateAppearance =>
+        hasValidContext && IsLoaded && HasPendingPlay && !IsCompletingPlateAppearance;
     public int CurrentBatterPlayerId => currentBatterPlayerId;
 
     public ScoringViewModel(TeamRepository teamRepository, GameRepository gameRepository,
@@ -54,9 +66,15 @@ public partial class ScoringViewModel : ObservableObject, IQueryAttributable
 
     public void ApplyQueryAttributes(IDictionary<string, object> query)
     {
-        var hasTeamId = TryParseId(query, AppShell.TeamIdQueryParameter, out var teamId);
-        var hasGameId = TryParseId(query, AppShell.GameIdQueryParameter, out var gameId);
-        hasValidContext = hasTeamId && hasGameId;
+        var hasTeamId = query.ContainsKey(AppShell.TeamIdQueryParameter);
+        var hasGameId = query.ContainsKey(AppShell.GameIdQueryParameter);
+        if (!hasTeamId && !hasGameId) return;
+
+        var hasValidTeamId = TryParseId(
+            query, AppShell.TeamIdQueryParameter, out var teamId);
+        var hasValidGameId = TryParseId(
+            query, AppShell.GameIdQueryParameter, out var gameId);
+        hasValidContext = hasValidTeamId && hasValidGameId;
         TeamId = hasValidContext ? teamId : 0;
         GameId = hasValidContext ? gameId : 0;
     }
@@ -101,7 +119,9 @@ public partial class ScoringViewModel : ObservableObject, IQueryAttributable
         var currentSequencePlayer = state.BattingSequence.FirstOrDefault(item =>
             item.BattingPosition == state.Session.CurrentBatterPosition);
         if (currentSequencePlayer is null
-            || !state.PlayersById.TryGetValue(currentSequencePlayer.PlayerId, out var currentPlayer))
+            || !state.PlayersById.TryGetValue(currentSequencePlayer.PlayerId, out var currentPlayer)
+            || state.Session.CurrentInning < 1
+            || state.Session.CurrentOuts is < 0 or > 2)
         {
             ResetPresentation();
             ValidationMessage = AppResources.ScoringSessionNotFound;
@@ -110,6 +130,8 @@ public partial class ScoringViewModel : ObservableObject, IQueryAttributable
 
         HomeScore = state.Session.HomeScore;
         VisitorScore = state.Session.VisitorScore;
+        currentTeamSide = state.Session.TeamSide;
+        InningOutDisplay = FormatInningOut(state.Session);
         CurrentBatterDisplayName = FormatPlayerName(currentPlayer.FirstName, currentPlayer.LastName);
         currentBatterPlayerId = currentPlayer.Id;
         RestoreBaseRunners(state);
@@ -121,23 +143,25 @@ public partial class ScoringViewModel : ObservableObject, IQueryAttributable
     [RelayCommand]
     public Task ExitGameAsync() => Shell.Current.GoToAsync("..");
 
-    [RelayCommand(CanExecute = nameof(CanCompletePlateAppearance))]
-    private async Task CompletePlateAppearanceAsync()
+    public async Task<bool> CompletePlateAppearanceAsync(
+        IReadOnlyDictionary<int, bool>? runRulings = null)
     {
-        if (!CanCompletePlateAppearance()) return;
+        if (!CanCompletePlateAppearance) return false;
 
         IsCompletingPlateAppearance = true;
         try
         {
-            var result = await sessionRepository.CompletePlateAppearanceAsync(GameId);
+            var result = await sessionRepository.CompletePlateAppearanceAsync(
+                GameId, runRulings);
             if (!result.IsSuccess)
             {
                 await LoadAsync();
                 ValidationMessage = AppResources.PlateAppearanceCompletionFailed;
-                return;
+                return false;
             }
 
             await LoadAsync();
+            return true;
         }
         finally
         {
@@ -145,21 +169,41 @@ public partial class ScoringViewModel : ObservableObject, IQueryAttributable
         }
     }
 
-    private bool CanCompletePlateAppearance() =>
-        hasValidContext && IsLoaded && HasPendingPlay && !IsCompletingPlateAppearance;
+    public async Task<IReadOnlyList<RunRulingViewModel>?> GetRunRulingRequirementsAsync()
+    {
+        if (!CanCompletePlateAppearance) return null;
+        var result = await sessionRepository.GetRunRulingRequirementsAsync(GameId);
+        if (!result.IsSuccess)
+        {
+            ValidationMessage = AppResources.ScoringProposalFailed;
+            return null;
+        }
+        if (result.PlayerIds.Count == 0) return [];
+        var state = await sessionRepository.GetStateForGameAsync(GameId);
+        if (state is null) return null;
+        var rulings = new List<RunRulingViewModel>();
+        foreach (var playerId in result.PlayerIds)
+        {
+            if (!state.PlayersById.TryGetValue(playerId, out var player)) return null;
+            rulings.Add(new(playerId, FormatPlayerName(player.FirstName, player.LastName)));
+        }
+        return rulings;
+    }
 
     [RelayCommand]
     public async Task SelectResultAsync(BatterResult result)
     {
         if (!IsLoaded || IsCompletingPlateAppearance) return;
-        if (result == BatterResult.HomeRun)
+        if (result is BatterResult.HomeRun or BatterResult.Out)
         {
             IsCompletingPlateAppearance = true;
             try
             {
-                var completed = await sessionRepository.CompleteHomeRunAsync(GameId);
+                var succeeded = result == BatterResult.HomeRun
+                    ? (await sessionRepository.CompleteHomeRunAsync(GameId)).IsSuccess
+                    : (await sessionRepository.SelectOutAsync(GameId)).IsSuccess;
                 await LoadAsync();
-                if (!completed.IsSuccess)
+                if (!succeeded)
                     ValidationMessage = AppResources.PlateAppearanceCompletionFailed;
             }
             finally
@@ -175,6 +219,61 @@ public partial class ScoringViewModel : ObservableObject, IQueryAttributable
             return;
         }
         await LoadAsync();
+    }
+
+    public async Task<HalfInningTransitionViewModel?> GetPendingHalfInningTransitionAsync()
+    {
+        if (!hasValidContext) return null;
+        var halfInning = await sessionRepository
+            .GetPendingHalfInningTransitionAsync(GameId);
+        if (halfInning is null) return null;
+        var teamHalf = currentTeamSide == TeamGameSide.Away
+            ? AppResources.TopInningHalfLabel
+            : AppResources.BottomInningHalfLabel;
+        var opponentHalf = currentTeamSide == TeamGameSide.Away
+            ? AppResources.BottomInningHalfLabel
+            : AppResources.TopInningHalfLabel;
+        var opponentInning = currentTeamSide == TeamGameSide.Away
+            ? halfInning.Inning
+            : halfInning.Inning + 1;
+        return new(
+            halfInning.Id,
+            halfInning.TeamSummaryAcknowledged,
+            string.Format(AppResources.HalfInningCompleteTitleFormat,
+                teamHalf, halfInning.Inning),
+            string.Format(AppResources.HalfInningSummaryMessageFormat,
+                halfInning.TeamRuns, halfInning.TeamHomeRuns),
+            string.Format(AppResources.OpponentHalfInningTitleFormat,
+                opponentHalf, opponentInning));
+    }
+
+    public async Task<bool> AcknowledgeHalfInningSummaryAsync(int halfInningId)
+    {
+        var succeeded = await sessionRepository
+            .AcknowledgeHalfInningSummaryAsync(GameId, halfInningId);
+        if (!succeeded)
+            ValidationMessage = AppResources.HalfInningTransitionFailed;
+        return succeeded;
+    }
+
+    public async Task<string?> CompleteOpponentHalfInningAsync(
+        int halfInningId,
+        int? runs, OpponentEntryMode runsMode,
+        int? homeRuns, OpponentEntryMode homeRunsMode)
+    {
+        var result = await sessionRepository.CompleteOpponentHalfInningAsync(
+            GameId, halfInningId, runs, runsMode, homeRuns, homeRunsMode);
+        await LoadAsync();
+        if (result.IsSuccess) return null;
+        ValidationMessage = result.FailureReason switch
+        {
+            OpponentHalfInningEntryFailure.TotalRunsBelowCurrent =>
+                AppResources.OpponentTotalScoreTooLowMessage,
+            OpponentHalfInningEntryFailure.TotalHomeRunsBelowCurrent =>
+                AppResources.OpponentTotalHomeRunsTooLowMessage,
+            _ => AppResources.HalfInningTransitionFailed,
+        };
+        return ValidationMessage;
     }
 
     public async Task ChangeRunnerDestinationAsync(int playerId, RunnerDestination destination)
@@ -210,6 +309,7 @@ public partial class ScoringViewModel : ObservableObject, IQueryAttributable
         CurrentBatterDisplayName = string.Empty;
         SelectedResultDisplay = string.Empty;
         RunsOnPlayDisplay = string.Empty;
+        InningOutDisplay = string.Empty;
         HasPendingPlay = false;
         FirstBaseRunner = EmptyBaseRunner(AppResources.FirstBaseHeadingLabel);
         SecondBaseRunner = EmptyBaseRunner(AppResources.SecondBaseHeadingLabel);
@@ -221,6 +321,7 @@ public partial class ScoringViewModel : ObservableObject, IQueryAttributable
         OnPropertyChanged(nameof(HasScoredPlayers));
         OnPropertyChanged(nameof(HasNoScoredPlayers));
         currentBatterPlayerId = 0;
+        currentTeamSide = default;
     }
 
     private static string FormatPlayerName(string firstName, string? lastName) =>
@@ -270,7 +371,6 @@ public partial class ScoringViewModel : ObservableObject, IQueryAttributable
     {
         ScoredPlayers.Clear();
         HasPendingPlay = state.PendingPlay is not null;
-        CompletePlateAppearanceCommand.NotifyCanExecuteChanged();
         if (state.PendingPlay is null) return;
         SelectedResultDisplay = string.Format(AppResources.SelectedResultFormat,
             FormatResult(state.PendingPlay.Play.Result));
@@ -298,8 +398,21 @@ public partial class ScoringViewModel : ObservableObject, IQueryAttributable
         BatterResult.Double => AppResources.DoubleResultLabel,
         BatterResult.Triple => AppResources.TripleResultLabel,
         BatterResult.HomeRun => AppResources.HomeRunResultLabel,
+        BatterResult.Out => AppResources.OutResultLabel,
         _ => string.Empty,
     };
+
+    private static string FormatInningOut(GameScoringSession session)
+    {
+        var half = session.TeamSide == TeamGameSide.Away
+            ? AppResources.TopInningHalfLabel
+            : AppResources.BottomInningHalfLabel;
+        var outs = string.Format(session.CurrentOuts == 1
+            ? AppResources.SingleOutFormat
+            : AppResources.MultipleOutsFormat, session.CurrentOuts);
+        return string.Format(AppResources.InningOutDisplayFormat,
+            half, session.CurrentInning, outs);
+    }
 
     public static string FormatDestination(RunnerDestination destination) => destination switch
     {
@@ -307,6 +420,7 @@ public partial class ScoringViewModel : ObservableObject, IQueryAttributable
         RunnerDestination.Second => AppResources.SecondBaseLabel,
         RunnerDestination.Third => AppResources.ThirdBaseLabel,
         RunnerDestination.Scores => AppResources.ScoresDestinationLabel,
+        RunnerDestination.Out => AppResources.OutDestinationLabel,
         _ => string.Empty,
     };
 
@@ -340,3 +454,12 @@ public sealed record ScoredPlayerViewModel(
     public string DisplayText => string.Format(AppResources.ScoredPlayerCardFormat,
         RoleLabel, PlayerName);
 }
+
+public sealed record HalfInningTransitionViewModel(
+    int Id,
+    bool TeamSummaryAcknowledged,
+    string SummaryTitle,
+    string SummaryMessage,
+    string OpponentTitle);
+
+public sealed record RunRulingViewModel(int PlayerId, string PlayerName);

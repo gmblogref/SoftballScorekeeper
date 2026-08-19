@@ -17,6 +17,8 @@ public sealed class GamePlateAppearance
     [Indexed("UX_GamePlateAppearance_Session_Number", 2, Unique = true)]
     public int PlateAppearanceNumber { get; set; }
 
+    public int Inning { get; set; }
+
     public BatterResult? Result { get; set; }
 }
 
@@ -26,4 +28,5 @@ public enum BatterResult
     Double = 2,
     Triple = 3,
     HomeRun = 4,
+    Out = 5,
 }

@@ -930,6 +930,33 @@ namespace SoftballScorekeeper.Resources.Strings {
         public static string DoubleResultLabel { get { return ResourceManager.GetString("DoubleResultLabel", resourceCulture); } }
         public static string TripleResultLabel { get { return ResourceManager.GetString("TripleResultLabel", resourceCulture); } }
         public static string HomeRunResultLabel { get { return ResourceManager.GetString("HomeRunResultLabel", resourceCulture); } }
+        public static string OutResultLabel { get { return ResourceManager.GetString("OutResultLabel", resourceCulture); } }
+        public static string OutDestinationLabel { get { return ResourceManager.GetString("OutDestinationLabel", resourceCulture); } }
+        public static string RunCountQuestionFormat { get { return ResourceManager.GetString("RunCountQuestionFormat", resourceCulture); } }
+        public static string RunRulingTitle { get { return ResourceManager.GetString("RunRulingTitle", resourceCulture); } }
+        public static string RunCountsButton { get { return ResourceManager.GetString("RunCountsButton", resourceCulture); } }
+        public static string RunDoesNotCountButton { get { return ResourceManager.GetString("RunDoesNotCountButton", resourceCulture); } }
+        public static string TopInningHalfLabel { get { return ResourceManager.GetString("TopInningHalfLabel", resourceCulture); } }
+        public static string BottomInningHalfLabel { get { return ResourceManager.GetString("BottomInningHalfLabel", resourceCulture); } }
+        public static string SingleOutFormat { get { return ResourceManager.GetString("SingleOutFormat", resourceCulture); } }
+        public static string MultipleOutsFormat { get { return ResourceManager.GetString("MultipleOutsFormat", resourceCulture); } }
+        public static string InningOutDisplayFormat { get { return ResourceManager.GetString("InningOutDisplayFormat", resourceCulture); } }
+        public static string HalfInningCompleteTitleFormat { get { return ResourceManager.GetString("HalfInningCompleteTitleFormat", resourceCulture); } }
+        public static string HalfInningSummaryMessageFormat { get { return ResourceManager.GetString("HalfInningSummaryMessageFormat", resourceCulture); } }
+        public static string OpponentHalfInningTitleFormat { get { return ResourceManager.GetString("OpponentHalfInningTitleFormat", resourceCulture); } }
+        public static string OpponentRunsLabel { get { return ResourceManager.GetString("OpponentRunsLabel", resourceCulture); } }
+        public static string OpponentHomeRunsLabel { get { return ResourceManager.GetString("OpponentHomeRunsLabel", resourceCulture); } }
+        public static string TotalScoreModeLabel { get { return ResourceManager.GetString("TotalScoreModeLabel", resourceCulture); } }
+        public static string RunsThisHalfModeLabel { get { return ResourceManager.GetString("RunsThisHalfModeLabel", resourceCulture); } }
+        public static string TotalHomeRunsModeLabel { get { return ResourceManager.GetString("TotalHomeRunsModeLabel", resourceCulture); } }
+        public static string HomeRunsThisHalfModeLabel { get { return ResourceManager.GetString("HomeRunsThisHalfModeLabel", resourceCulture); } }
+        public static string OptionalNumberPlaceholder { get { return ResourceManager.GetString("OptionalNumberPlaceholder", resourceCulture); } }
+        public static string NonNegativeWholeNumberMessage { get { return ResourceManager.GetString("NonNegativeWholeNumberMessage", resourceCulture); } }
+        public static string OpponentTotalScoreTooLowMessage { get { return ResourceManager.GetString("OpponentTotalScoreTooLowMessage", resourceCulture); } }
+        public static string OpponentTotalHomeRunsTooLowMessage { get { return ResourceManager.GetString("OpponentTotalHomeRunsTooLowMessage", resourceCulture); } }
+        public static string HalfInningTransitionFailed { get { return ResourceManager.GetString("HalfInningTransitionFailed", resourceCulture); } }
+        public static string OkButton { get { return ResourceManager.GetString("OkButton", resourceCulture); } }
+        public static string CloseButton { get { return ResourceManager.GetString("CloseButton", resourceCulture); } }
         public static string FirstBaseLabel { get { return ResourceManager.GetString("FirstBaseLabel", resourceCulture); } }
         public static string SecondBaseLabel { get { return ResourceManager.GetString("SecondBaseLabel", resourceCulture); } }
         public static string ThirdBaseLabel { get { return ResourceManager.GetString("ThirdBaseLabel", resourceCulture); } }

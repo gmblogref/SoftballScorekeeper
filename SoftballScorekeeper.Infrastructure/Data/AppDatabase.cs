@@ -58,6 +58,7 @@ public sealed class AppDatabase
             await connection.CreateTableAsync<GamePlateAppearance>();
             await connection.CreateTableAsync<GameScoringBaseRunner>();
             await connection.CreateTableAsync<GamePlateAppearanceRunnerMovement>();
+            await connection.CreateTableAsync<GameScoringHalfInning>();
             await connection.CreateTableAsync<GameScoringPendingPlay>();
             await connection.CreateTableAsync<GameScoringPendingRunnerMovement>();
             await connection.RunInTransactionAsync(UpgradeStory60ScoringSessions);
@@ -79,11 +80,52 @@ public sealed class AppDatabase
         var sessions = transaction.Table<GameScoringSession>().ToList();
         foreach (var session in sessions)
         {
+            var inningStateChanged = false;
+            if (session.CurrentInning == 0)
+            {
+                session.CurrentInning = 1;
+                inningStateChanged = true;
+            }
+            else if (session.CurrentInning < 1)
+            {
+                throw new InvalidOperationException(
+                    $"Scoring session {session.Id} has invalid inning or out state.");
+            }
+            if (session.CurrentOuts is < 0 or > 2)
+                throw new InvalidOperationException(
+                    $"Scoring session {session.Id} has invalid inning or out state.");
+
+            var sessionAppearances = transaction.Table<GamePlateAppearance>()
+                .Where(item => item.GameScoringSessionId == session.Id).ToList();
+            foreach (var appearance in sessionAppearances.Where(item => item.Inning == 0))
+            {
+                appearance.Inning = 1;
+                if (transaction.Update(appearance) != 1)
+                    throw new InvalidOperationException(
+                        "Plate-appearance compatibility update did not affect one row.");
+            }
+            var appearanceIds = sessionAppearances.Select(item => item.Id).ToHashSet();
+            var legacyScoringMovements = transaction
+                .Table<GamePlateAppearanceRunnerMovement>().ToList()
+                .Where(item => appearanceIds.Contains(item.GamePlateAppearanceId)
+                    && item.Destination == RunnerDestination.Scores
+                    && item.RunCounts is null);
+            foreach (var movement in legacyScoringMovements)
+            {
+                movement.RunCounts = true;
+                if (transaction.Update(movement) != 1)
+                    throw new InvalidOperationException(
+                        "Runner-movement compatibility update did not affect one row.");
+            }
+
             var existingSequence = transaction.Table<GameScoringLineupPlayer>()
                 .Where(item => item.GameScoringSessionId == session.Id)
                 .ToList();
             if (existingSequence.Count > 0)
             {
+                if (inningStateChanged && transaction.Update(session) != 1)
+                    throw new InvalidOperationException(
+                        "Scoring-session compatibility update did not affect one row.");
                 continue;
             }
 

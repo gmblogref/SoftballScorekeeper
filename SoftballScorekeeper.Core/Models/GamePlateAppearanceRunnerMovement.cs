@@ -16,4 +16,6 @@ public sealed class GamePlateAppearanceRunnerMovement
     public RunnerStartingLocation StartingLocation { get; set; }
 
     public RunnerDestination Destination { get; set; }
+
+    public bool? RunCounts { get; set; }
 }

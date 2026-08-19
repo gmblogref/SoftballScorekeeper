@@ -7,7 +7,8 @@ public static class PendingRunnerCorrection
         int batterPlayerId,
         int selectedPlayerId,
         RunnerDestination destination,
-        out IReadOnlyDictionary<int, RunnerDestination> resolvedDestinations)
+        out IReadOnlyDictionary<int, RunnerDestination> resolvedDestinations,
+        bool batterReachedBase = true)
     {
         resolvedDestinations = new Dictionary<int, RunnerDestination>();
         if (batterPlayerId <= 0 || selectedPlayerId <= 0
@@ -16,14 +17,17 @@ public static class PendingRunnerCorrection
             || currentMovements.Select(item => item.PlayerId).Distinct().Count()
                 != currentMovements.Count
             || currentMovements.Any(item => !Enum.IsDefined(item.Destination))
-            || currentMovements.All(item => item.PlayerId != batterPlayerId)
+            || (batterReachedBase
+                && currentMovements.All(item => item.PlayerId != batterPlayerId))
+            || (!batterReachedBase
+                && currentMovements.Any(item => item.PlayerId == batterPlayerId))
             || currentMovements.All(item => item.PlayerId != selectedPlayerId))
             return false;
 
         var destinations = currentMovements.ToDictionary(
             item => item.PlayerId, item => item.Destination);
         destinations.Remove(selectedPlayerId);
-        if (destination == RunnerDestination.Scores)
+        if (destination is RunnerDestination.Scores or RunnerDestination.Out)
         {
             destinations[selectedPlayerId] = destination;
             resolvedDestinations = destinations;
