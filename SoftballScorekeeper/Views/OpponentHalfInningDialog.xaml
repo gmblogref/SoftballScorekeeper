@@ -1,0 +1,83 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage
+    x:Class="SoftballScorekeeper.Views.OpponentHalfInningDialog"
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:strings="clr-namespace:SoftballScorekeeper.Resources.Strings"
+    Shell.NavBarIsVisible="False"
+    BackgroundColor="#99000000">
+    <Grid Padding="48">
+        <Border
+            Padding="32"
+            BackgroundColor="{AppThemeBinding Light=White, Dark={StaticResource Gray900}}"
+            Stroke="{AppThemeBinding Light={StaticResource Gray300}, Dark={StaticResource Gray600}}"
+            StrokeShape="RoundRectangle 16"
+            HorizontalOptions="Center"
+            VerticalOptions="Center"
+            MaximumWidthRequest="720">
+            <Grid RowDefinitions="Auto,Auto,Auto,Auto" RowSpacing="20" ColumnDefinitions="*,*" ColumnSpacing="20">
+                <Label
+                    x:Name="TitleLabel"
+                    Grid.ColumnSpan="2"
+                    FontSize="28"
+                    FontAttributes="Bold"
+                    HorizontalTextAlignment="Center" />
+                <VerticalStackLayout Grid.Row="1" Spacing="8">
+                    <Label Text="{x:Static strings:AppResources.OpponentRunsLabel}" FontSize="18" />
+                    <Grid ColumnDefinitions="*,*" ColumnSpacing="8">
+                        <RadioButton
+                            x:Name="RunsTotalMode"
+                            GroupName="RunsMode"
+                            Content="{x:Static strings:AppResources.TotalScoreModeLabel}"
+                            IsChecked="True"
+                            MinimumHeightRequest="48" />
+                        <RadioButton
+                            Grid.Column="1"
+                            GroupName="RunsMode"
+                            Content="{x:Static strings:AppResources.RunsThisHalfModeLabel}"
+                            MinimumHeightRequest="48" />
+                    </Grid>
+                    <Entry
+                        x:Name="RunsEntry"
+                        Keyboard="Numeric"
+                        Placeholder="{x:Static strings:AppResources.OptionalNumberPlaceholder}"
+                        MinimumHeightRequest="56" />
+                </VerticalStackLayout>
+                <VerticalStackLayout Grid.Row="1" Grid.Column="1" Spacing="8">
+                    <Label Text="{x:Static strings:AppResources.OpponentHomeRunsLabel}" FontSize="18" />
+                    <Grid ColumnDefinitions="*,*" ColumnSpacing="8">
+                        <RadioButton
+                            x:Name="HomeRunsTotalMode"
+                            GroupName="HomeRunsMode"
+                            Content="{x:Static strings:AppResources.TotalHomeRunsModeLabel}"
+                            IsChecked="True"
+                            MinimumHeightRequest="48" />
+                        <RadioButton
+                            Grid.Column="1"
+                            GroupName="HomeRunsMode"
+                            Content="{x:Static strings:AppResources.HomeRunsThisHalfModeLabel}"
+                            MinimumHeightRequest="48" />
+                    </Grid>
+                    <Entry
+                        x:Name="HomeRunsEntry"
+                        Keyboard="Numeric"
+                        Placeholder="{x:Static strings:AppResources.OptionalNumberPlaceholder}"
+                        MinimumHeightRequest="56" />
+                </VerticalStackLayout>
+                <Label
+                    x:Name="ValidationLabel"
+                    Grid.Row="2"
+                    Grid.ColumnSpan="2"
+                    TextColor="{AppThemeBinding Light={StaticResource Error}, Dark={StaticResource ErrorDark}}"
+                    HorizontalTextAlignment="Center" />
+                <Button
+                    x:Name="SubmitButton"
+                    Grid.Row="3"
+                    Grid.ColumnSpan="2"
+                    Text="{x:Static strings:AppResources.OkButton}"
+                    MinimumHeightRequest="56"
+                    Clicked="OnCloseClicked" />
+            </Grid>
+        </Border>
+    </Grid>
+</ContentPage>

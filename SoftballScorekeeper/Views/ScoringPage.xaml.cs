@@ -8,6 +8,8 @@ public partial class ScoringPage : ContentPage
 {
     private readonly ScoringViewModel viewModel;
     private bool isExiting;
+    private bool isHandlingInningTransition;
+    private bool isResolvingPlay;
 
     public ScoringPage(ScoringViewModel viewModel)
     {
@@ -20,7 +22,9 @@ public partial class ScoringPage : ContentPage
     {
         base.OnAppearing();
         isExiting = false;
+        if (isHandlingInningTransition) return;
         await viewModel.LoadAsync();
+        await HandlePendingInningTransitionAsync();
     }
 
     protected override bool OnBackButtonPressed()
@@ -45,6 +49,7 @@ public partial class ScoringPage : ContentPage
             AppResources.DoubleResultLabel,
             AppResources.TripleResultLabel,
             AppResources.HomeRunResultLabel,
+            AppResources.OutResultLabel,
         };
         var selection = await DisplayActionSheet(
             string.Format(AppResources.BatterResultMenuFormat,
@@ -58,24 +63,19 @@ public partial class ScoringPage : ContentPage
             var value when value == AppResources.DoubleResultLabel => BatterResult.Double,
             var value when value == AppResources.TripleResultLabel => BatterResult.Triple,
             var value when value == AppResources.HomeRunResultLabel => BatterResult.HomeRun,
+            var value when value == AppResources.OutResultLabel => BatterResult.Out,
             _ => (BatterResult?)null,
         };
-        if (result is not null) await viewModel.SelectResultAsync(result.Value);
+        if (result is not null)
+        {
+            await viewModel.SelectResultAsync(result.Value);
+            await HandlePendingInningTransitionAsync();
+        }
     }
 
     private async void OnRunnerButtonClicked(object sender, EventArgs e)
     {
         if (sender is not Button button) return;
-        if (button.CommandParameter is BaseRunnerViewModel
-            {
-                IsOccupied: true,
-                PlayerId: int batterPlayerId,
-            }
-            && batterPlayerId == viewModel.CurrentBatterPlayerId)
-        {
-            await ShowBatterResultMenuAsync();
-            return;
-        }
         var participant = (button.CommandParameter ?? button.BindingContext) switch
         {
             BaseRunnerViewModel { IsOccupied: true, PlayerId: int id } runner =>
@@ -100,11 +100,40 @@ public partial class ScoringPage : ContentPage
             var value when value == AppResources.SecondBaseLabel => RunnerDestination.Second,
             var value when value == AppResources.ThirdBaseLabel => RunnerDestination.Third,
             var value when value == AppResources.ScoresDestinationLabel => RunnerDestination.Scores,
+            var value when value == AppResources.OutDestinationLabel => RunnerDestination.Out,
             _ => (RunnerDestination?)null,
         };
         if (destination is not null)
             await viewModel.ChangeRunnerDestinationAsync(
                 participant.Value.PlayerId, destination.Value);
+    }
+
+    private async void OnNextBatterClicked(object sender, EventArgs e)
+    {
+        if (isResolvingPlay || !viewModel.CanCompletePlateAppearance) return;
+        isResolvingPlay = true;
+        try
+        {
+            var requiredRulings = await viewModel.GetRunRulingRequirementsAsync();
+            if (requiredRulings is null) return;
+            var rulings = new Dictionary<int, bool>();
+            foreach (var ruling in requiredRulings)
+            {
+                var counts = await DisplayAlert(
+                    AppResources.RunRulingTitle,
+                    string.Format(AppResources.RunCountQuestionFormat, ruling.PlayerName),
+                    AppResources.RunCountsButton,
+                    AppResources.RunDoesNotCountButton);
+                rulings[ruling.PlayerId] = counts;
+                if (!counts) break;
+            }
+            if (await viewModel.CompletePlateAppearanceAsync(rulings))
+                await HandlePendingInningTransitionAsync();
+        }
+        finally
+        {
+            isResolvingPlay = false;
+        }
     }
 
     private async Task ExitAsync()
@@ -113,5 +142,38 @@ public partial class ScoringPage : ContentPage
         isExiting = true;
         ScoringMenu.IsVisible = false;
         await viewModel.ExitGameAsync();
+    }
+
+    private async Task HandlePendingInningTransitionAsync()
+    {
+        if (isHandlingInningTransition || !viewModel.IsLoaded) return;
+        isHandlingInningTransition = true;
+        try
+        {
+            while (true)
+            {
+                var transition = await viewModel.GetPendingHalfInningTransitionAsync();
+                if (transition is null) return;
+                if (!transition.TeamSummaryAcknowledged)
+                {
+                    await DisplayAlert(transition.SummaryTitle,
+                        transition.SummaryMessage, AppResources.OkButton);
+                    if (!await viewModel.AcknowledgeHalfInningSummaryAsync(transition.Id))
+                        return;
+                }
+
+                var dialog = new OpponentHalfInningDialog(
+                    transition.OpponentTitle,
+                    entry => viewModel.CompleteOpponentHalfInningAsync(
+                        transition.Id,
+                        entry.Runs, entry.RunsMode,
+                        entry.HomeRuns, entry.HomeRunsMode));
+                await dialog.ShowAsync(Navigation);
+            }
+        }
+        finally
+        {
+            isHandlingInningTransition = false;
+        }
     }
 }

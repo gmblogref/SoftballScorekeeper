@@ -545,6 +545,33 @@
   <data name="DoubleResultLabel" xml:space="preserve"><value>Double</value></data>
   <data name="TripleResultLabel" xml:space="preserve"><value>Triple</value></data>
   <data name="HomeRunResultLabel" xml:space="preserve"><value>Home Run</value></data>
+  <data name="OutResultLabel" xml:space="preserve"><value>OUT</value></data>
+  <data name="OutDestinationLabel" xml:space="preserve"><value>Out</value></data>
+  <data name="RunCountQuestionFormat" xml:space="preserve"><value>Does {0}'s run count?</value></data>
+  <data name="RunRulingTitle" xml:space="preserve"><value>Third-Out Run Ruling</value></data>
+  <data name="RunCountsButton" xml:space="preserve"><value>Run Counts</value></data>
+  <data name="RunDoesNotCountButton" xml:space="preserve"><value>Run Does Not Count</value></data>
+  <data name="TopInningHalfLabel" xml:space="preserve"><value>Top</value></data>
+  <data name="BottomInningHalfLabel" xml:space="preserve"><value>Bottom</value></data>
+  <data name="SingleOutFormat" xml:space="preserve"><value>{0} Out</value></data>
+  <data name="MultipleOutsFormat" xml:space="preserve"><value>{0} Outs</value></data>
+  <data name="InningOutDisplayFormat" xml:space="preserve"><value>{0} {1}    {2}</value></data>
+  <data name="HalfInningCompleteTitleFormat" xml:space="preserve"><value>{0} {1} Complete</value></data>
+  <data name="HalfInningSummaryMessageFormat" xml:space="preserve"><value>Runs: {0}&#xA;Home Runs: {1}</value></data>
+  <data name="OpponentHalfInningTitleFormat" xml:space="preserve"><value>Opponent {0} {1}</value></data>
+  <data name="OpponentRunsLabel" xml:space="preserve"><value>Runs</value></data>
+  <data name="OpponentHomeRunsLabel" xml:space="preserve"><value>Home Runs</value></data>
+  <data name="TotalScoreModeLabel" xml:space="preserve"><value>Total Score</value></data>
+  <data name="RunsThisHalfModeLabel" xml:space="preserve"><value>Runs This Half</value></data>
+  <data name="TotalHomeRunsModeLabel" xml:space="preserve"><value>Total HRs</value></data>
+  <data name="HomeRunsThisHalfModeLabel" xml:space="preserve"><value>HRs This Half</value></data>
+  <data name="OptionalNumberPlaceholder" xml:space="preserve"><value>Optional</value></data>
+  <data name="NonNegativeWholeNumberMessage" xml:space="preserve"><value>Enter a non-negative whole number or leave the field blank.</value></data>
+  <data name="OpponentTotalScoreTooLowMessage" xml:space="preserve"><value>Total Score cannot be lower than the opponent's current score.</value></data>
+  <data name="OpponentTotalHomeRunsTooLowMessage" xml:space="preserve"><value>Total HRs cannot be lower than the opponent's current total.</value></data>
+  <data name="HalfInningTransitionFailed" xml:space="preserve"><value>The inning transition could not be saved. Please try again.</value></data>
+  <data name="OkButton" xml:space="preserve"><value>OK</value></data>
+  <data name="CloseButton" xml:space="preserve"><value>Close</value></data>
   <data name="FirstBaseLabel" xml:space="preserve"><value>First</value></data>
   <data name="SecondBaseLabel" xml:space="preserve"><value>Second</value></data>
   <data name="ThirdBaseLabel" xml:space="preserve"><value>Third</value></data>

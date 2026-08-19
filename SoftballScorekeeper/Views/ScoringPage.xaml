@@ -9,6 +9,39 @@
              Shell.NavBarIsVisible="False"
              Title="{x:Static strings:AppResources.ScoringTitle}">
     <Grid Padding="40" RowDefinitions="Auto,Auto,Auto,Auto,*" RowSpacing="18">
+        <VisualStateManager.VisualStateGroups>
+            <VisualStateGroup x:Name="ScoreboardLayoutStates">
+                <VisualState x:Name="PortraitScoreboard">
+                    <VisualState.StateTriggers>
+                        <AdaptiveTrigger MinWindowWidth="0" />
+                    </VisualState.StateTriggers>
+                </VisualState>
+                <VisualState x:Name="LandscapeScoreboard">
+                    <VisualState.StateTriggers>
+                        <AdaptiveTrigger MinWindowWidth="900" />
+                    </VisualState.StateTriggers>
+                    <VisualState.Setters>
+                        <Setter TargetName="ScoreboardBorder" Property="Padding" Value="16,6" />
+                        <Setter TargetName="ScoreboardGrid" Property="RowSpacing" Value="2" />
+                        <Setter TargetName="HomeScoreboard" Property="RowSpacing" Value="0" />
+                        <Setter TargetName="VisitorScoreboard" Property="RowSpacing" Value="0" />
+                        <Setter TargetName="HomeHeading" Property="Label.FontSize" Value="16" />
+                        <Setter TargetName="VisitorHeading" Property="Label.FontSize" Value="16" />
+                        <Setter TargetName="HomeTeamName" Property="Label.FontSize" Value="19" />
+                        <Setter TargetName="VisitorTeamName" Property="Label.FontSize" Value="19" />
+                        <Setter TargetName="HomeScoreValue" Property="Label.FontSize" Value="44" />
+                        <Setter TargetName="VisitorScoreValue" Property="Label.FontSize" Value="44" />
+                        <Setter TargetName="HomeScoreValue" Property="Grid.Row" Value="0" />
+                        <Setter TargetName="VisitorScoreValue" Property="Grid.Row" Value="0" />
+                        <Setter TargetName="HomeScoreValue" Property="Grid.Column" Value="1" />
+                        <Setter TargetName="VisitorScoreValue" Property="Grid.Column" Value="1" />
+                        <Setter TargetName="HomeScoreValue" Property="Grid.RowSpan" Value="2" />
+                        <Setter TargetName="VisitorScoreValue" Property="Grid.RowSpan" Value="2" />
+                        <Setter TargetName="InningOutLabel" Property="Label.FontSize" Value="16" />
+                    </VisualState.Setters>
+                </VisualState>
+            </VisualStateGroup>
+        </VisualStateManager.VisualStateGroups>
         <Grid RowDefinitions="Auto,Auto" ColumnDefinitions="Auto,*">
             <Button Text="&#x2630;"
                     Clicked="OnScoringMenuClicked"
@@ -44,46 +77,74 @@
             </Border>
         </Grid>
         <Label Grid.Row="1" Text="{Binding ValidationMessage}" HorizontalTextAlignment="Center" />
-        <Border Grid.Row="2"
+        <Border x:Name="ScoreboardBorder"
+                Grid.Row="2"
                 IsVisible="{Binding IsLoaded}"
                 Stroke="{AppThemeBinding Light={StaticResource Gray300}, Dark={StaticResource Gray600}}"
                 StrokeShape="RoundRectangle 12"
                 Padding="24,16">
-            <Grid ColumnDefinitions="*,1,*" ColumnSpacing="24">
-                <VerticalStackLayout Spacing="4" HorizontalOptions="Fill">
-                    <Label Text="{x:Static strings:AppResources.HomeScoreboardHeading}"
+            <Grid x:Name="ScoreboardGrid"
+                  ColumnDefinitions="*,1,*" RowDefinitions="Auto,Auto"
+                  ColumnSpacing="24" RowSpacing="8">
+                <Grid x:Name="HomeScoreboard"
+                      ColumnDefinitions="*,Auto"
+                      RowDefinitions="Auto,Auto,Auto"
+                      RowSpacing="4"
+                      HorizontalOptions="Fill">
+                    <Label x:Name="HomeHeading"
+                           Text="{x:Static strings:AppResources.HomeScoreboardHeading}"
                            FontSize="20"
                            FontAttributes="Bold"
                            HorizontalTextAlignment="Center" />
-                    <Label Text="{Binding HomeTeamDisplayName}"
+                    <Label x:Name="HomeTeamName"
+                           Grid.Row="1"
+                           Text="{Binding HomeTeamDisplayName}"
                            FontSize="24"
                            FontAttributes="Bold"
                            HorizontalTextAlignment="Center"
                            LineBreakMode="TailTruncation"
                            MaxLines="1" />
-                    <Label Text="{Binding HomeScore}"
+                    <Label x:Name="HomeScoreValue"
+                           Grid.Row="2"
+                           Text="{Binding HomeScore}"
                            FontSize="64"
                            FontAttributes="Bold"
                            HorizontalTextAlignment="Center" />
-                </VerticalStackLayout>
+                </Grid>
                 <BoxView Grid.Column="1"
                          BackgroundColor="{AppThemeBinding Light={StaticResource Gray300}, Dark={StaticResource Gray600}}" />
-                <VerticalStackLayout Grid.Column="2" Spacing="4" HorizontalOptions="Fill">
-                    <Label Text="{x:Static strings:AppResources.VisitorScoreboardHeading}"
+                <Grid x:Name="VisitorScoreboard"
+                      Grid.Column="2"
+                      ColumnDefinitions="*,Auto"
+                      RowDefinitions="Auto,Auto,Auto"
+                      RowSpacing="4"
+                      HorizontalOptions="Fill">
+                    <Label x:Name="VisitorHeading"
+                           Text="{x:Static strings:AppResources.VisitorScoreboardHeading}"
                            FontSize="20"
                            FontAttributes="Bold"
                            HorizontalTextAlignment="Center" />
-                    <Label Text="{Binding VisitorTeamDisplayName}"
+                    <Label x:Name="VisitorTeamName"
+                           Grid.Row="1"
+                           Text="{Binding VisitorTeamDisplayName}"
                            FontSize="24"
                            FontAttributes="Bold"
                            HorizontalTextAlignment="Center"
                            LineBreakMode="TailTruncation"
                            MaxLines="1" />
-                    <Label Text="{Binding VisitorScore}"
+                    <Label x:Name="VisitorScoreValue"
+                           Grid.Row="2"
+                           Text="{Binding VisitorScore}"
                            FontSize="64"
                            FontAttributes="Bold"
                            HorizontalTextAlignment="Center" />
-                </VerticalStackLayout>
+                </Grid>
+                <Label x:Name="InningOutLabel"
+                       Grid.Row="1" Grid.ColumnSpan="3"
+                       Text="{Binding InningOutDisplay}"
+                       FontSize="20"
+                       FontAttributes="Bold"
+                       HorizontalTextAlignment="Center" />
             </Grid>
         </Border>
         <ScrollView Grid.Row="3" Grid.RowSpan="2" IsVisible="{Binding IsLoaded}">
@@ -151,7 +212,8 @@
                     </VerticalStackLayout>
                     <Button Grid.Row="2" Grid.Column="1"
                             Text="{x:Static strings:AppResources.CompletePlateAppearanceButton}"
-                            Command="{Binding CompletePlateAppearanceCommand}"
+                            IsEnabled="{Binding CanCompletePlateAppearance}"
+                            Clicked="OnNextBatterClicked"
                             MinimumHeightRequest="56"
                             MinimumWidthRequest="260"
                             HorizontalOptions="Center"

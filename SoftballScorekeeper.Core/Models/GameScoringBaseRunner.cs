@@ -39,4 +39,5 @@ public enum RunnerDestination
     Second = 2,
     Third = 3,
     Scores = 4,
+    Out = 5,
 }

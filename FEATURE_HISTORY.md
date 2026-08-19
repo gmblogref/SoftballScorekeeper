@@ -10,9 +10,9 @@ Stable product and architecture decisions belong in the project architecture doc
 
 ## Current Project Status
 
-- **Latest completed story:** Story 6.3 — Batter Results, Base Runners, and Run Scoring Foundation
-- **Completed stories:** Stories 0.0 through 6.3; Stories 3.2 through 3.4 retain their recorded validation status
-- **Current story:** None; Story 6.3 — Batter Results, Base Runners, and Run Scoring Foundation is complete
+- **Latest completed story:** Story 6.4 — Outs and Inning State Foundation
+- **Completed stories:** Stories 0.0 through 6.4; Stories 3.2 through 3.4 retain their recorded validation status
+- **Current story:** None; Story 6.4 — Outs and Inning State Foundation is complete
 - **Current phase:** Scoring interaction refinement
 - **Foundation status:** Complete
 
@@ -2089,6 +2089,52 @@ Story 6.3 does not implement Walk, batter or runner Out, Error/Reach on Error, F
 #### Intended Commit Message
 
 `Add batter results and runner scoring foundation`
+
+### Story 6.4 — Outs and Inning State Foundation
+
+**Status:** Complete on `task/outs-inning-foundation`; automated tests, Windows build, and focused physical Android validation passed
+
+#### Implementation Summary
+
+- Added scoring-session-owned `CurrentInning` and `CurrentOuts`. New sessions begin inning 1 with 0 outs; valid committed out counts are 0, 1, and 2 because a third out performs the half-inning transition instead of persisting 3. The persisted Home/Away `TeamSide` remains authoritative for `Top`/`Bottom` presentation. There is no fixed inning maximum or automatic completion after seven innings, so extra innings continue naturally without putting scoring state on the schedule-oriented `Game`.
+- Added the persisted `BatterResult.Out` value without changing existing Single, Double, Triple, HomeRun, or nullable legacy PA compatibility. An OUT with empty committed bases completes immediately: it records the PA, increments outs, advances the current batter, leaves score unchanged, and retains rapid-tap/busy protection. With committed runners and fewer than two outs, OUT becomes a pending play; runners default to their committed bases and may advance, score, or be marked Out before Next Batter transactionally resolves the play. A batter third OUT is immediate and offers no runner-resolution step.
+- Added generic pending-runner `Out` destinations for runners from any base and for a batter-runner who first reached safely. Multiple runner Outs may be recorded in one play. Runner Outs remain distinct from `BatterResult.Out`, so later batter-runner advancement or an Out does not rewrite an established hit result: for example, a Single remains a Single if that batter-runner advances to Second or Third or is subsequently thrown Out. Dedicated Fielder's Choice, Double Play, Triple Play, and Sacrifice Fly result semantics were not introduced.
+- Expanded completed-play resolution so one transaction owns the PA result, safe movements, runner-Out outcomes, counted runs, outs, inning transition, committed bases, current-batter advancement, and completed-half summary creation. Failure cannot leave a partially advanced inning or score. Inning transitions clear bases and reset outs while continuing to the next live batting position; they do not reset the order, rewrite `GameScoringLineupPlayer`, or touch frozen `GameLineupPlayer`. One-Player lineups safely wrap to the same Player.
+- Added explicit third-out run rulings when a runner Out creates the inning-ending out while Players are marked Scores. The scorekeeper decides whether each run counts in lead-runner order. If a lead scoring runner does not count, later scoring runners also do not count and redundant prompts are skipped. This cascade is limited to inning-ending rulings; non-third-out runner outcomes remain independent. Physical movement history remains separate from `RunCounts`, and only counted runs reach the scoreboard and completed-half Runs.
+- Preserved Story 6.3 hit behavior: 1B/2B/3B default movement and correction, Home/SCORED interaction, persisted pending hits, movement history, Home/Away score mapping, Exit/Resume, and immediate HR completion. Normal hits do not add outs. A Home Run with two outs leaves two outs and does not end the inning. Selecting OUT over an unresolved 1B/2B/3B discards that proposal and its corrections, restores committed bases, and starts the applicable immediate or pending OUT flow from authoritative state.
+- Added persisted `GameScoringHalfInning` summaries when the Team's third out completes. Each record contains the completed inning's Team Runs and Team Home Runs, summary acknowledgement progress, optional opponent Runs and Home Runs, and opponent-entry completion. Completed PAs persist inning context, allowing inning-specific PA and HR history to be derived without transient ViewModel counters.
+- Preserved interruption-safe progress through third-out completion, pending Team summary, pending opponent entry, and completed transition. The workflow targets the persisted completed-half ID rather than the already-advanced session inning. Exit/Resume does not replay the third out, duplicate the transition, or fabricate opponent batters or PAs.
+
+#### Opponent Entry and Presentation
+
+- Added the modal opponent half-inning workflow after the Team summary. Runs support **Total Score** (default) or **Runs This Half**; Home Runs support **Total HRs** (default) or **HRs This Half**. Blank stays null and makes no corresponding total change, while entered zero persists as an explicit half-inning zero.
+- Total modes derive and persist the actual half value from authoritative cumulative state; This Half modes add the entered half value to cumulative state. Opponent score remains authoritative on the scoring session. Cumulative opponent HRs are derived by summing completed `OpponentHomeRuns` half records, so no duplicate cumulative-HR field was added. Entry modes are UI state and are not persisted because completed history is unambiguous.
+- Normal opponent entry is forward-only. A cumulative score or HR value below its authoritative current total is rejected with resource-backed feedback, leaves score/history/transition state unchanged, and keeps the dialog available for correction. Opponent Runs/HRs, score update, and transition completion remain one transaction.
+- Corrected Android modal navigation handling so an empty Shell query after modal close preserves already-valid scoring Team/Game context while explicit invalid or partial parameters remain invalid. The opponent dialog uses existing theme-aware error resources; temporary raw exception UI was removed, while structured diagnostics remain for persistence failures.
+- Added responsive scoreboard states at the established 900-width breakpoint. Landscape uses reduced vertical padding and spacing, smaller HOME/VISITOR and team-name typography, prominent but reduced score typography, and a compact inning/out line, leaving more vertical space for the unchanged diamond, Next Batter, and current-batter controls. Portrait retains the prior stacked scoreboard presentation.
+
+#### Legacy Compatibility
+
+- Database initialization remains additive and non-destructive. Story 6.3 sessions receive safe inning-1/0-out defaults; historical outs are not reconstructed. Existing scores, current batter, live lineup, committed bases, PA history, and movement history remain intact. Older completed PAs receive the implemented safe inning-context default. Upgrade, reopen, preservation, malformed-state, and idempotence scenarios are covered by automated tests.
+
+#### Automated Tests and Validation
+
+- Final focused scoring validation passed 141 of 141 tests with zero failures and zero skips. Coverage includes inning/out initialization and persistence, immediate and pending OUT paths, third-out transitions, batting continuity, runner Outs and multiple Outs, batter-runner result separation, third-out run rulings and ordering, rollback, opponent entry modes and score mapping, interruption-safe transition progress, navigation/resource regressions, and legacy upgrades.
+- The final complete automated suite passed 315 of 315 tests with zero failures and zero skips against isolated temporary SQLite databases. The latest dedicated opponent-entry run before completion passed 29 of 29.
+- The final Windows `net9.0-windows10.0.19041.0` build succeeded with zero errors and 114 warning instances. Warning categories remained `CS8602`, `MVVMTK0045`, and `XC0025`; Windows runtime validation was not performed.
+- Android command-line build remained unavailable because the local CLI could not locate the Android SDK and returned `XA5300`. This is an environment limitation, not an Android functional failure. Earlier emulator validation after the navigation/resource correction successfully exercised blank opponent submission, Runs 2 / HR 1 entry, scoreboard update, and inning advancement.
+- Focused physical Android validation accepted OUT with empty bases; first/second out progression; a third batter OUT ending the half; inning advancement; out reset; base clearing; Team half summary; blank, Total Score, and Runs This Half opponent entry; the next offensive inning; pending OUT with runners and fewer than two outs through Next Batter; third OUT with runners; and the overall third-out → summary → opponent-entry → next-inning mechanism. Earlier device/emulator work also exercised corrected transition and runner-resolution behavior. This is focused workflow validation, not exhaustive coverage of every base/out/result/ruling, failure, theme, or orientation permutation. An emulator orientation problem was resolved by cold reboot and was identified as emulator/device state rather than an application orientation defect.
+- Final `git diff --check` passed with line-ending notices only. The Story 6.4 diff was reviewed as coherent and contained no tracked build output, database/test-database artifacts, secrets, machine-specific files, or stale temporary diagnostics.
+
+#### Limitations and Deferred Work
+
+Walk, dedicated Fielder's Choice, Double Play, Triple Play, Sacrifice Fly, Error/Reach on Error, opponent plate appearances, substitutions, live-lineup management, SCORE/LINEUP/STATS navigation, Player statistics including AVG and OBP, Undo/Redo, Reset Game, Game Over, completed-game correction, Beer Rules, and Manual Overrides remain deferred. Generic runner Out is implemented and is not deferred.
+
+A future **Manual Overrides** scoring-menu workflow must show and allow correction of both teams' scores and cumulative HR totals together, including downward adjustments after incorrect entry or later umpire rulings. Future **Beer Rules** evaluation may suppress opponent-HR entry after the opponent exhausts its usable allowance and one-up permits no additional HR. Neither workflow is implemented by Story 6.4.
+
+#### Intended Commit Message
+
+`Add outs and inning state foundation`
 
 ## Maintenance Rules
 

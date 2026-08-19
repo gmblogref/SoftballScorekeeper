@@ -19,6 +19,10 @@ public sealed class GameScoringSession
     public int VisitorScore { get; set; }
 
     public int CurrentBatterPosition { get; set; }
+
+    public int CurrentInning { get; set; }
+
+    public int CurrentOuts { get; set; }
 }
 
 public enum GameScoringStatus

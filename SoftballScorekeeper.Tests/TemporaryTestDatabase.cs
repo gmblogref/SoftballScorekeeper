@@ -96,6 +96,10 @@ internal sealed class TemporaryTestDatabase : IAsyncDisposable
         UseSeedingConnectionAsync(connection => connection.Table<GameScoringBaseRunner>()
             .OrderBy(item => item.GameScoringSessionId).ThenBy(item => item.Base).ToListAsync());
 
+    public Task<List<GameScoringHalfInning>> GetGameScoringHalfInningsAsync() =>
+        UseSeedingConnectionAsync(connection => connection.Table<GameScoringHalfInning>()
+            .OrderBy(item => item.GameScoringSessionId).ThenBy(item => item.Inning).ToListAsync());
+
     public Task<List<GamePlateAppearanceRunnerMovement>> GetPlateAppearanceRunnerMovementsAsync() =>
         UseSeedingConnectionAsync(connection => connection.Table<GamePlateAppearanceRunnerMovement>()
             .OrderBy(item => item.GamePlateAppearanceId).ThenBy(item => item.Id).ToListAsync());
@@ -119,6 +123,12 @@ internal sealed class TemporaryTestDatabase : IAsyncDisposable
         UseSeedingConnectionAsync(connection => connection.ExecuteAsync(
             "UPDATE GameScoringSession SET HomeScore = ?, VisitorScore = ?, CurrentBatterPosition = ? WHERE Id = ?",
             homeScore, visitorScore, currentBatterPosition, sessionId));
+
+    public Task<int> UpdateInningOutStateAsync(
+        int sessionId, int currentInning, int currentOuts) =>
+        UseSeedingConnectionAsync(connection => connection.ExecuteAsync(
+            "UPDATE GameScoringSession SET CurrentInning = ?, CurrentOuts = ? WHERE Id = ?",
+            currentInning, currentOuts, sessionId));
 
     public Task<int> ExecuteAsync(string command, params object[] arguments) =>
         UseSeedingConnectionAsync(connection => connection.ExecuteAsync(command, arguments));
