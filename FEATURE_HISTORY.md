@@ -10,9 +10,9 @@ Stable product and architecture decisions belong in the project architecture doc
 
 ## Current Project Status
 
-- **Latest completed story:** Story 6.4.1 — Scoring Game Rules and Presentation Foundation
-- **Completed stories:** Stories 0.0 through 6.4.1; Stories 3.2 through 3.4 retain their recorded validation status
-- **Current story:** None; Story 6.4.1 is complete, and Story 6.4.2 — Deterministic Base-Runner Resolver Engine is the immediate next scoring story
+- **Latest completed story:** Story 6.4.2 — Deterministic Base-Runner Resolver Engine
+- **Completed stories:** Stories 0.0 through 6.4.2; Stories 3.2 through 3.4 retain their recorded validation status
+- **Current story:** None; Story 6.4.2 is complete, and Story 6.4.3 — Scoring Regression Coverage Hardening is the immediate next scoring story
 - **Current phase:** Scoring interaction refinement
 - **Foundation status:** Complete
 
@@ -2172,6 +2172,41 @@ The immediate next story is **Story 6.4.2 — Deterministic Base-Runner Resolver
 #### Intended Commit Message
 
 `Add scoring rules and presentation foundation`
+
+### Story 6.4.2 — Deterministic Base-Runner Resolver Engine
+
+**Status:** Complete and PR-ready on `task/base-runner-resolver`; automated tests, the Windows build, and focused physical Android tablet resolver validation passed
+
+#### Implementation Summary
+
+- Replaced the Story 6.3 heuristic correction cascade with one pure, platform-independent Core resolver for the complete pending offensive arrangement. It accepts one to four uniquely identified participants, requires exactly one batter-runner starting at Home, and normalizes immutable pre-play order as Third, Second, First, then batter. The deleted `PendingRunnerCorrection` heuristic is no longer an authoritative or competing path.
+- The resolver considers First, Second, Third, Scores, and Out for every participant while holding the requested Player/destination fixed. A complete arrangement is legal only when First/Second/Third have at most one occupant, non-Out participants preserve pre-play order without passing, no participant disappears or duplicates, and multiple Scores and Outs are allowed. Existing non-selected Out/non-Out status is preserved, so correcting one Player cannot silently manufacture or erase another out. Malformed current arrangements are rejected rather than repaired implicitly.
+- Legal candidates are ranked deterministically by: fewest changed non-selected participants; least total physical displacement among those participants; preservation of earlier lead participants before later trailing participants; and a stable canonical destination order of First, Second, Third, Scores, then Out. Stable participant ordering supplies the final deterministic tie boundary. Repeated resolution therefore returns the same complete arrangement.
+- Added a focused adapter from persisted pending plays and movements to the pure resolver state. Player ID is the stable identity boundary; starting location and current destination remain distinct. Positive hit results require the persisted batter movement. A pending batter Out without a batter movement receives a synthetic in-memory Home-to-Out participant solely for complete resolution and does not create an artificial persisted movement row.
+- Correction-menu destination generation and correction execution now consume the same resolver. Execution reloads authoritative pending state inside the transaction, independently resolves the requested correction, applies the existing three-out lifecycle constraint, and persists every existing movement from the returned complete arrangement. The old cascade and separate requested/resolved-destination validators were removed.
+- Preserved scoring lifecycle and result boundaries. Runner destination corrections do not rewrite the selected batter result; unusual legal arrangements such as a Triple batter ending on Second remain representable. Changing the batter result still regenerates its defaults from committed pre-play state. Third-out completion, run-ruling order, score/inning transitions, Home Run handling, and current-batter advancement continue through the established Story 6.4 transaction boundary.
+- Exit/Resume continues to persist and restore the exact pending result and movement rows. Resolver choices reconstructed after Resume match the choices available before Exit. The resolver replacement required no schema, migration, project-reference, resource, or ViewModel change, so existing databases remain compatible through the prior additive initialization path. The only presentation change was the later scored-runner binding correction documented below.
+- Focused Android validation exposed a small portrait-only scored-runner display regression: scored-runner buttons showed the generic `RUNNER` text because the portrait template bound to `DisplayText`, while landscape already bound directly to `PlayerName`. Restoring the portrait binding to `PlayerName` preserved the existing layout, runner click handler, Player identity, ordering, resolver-generated menus, and correction flow. No resolver, ranking, legality, adapter, persistence, lifecycle, or pending-correction behavior changed.
+
+#### Automated Tests and Validation
+
+- Added pure table-driven resolver coverage including every legal current state for eight representative participant sets. The generated matrix exercised 278 legal states and 4,375 participant/destination requests, verifying menu/execution agreement, complete-arrangement legality, stable identity, no passing, base capacity, Out preservation, determinism, and rejection of malformed state. Default and correction coverage includes bases-loaded Single, Double, and Triple arrangements plus exact ranking/tie-break winners. Focused pure resolver tests passed 43 of 43 with zero failures and zero skips.
+- Added 21 focused repository/adapter integration tests covering Single, Double, Triple, implicit batter Out, existing Outs and Scores, prior corrections, exact occupied-base and bases-loaded ranking winners, multiple scored runners, unusual result/destination separation, malformed-state rejection without repair, exact pending Exit/Resume reconstruction, and resumed menu parity with the resolver. These tests passed 21 of 21 with zero failures and zero skips.
+- Third-out integration coverage verifies exact out identities, two pending runner Outs after one committed out, batter Out identity, lead-runner run-ruling order, inning transition behavior, and no duplicate or omitted participants.
+- Final regression validation passed the Story 6.3 scoring-session/play group 66 of 66, the Story 6.4 scoring/session/play/out/runner-out group 141 of 141, and the Story 6.4.1 lifecycle/rules group 15 of 15, all with zero failures and zero skips. The Story 6.3 grouping is two tests smaller than its historical 68 because two direct tests of the deleted heuristic were replaced by resolver and integration coverage.
+- The complete automated suite passed 394 of 394 with zero failures and zero skips against isolated temporary SQLite databases.
+- The scored-runner presentation regression test passed 1 of 1 and verifies that both portrait and landscape scored-runner templates bind to `PlayerName` and retain `OnRunnerButtonClicked`. The Story 6.4 out/presentation-adjacent group passed 56 of 56, the Story 6.4.1 lifecycle group passed 15 of 15, the pure resolver recheck passed 43 of 43, and the resolver integration recheck passed 21 of 21, all with zero failures and zero skips.
+- After the presentation fix, the Windows `net9.0-windows10.0.19041.0` XAML build succeeded with zero errors and 114 existing warning instances. Warning categories remain `CS8602`, `MVVMTK0045`, and `XC0025`. Windows runtime validation was not performed.
+- Focused physical Android tablet validation confirmed normal Single flow and pending-batter presentation after result selection, correct Double runner movement, the expected Triple scored-runner state, appropriately different scored-runner destination menus based on runner order and legal resolver outcomes, correct resolver-generated destination lists, working scored-runner correction interaction, and accepted overall deterministic runner-resolution behavior. This was focused validation rather than an exhaustive exercise of every occupied-destination permutation, forward/backward combination, multiple-Out or third-out ruling combination, the complete Exit/Resume matrix, or the full scoring regression surface.
+- Final `git diff --check` passed with line-ending normalization notices only. The reviewed story diff contains no schema or project changes, generated build output, database/test-database artifacts, secrets, machine-specific files, stale heuristic references, or unrelated feature work.
+
+#### Limitations and Deferred Work
+
+Story 6.4.2 is deliberately a resolver-engine replacement and does not add new scoring UI or layout architecture, new batter-result types, statistics, Undo/Redo, HR-limit or 1-Up enforcement, Beer Rules, Manual Overrides, substitutions, live-lineup management, opponent PAs, or completed-game correction. Broader manual coverage of occupied-destination permutations, forward/backward combinations, multiple-Out and third-out ruling combinations, Exit/Resume, and the full scoring regression surface remains deferred; automated coverage is not presented as additional device validation. Those deferred product capabilities are unchanged from Story 6.4.1; **Story 6.4.3 — Scoring Regression Coverage Hardening** is the immediate next scoring story.
+
+#### Intended Commit Message
+
+`Add deterministic base-runner resolver`
 
 ## Maintenance Rules
 

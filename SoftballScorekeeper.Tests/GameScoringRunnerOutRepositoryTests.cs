@@ -10,7 +10,8 @@ public sealed class GameScoringRunnerOutRepositoryTests
     [InlineData(BatterResult.Single, RunnerDestination.Third)]
     [InlineData(BatterResult.Double, RunnerDestination.Third)]
     [InlineData(BatterResult.Triple, RunnerDestination.Scores)]
-    public async Task Batter_runner_advancement_preserves_positive_PA_result(
+    [InlineData(BatterResult.Triple, RunnerDestination.Second)]
+    public async Task Batter_runner_correction_preserves_positive_PA_result(
         BatterResult result, RunnerDestination destination)
     {
         await using var db = await TemporaryTestDatabase.CreateAsync();
@@ -22,9 +23,6 @@ public sealed class GameScoringRunnerOutRepositoryTests
         var choices = await repository.GetValidRunnerDestinationsAsync(
             context.Game.Id, context.Players[0].Id);
         Assert.Contains(destination, choices.Destinations);
-        Assert.DoesNotContain(choices.Destinations, item =>
-            item is RunnerDestination.First or RunnerDestination.Second
-            && (int)item < (int)result);
         Assert.True((await repository.AdjustPendingRunnerAsync(
             context.Game.Id, context.Players[0].Id, destination)).IsSuccess);
 
@@ -142,6 +140,39 @@ public sealed class GameScoringRunnerOutRepositoryTests
         Assert.Single(state.BaseRunners);
     }
 
+    [Fact]
+    public async Task Multiple_resolved_out_identities_drive_the_existing_third_out_transition()
+    {
+        await using var db = await TemporaryTestDatabase.CreateAsync();
+        var context = await CreateReadyGameAsync(db, 4);
+        var repository = db.CreateGameScoringSessionRepository();
+        var initialized = await repository.InitializeAsync(
+            context.Team.Id, context.Game.Id, TeamGameSide.Home);
+        await db.UpdateInningOutStateAsync(initialized.Session!.Id, 1, 1);
+        await SeedBasesAsync(db, initialized.Session.Id, context.Players, 1, 2);
+        await repository.SelectBatterResultAsync(context.Game.Id, BatterResult.Single);
+        await repository.AdjustPendingRunnerAsync(
+            context.Game.Id, context.Players[1].Id, RunnerDestination.Out);
+        await repository.AdjustPendingRunnerAsync(
+            context.Game.Id, context.Players[2].Id, RunnerDestination.Out);
+
+        var completed = await repository.CompletePlateAppearanceAsync(context.Game.Id);
+        var state = await repository.GetStateForGameAsync(context.Game.Id);
+
+        Assert.True(completed.IsSuccess);
+        Assert.Equal((2, 0, 2), (state!.Session.CurrentInning,
+            state.Session.CurrentOuts, state.Session.CurrentBatterPosition));
+        Assert.Empty(state.BaseRunners);
+        Assert.Equal(new[] { context.Players[1].Id, context.Players[2].Id },
+            state.RunnerMovements.Where(item => item.Destination == RunnerDestination.Out)
+                .Select(item => item.PlayerId).OrderBy(item => item));
+        Assert.Contains(state.RunnerMovements, item =>
+            item.PlayerId == context.Players[0].Id
+            && item.StartingLocation == RunnerStartingLocation.Home
+            && item.Destination == RunnerDestination.First);
+        Assert.Single(state.HalfInnings);
+    }
+
     [Theory]
     [InlineData(true, 1)]
     [InlineData(false, 0)]
@@ -185,7 +216,7 @@ public sealed class GameScoringRunnerOutRepositoryTests
     [InlineData(false, false, 0)]
     [InlineData(true, false, 1)]
     [InlineData(true, true, 2)]
-    public async Task Third_out_run_rulings_follow_lead_order_and_cascade(
+    public async Task Third_out_run_rulings_follow_persisted_lead_order(
         bool leadCounts, bool trailingCounts, int expectedRuns)
     {
         await using var db = await TemporaryTestDatabase.CreateAsync();
@@ -219,6 +250,12 @@ public sealed class GameScoringRunnerOutRepositoryTests
         var scoring = state.RunnerMovements
             .Where(item => item.Destination == RunnerDestination.Scores)
             .OrderByDescending(item => item.StartingLocation).ToArray();
+        Assert.Equal(new[] { context.Players[3].Id, context.Players[2].Id },
+            scoring.Select(item => item.PlayerId));
+        Assert.Contains(state.RunnerMovements, item =>
+            item.PlayerId == context.Players[0].Id
+            && item.StartingLocation == RunnerStartingLocation.Home
+            && item.Destination == RunnerDestination.Out);
         Assert.Equal(leadCounts, scoring[0].RunCounts);
         Assert.Equal(leadCounts && trailingCounts, scoring[1].RunCounts);
         Assert.Equal(expectedRuns, Assert.Single(state.HalfInnings).TeamRuns);
