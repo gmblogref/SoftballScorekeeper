@@ -131,6 +131,82 @@ public sealed class GameScoringRulesLifecycleRepositoryTests
     }
 
     [Fact]
+    public async Task Reload_restores_complex_completed_and_pending_scoring_state()
+    {
+        await using var db = await TemporaryTestDatabase.CreateAsync();
+        var context = await CreateReadyGameAsync(db, 4);
+        var repository = db.CreateGameScoringSessionRepository();
+        Assert.True((await repository.InitializeAsync(
+            context.Team.Id, context.Game.Id, TeamGameSide.Home, 7, true)).IsSuccess);
+        Assert.True((await repository.CompleteHomeRunAsync(context.Game.Id)).IsSuccess);
+        await CompleteOffensiveHalfAsync(repository, context.Game.Id, 2, 1);
+        Assert.True((await repository.SelectOutAsync(context.Game.Id)).IsSuccess);
+        Assert.True((await repository.SelectBatterResultAsync(
+            context.Game.Id, BatterResult.Single)).IsSuccess);
+        Assert.True((await repository.CompletePlateAppearanceAsync(context.Game.Id)).IsSuccess);
+        Assert.True((await repository.SelectBatterResultAsync(
+            context.Game.Id, BatterResult.Double)).IsSuccess);
+        var before = await repository.GetStateForGameAsync(context.Game.Id);
+
+        Assert.NotNull(before);
+        Assert.Equal((2, 1, 1, 2, 7, true),
+            (before.Session.CurrentInning, before.Session.CurrentOuts,
+                before.Session.HomeScore, before.Session.VisitorScore,
+                before.Session.HomeRunLimit, before.Session.IsOneUpEnabled));
+        Assert.Single(before.BaseRunners);
+        Assert.NotNull(before.PendingPlay);
+        Assert.NotEmpty(before.PlateAppearances);
+        Assert.NotEmpty(before.RunnerMovements);
+        Assert.Single(before.HalfInnings);
+
+        await db.Database.CloseAsync();
+        var reopened = new AppDatabase(db.DatabasePath);
+        var resumed = await new GameScoringSessionRepository(reopened)
+            .GetStateForGameAsync(context.Game.Id);
+
+        AssertEquivalentScoringState(before, Assert.IsType<GameScoringState>(resumed));
+        await reopened.CloseAsync();
+    }
+
+    [Theory]
+    [InlineData(TeamGameSide.Home, 1, 2, 1, 3)]
+    [InlineData(TeamGameSide.Away, 2, 1, 3, 1)]
+    public async Task Game_over_preserves_complete_scoring_history_and_role_mapping(
+        TeamGameSide side, int expectedHomeScore, int expectedVisitorScore,
+        int expectedHomeRuns, int expectedVisitorHomeRuns)
+    {
+        await using var db = await TemporaryTestDatabase.CreateAsync();
+        var context = await CreateReadyGameAsync(db, 4);
+        var repository = db.CreateGameScoringSessionRepository();
+        Assert.True((await repository.InitializeAsync(
+            context.Team.Id, context.Game.Id, side, 6, true)).IsSuccess);
+        Assert.True((await repository.CompleteHomeRunAsync(context.Game.Id)).IsSuccess);
+        await CompleteOffensiveHalfAsync(repository, context.Game.Id, 2, 3);
+        Assert.True((await repository.SelectBatterResultAsync(
+            context.Game.Id, BatterResult.Single)).IsSuccess);
+        Assert.True((await repository.CompletePlateAppearanceAsync(context.Game.Id)).IsSuccess);
+        var before = Assert.IsType<GameScoringState>(
+            await repository.GetStateForGameAsync(context.Game.Id));
+
+        var completed = await repository.CompleteGameAsync(context.Game.Id);
+        var after = Assert.IsType<GameScoringState>(
+            await repository.GetStateForGameAsync(context.Game.Id));
+        var restart = await repository.InitializeAsync(
+            context.Team.Id, context.Game.Id, side, 99, false);
+
+        Assert.True(completed.IsSuccess);
+        Assert.Equal(GameScoringStatus.Completed, after.Session.Status);
+        Assert.Equal((expectedHomeScore, expectedVisitorScore,
+                expectedHomeRuns, expectedVisitorHomeRuns),
+            (after.Session.HomeScore, after.Session.VisitorScore,
+                after.HomeHomeRuns, after.VisitorHomeRuns));
+        Assert.Equal((6, true),
+            (after.Session.HomeRunLimit, after.Session.IsOneUpEnabled));
+        AssertHistoryEqual(before, after);
+        Assert.Equal(InitializeScoringSessionFailure.GameCompleted, restart.FailureReason);
+    }
+
+    [Fact]
     public async Task Game_over_blocks_pending_work_then_preserves_committed_history()
     {
         await using var db = await TemporaryTestDatabase.CreateAsync();
@@ -241,6 +317,66 @@ public sealed class GameScoringRulesLifecycleRepositoryTests
     }
 
     [Fact]
+    public async Task Reset_returns_game_to_fresh_scoring_and_does_not_affect_another_game()
+    {
+        await using var db = await TemporaryTestDatabase.CreateAsync();
+        var first = await CreateReadyGameAsync(db, 3);
+        var second = await CreateReadyGameAsync(db, 2);
+        var repository = db.CreateGameScoringSessionRepository();
+        var firstStart = await repository.InitializeAsync(
+            first.Team.Id, first.Game.Id, TeamGameSide.Home, 7, true);
+        Assert.True(firstStart.IsSuccess);
+        Assert.True((await repository.InitializeAsync(
+            second.Team.Id, second.Game.Id, TeamGameSide.Away, 4, false)).IsSuccess);
+        Assert.True((await repository.CompleteHomeRunAsync(first.Game.Id)).IsSuccess);
+        Assert.True((await repository.CompleteHomeRunAsync(second.Game.Id)).IsSuccess);
+        var firstGameBefore = GameValue(first.Game);
+        var firstLineupBefore = (await db.GetGameLineupPlayersAsync())
+            .Where(item => item.GameId == first.Game.Id)
+            .Select(FrozenLineupValue).ToArray();
+        var secondBefore = Assert.IsType<GameScoringState>(
+            await repository.GetStateForGameAsync(second.Game.Id));
+
+        var reset = await repository.ResetGameAsync(first.Game.Id);
+        var secondAfterReset = Assert.IsType<GameScoringState>(
+            await repository.GetStateForGameAsync(second.Game.Id));
+
+        Assert.True(reset.IsSuccess);
+        Assert.Null(await repository.GetForGameAsync(first.Game.Id));
+        Assert.Null(await repository.GetStateForGameAsync(first.Game.Id));
+        Assert.Equal(firstGameBefore, GameValue((await db.GetGamesAsync())
+            .Single(item => item.Id == first.Game.Id)));
+        Assert.Equal(firstLineupBefore, (await db.GetGameLineupPlayersAsync())
+            .Where(item => item.GameId == first.Game.Id)
+            .Select(FrozenLineupValue));
+        AssertEquivalentScoringState(secondBefore, secondAfterReset);
+
+        var restarted = await repository.InitializeAsync(
+            first.Team.Id, first.Game.Id, TeamGameSide.Away, 9, false);
+        var fresh = Assert.IsType<GameScoringState>(
+            await repository.GetStateForGameAsync(first.Game.Id));
+        var secondAfterRestart = Assert.IsType<GameScoringState>(
+            await repository.GetStateForGameAsync(second.Game.Id));
+
+        Assert.True(restarted.IsSuccess);
+        Assert.True(restarted.WasCreated);
+        Assert.NotEqual(firstStart.Session!.Id, restarted.Session!.Id);
+        Assert.Equal((TeamGameSide.Away, 9, false, 0, 0, 1, 0, 1),
+            (fresh.Session.TeamSide, fresh.Session.HomeRunLimit,
+                fresh.Session.IsOneUpEnabled, fresh.Session.HomeScore,
+                fresh.Session.VisitorScore, fresh.Session.CurrentInning,
+                fresh.Session.CurrentOuts, fresh.Session.CurrentBatterPosition));
+        Assert.Empty(fresh.PlateAppearances);
+        Assert.Empty(fresh.RunnerMovements);
+        Assert.Empty(fresh.BaseRunners);
+        Assert.Empty(fresh.HalfInnings);
+        Assert.Null(fresh.PendingPlay);
+        Assert.Equal(firstLineupBefore.Select(item => (item.PlayerId, item.Order)),
+            fresh.BattingSequence.Select(item => (item.PlayerId, item.BattingPosition)));
+        AssertEquivalentScoringState(secondBefore, secondAfterRestart);
+    }
+
+    [Fact]
     public async Task Legacy_session_gets_default_rules_without_recreation_and_upgrade_is_idempotent()
     {
         await using var db = await TemporaryTestDatabase.CreateUninitializedAsync();
@@ -307,6 +443,95 @@ public sealed class GameScoringRulesLifecycleRepositoryTests
             return 0;
         });
     }
+
+    private static async Task CompleteOffensiveHalfAsync(
+        GameScoringSessionRepository repository, int gameId,
+        int opponentRuns, int opponentHomeRuns)
+    {
+        for (var outNumber = 0; outNumber < 3; outNumber++)
+            Assert.True((await repository.SelectOutAsync(gameId)).IsSuccess);
+        var halfInning = Assert.IsType<GameScoringHalfInning>(
+            await repository.GetPendingHalfInningTransitionAsync(gameId));
+        Assert.True(await repository.AcknowledgeHalfInningSummaryAsync(
+            gameId, halfInning.Id));
+        Assert.True((await repository.CompleteOpponentHalfInningAsync(
+            gameId, halfInning.Id, opponentRuns, OpponentEntryMode.ThisHalf,
+            opponentHomeRuns, OpponentEntryMode.ThisHalf)).IsSuccess);
+    }
+
+    private static void AssertEquivalentScoringState(
+        GameScoringState expected, GameScoringState actual)
+    {
+        Assert.Equal(SessionValue(expected.Session), SessionValue(actual.Session));
+        AssertHistoryEqual(expected, actual);
+        Assert.Equal(expected.PlayersById.OrderBy(item => item.Key).Select(item =>
+                (item.Key, item.Value.FirstName, item.Value.LastName, item.Value.IsActive)),
+            actual.PlayersById.OrderBy(item => item.Key).Select(item =>
+                (item.Key, item.Value.FirstName, item.Value.LastName, item.Value.IsActive)));
+        Assert.Equal(PendingPlayValue(expected.PendingPlay),
+            PendingPlayValue(actual.PendingPlay));
+        Assert.Equal(expected.PendingPlay?.Movements.Select(item =>
+                (item.Id, item.GameScoringPendingPlayId, item.PlayerId,
+                    item.StartingLocation, item.Destination)),
+            actual.PendingPlay?.Movements.Select(item =>
+                (item.Id, item.GameScoringPendingPlayId, item.PlayerId,
+                    item.StartingLocation, item.Destination)));
+    }
+
+    private static void AssertHistoryEqual(GameScoringState expected, GameScoringState actual)
+    {
+        Assert.Equal(expected.BattingSequence.Select(item =>
+                (item.Id, item.GameScoringSessionId, item.PlayerId, item.BattingPosition)),
+            actual.BattingSequence.Select(item =>
+                (item.Id, item.GameScoringSessionId, item.PlayerId, item.BattingPosition)));
+        Assert.Equal(expected.PlateAppearances.Select(item =>
+                (item.Id, item.GameScoringSessionId, item.PlayerId, item.BattingPosition,
+                    item.PlateAppearanceNumber, item.Inning, item.Result)),
+            actual.PlateAppearances.Select(item =>
+                (item.Id, item.GameScoringSessionId, item.PlayerId, item.BattingPosition,
+                    item.PlateAppearanceNumber, item.Inning, item.Result)));
+        Assert.Equal(expected.RunnerMovements.Select(item =>
+                (item.Id, item.GamePlateAppearanceId, item.PlayerId,
+                    item.StartingLocation, item.Destination, item.RunCounts)),
+            actual.RunnerMovements.Select(item =>
+                (item.Id, item.GamePlateAppearanceId, item.PlayerId,
+                    item.StartingLocation, item.Destination, item.RunCounts)));
+        Assert.Equal(expected.BaseRunners.Select(item =>
+                (item.Id, item.GameScoringSessionId, item.PlayerId, item.Base)),
+            actual.BaseRunners.Select(item =>
+                (item.Id, item.GameScoringSessionId, item.PlayerId, item.Base)));
+        Assert.Equal(expected.HalfInnings.Select(item =>
+                (item.Id, item.GameScoringSessionId, item.Inning, item.TeamRuns,
+                    item.TeamHomeRuns, item.TeamSummaryAcknowledged, item.OpponentRuns,
+                    item.OpponentHomeRuns, item.OpponentEntryCompleted)),
+            actual.HalfInnings.Select(item =>
+                (item.Id, item.GameScoringSessionId, item.Inning, item.TeamRuns,
+                    item.TeamHomeRuns, item.TeamSummaryAcknowledged, item.OpponentRuns,
+                    item.OpponentHomeRuns, item.OpponentEntryCompleted)));
+        Assert.Equal((expected.HomeHomeRuns, expected.VisitorHomeRuns),
+            (actual.HomeHomeRuns, actual.VisitorHomeRuns));
+    }
+
+    private static (int Id, int GameId, GameScoringStatus Status, TeamGameSide Side,
+        int HomeScore, int VisitorScore, int Batter, int Inning, int Outs,
+        int HomeRunLimit, bool OneUp) SessionValue(GameScoringSession item) =>
+        (item.Id, item.GameId, item.Status, item.TeamSide, item.HomeScore,
+            item.VisitorScore, item.CurrentBatterPosition, item.CurrentInning,
+            item.CurrentOuts, item.HomeRunLimit, item.IsOneUpEnabled);
+
+    private static (int Id, int SessionId, int BatterId, int BatterPosition,
+        BatterResult Result)? PendingPlayValue(PendingScoringPlay? pending) =>
+        pending is null ? null : (pending.Play.Id, pending.Play.GameScoringSessionId,
+            pending.Play.BatterPlayerId, pending.Play.BatterPosition, pending.Play.Result);
+
+    private static (int Id, int TeamId, int SeasonId, DateTime Date, TimeSpan Time,
+        string? Opponent, string? Field) GameValue(Game item) =>
+        (item.Id, item.TeamId, item.SeasonId, item.ScheduledDate, item.ScheduledTime,
+            item.Opponent, item.Field);
+
+    private static (int Id, int GameId, int PlayerId, int Order) FrozenLineupValue(
+        GameLineupPlayer item) =>
+        (item.Id, item.GameId, item.PlayerId, item.BattingOrder);
 
     private static async Task<(Team Team, Game Game)> CreateReadyGameAsync(
         TemporaryTestDatabase db, int playerCount)

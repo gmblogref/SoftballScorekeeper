@@ -10,9 +10,9 @@ Stable product and architecture decisions belong in the project architecture doc
 
 ## Current Project Status
 
-- **Latest completed story:** Story 6.4.2 — Deterministic Base-Runner Resolver Engine
-- **Completed stories:** Stories 0.0 through 6.4.2; Stories 3.2 through 3.4 retain their recorded validation status
-- **Current story:** None; Story 6.4.2 is complete, and Story 6.4.3 — Scoring Regression Coverage Hardening is the immediate next scoring story
+- **Latest completed story:** Story 6.4.3 — Scoring Regression Coverage Hardening
+- **Completed stories:** Stories 0.0 through 6.4.3; Stories 3.2 through 3.4 retain their recorded validation status
+- **Current story:** None; Story 6.4.3 is complete
 - **Current phase:** Scoring interaction refinement
 - **Foundation status:** Complete
 
@@ -2207,6 +2207,39 @@ Story 6.4.2 is deliberately a resolver-engine replacement and does not add new s
 #### Intended Commit Message
 
 `Add deterministic base-runner resolver`
+
+### Story 6.4.3 — Scoring Regression Coverage Hardening
+
+**Status:** Complete and ready for final review on `task/scoring-regression-coverage`; automated tests and the Windows build passed
+
+#### Regression Audit and Coverage
+
+- Audited the implemented scoring contracts from Stories 6.0 through 6.4.2 against tests that would meaningfully fail if accepted behavior regressed. Existing behavioral coverage already protects scoring eligibility and Team ownership; one-session/idempotent initialization; frozen-lineup mutation guards; live batting-sequence identity and order; current-batter advancement, wraparound, and one-Player safety; PA identity and transactional completion; pending versus committed hit state; result regeneration; immediate Home Run and basic batter-Out completion; runner movements and score-side mapping; inning/out state, extra innings, third-out transitions and rulings; opponent entry modes; Game Rules and legacy compatibility; Reset deletion/rollback boundaries; and deterministic resolver legality, identity, ranking, malformed-state rejection, menu/execution equivalence, transactional persistence, and pending-state Resume.
+- Added a public-workflow close/reopen regression that assembles and exactly restores a mixed authoritative state containing non-zero Team and opponent scores, committed HR history and totals, inning 2 with one out, an advanced batter, committed PAs and runner movements, occupied committed First base, custom Game Rules, completed half-inning/opponent history, and a pending Double. The comparison includes session identity/state, frozen-derived live sequence, Players, PAs, movements, bases, pending play and starting-location-aware movements, half-inning history, and mapped HR totals.
+- Added Home and Away Game Over cases that build meaningful history through public scoring operations, then verify Completed status while preserving scores, Team/opponent HR totals, rules, live sequence, PAs, runner movements, committed bases, and completed half-inning/opponent history. The paired cases explicitly protect that our Team maps to HOME or VISITOR according to `TeamSide`, the opponent maps to the opposite side, and a Completed Game cannot start a replacement scoring session or regain normal Resume eligibility.
+- Added a Reset/fresh-start/isolation regression. It verifies that Reset removes the selected Game's scoring-owned state while preserving the exact scheduled Game fields and frozen `GameLineupPlayer` IDs, Player IDs, and batting order; leaves another Game's scored state unchanged; and permits a later start to create a distinct fresh session with newly selected rules, zero scores, inning 1, zero outs, batter position 1, a fresh live sequence, and no PA, movement, base, half-inning, or pending history.
+- No obsolete tests were removed or replaced. The audit found no production defect, disputed historical contract, or need to change production, persistence, resolver, ViewModel, XAML, schema, or project code.
+
+#### Presentation and Device-Only Boundaries
+
+- Repository and Core tests protect authoritative state behind Ready/In Progress/Completed, Current/On Deck/In the Hole sequencing, pending-batter state, HOME/VISITOR score and HR mapping, rules, runner destination menus, and correction execution. The test project intentionally remains independent of MAUI, so no fake UI framework or brittle tests of labels, XAML hierarchy, pixel positions, styling, or subjective layout were added.
+- Physical-device acceptance remains authoritative for portrait scoreboard readability; the landscape VISITOR/status/HOME composition; scored-runner rail and Player-name presentation; accepted base-control sizing and diamond perspective; Current Batter and On Deck/In the Hole usability; hamburger/menu appearance; white surfaces, black text, and dividers; clipping/overlap; and touch-target usability. No Android validation was performed during Story 6.4.3 because production and presentation code did not change; prior recorded device validation remains unchanged.
+
+#### Automated Tests and Validation
+
+- Story 6.4.2 documented a 394-test full-suite baseline. The actual clean Story 6.4.3 branch started at 395 of 395 because the scored-runner portrait/landscape binding regression test was added after that documented full-suite run. Story 6.4.3 added three test methods producing four executed cases and removed zero tests, bringing the suite to 399.
+- Final focused validation passed: `BaseRunnerResolverTests` 43 of 43; resolver integration 21 of 21; scoring session/play 66 of 66; scoring out/runner-out 76 of 76; and lifecycle/Game Rules 19 of 19. All focused runs had zero failures and zero skips.
+- The complete automated suite passed 399 of 399 with zero failures and zero skips against isolated temporary SQLite databases.
+- The explicit Windows `net9.0-windows10.0.19041.0` rebuild succeeded with zero errors and 114 existing warning instances. Warning categories remain `CS8602`, `MVVMTK0045`, and `XC0025`; Windows runtime validation was not performed.
+- Final `git diff --check` passed with line-ending normalization notices only. The reviewed diff is limited to focused regression tests and this history entry, with no tracked build output, database/test-database artifacts, secrets, machine-specific files, or unrelated formatting churn.
+
+#### Protected-Behavior Convention
+
+Future intentional changes to protected scoring behavior must update the relevant regression test and `FEATURE_HISTORY.md` deliberately. A failing regression test must not simply be deleted to make the suite pass.
+
+#### Intended Commit Message
+
+`Harden scoring regression coverage`
 
 ## Maintenance Rules
 
