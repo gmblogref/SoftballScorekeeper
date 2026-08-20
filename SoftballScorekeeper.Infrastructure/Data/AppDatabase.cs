@@ -53,6 +53,7 @@ public sealed class AppDatabase
             await connection.CreateTableAsync<Season>();
             await connection.CreateTableAsync<Game>();
             await connection.CreateTableAsync<GameLineupPlayer>();
+            var legacyScoringRules = await RequiresScoringRulesCompatibilityAsync();
             await connection.CreateTableAsync<GameScoringSession>();
             await connection.CreateTableAsync<GameScoringLineupPlayer>();
             await connection.CreateTableAsync<GamePlateAppearance>();
@@ -61,13 +62,35 @@ public sealed class AppDatabase
             await connection.CreateTableAsync<GameScoringHalfInning>();
             await connection.CreateTableAsync<GameScoringPendingPlay>();
             await connection.CreateTableAsync<GameScoringPendingRunnerMovement>();
-            await connection.RunInTransactionAsync(UpgradeStory60ScoringSessions);
+            await connection.RunInTransactionAsync(transaction =>
+            {
+                if (legacyScoringRules)
+                    transaction.Execute(
+                        "UPDATE GameScoringSession SET HomeRunLimit = ?",
+                        GameScoringSession.DefaultHomeRunLimit);
+                UpgradeStory60ScoringSessions(transaction);
+            });
             isInitialized = true;
         }
         finally
         {
             initializationLock.Release();
         }
+    }
+
+    private async Task<bool> RequiresScoringRulesCompatibilityAsync()
+    {
+        var table = await connection.QueryAsync<SqliteTable>(
+            "SELECT name FROM sqlite_master WHERE type = 'table' AND name = ?",
+            nameof(GameScoringSession));
+        if (table.Count == 0) return false;
+        var columns = await connection.GetTableInfoAsync(nameof(GameScoringSession));
+        return columns.All(column => column.Name != nameof(GameScoringSession.HomeRunLimit));
+    }
+
+    private sealed class SqliteTable
+    {
+        public string Name { get; set; } = string.Empty;
     }
 
     public Task CloseAsync()

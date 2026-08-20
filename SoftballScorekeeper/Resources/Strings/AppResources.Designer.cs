@@ -941,6 +941,7 @@ namespace SoftballScorekeeper.Resources.Strings {
         public static string SingleOutFormat { get { return ResourceManager.GetString("SingleOutFormat", resourceCulture); } }
         public static string MultipleOutsFormat { get { return ResourceManager.GetString("MultipleOutsFormat", resourceCulture); } }
         public static string InningOutDisplayFormat { get { return ResourceManager.GetString("InningOutDisplayFormat", resourceCulture); } }
+        public static string InningDisplayFormat { get { return ResourceManager.GetString("InningDisplayFormat", resourceCulture); } }
         public static string HalfInningCompleteTitleFormat { get { return ResourceManager.GetString("HalfInningCompleteTitleFormat", resourceCulture); } }
         public static string HalfInningSummaryMessageFormat { get { return ResourceManager.GetString("HalfInningSummaryMessageFormat", resourceCulture); } }
         public static string OpponentHalfInningTitleFormat { get { return ResourceManager.GetString("OpponentHalfInningTitleFormat", resourceCulture); } }
@@ -1013,5 +1014,31 @@ namespace SoftballScorekeeper.Resources.Strings {
         public static string PreviousLineupCopiedWithSkippedPlayer { get { return ResourceManager.GetString("PreviousLineupCopiedWithSkippedPlayer", resourceCulture); } }
         public static string PreviousLineupCopiedWithSkippedPlayers { get { return ResourceManager.GetString("PreviousLineupCopiedWithSkippedPlayers", resourceCulture); } }
         public static string PreviousLineupFailed { get { return ResourceManager.GetString("PreviousLineupFailed", resourceCulture); } }
+        public static string ScoringSetupTitle { get { return ResourceManager.GetString("ScoringSetupTitle", resourceCulture); } }
+        public static string GameRulesTitle { get { return ResourceManager.GetString("GameRulesTitle", resourceCulture); } }
+        public static string HomeRunLimitLabel { get { return ResourceManager.GetString("HomeRunLimitLabel", resourceCulture); } }
+        public static string OneUpLabel { get { return ResourceManager.GetString("OneUpLabel", resourceCulture); } }
+        public static string OnLabel { get { return ResourceManager.GetString("OnLabel", resourceCulture); } }
+        public static string OffLabel { get { return ResourceManager.GetString("OffLabel", resourceCulture); } }
+        public static string StartGameButton { get { return ResourceManager.GetString("StartGameButton", resourceCulture); } }
+        public static string ContinueButton { get { return ResourceManager.GetString("ContinueButton", resourceCulture); } }
+        public static string NonNegativeWholeNumberRequiredMessage { get { return ResourceManager.GetString("NonNegativeWholeNumberRequiredMessage", resourceCulture); } }
+        public static string GameRulesSaveFailed { get { return ResourceManager.GetString("GameRulesSaveFailed", resourceCulture); } }
+        public static string HomeRunScoreboardFormat { get { return ResourceManager.GetString("HomeRunScoreboardFormat", resourceCulture); } }
+        public static string OneUpOnLabel { get { return ResourceManager.GetString("OneUpOnLabel", resourceCulture); } }
+        public static string OnDeckLabel { get { return ResourceManager.GetString("OnDeckLabel", resourceCulture); } }
+        public static string InTheHoleLabel { get { return ResourceManager.GetString("InTheHoleLabel", resourceCulture); } }
+        public static string GameOverButton { get { return ResourceManager.GetString("GameOverButton", resourceCulture); } }
+        public static string GameOverTitle { get { return ResourceManager.GetString("GameOverTitle", resourceCulture); } }
+        public static string GameOverConfirmationMessage { get { return ResourceManager.GetString("GameOverConfirmationMessage", resourceCulture); } }
+        public static string GameOverBlockedMessage { get { return ResourceManager.GetString("GameOverBlockedMessage", resourceCulture); } }
+        public static string GameOverFailedMessage { get { return ResourceManager.GetString("GameOverFailedMessage", resourceCulture); } }
+        public static string ResetGameButton { get { return ResourceManager.GetString("ResetGameButton", resourceCulture); } }
+        public static string ResetGameTitle { get { return ResourceManager.GetString("ResetGameTitle", resourceCulture); } }
+        public static string ResetGameFirstConfirmation { get { return ResourceManager.GetString("ResetGameFirstConfirmation", resourceCulture); } }
+        public static string ResetGameFinalConfirmation { get { return ResourceManager.GetString("ResetGameFinalConfirmation", resourceCulture); } }
+        public static string ResetGameFailedMessage { get { return ResourceManager.GetString("ResetGameFailedMessage", resourceCulture); } }
+        public static string DecreaseValueButtonLabel { get { return ResourceManager.GetString("DecreaseValueButtonLabel", resourceCulture); } }
+        public static string IncreaseValueButtonLabel { get { return ResourceManager.GetString("IncreaseValueButtonLabel", resourceCulture); } }
     }
 }

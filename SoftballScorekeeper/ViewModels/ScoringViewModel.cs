@@ -22,14 +22,23 @@ public partial class ScoringViewModel : ObservableObject, IQueryAttributable
     [ObservableProperty] private string visitorTeamDisplayName = string.Empty;
     [ObservableProperty] private int homeScore;
     [ObservableProperty] private int visitorScore;
+    private string homeHomeRunDisplay = string.Empty;
+    private string visitorHomeRunDisplay = string.Empty;
+    private bool isOneUpEnabled;
+    private int homeRunLimit = GameScoringSession.DefaultHomeRunLimit;
     [ObservableProperty] private string currentBatterDisplayName = string.Empty;
+    private string onDeckDisplayName = string.Empty;
+    private string inTheHoleDisplayName = string.Empty;
     [ObservableProperty] private string validationMessage = string.Empty;
     [ObservableProperty] private string selectedResultDisplay = string.Empty;
     [ObservableProperty] private string runsOnPlayDisplay = string.Empty;
     private string inningOutDisplay = string.Empty;
+    private string inningDisplay = string.Empty;
+    private string outsDisplay = string.Empty;
     [ObservableProperty, NotifyPropertyChangedFor(nameof(IsAwaitingResult)),
         NotifyPropertyChangedFor(nameof(CanCompletePlateAppearance))]
     private bool hasPendingPlay;
+    private bool hasPendingBatterRunner;
     [ObservableProperty, NotifyPropertyChangedFor(nameof(CanCompletePlateAppearance))]
     private bool isLoaded;
     [ObservableProperty, NotifyPropertyChangedFor(nameof(CanCompletePlateAppearance))]
@@ -37,10 +46,58 @@ public partial class ScoringViewModel : ObservableObject, IQueryAttributable
 
     public ObservableCollection<ScoredPlayerViewModel> ScoredPlayers { get; } = [];
 
+    public string HomeHomeRunDisplay
+    {
+        get => homeHomeRunDisplay;
+        private set => SetProperty(ref homeHomeRunDisplay, value);
+    }
+
+    public string VisitorHomeRunDisplay
+    {
+        get => visitorHomeRunDisplay;
+        private set => SetProperty(ref visitorHomeRunDisplay, value);
+    }
+
+    public bool IsOneUpEnabled
+    {
+        get => isOneUpEnabled;
+        private set => SetProperty(ref isOneUpEnabled, value);
+    }
+
+    public int HomeRunLimit
+    {
+        get => homeRunLimit;
+        private set => SetProperty(ref homeRunLimit, value);
+    }
+
+    public string OnDeckDisplayName
+    {
+        get => onDeckDisplayName;
+        private set => SetProperty(ref onDeckDisplayName, value);
+    }
+
+    public string InTheHoleDisplayName
+    {
+        get => inTheHoleDisplayName;
+        private set => SetProperty(ref inTheHoleDisplayName, value);
+    }
+
     public string InningOutDisplay
     {
         get => inningOutDisplay;
         private set => SetProperty(ref inningOutDisplay, value);
+    }
+
+    public string InningDisplay
+    {
+        get => inningDisplay;
+        private set => SetProperty(ref inningDisplay, value);
+    }
+
+    public string OutsDisplay
+    {
+        get => outsDisplay;
+        private set => SetProperty(ref outsDisplay, value);
     }
 
     public BaseRunnerViewModel FirstBaseRunner { get; private set; } =
@@ -52,6 +109,7 @@ public partial class ScoringViewModel : ObservableObject, IQueryAttributable
     public bool HasScoredPlayers => ScoredPlayers.Count > 0;
     public bool HasNoScoredPlayers => !HasScoredPlayers;
     public bool IsAwaitingResult => !HasPendingPlay;
+    public bool IsCurrentBatterVisible => !hasPendingBatterRunner;
     public bool CanCompletePlateAppearance =>
         hasValidContext && IsLoaded && HasPendingPlay && !IsCompletingPlateAppearance;
     public int CurrentBatterPlayerId => currentBatterPlayerId;
@@ -130,9 +188,18 @@ public partial class ScoringViewModel : ObservableObject, IQueryAttributable
 
         HomeScore = state.Session.HomeScore;
         VisitorScore = state.Session.VisitorScore;
+        HomeRunLimit = state.Session.HomeRunLimit;
+        IsOneUpEnabled = state.Session.IsOneUpEnabled;
+        HomeHomeRunDisplay = string.Format(AppResources.HomeRunScoreboardFormat,
+            state.HomeHomeRuns, HomeRunLimit);
+        VisitorHomeRunDisplay = string.Format(AppResources.HomeRunScoreboardFormat,
+            state.VisitorHomeRuns, HomeRunLimit);
         currentTeamSide = state.Session.TeamSide;
+        InningDisplay = FormatInning(state.Session);
+        OutsDisplay = FormatOuts(state.Session);
         InningOutDisplay = FormatInningOut(state.Session);
         CurrentBatterDisplayName = FormatPlayerName(currentPlayer.FirstName, currentPlayer.LastName);
+        ResolveUpcomingBatters(state);
         currentBatterPlayerId = currentPlayer.Id;
         RestoreBaseRunners(state);
         RestorePendingPlay(state);
@@ -142,6 +209,49 @@ public partial class ScoringViewModel : ObservableObject, IQueryAttributable
 
     [RelayCommand]
     public Task ExitGameAsync() => Shell.Current.GoToAsync("..");
+
+    public async Task<bool> UpdateGameRulesAsync(int homeRunLimit, bool isOneUpEnabled)
+    {
+        if (!IsLoaded || IsCompletingPlateAppearance || homeRunLimit < 0) return false;
+        IsCompletingPlateAppearance = true;
+        try
+        {
+            var result = await sessionRepository.UpdateGameRulesAsync(
+                GameId, homeRunLimit, isOneUpEnabled);
+            if (!result.IsSuccess)
+            {
+                ValidationMessage = AppResources.GameRulesSaveFailed;
+                return false;
+            }
+            await LoadAsync();
+            return true;
+        }
+        finally
+        {
+            IsCompletingPlateAppearance = false;
+        }
+    }
+
+    public async Task<GameScoringLifecycleFailure> CompleteGameAsync()
+    {
+        if (!IsLoaded || IsCompletingPlateAppearance)
+            return GameScoringLifecycleFailure.InvalidRequest;
+        IsCompletingPlateAppearance = true;
+        try
+        {
+            var result = await sessionRepository.CompleteGameAsync(GameId);
+            if (!result.IsSuccess)
+                ValidationMessage = result.FailureReason ==
+                    GameScoringLifecycleFailure.UnresolvedScoringState
+                    ? AppResources.GameOverBlockedMessage
+                    : AppResources.GameOverFailedMessage;
+            return result.FailureReason;
+        }
+        finally
+        {
+            IsCompletingPlateAppearance = false;
+        }
+    }
 
     public async Task<bool> CompletePlateAppearanceAsync(
         IReadOnlyDictionary<int, bool>? runRulings = null)
@@ -306,11 +416,17 @@ public partial class ScoringViewModel : ObservableObject, IQueryAttributable
         VisitorTeamDisplayName = string.Empty;
         HomeScore = 0;
         VisitorScore = 0;
+        HomeHomeRunDisplay = VisitorHomeRunDisplay = string.Empty;
+        HomeRunLimit = GameScoringSession.DefaultHomeRunLimit;
+        IsOneUpEnabled = false;
         CurrentBatterDisplayName = string.Empty;
+        OnDeckDisplayName = InTheHoleDisplayName = string.Empty;
         SelectedResultDisplay = string.Empty;
         RunsOnPlayDisplay = string.Empty;
         InningOutDisplay = string.Empty;
+        InningDisplay = OutsDisplay = string.Empty;
         HasPendingPlay = false;
+        SetHasPendingBatterRunner(false);
         FirstBaseRunner = EmptyBaseRunner(AppResources.FirstBaseHeadingLabel);
         SecondBaseRunner = EmptyBaseRunner(AppResources.SecondBaseHeadingLabel);
         ThirdBaseRunner = EmptyBaseRunner(AppResources.ThirdBaseHeadingLabel);
@@ -323,6 +439,19 @@ public partial class ScoringViewModel : ObservableObject, IQueryAttributable
         currentBatterPlayerId = 0;
         currentTeamSide = default;
     }
+
+    private void ResolveUpcomingBatters(GameScoringState state)
+    {
+        var upcoming = state.GetUpcomingPlayerIds();
+        if (upcoming is null) return;
+        OnDeckDisplayName = ResolvePlayerName(state, upcoming.Value.OnDeckPlayerId);
+        InTheHoleDisplayName = ResolvePlayerName(state, upcoming.Value.InTheHolePlayerId);
+    }
+
+    private static string ResolvePlayerName(GameScoringState state, int playerId) =>
+        state.PlayersById.TryGetValue(playerId, out var player)
+            ? FormatPlayerName(player.FirstName, player.LastName)
+            : string.Empty;
 
     private static string FormatPlayerName(string firstName, string? lastName) =>
         string.Join(" ", new[] { firstName, lastName }
@@ -372,6 +501,10 @@ public partial class ScoringViewModel : ObservableObject, IQueryAttributable
         ScoredPlayers.Clear();
         HasPendingPlay = state.PendingPlay is not null;
         if (state.PendingPlay is null) return;
+        SetHasPendingBatterRunner(state.PendingPlay.Play.Result is
+                BatterResult.Single or BatterResult.Double or BatterResult.Triple
+            && state.PendingPlay.Movements.Any(item =>
+                item.PlayerId == state.PendingPlay.Play.BatterPlayerId));
         SelectedResultDisplay = string.Format(AppResources.SelectedResultFormat,
             FormatResult(state.PendingPlay.Play.Result));
         var runs = state.PendingPlay.Movements.Count(item =>
@@ -404,15 +537,23 @@ public partial class ScoringViewModel : ObservableObject, IQueryAttributable
 
     private static string FormatInningOut(GameScoringSession session)
     {
-        var half = session.TeamSide == TeamGameSide.Away
+        return string.Format(AppResources.InningOutDisplayFormat,
+            FormatInningHalf(session), session.CurrentInning, FormatOuts(session));
+    }
+
+    private static string FormatInning(GameScoringSession session) =>
+        string.Format(AppResources.InningDisplayFormat,
+            FormatInningHalf(session), session.CurrentInning);
+
+    private static string FormatInningHalf(GameScoringSession session) =>
+        session.TeamSide == TeamGameSide.Away
             ? AppResources.TopInningHalfLabel
             : AppResources.BottomInningHalfLabel;
-        var outs = string.Format(session.CurrentOuts == 1
+
+    private static string FormatOuts(GameScoringSession session) =>
+        string.Format(session.CurrentOuts == 1
             ? AppResources.SingleOutFormat
             : AppResources.MultipleOutsFormat, session.CurrentOuts);
-        return string.Format(AppResources.InningOutDisplayFormat,
-            half, session.CurrentInning, outs);
-    }
 
     public static string FormatDestination(RunnerDestination destination) => destination switch
     {
@@ -434,6 +575,12 @@ public partial class ScoringViewModel : ObservableObject, IQueryAttributable
 
     private static BaseRunnerViewModel EmptyBaseRunner(string baseLabel) =>
         new(baseLabel, AppResources.EmptyBaseLabel, null, false, string.Empty, false);
+
+    private void SetHasPendingBatterRunner(bool value)
+    {
+        if (SetProperty(ref hasPendingBatterRunner, value))
+            OnPropertyChanged(nameof(IsCurrentBatterVisible));
+    }
 
     private static bool TryParseId(IDictionary<string, object> query, string key, out int id)
     {

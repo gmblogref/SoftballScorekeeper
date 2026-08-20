@@ -20,6 +20,138 @@ public sealed class GameScoringSessionRepository
     public async Task<bool> ExistsForGameAsync(int gameId) =>
         await GetForGameAsync(gameId) is not null;
 
+    public async Task<UpdateGameRulesResult> UpdateGameRulesAsync(
+        int gameId, int homeRunLimit, bool isOneUpEnabled)
+    {
+        if (gameId <= 0 || homeRunLimit < 0)
+            return new(null, GameScoringLifecycleFailure.InvalidRequest);
+        var connection = await database.GetConnectionAsync();
+        var result = new UpdateGameRulesResult(null,
+            GameScoringLifecycleFailure.SessionNotFound);
+        try
+        {
+            await connection.RunInTransactionAsync(transaction =>
+            {
+                var session = transaction.Table<GameScoringSession>()
+                    .FirstOrDefault(item => item.GameId == gameId);
+                if (session is null) return;
+                if (session.Status != GameScoringStatus.InProgress)
+                {
+                    result = new(session, GameScoringLifecycleFailure.GameCompleted);
+                    return;
+                }
+                session.HomeRunLimit = homeRunLimit;
+                session.IsOneUpEnabled = isOneUpEnabled;
+                if (transaction.Update(session) != 1)
+                    throw new InvalidOperationException(
+                        "Game-rules update did not affect one scoring session.");
+                result = new(session, GameScoringLifecycleFailure.None);
+            });
+        }
+        catch
+        {
+            return new(null, GameScoringLifecycleFailure.Persistence);
+        }
+        return result;
+    }
+
+    public async Task<GameOverResult> CompleteGameAsync(int gameId)
+    {
+        if (gameId <= 0)
+            return new(null, GameScoringLifecycleFailure.InvalidRequest);
+        var connection = await database.GetConnectionAsync();
+        var result = new GameOverResult(null,
+            GameScoringLifecycleFailure.SessionNotFound);
+        try
+        {
+            await connection.RunInTransactionAsync(transaction =>
+            {
+                var session = transaction.Table<GameScoringSession>()
+                    .FirstOrDefault(item => item.GameId == gameId);
+                if (session is null) return;
+                if (session.Status == GameScoringStatus.Completed)
+                {
+                    result = new(session, GameScoringLifecycleFailure.None);
+                    return;
+                }
+                if (transaction.Table<GameScoringPendingPlay>()
+                        .Any(item => item.GameScoringSessionId == session.Id)
+                    || transaction.Table<GameScoringHalfInning>()
+                        .Any(item => item.GameScoringSessionId == session.Id
+                            && !item.OpponentEntryCompleted))
+                {
+                    result = new(session,
+                        GameScoringLifecycleFailure.UnresolvedScoringState);
+                    return;
+                }
+                session.Status = GameScoringStatus.Completed;
+                if (transaction.Update(session) != 1)
+                    throw new InvalidOperationException(
+                        "Game completion did not affect one scoring session.");
+                result = new(session, GameScoringLifecycleFailure.None);
+            });
+        }
+        catch
+        {
+            return new(null, GameScoringLifecycleFailure.Persistence);
+        }
+        return result;
+    }
+
+    public async Task<ResetScoringResult> ResetGameAsync(int gameId)
+    {
+        if (gameId <= 0)
+            return new(GameScoringLifecycleFailure.InvalidRequest);
+        var connection = await database.GetConnectionAsync();
+        var result = new ResetScoringResult(
+            GameScoringLifecycleFailure.SessionNotFound);
+        try
+        {
+            await connection.RunInTransactionAsync(transaction =>
+            {
+                var session = transaction.Table<GameScoringSession>()
+                    .FirstOrDefault(item => item.GameId == gameId);
+                if (session is null) return;
+                if (session.Status != GameScoringStatus.InProgress)
+                {
+                    result = new(GameScoringLifecycleFailure.GameCompleted);
+                    return;
+                }
+
+                transaction.Execute(
+                    "DELETE FROM GameScoringPendingRunnerMovement WHERE GameScoringPendingPlayId IN (SELECT Id FROM GameScoringPendingPlay WHERE GameScoringSessionId = ?)",
+                    session.Id);
+                transaction.Execute(
+                    "DELETE FROM GameScoringPendingPlay WHERE GameScoringSessionId = ?",
+                    session.Id);
+                transaction.Execute(
+                    "DELETE FROM GamePlateAppearanceRunnerMovement WHERE GamePlateAppearanceId IN (SELECT Id FROM GamePlateAppearance WHERE GameScoringSessionId = ?)",
+                    session.Id);
+                transaction.Execute(
+                    "DELETE FROM GameScoringBaseRunner WHERE GameScoringSessionId = ?",
+                    session.Id);
+                transaction.Execute(
+                    "DELETE FROM GamePlateAppearance WHERE GameScoringSessionId = ?",
+                    session.Id);
+                transaction.Execute(
+                    "DELETE FROM GameScoringHalfInning WHERE GameScoringSessionId = ?",
+                    session.Id);
+                transaction.Execute(
+                    "DELETE FROM GameScoringLineupPlayer WHERE GameScoringSessionId = ?",
+                    session.Id);
+                if (transaction.Delete(session) != 1)
+                    throw new InvalidOperationException(
+                        "Scoring reset did not remove one session.");
+                result = new(GameScoringLifecycleFailure.None);
+            });
+        }
+        catch
+        {
+            return new(GameScoringLifecycleFailure.Persistence);
+        }
+        return result;
+    }
+
     public async Task<GameScoringHalfInning?> GetPendingHalfInningTransitionAsync(int gameId)
     {
         if (gameId <= 0) return null;
@@ -247,9 +379,18 @@ public sealed class GameScoringSessionRepository
                 .ToListAsync();
             pendingPlay = new(pending, pendingMovements);
         }
+        var teamHomeRuns = plateAppearances.Count(item =>
+            item.Result == BatterResult.HomeRun);
+        var opponentHomeRuns = halfInnings.Where(item => item.OpponentEntryCompleted)
+            .Sum(item => item.OpponentHomeRuns ?? 0);
+        var homeHomeRuns = session.TeamSide == TeamGameSide.Home
+            ? teamHomeRuns : opponentHomeRuns;
+        var visitorHomeRuns = session.TeamSide == TeamGameSide.Away
+            ? teamHomeRuns : opponentHomeRuns;
         if (sequence.Count == 0)
             return new(session, sequence, new Dictionary<int, Player>(), plateAppearances,
-                baseRunners, runnerMovements, pendingPlay, halfInnings);
+                baseRunners, runnerMovements, pendingPlay, halfInnings,
+                homeHomeRuns, visitorHomeRuns);
 
         var playerIds = sequence.Select(item => item.PlayerId)
             .Concat(baseRunners.Select(item => item.PlayerId))
@@ -268,7 +409,9 @@ public sealed class GameScoringSessionRepository
             baseRunners,
             runnerMovements,
             pendingPlay,
-            halfInnings);
+            halfInnings,
+            homeHomeRuns,
+            visitorHomeRuns);
     }
 
     public async Task<PendingPlayResult> SelectBatterResultAsync(int gameId, BatterResult result)
@@ -611,9 +754,18 @@ public sealed class GameScoringSessionRepository
     public async Task<InitializeScoringSessionResult> InitializeAsync(
         int teamId,
         int gameId,
-        TeamGameSide teamSide)
+        TeamGameSide teamSide) => await InitializeAsync(teamId, gameId, teamSide,
+            GameScoringSession.DefaultHomeRunLimit, false);
+
+    public async Task<InitializeScoringSessionResult> InitializeAsync(
+        int teamId,
+        int gameId,
+        TeamGameSide teamSide,
+        int homeRunLimit,
+        bool isOneUpEnabled)
     {
-        if (teamId <= 0 || gameId <= 0 || !Enum.IsDefined(teamSide))
+        if (teamId <= 0 || gameId <= 0 || !Enum.IsDefined(teamSide)
+            || homeRunLimit < 0)
             return Failure(InitializeScoringSessionFailure.InvalidRequest);
 
         var connection = await database.GetConnectionAsync();
@@ -661,6 +813,8 @@ public sealed class GameScoringSessionRepository
                     CurrentBatterPosition = 1,
                     CurrentInning = 1,
                     CurrentOuts = 0,
+                    HomeRunLimit = homeRunLimit,
+                    IsOneUpEnabled = isOneUpEnabled,
                 };
                 if (transaction.Insert(session) != 1)
                     throw new InvalidOperationException("Scoring session insertion did not affect one row.");

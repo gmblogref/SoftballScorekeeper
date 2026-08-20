@@ -48,6 +48,7 @@ public partial class GameWorkspaceViewModel : ObservableObject, IQueryAttributab
     public bool ShowLineupAction => IsLoaded && !HasScoringSession;
     public bool ShowScoreGame => IsLoaded && HasLineup && !HasScoringSession;
     public bool ShowResumeGame => IsLoaded && HasScoringSession && !IsScoringCompleted;
+    public bool ShowResetGame => IsLoaded && HasScoringSession && !IsScoringCompleted;
 
     public void ApplyQueryAttributes(IDictionary<string, object> query)
     {
@@ -154,13 +155,15 @@ public partial class GameWorkspaceViewModel : ObservableObject, IQueryAttributab
 
     private bool CanSetLineup() => !IsBusy && IsLoaded && hasValidContext;
 
-    public async Task<bool> InitializeScoringAsync(Core.Models.TeamGameSide teamSide)
+    public async Task<bool> InitializeScoringAsync(Core.Models.TeamGameSide teamSide,
+        int homeRunLimit, bool isOneUpEnabled)
     {
         if (IsBusy || !IsLoaded || !hasValidContext) return false;
         IsBusy = true;
         try
         {
-            var result = await scoringSessionRepository.InitializeAsync(TeamId, GameId, teamSide);
+            var result = await scoringSessionRepository.InitializeAsync(
+                TeamId, GameId, teamSide, homeRunLimit, isOneUpEnabled);
             if (!result.IsSuccess)
             {
                 ValidationMessage = result.FailureReason == InitializeScoringSessionFailure.InvalidLineup
@@ -170,6 +173,29 @@ public partial class GameWorkspaceViewModel : ObservableObject, IQueryAttributab
             }
 
             await NavigateToScoringAsync();
+            return true;
+        }
+        finally
+        {
+            IsBusy = false;
+        }
+    }
+
+    public async Task<bool> ResetScoringAsync()
+    {
+        if (IsBusy || !ShowResetGame) return false;
+        IsBusy = true;
+        try
+        {
+            var result = await scoringSessionRepository.ResetGameAsync(GameId);
+            if (!result.IsSuccess)
+            {
+                ValidationMessage = AppResources.ResetGameFailedMessage;
+                return false;
+            }
+            HasScoringSession = false;
+            IsScoringCompleted = false;
+            NotifyStateChanged();
             return true;
         }
         finally
@@ -204,6 +230,7 @@ public partial class GameWorkspaceViewModel : ObservableObject, IQueryAttributab
         OnPropertyChanged(nameof(ShowLineupAction));
         OnPropertyChanged(nameof(ShowScoreGame));
         OnPropertyChanged(nameof(ShowResumeGame));
+        OnPropertyChanged(nameof(ShowResetGame));
     }
 
     private static string DisplayOrTbd(string? value) =>

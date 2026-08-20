@@ -8,7 +8,8 @@
              Shell.FlyoutBehavior="Disabled"
              Shell.NavBarIsVisible="False"
              Title="{x:Static strings:AppResources.ScoringTitle}">
-    <Grid Padding="40" RowDefinitions="Auto,Auto,Auto,Auto,*" RowSpacing="18">
+    <Grid x:Name="RootGrid"
+          Padding="40" RowDefinitions="Auto,Auto,Auto,Auto,*" RowSpacing="14">
         <VisualStateManager.VisualStateGroups>
             <VisualStateGroup x:Name="ScoreboardLayoutStates">
                 <VisualState x:Name="PortraitScoreboard">
@@ -21,10 +22,24 @@
                         <AdaptiveTrigger MinWindowWidth="900" />
                     </VisualState.StateTriggers>
                     <VisualState.Setters>
-                        <Setter TargetName="ScoreboardBorder" Property="Padding" Value="16,6" />
+                        <Setter TargetName="RootGrid" Property="Padding" Value="20,12" />
+                        <Setter TargetName="RootGrid" Property="RowSpacing" Value="8" />
+                        <Setter TargetName="ScoreboardBorder" Property="Padding" Value="12,4" />
+                        <Setter TargetName="ScoreboardGrid" Property="ColumnDefinitions" Value="*,1,Auto,1,*" />
+                        <Setter TargetName="ScoreboardGrid" Property="RowDefinitions" Value="Auto" />
                         <Setter TargetName="ScoreboardGrid" Property="RowSpacing" Value="2" />
+                        <Setter TargetName="HomeScoreboard" Property="Grid.Column" Value="4" />
                         <Setter TargetName="HomeScoreboard" Property="RowSpacing" Value="0" />
                         <Setter TargetName="VisitorScoreboard" Property="RowSpacing" Value="0" />
+                        <Setter TargetName="ScoreboardRightDivider" Property="IsVisible" Value="True" />
+                        <Setter TargetName="ScoreboardRightDivider" Property="Grid.Column" Value="3" />
+                        <Setter TargetName="GameStatusPanel" Property="Grid.Row" Value="0" />
+                        <Setter TargetName="GameStatusPanel" Property="Grid.Column" Value="2" />
+                        <Setter TargetName="GameStatusPanel" Property="Grid.ColumnSpan" Value="1" />
+                        <Setter TargetName="GameStatusPanel" Property="Padding" Value="12,0" />
+                        <Setter TargetName="InningOutLabel" Property="IsVisible" Value="False" />
+                        <Setter TargetName="LandscapeInningLabel" Property="IsVisible" Value="True" />
+                        <Setter TargetName="LandscapeOutsLabel" Property="IsVisible" Value="True" />
                         <Setter TargetName="HomeHeading" Property="Label.FontSize" Value="16" />
                         <Setter TargetName="VisitorHeading" Property="Label.FontSize" Value="16" />
                         <Setter TargetName="HomeTeamName" Property="Label.FontSize" Value="19" />
@@ -38,6 +53,34 @@
                         <Setter TargetName="HomeScoreValue" Property="Grid.RowSpan" Value="2" />
                         <Setter TargetName="VisitorScoreValue" Property="Grid.RowSpan" Value="2" />
                         <Setter TargetName="InningOutLabel" Property="Label.FontSize" Value="16" />
+                        <Setter TargetName="ScoringContentLayout" Property="ColumnDefinitions" Value="210,1,*,1,240" />
+                        <Setter TargetName="ScoringContentLayout" Property="RowDefinitions" Value="Auto" />
+                        <Setter TargetName="FieldSection" Property="Grid.Row" Value="0" />
+                        <Setter TargetName="FieldSection" Property="Grid.Column" Value="2" />
+                        <Setter TargetName="UpcomingBattersList" Property="Grid.Row" Value="0" />
+                        <Setter TargetName="UpcomingBattersList" Property="Grid.Column" Value="0" />
+                        <Setter TargetName="UpcomingBattersList" Property="Margin" Value="0,34,12,0" />
+                        <Setter TargetName="UpcomingBattersList" Property="MinimumWidthRequest" Value="200" />
+                        <Setter TargetName="UpcomingBattersList" Property="VerticalOptions" Value="Start" />
+                        <Setter TargetName="UpcomingDivider" Property="Grid.Column" Value="1" />
+                        <Setter TargetName="UpcomingDivider" Property="IsVisible" Value="True" />
+                        <Setter TargetName="ScoredDivider" Property="Grid.Column" Value="3" />
+                        <Setter TargetName="ScoredDivider" Property="IsVisible" Value="True" />
+                        <Setter TargetName="LandscapeScoredRail" Property="Grid.Column" Value="4" />
+                        <Setter TargetName="LandscapeScoredRail" Property="IsVisible" Value="True" />
+                        <Setter TargetName="FieldGrid" Property="RowSpacing" Value="6" />
+                        <Setter TargetName="NextBatterButton" Property="MinimumWidthRequest" Value="210" />
+                        <Setter TargetName="NextBatterButton" Property="MinimumHeightRequest" Value="52" />
+                        <Setter TargetName="NextBatterButton" Property="Padding" Value="18,10" />
+                        <Setter TargetName="CurrentBatterBorder" Property="Grid.Row" Value="3" />
+                        <Setter TargetName="CurrentBatterBorder" Property="Grid.Column" Value="1" />
+                        <Setter TargetName="CurrentBatterBorder" Property="Grid.ColumnSpan" Value="1" />
+                        <Setter TargetName="CurrentBatterBorder" Property="MinimumWidthRequest" Value="260" />
+                        <Setter TargetName="CurrentBatterBorder" Property="Padding" Value="12,6" />
+                        <Setter TargetName="CurrentBatterName" Property="Label.FontSize" Value="22" />
+                        <Setter TargetName="RunsOnPlayLabel" Property="Grid.Row" Value="3" />
+                        <Setter TargetName="RunsOnPlayLabel" Property="Grid.Column" Value="2" />
+                        <Setter TargetName="PortraitScoredArea" Property="IsVisible" Value="False" />
                     </VisualState.Setters>
                 </VisualState>
             </VisualStateGroup>
@@ -65,6 +108,11 @@
                     StrokeShape="RoundRectangle 8"
                     Padding="0">
                 <VerticalStackLayout Spacing="0">
+                    <Button Text="{x:Static strings:AppResources.GameRulesTitle}"
+                            Clicked="OnGameRulesClicked"
+                            BackgroundColor="Transparent" TextColor="Black"
+                            MinimumHeightRequest="52" MinimumWidthRequest="180" Padding="20,12" />
+                    <BoxView BackgroundColor="Black" HeightRequest="1" />
                     <Button Text="{x:Static strings:AppResources.ExitGameButton}"
                             Clicked="OnExitGameClicked"
                             BackgroundColor="Transparent"
@@ -73,6 +121,10 @@
                             MinimumWidthRequest="180"
                             Padding="20,12" />
                     <BoxView BackgroundColor="Black" HeightRequest="1" />
+                    <Button Text="{x:Static strings:AppResources.GameOverButton}"
+                            Clicked="OnGameOverClicked"
+                            BackgroundColor="Transparent" TextColor="Black"
+                            MinimumHeightRequest="52" MinimumWidthRequest="180" Padding="20,12" />
                 </VerticalStackLayout>
             </Border>
         </Grid>
@@ -87,8 +139,9 @@
                   ColumnDefinitions="*,1,*" RowDefinitions="Auto,Auto"
                   ColumnSpacing="24" RowSpacing="8">
                 <Grid x:Name="HomeScoreboard"
+                      Grid.Column="2"
                       ColumnDefinitions="*,Auto"
-                      RowDefinitions="Auto,Auto,Auto"
+                      RowDefinitions="Auto,Auto,Auto,Auto"
                       RowSpacing="4"
                       HorizontalOptions="Fill">
                     <Label x:Name="HomeHeading"
@@ -110,13 +163,20 @@
                            FontSize="64"
                            FontAttributes="Bold"
                            HorizontalTextAlignment="Center" />
+                    <Label Grid.Row="3" Text="{Binding HomeHomeRunDisplay}"
+                           FontSize="16" FontAttributes="Bold"
+                           HorizontalTextAlignment="Center" />
                 </Grid>
                 <BoxView Grid.Column="1"
                          BackgroundColor="{AppThemeBinding Light={StaticResource Gray300}, Dark={StaticResource Gray600}}" />
+                <BoxView x:Name="ScoreboardRightDivider"
+                         Grid.Column="1"
+                         IsVisible="False"
+                         BackgroundColor="{AppThemeBinding Light={StaticResource Gray300}, Dark={StaticResource Gray600}}" />
                 <Grid x:Name="VisitorScoreboard"
-                      Grid.Column="2"
+                      Grid.Column="0"
                       ColumnDefinitions="*,Auto"
-                      RowDefinitions="Auto,Auto,Auto"
+                      RowDefinitions="Auto,Auto,Auto,Auto"
                       RowSpacing="4"
                       HorizontalOptions="Fill">
                     <Label x:Name="VisitorHeading"
@@ -138,22 +198,47 @@
                            FontSize="64"
                            FontAttributes="Bold"
                            HorizontalTextAlignment="Center" />
+                    <Label Grid.Row="3" Text="{Binding VisitorHomeRunDisplay}"
+                           FontSize="16" FontAttributes="Bold"
+                           HorizontalTextAlignment="Center" />
                 </Grid>
-                <Label x:Name="InningOutLabel"
-                       Grid.Row="1" Grid.ColumnSpan="3"
-                       Text="{Binding InningOutDisplay}"
-                       FontSize="20"
-                       FontAttributes="Bold"
-                       HorizontalTextAlignment="Center" />
+                <VerticalStackLayout x:Name="GameStatusPanel"
+                                     Grid.Row="1" Grid.ColumnSpan="3"
+                                     Spacing="2">
+                    <Label x:Name="InningOutLabel"
+                           Text="{Binding InningOutDisplay}"
+                           FontSize="20"
+                           FontAttributes="Bold"
+                           HorizontalTextAlignment="Center" />
+                    <Label x:Name="LandscapeInningLabel"
+                           Text="{Binding InningDisplay}"
+                           IsVisible="False"
+                           FontSize="16" FontAttributes="Bold"
+                           HorizontalTextAlignment="Center" />
+                    <Label x:Name="LandscapeOutsLabel"
+                           Text="{Binding OutsDisplay}"
+                           IsVisible="False"
+                           FontSize="16" FontAttributes="Bold"
+                           HorizontalTextAlignment="Center" />
+                    <Label Text="{x:Static strings:AppResources.OneUpOnLabel}"
+                           IsVisible="{Binding IsOneUpEnabled}"
+                           FontSize="14" FontAttributes="Bold"
+                           TextColor="{StaticResource Primary}"
+                           HorizontalTextAlignment="Center" />
+                </VerticalStackLayout>
             </Grid>
         </Border>
         <ScrollView Grid.Row="3" Grid.RowSpan="2" IsVisible="{Binding IsLoaded}">
-            <VerticalStackLayout Spacing="10">
-                <Label Text="{x:Static strings:AppResources.BasesHeading}"
-                       FontAttributes="Bold" HorizontalTextAlignment="Center" />
-                <Grid ColumnDefinitions="*,Auto,*"
-                      RowDefinitions="Auto,Auto,Auto,Auto,Auto"
-                      RowSpacing="12">
+            <Grid x:Name="ScoringContentLayout"
+                  RowDefinitions="Auto,Auto" ColumnDefinitions="*"
+                  RowSpacing="12">
+                <VerticalStackLayout x:Name="FieldSection" Spacing="10">
+                    <Label Text="{x:Static strings:AppResources.BasesHeading}"
+                           FontAttributes="Bold" HorizontalTextAlignment="Center" />
+                    <Grid x:Name="FieldGrid"
+                          ColumnDefinitions="*,Auto,*"
+                          RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto"
+                          RowSpacing="12">
                     <VerticalStackLayout Grid.Row="0" Grid.Column="1"
                                          Spacing="6" WidthRequest="160">
                         <Label Text="{Binding SecondBaseRunner.BaseLabel}"
@@ -210,7 +295,8 @@
                                TextColor="{StaticResource Primary}"
                                HorizontalTextAlignment="Center" />
                     </VerticalStackLayout>
-                    <Button Grid.Row="2" Grid.Column="1"
+                    <Button x:Name="NextBatterButton"
+                            Grid.Row="2" Grid.Column="1"
                             Text="{x:Static strings:AppResources.CompletePlateAppearanceButton}"
                             IsEnabled="{Binding CanCompletePlateAppearance}"
                             Clicked="OnNextBatterClicked"
@@ -218,38 +304,15 @@
                             MinimumWidthRequest="260"
                             HorizontalOptions="Center"
                             Padding="24,14" />
-                    <Label Grid.Row="3" Grid.Column="1"
+                    <Label x:Name="RunsOnPlayLabel"
+                           Grid.Row="3" Grid.Column="1"
                            Text="{Binding RunsOnPlayDisplay}"
                            IsVisible="{Binding HasPendingPlay}"
                            FontSize="18"
                            FontAttributes="Bold"
                            HorizontalTextAlignment="Center" />
-                    <Border Grid.Row="4" Grid.Column="1"
-                            IsVisible="{Binding IsAwaitingResult}"
-                            Stroke="{StaticResource Primary}"
-                            StrokeThickness="2"
-                            StrokeShape="RoundRectangle 12"
-                            Padding="18,10"
-                            HorizontalOptions="Center"
-                            MinimumWidthRequest="360">
-                        <Border.GestureRecognizers>
-                            <TapGestureRecognizer Tapped="OnBatterTapped" />
-                        </Border.GestureRecognizers>
-                        <VerticalStackLayout Spacing="2" HorizontalOptions="Center">
-                            <Label Text="{x:Static strings:AppResources.BatterBadgeLabel}"
-                                   FontAttributes="Bold"
-                                   TextColor="{StaticResource Primary}"
-                                   HorizontalTextAlignment="Center" />
-                            <Label Text="{Binding CurrentBatterDisplayName}"
-                                   FontSize="28"
-                                   FontAttributes="Bold"
-                                   HorizontalTextAlignment="Center" />
-                            <Label Text="{x:Static strings:AppResources.TapBatterHint}"
-                                   FontSize="13"
-                                   HorizontalTextAlignment="Center" />
-                        </VerticalStackLayout>
-                    </Border>
-                    <VerticalStackLayout Grid.Row="4" Grid.Column="0" Grid.ColumnSpan="3"
+                    <VerticalStackLayout x:Name="PortraitScoredArea"
+                                         Grid.Row="4" Grid.Column="0" Grid.ColumnSpan="3"
                                          IsVisible="{Binding HasPendingPlay}"
                                          Spacing="6" HorizontalOptions="Center">
                         <Label Text="{x:Static strings:AppResources.ScoredHeading}"
@@ -269,8 +332,92 @@
                                IsVisible="{Binding HasNoScoredPlayers}"
                                HorizontalTextAlignment="Center" />
                     </VerticalStackLayout>
+                    <Border x:Name="CurrentBatterBorder"
+                            Grid.Row="5" Grid.Column="0" Grid.ColumnSpan="3"
+                            IsVisible="{Binding IsCurrentBatterVisible}"
+                            Stroke="{StaticResource Primary}"
+                            StrokeThickness="2"
+                            StrokeShape="RoundRectangle 12"
+                            Padding="18,10"
+                            HorizontalOptions="Center"
+                            MinimumWidthRequest="360">
+                        <VerticalStackLayout Spacing="8">
+                            <VerticalStackLayout.GestureRecognizers>
+                                <TapGestureRecognizer Tapped="OnBatterTapped" />
+                            </VerticalStackLayout.GestureRecognizers>
+                            <Label Text="{x:Static strings:AppResources.CurrentBatterHeading}"
+                                   FontAttributes="Bold"
+                                   TextColor="{StaticResource Primary}"
+                                   HorizontalTextAlignment="Center" />
+                            <Label x:Name="CurrentBatterName"
+                                   Text="{Binding CurrentBatterDisplayName}"
+                                   FontSize="28"
+                                   FontAttributes="Bold"
+                                   HorizontalTextAlignment="Center" />
+                            <Label Text="{x:Static strings:AppResources.TapBatterHint}"
+                                   FontSize="13"
+                                   HorizontalTextAlignment="Center" />
+                        </VerticalStackLayout>
+                    </Border>
+                    </Grid>
+                </VerticalStackLayout>
+                <Grid x:Name="UpcomingBattersList"
+                          Grid.Row="1"
+                          RowDefinitions="Auto,Auto"
+                          ColumnDefinitions="Auto,*"
+                          RowSpacing="6" ColumnSpacing="16"
+                          Margin="18,0"
+                          HorizontalOptions="Center"
+                          MinimumWidthRequest="360">
+                        <Label Text="{x:Static strings:AppResources.OnDeckLabel}"
+                               FontAttributes="Bold" />
+                        <Label Grid.Column="1"
+                               Text="{Binding OnDeckDisplayName}"
+                               FontSize="17" LineBreakMode="TailTruncation" />
+                        <Label Grid.Row="1"
+                               Text="{x:Static strings:AppResources.InTheHoleLabel}"
+                               FontAttributes="Bold" />
+                        <Label Grid.Row="1" Grid.Column="1"
+                               Text="{Binding InTheHoleDisplayName}"
+                               FontSize="17" LineBreakMode="TailTruncation" />
                 </Grid>
-            </VerticalStackLayout>
+                <BoxView x:Name="UpcomingDivider"
+                         Grid.Row="0" Grid.Column="0"
+                         IsVisible="False"
+                         BackgroundColor="{AppThemeBinding Light={StaticResource Gray300}, Dark={StaticResource Gray600}}" />
+                <BoxView x:Name="ScoredDivider"
+                         Grid.Row="0" Grid.Column="0"
+                         IsVisible="False"
+                         BackgroundColor="{AppThemeBinding Light={StaticResource Gray300}, Dark={StaticResource Gray600}}" />
+                <Grid x:Name="LandscapeScoredRail"
+                      Grid.Row="0" Grid.Column="0"
+                      IsVisible="False"
+                      Padding="12,34,0,0">
+                    <VerticalStackLayout IsVisible="{Binding HasPendingPlay}" Spacing="6">
+                        <Label Text="{x:Static strings:AppResources.ScoredHeading}"
+                               FontAttributes="Bold"
+                               HorizontalTextAlignment="Center" />
+                        <CollectionView ItemsSource="{Binding ScoredPlayers}"
+                                        SelectionMode="None"
+                                        ItemsLayout="VerticalList">
+                            <CollectionView.ItemTemplate>
+                                <DataTemplate x:DataType="viewModels:ScoredPlayerViewModel">
+                                    <Button Text="{Binding PlayerName}"
+                                            Clicked="OnRunnerButtonClicked"
+                                            Margin="0,3"
+                                            MinimumHeightRequest="48"
+                                            FontSize="16"
+                                            FontAttributes="Bold"
+                                            Padding="10,6" />
+                                </DataTemplate>
+                            </CollectionView.ItemTemplate>
+                        </CollectionView>
+                        <Label Text="{x:Static strings:AppResources.EmptyBaseLabel}"
+                               IsVisible="{Binding HasNoScoredPlayers}"
+                               HorizontalTextAlignment="Center" />
+                    </VerticalStackLayout>
+                </Grid>
+            </Grid>
         </ScrollView>
     </Grid>
 </ContentPage>

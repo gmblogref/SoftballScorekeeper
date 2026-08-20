@@ -10,7 +10,49 @@ public sealed record GameScoringState(
     IReadOnlyList<GameScoringBaseRunner> BaseRunners,
     IReadOnlyList<GamePlateAppearanceRunnerMovement> RunnerMovements,
     PendingScoringPlay? PendingPlay,
-    IReadOnlyList<GameScoringHalfInning> HalfInnings);
+    IReadOnlyList<GameScoringHalfInning> HalfInnings,
+    int HomeHomeRuns,
+    int VisitorHomeRuns)
+{
+    public (int OnDeckPlayerId, int InTheHolePlayerId)? GetUpcomingPlayerIds()
+    {
+        var sequence = BattingSequence.OrderBy(item => item.BattingPosition).ToArray();
+        var currentIndex = Array.FindIndex(sequence,
+            item => item.BattingPosition == Session.CurrentBatterPosition);
+        if (currentIndex < 0 || sequence.Length == 0) return null;
+        return (sequence[(currentIndex + 1) % sequence.Length].PlayerId,
+            sequence[(currentIndex + 2) % sequence.Length].PlayerId);
+    }
+}
+
+public sealed record UpdateGameRulesResult(
+    GameScoringSession? Session,
+    GameScoringLifecycleFailure FailureReason)
+{
+    public bool IsSuccess => FailureReason == GameScoringLifecycleFailure.None;
+}
+
+public sealed record GameOverResult(
+    GameScoringSession? Session,
+    GameScoringLifecycleFailure FailureReason)
+{
+    public bool IsSuccess => FailureReason == GameScoringLifecycleFailure.None;
+}
+
+public sealed record ResetScoringResult(GameScoringLifecycleFailure FailureReason)
+{
+    public bool IsSuccess => FailureReason == GameScoringLifecycleFailure.None;
+}
+
+public enum GameScoringLifecycleFailure
+{
+    None,
+    InvalidRequest,
+    SessionNotFound,
+    GameCompleted,
+    UnresolvedScoringState,
+    Persistence,
+}
 
 public sealed record PendingScoringPlay(
     GameScoringPendingPlay Play,

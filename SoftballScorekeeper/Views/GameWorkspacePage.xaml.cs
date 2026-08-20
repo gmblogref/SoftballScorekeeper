@@ -22,15 +22,28 @@ public partial class GameWorkspacePage : ContentPage
 
     private async void OnScoreGameClicked(object sender, EventArgs e)
     {
-        var selection = await DisplayActionSheet(
-            AppResources.HomeAwayPromptTitle,
-            AppResources.CancelButton,
-            null,
-            AppResources.AwayButton,
-            AppResources.HomeButton);
-        if (selection == AppResources.AwayButton)
-            await viewModel.InitializeScoringAsync(Core.Models.TeamGameSide.Away);
-        else if (selection == AppResources.HomeButton)
-            await viewModel.InitializeScoringAsync(Core.Models.TeamGameSide.Home);
+        var dialog = new GameRulesDialog(true,
+            Core.Models.GameScoringSession.DefaultHomeRunLimit, false);
+        var setup = await dialog.ShowAsync(Navigation);
+        if (setup is not null)
+            await viewModel.InitializeScoringAsync(setup.TeamSide,
+                setup.HomeRunLimit, setup.IsOneUpEnabled);
+    }
+
+    private async void OnResetGameClicked(object sender, EventArgs e)
+    {
+        var firstConfirmation = await DisplayAlert(
+            AppResources.ResetGameTitle,
+            AppResources.ResetGameFirstConfirmation,
+            AppResources.ContinueButton,
+            AppResources.CancelButton);
+        if (!firstConfirmation) return;
+        var finalConfirmation = await DisplayAlert(
+            AppResources.ResetGameTitle,
+            AppResources.ResetGameFinalConfirmation,
+            AppResources.ResetGameButton,
+            AppResources.CancelButton);
+        if (finalConfirmation)
+            await viewModel.ResetScoringAsync();
     }
 }
