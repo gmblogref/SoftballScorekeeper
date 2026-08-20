@@ -245,45 +245,6 @@ public sealed class GameScoringPlayRepositoryTests
             .Single(item => item.PlayerId == scoredRunnerId).Destination);
     }
 
-    [Fact]
-    public void Cascade_resolver_moves_multiple_runners_backward_and_preserves_identity()
-    {
-        var movements = new[]
-        {
-            PendingMovement(10, RunnerDestination.Scores),
-            PendingMovement(20, RunnerDestination.Third),
-            PendingMovement(30, RunnerDestination.Second),
-            PendingMovement(40, RunnerDestination.Scores),
-        };
-
-        var valid = PendingRunnerCorrection.TryResolve(
-            movements, 40, 10, RunnerDestination.Third, out var resolved);
-
-        Assert.True(valid);
-        Assert.Equal(RunnerDestination.Third, resolved[10]);
-        Assert.Equal(RunnerDestination.Second, resolved[20]);
-        Assert.Equal(RunnerDestination.First, resolved[30]);
-        Assert.Equal(RunnerDestination.Scores, resolved[40]);
-        Assert.Equal(4, resolved.Keys.Distinct().Count());
-    }
-
-    [Fact]
-    public void Cascade_resolver_never_displaces_current_batter_backward()
-    {
-        var movements = new[]
-        {
-            PendingMovement(10, RunnerDestination.Scores),
-            PendingMovement(20, RunnerDestination.Third),
-            PendingMovement(30, RunnerDestination.Second),
-            PendingMovement(40, RunnerDestination.First),
-        };
-
-        var valid = PendingRunnerCorrection.TryResolve(
-            movements, 40, 10, RunnerDestination.Third, out _);
-
-        Assert.False(valid);
-    }
-
     [Theory]
     [InlineData(RunnerDestination.Second)]
     [InlineData(RunnerDestination.Third)]
@@ -462,14 +423,6 @@ public sealed class GameScoringPlayRepositoryTests
             });
         }
     }
-
-    private static GameScoringPendingRunnerMovement PendingMovement(
-        int playerId, RunnerDestination destination) => new()
-        {
-            PlayerId = playerId,
-            StartingLocation = RunnerStartingLocation.Home,
-            Destination = destination,
-        };
 
     private static IReadOnlyList<(int Start, int Destination)> ParseMovements(string value) =>
         value.Split(',', StringSplitOptions.RemoveEmptyEntries)

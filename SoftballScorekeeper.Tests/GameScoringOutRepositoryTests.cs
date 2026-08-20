@@ -45,6 +45,31 @@ public sealed class GameScoringOutRepositoryTests
             viewModel);
     }
 
+    [Fact]
+    public void Scored_runner_buttons_display_player_names_in_both_layouts()
+    {
+        var repositoryRoot = Path.GetFullPath(Path.Combine(
+            AppContext.BaseDirectory, "..", "..", "..", ".."));
+        var pagePath = Path.Combine(repositoryRoot, "SoftballScorekeeper", "Views",
+            "ScoringPage.xaml");
+        var page = XDocument.Load(pagePath);
+        var presentationNamespace = page.Root!.Name.Namespace;
+        var xNamespace = XNamespace.Get("http://schemas.microsoft.com/winfx/2009/xaml");
+        var templates = page.Descendants(presentationNamespace + "DataTemplate")
+            .Where(element => element.Attribute(xNamespace + "DataType")?.Value
+                == "viewModels:ScoredPlayerViewModel")
+            .ToList();
+
+        Assert.Equal(2, templates.Count);
+        Assert.All(templates, template =>
+        {
+            var button = Assert.Single(
+                template.Descendants(presentationNamespace + "Button"));
+            Assert.Equal("{Binding PlayerName}", button.Attribute("Text")?.Value);
+            Assert.Equal("OnRunnerButtonClicked", button.Attribute("Clicked")?.Value);
+        });
+    }
+
     [Theory]
     [InlineData(TeamGameSide.Away)]
     [InlineData(TeamGameSide.Home)]

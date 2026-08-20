@@ -321,7 +321,7 @@
                                         ItemsLayout="HorizontalList" HorizontalOptions="Center">
                             <CollectionView.ItemTemplate>
                                 <DataTemplate x:DataType="viewModels:ScoredPlayerViewModel">
-                                    <Button Text="{Binding DisplayText}" Clicked="OnRunnerButtonClicked"
+                                    <Button Text="{Binding PlayerName}" Clicked="OnRunnerButtonClicked"
                                             Margin="6,0" MinimumWidthRequest="190"
                                             MinimumHeightRequest="68" FontSize="16"
                                             FontAttributes="Bold" Padding="14,8" />

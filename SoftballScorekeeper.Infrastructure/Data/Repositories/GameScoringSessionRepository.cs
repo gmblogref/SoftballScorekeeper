@@ -492,21 +492,26 @@ public sealed class GameScoringSessionRepository
                     response = PendingFailure(PendingPlayFailure.InvalidRequest);
                     return;
                 }
-                if (!IsValidRequestedDestination(
-                        session.CurrentOuts, play, movement, movements, destination)
-                    || play.BatterPlayerId <= 0
-                    || !PendingRunnerCorrection.TryResolve(movements,
-                        play.BatterPlayerId, playerId, destination, out var resolved,
-                        play.Result != BatterResult.Out)
-                    || !IsValidResolvedDestinations(
-                        session.CurrentOuts, play, movements, resolved))
+                if (!PendingBaseRunnerResolutionAdapter.TryCreateState(
+                        play, movements, out var resolverState)
+                    || resolverState is null)
+                {
+                    response = PendingFailure(PendingPlayFailure.DuplicateDestination);
+                    return;
+                }
+                var resolution = BaseRunnerResolver.ResolveCorrection(
+                    resolverState, playerId, destination);
+                if (!resolution.IsSuccess
+                    || !IsWithinOutLimit(session.CurrentOuts, resolution))
                 {
                     response = PendingFailure(PendingPlayFailure.DuplicateDestination);
                     return;
                 }
                 foreach (var item in movements)
                 {
-                    item.Destination = resolved[item.PlayerId];
+                    item.Destination = resolution.Participants
+                        .Single(participant => participant.PlayerId == item.PlayerId)
+                        .Destination;
                     if (transaction.Update(item) != 1)
                         throw new InvalidOperationException(
                             "Pending movement update did not affect one row.");
@@ -542,19 +547,15 @@ public sealed class GameScoringSessionRepository
         if (movements.All(item => item.PlayerId != playerId)
             || play.BatterPlayerId <= 0)
             return new([], PendingPlayFailure.InvalidRequest);
-        var selectedMovement = movements.Single(item => item.PlayerId == playerId);
-        var destinations = Enum.GetValues<RunnerDestination>()
-            .Where(destination =>
-            {
-                if (!IsValidRequestedDestination(
-                    session.CurrentOuts, play, selectedMovement, movements, destination))
-                    return false;
-                return PendingRunnerCorrection.TryResolve(movements,
-                        play.BatterPlayerId, playerId, destination, out var resolved,
-                        play.Result != BatterResult.Out)
-                    && IsValidResolvedDestinations(
-                        session.CurrentOuts, play, movements, resolved);
-            })
+        if (!PendingBaseRunnerResolutionAdapter.TryCreateState(
+                play, movements, out var resolverState)
+            || resolverState is null)
+            return new([], PendingPlayFailure.InvalidScoringState);
+        var destinations = BaseRunnerResolver.GetAvailableDestinations(
+                resolverState, playerId)
+            .Where(destination => IsWithinOutLimit(session.CurrentOuts,
+                BaseRunnerResolver.ResolveCorrection(
+                    resolverState, playerId, destination)))
             .ToArray();
         return new(destinations, PendingPlayFailure.None);
     }
@@ -1146,54 +1147,11 @@ public sealed class GameScoringSessionRepository
         && bases.Select(item => item.Base).Distinct().Count() == bases.Count
         && bases.Select(item => item.PlayerId).Distinct().Count() == bases.Count;
 
-    private static bool IsValidRequestedDestination(
-        int currentOuts,
-        GameScoringPendingPlay play,
-        GameScoringPendingRunnerMovement selectedMovement,
-        IReadOnlyList<GameScoringPendingRunnerMovement> movements,
-        RunnerDestination destination)
-    {
-        if (!Enum.IsDefined(destination)) return false;
-        if (destination == RunnerDestination.Out)
-        {
-            var otherRunnerOuts = movements.Count(item =>
-                item.PlayerId != selectedMovement.PlayerId
-                && item.Destination == RunnerDestination.Out);
-            var batterOut = play.Result == BatterResult.Out ? 1 : 0;
-            return currentOuts + batterOut + otherRunnerOuts < 3;
-        }
-        if (destination == RunnerDestination.Scores) return true;
-        var startingBase = selectedMovement.PlayerId == play.BatterPlayerId
-            && play.Result is BatterResult.Single or BatterResult.Double or BatterResult.Triple
-                ? (int)play.Result
-                : (int)selectedMovement.StartingLocation;
-        return (int)destination >= startingBase;
-    }
-
-    private static bool IsValidResolvedDestinations(
-        int currentOuts,
-        GameScoringPendingPlay play,
-        IReadOnlyList<GameScoringPendingRunnerMovement> movements,
-        IReadOnlyDictionary<int, RunnerDestination> destinations)
-    {
-        var outsAfterPlay = currentOuts
-            + (play.Result == BatterResult.Out ? 1 : 0)
-            + destinations.Count(item => item.Value == RunnerDestination.Out);
-        if (outsAfterPlay > 3) return false;
-        foreach (var movement in movements)
-        {
-            if (!destinations.TryGetValue(movement.PlayerId, out var destination))
-                return false;
-            if (destination is RunnerDestination.Scores or RunnerDestination.Out)
-                continue;
-            var startingBase = movement.PlayerId == play.BatterPlayerId
-                && play.Result is BatterResult.Single or BatterResult.Double or BatterResult.Triple
-                    ? (int)play.Result
-                    : (int)movement.StartingLocation;
-            if ((int)destination < startingBase) return false;
-        }
-        return true;
-    }
+    private static bool IsWithinOutLimit(
+        int currentOuts, BaseRunnerResolutionResult resolution) =>
+        resolution.IsSuccess
+        && currentOuts + resolution.Participants.Count(item =>
+            item.Destination == RunnerDestination.Out) <= 3;
 
     private static List<GameScoringPendingRunnerMovement> CreateDefaultMovements(
         int pendingPlayId, int batterPlayerId, IReadOnlyList<GameScoringBaseRunner> bases,
