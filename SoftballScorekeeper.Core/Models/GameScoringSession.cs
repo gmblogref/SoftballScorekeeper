@@ -4,6 +4,8 @@ namespace SoftballScorekeeper.Core.Models;
 
 public sealed class GameScoringSession
 {
+    public const int DefaultHomeRunLimit = 5;
+
     [PrimaryKey, AutoIncrement]
     public int Id { get; set; }
 
@@ -23,6 +25,10 @@ public sealed class GameScoringSession
     public int CurrentInning { get; set; }
 
     public int CurrentOuts { get; set; }
+
+    public int HomeRunLimit { get; set; } = DefaultHomeRunLimit;
+
+    public bool IsOneUpEnabled { get; set; }
 }
 
 public enum GameScoringStatus

@@ -38,6 +38,33 @@ public partial class ScoringPage : ContentPage
 
     private async void OnExitGameClicked(object sender, EventArgs e) => await ExitAsync();
 
+    private async void OnGameRulesClicked(object sender, EventArgs e)
+    {
+        ScoringMenu.IsVisible = false;
+        var dialog = new GameRulesDialog(false, viewModel.HomeRunLimit,
+            viewModel.IsOneUpEnabled,
+            rules => viewModel.UpdateGameRulesAsync(
+                rules.HomeRunLimit, rules.IsOneUpEnabled));
+        await dialog.ShowAsync(Navigation);
+    }
+
+    private async void OnGameOverClicked(object sender, EventArgs e)
+    {
+        ScoringMenu.IsVisible = false;
+        var confirmed = await DisplayAlert(
+            AppResources.GameOverTitle,
+            AppResources.GameOverConfirmationMessage,
+            AppResources.GameOverButton,
+            AppResources.CancelButton);
+        if (!confirmed) return;
+        var failure = await viewModel.CompleteGameAsync();
+        if (failure == Infrastructure.Data.Repositories.GameScoringLifecycleFailure.None)
+            await viewModel.ExitGameAsync();
+        else
+            await DisplayAlert(AppResources.GameOverTitle, viewModel.ValidationMessage,
+                AppResources.OkButton);
+    }
+
     private async void OnBatterTapped(object sender, TappedEventArgs e)
         => await ShowBatterResultMenuAsync();
 

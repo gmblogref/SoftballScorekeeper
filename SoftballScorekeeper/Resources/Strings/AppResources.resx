@@ -556,6 +556,7 @@
   <data name="SingleOutFormat" xml:space="preserve"><value>{0} Out</value></data>
   <data name="MultipleOutsFormat" xml:space="preserve"><value>{0} Outs</value></data>
   <data name="InningOutDisplayFormat" xml:space="preserve"><value>{0} {1}    {2}</value></data>
+  <data name="InningDisplayFormat" xml:space="preserve"><value>{0} {1}</value></data>
   <data name="HalfInningCompleteTitleFormat" xml:space="preserve"><value>{0} {1} Complete</value></data>
   <data name="HalfInningSummaryMessageFormat" xml:space="preserve"><value>Runs: {0}&#xA;Home Runs: {1}</value></data>
   <data name="OpponentHalfInningTitleFormat" xml:space="preserve"><value>Opponent {0} {1}</value></data>
@@ -592,4 +593,30 @@
   <data name="ScoredHeading" xml:space="preserve"><value>SCORED</value></data>
   <data name="TapBatterHint" xml:space="preserve"><value>Tap batter to choose or change result</value></data>
   <data name="ScoredPlayerCardFormat" xml:space="preserve"><value>{0}&#xA;{1}</value></data>
+  <data name="ScoringSetupTitle" xml:space="preserve"><value>Start Scoring</value></data>
+  <data name="GameRulesTitle" xml:space="preserve"><value>Game Rules</value></data>
+  <data name="HomeRunLimitLabel" xml:space="preserve"><value>Home Run Limit</value></data>
+  <data name="OneUpLabel" xml:space="preserve"><value>1-Up</value></data>
+  <data name="OnLabel" xml:space="preserve"><value>On</value></data>
+  <data name="OffLabel" xml:space="preserve"><value>Off</value></data>
+  <data name="StartGameButton" xml:space="preserve"><value>Start Game</value></data>
+  <data name="ContinueButton" xml:space="preserve"><value>Continue</value></data>
+  <data name="NonNegativeWholeNumberRequiredMessage" xml:space="preserve"><value>Enter a non-negative whole number.</value></data>
+  <data name="GameRulesSaveFailed" xml:space="preserve"><value>The Game Rules could not be saved. The previous settings were preserved.</value></data>
+  <data name="HomeRunScoreboardFormat" xml:space="preserve"><value>HR {0}/{1}</value></data>
+  <data name="OneUpOnLabel" xml:space="preserve"><value>1-UP ON</value></data>
+  <data name="OnDeckLabel" xml:space="preserve"><value>ON DECK</value></data>
+  <data name="InTheHoleLabel" xml:space="preserve"><value>IN THE HOLE</value></data>
+  <data name="GameOverButton" xml:space="preserve"><value>Game Over</value></data>
+  <data name="GameOverTitle" xml:space="preserve"><value>Complete Game?</value></data>
+  <data name="GameOverConfirmationMessage" xml:space="preserve"><value>The Game will be marked Completed and live scoring will end. Resume Game will no longer be available; future historical correction is a separate workflow.</value></data>
+  <data name="GameOverBlockedMessage" xml:space="preserve"><value>Finish the current play and any required half-inning opponent entry before completing the Game.</value></data>
+  <data name="GameOverFailedMessage" xml:space="preserve"><value>The Game could not be completed. It remains In Progress.</value></data>
+  <data name="ResetGameButton" xml:space="preserve"><value>Reset Game</value></data>
+  <data name="ResetGameTitle" xml:space="preserve"><value>Reset Scoring?</value></data>
+  <data name="ResetGameFirstConfirmation" xml:space="preserve"><value>All scoring progress will be discarded and the Game will return to Ready to Score.</value></data>
+  <data name="ResetGameFinalConfirmation" xml:space="preserve"><value>Remove all scoring-owned history and live state? The scheduled Game and frozen starting lineup will remain unchanged.</value></data>
+  <data name="ResetGameFailedMessage" xml:space="preserve"><value>The Game could not be reset. Its scoring state was preserved.</value></data>
+  <data name="DecreaseValueButtonLabel" xml:space="preserve"><value>-</value></data>
+  <data name="IncreaseValueButtonLabel" xml:space="preserve"><value>+</value></data>
 </root>

@@ -42,9 +42,13 @@
                 <Label Text="{Binding FieldDisplay}" FontSize="22" />
             </VerticalStackLayout>
         </Grid>
-        <Grid Grid.Row="4" HorizontalOptions="Center" IsVisible="{Binding IsLoaded}">
+        <Grid Grid.Row="4" ColumnDefinitions="Auto,Auto" ColumnSpacing="20"
+              HorizontalOptions="Center" IsVisible="{Binding IsLoaded}">
             <Button Text="{x:Static strings:AppResources.ScoreGameButton}" Clicked="OnScoreGameClicked" IsVisible="{Binding ShowScoreGame}" MinimumHeightRequest="52" MinimumWidthRequest="200" Padding="24,14" />
             <Button Text="{x:Static strings:AppResources.ResumeGameButton}" Command="{Binding ResumeGameCommand}" IsVisible="{Binding ShowResumeGame}" MinimumHeightRequest="52" MinimumWidthRequest="200" Padding="24,14" />
+            <Button Grid.Column="1" Text="{x:Static strings:AppResources.ResetGameButton}"
+                    Clicked="OnResetGameClicked" IsVisible="{Binding ShowResetGame}"
+                    MinimumHeightRequest="52" MinimumWidthRequest="200" Padding="24,14" />
         </Grid>
         <HorizontalStackLayout Grid.Row="6" HorizontalOptions="Center" Spacing="20">
             <Button
