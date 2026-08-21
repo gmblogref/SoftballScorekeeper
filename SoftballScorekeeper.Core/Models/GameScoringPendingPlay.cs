@@ -31,4 +31,6 @@ public sealed class GameScoringPendingRunnerMovement
     public RunnerStartingLocation StartingLocation { get; set; }
 
     public RunnerDestination Destination { get; set; }
+
+    public bool RequiresOutcomeConfirmation { get; set; }
 }

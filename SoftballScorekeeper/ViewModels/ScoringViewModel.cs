@@ -38,13 +38,17 @@ public partial class ScoringViewModel : ObservableObject, IQueryAttributable
     [ObservableProperty, NotifyPropertyChangedFor(nameof(IsAwaitingResult)),
         NotifyPropertyChangedFor(nameof(CanCompletePlateAppearance))]
     private bool hasPendingPlay;
-    private bool hasPendingBatterRunner;
+    private bool isPendingBatterResolved;
     [ObservableProperty, NotifyPropertyChangedFor(nameof(CanCompletePlateAppearance))]
     private bool isLoaded;
     [ObservableProperty, NotifyPropertyChangedFor(nameof(CanCompletePlateAppearance))]
     private bool isCompletingPlateAppearance;
 
     public ObservableCollection<ScoredPlayerViewModel> ScoredPlayers { get; } = [];
+    public ObservableCollection<OutPlayerViewModel> OutsThisInning { get; } = [];
+    public IReadOnlyList<BatterResult> AvailableBatterResults { get; private set; } =
+        PlateAppearanceResultDefinitions.GetSelectableResults(false);
+    public IReadOnlyList<RunnerOutcomeViewModel> UnresolvedRunnerOutcomes { get; private set; } = [];
 
     public string HomeHomeRunDisplay
     {
@@ -108,10 +112,14 @@ public partial class ScoringViewModel : ObservableObject, IQueryAttributable
         EmptyBaseRunner(AppResources.ThirdBaseHeadingLabel);
     public bool HasScoredPlayers => ScoredPlayers.Count > 0;
     public bool HasNoScoredPlayers => !HasScoredPlayers;
+    public bool HasUnresolvedRunnerOutcomes => UnresolvedRunnerOutcomes.Count > 0;
+    public bool IsPendingFielderChoice { get; private set; }
+    public bool RequiresFielderChoiceThirdOutSelection { get; private set; }
     public bool IsAwaitingResult => !HasPendingPlay;
-    public bool IsCurrentBatterVisible => !hasPendingBatterRunner;
+    public bool IsCurrentBatterVisible => !isPendingBatterResolved;
     public bool CanCompletePlateAppearance =>
-        hasValidContext && IsLoaded && HasPendingPlay && !IsCompletingPlateAppearance;
+        hasValidContext && IsLoaded && HasPendingPlay && !HasUnresolvedRunnerOutcomes
+        && !IsCompletingPlateAppearance;
     public int CurrentBatterPlayerId => currentBatterPlayerId;
 
     public ScoringViewModel(TeamRepository teamRepository, GameRepository gameRepository,
@@ -200,7 +208,11 @@ public partial class ScoringViewModel : ObservableObject, IQueryAttributable
         InningOutDisplay = FormatInningOut(state.Session);
         CurrentBatterDisplayName = FormatPlayerName(currentPlayer.FirstName, currentPlayer.LastName);
         ResolveUpcomingBatters(state);
+        RestoreOutsThisInning(state);
         currentBatterPlayerId = currentPlayer.Id;
+        AvailableBatterResults = PlateAppearanceResultDefinitions
+            .GetSelectableResults(state.BaseRunners.Count > 0);
+        OnPropertyChanged(nameof(AvailableBatterResults));
         RestoreBaseRunners(state);
         RestorePendingPlay(state);
         ValidationMessage = string.Empty;
@@ -263,6 +275,33 @@ public partial class ScoringViewModel : ObservableObject, IQueryAttributable
         {
             var result = await sessionRepository.CompletePlateAppearanceAsync(
                 GameId, runRulings);
+            if (!result.IsSuccess)
+            {
+                await LoadAsync();
+                ValidationMessage = AppResources.PlateAppearanceCompletionFailed;
+                return false;
+            }
+
+            await LoadAsync();
+            return true;
+        }
+        finally
+        {
+            IsCompletingPlateAppearance = false;
+        }
+    }
+
+    public async Task<bool> CompleteFielderChoiceThirdOutAsync(int outPlayerId)
+    {
+        if (!RequiresFielderChoiceThirdOutSelection || IsCompletingPlateAppearance
+            || UnresolvedRunnerOutcomes.All(item => item.PlayerId != outPlayerId))
+            return false;
+
+        IsCompletingPlateAppearance = true;
+        try
+        {
+            var result = await sessionRepository.CompleteFielderChoiceThirdOutAsync(
+                GameId, outPlayerId);
             if (!result.IsSuccess)
             {
                 await LoadAsync();
@@ -426,7 +465,11 @@ public partial class ScoringViewModel : ObservableObject, IQueryAttributable
         InningOutDisplay = string.Empty;
         InningDisplay = OutsDisplay = string.Empty;
         HasPendingPlay = false;
-        SetHasPendingBatterRunner(false);
+        IsPendingFielderChoice = false;
+        OnPropertyChanged(nameof(IsPendingFielderChoice));
+        RequiresFielderChoiceThirdOutSelection = false;
+        OnPropertyChanged(nameof(RequiresFielderChoiceThirdOutSelection));
+        SetPendingBatterResolved(false);
         FirstBaseRunner = EmptyBaseRunner(AppResources.FirstBaseHeadingLabel);
         SecondBaseRunner = EmptyBaseRunner(AppResources.SecondBaseHeadingLabel);
         ThirdBaseRunner = EmptyBaseRunner(AppResources.ThirdBaseHeadingLabel);
@@ -434,8 +477,12 @@ public partial class ScoringViewModel : ObservableObject, IQueryAttributable
         OnPropertyChanged(nameof(SecondBaseRunner));
         OnPropertyChanged(nameof(ThirdBaseRunner));
         ScoredPlayers.Clear();
+        OutsThisInning.Clear();
         OnPropertyChanged(nameof(HasScoredPlayers));
         OnPropertyChanged(nameof(HasNoScoredPlayers));
+        SetUnresolvedRunnerOutcomes([]);
+        AvailableBatterResults = PlateAppearanceResultDefinitions.GetSelectableResults(false);
+        OnPropertyChanged(nameof(AvailableBatterResults));
         currentBatterPlayerId = 0;
         currentTeamSide = default;
     }
@@ -446,6 +493,17 @@ public partial class ScoringViewModel : ObservableObject, IQueryAttributable
         if (upcoming is null) return;
         OnDeckDisplayName = ResolvePlayerName(state, upcoming.Value.OnDeckPlayerId);
         InTheHoleDisplayName = ResolvePlayerName(state, upcoming.Value.InTheHolePlayerId);
+    }
+
+    private void RestoreOutsThisInning(GameScoringState state)
+    {
+        OutsThisInning.Clear();
+        foreach (var playerId in state.GetCurrentHalfInningOutPlayerIds())
+        {
+            if (!state.PlayersById.TryGetValue(playerId, out var player)) continue;
+            OutsThisInning.Add(new(OutsThisInning.Count + 1,
+                FormatPlayerName(player.FirstName, player.LastName)));
+        }
     }
 
     private static string ResolvePlayerName(GameScoringState state, int playerId) =>
@@ -462,20 +520,17 @@ public partial class ScoringViewModel : ObservableObject, IQueryAttributable
     {
         foreach (var scoringBase in Enum.GetValues<ScoringBase>())
         {
-            var playerId = state.PendingPlay is null
-                ? state.BaseRunners.FirstOrDefault(item => item.Base == scoringBase)?.PlayerId
-                : state.PendingPlay.Movements.FirstOrDefault(item =>
-                    item.Destination == (RunnerDestination)scoringBase)?.PlayerId;
+            var playerId = ResolveDisplayedBaseRunner(state, scoringBase);
             var player = playerId is int id
                 && state.PlayersById.TryGetValue(id, out var resolvedPlayer)
                     ? resolvedPlayer
                     : null;
             var name = player is not null
                 ? FormatPlayerName(player.FirstName, player.LastName)
-                : AppResources.EmptyBaseLabel;
+                : string.Empty;
             var isCurrentBatter = playerId == currentBatterPlayerId;
             var baseRunner = new BaseRunnerViewModel(FormatBase(scoringBase), name,
-                player is not null ? playerId : null, player is not null,
+                player is not null ? playerId : null,
                 isCurrentBatter ? AppResources.BatterBadgeLabel : string.Empty,
                 isCurrentBatter);
             switch (scoringBase)
@@ -496,22 +551,44 @@ public partial class ScoringViewModel : ObservableObject, IQueryAttributable
         }
     }
 
+    private static int? ResolveDisplayedBaseRunner(
+        GameScoringState state, ScoringBase scoringBase)
+    {
+        if (state.PendingPlay is null)
+            return state.BaseRunners.FirstOrDefault(item =>
+                item.Base == scoringBase)?.PlayerId;
+
+        var confirmed = state.PendingPlay.Movements.FirstOrDefault(item =>
+            !item.RequiresOutcomeConfirmation
+            && item.Destination == (RunnerDestination)scoringBase);
+        if (confirmed is not null) return confirmed.PlayerId;
+
+        return state.PendingPlay.Movements.FirstOrDefault(item =>
+            item.RequiresOutcomeConfirmation
+            && item.StartingLocation == (RunnerStartingLocation)scoringBase)?.PlayerId;
+    }
+
     private void RestorePendingPlay(GameScoringState state)
     {
         ScoredPlayers.Clear();
+        SetUnresolvedRunnerOutcomes([]);
         HasPendingPlay = state.PendingPlay is not null;
+        IsPendingFielderChoice = state.PendingPlay?.Play.Result == BatterResult.FielderChoice;
+        OnPropertyChanged(nameof(IsPendingFielderChoice));
+        RequiresFielderChoiceThirdOutSelection = IsPendingFielderChoice
+            && state.Session.CurrentOuts == 2;
+        OnPropertyChanged(nameof(RequiresFielderChoiceThirdOutSelection));
         if (state.PendingPlay is null) return;
-        SetHasPendingBatterRunner(state.PendingPlay.Play.Result is
-                BatterResult.Single or BatterResult.Double or BatterResult.Triple
-            && state.PendingPlay.Movements.Any(item =>
-                item.PlayerId == state.PendingPlay.Play.BatterPlayerId));
+        SetPendingBatterResolved(state.IsPendingBatterResolved());
         SelectedResultDisplay = string.Format(AppResources.SelectedResultFormat,
             FormatResult(state.PendingPlay.Play.Result));
         var runs = state.PendingPlay.Movements.Count(item =>
-            item.Destination == RunnerDestination.Scores);
+            !item.RequiresOutcomeConfirmation
+            && item.Destination == RunnerDestination.Scores);
         RunsOnPlayDisplay = string.Format(AppResources.RunsOnPlayFormat, runs);
         foreach (var movement in state.PendingPlay.Movements.Where(item =>
-            item.Destination == RunnerDestination.Scores))
+            !item.RequiresOutcomeConfirmation
+            && item.Destination == RunnerDestination.Scores))
         {
             if (!state.PlayersById.TryGetValue(movement.PlayerId, out var player)) continue;
             ScoredPlayers.Add(new(
@@ -520,17 +597,31 @@ public partial class ScoringViewModel : ObservableObject, IQueryAttributable
                     ? AppResources.BatterBadgeLabel : AppResources.RunnerBadgeLabel,
                 FormatPlayerName(player.FirstName, player.LastName)));
         }
+        SetUnresolvedRunnerOutcomes(state.PendingPlay.Movements
+            .Where(item => item.RequiresOutcomeConfirmation)
+            .OrderByDescending(item => item.StartingLocation)
+            .Select(item => state.PlayersById.TryGetValue(item.PlayerId, out var player)
+                ? new RunnerOutcomeViewModel(item.PlayerId,
+                    FormatPlayerName(player.FirstName, player.LastName),
+                    item.StartingLocation,
+                    FormatStartingLocation(item.StartingLocation))
+                : null)
+            .Where(item => item is not null)
+            .Cast<RunnerOutcomeViewModel>()
+            .ToArray());
         OnPropertyChanged(nameof(HasScoredPlayers));
         OnPropertyChanged(nameof(HasNoScoredPlayers));
         RestoreBaseRunners(state);
     }
 
-    private static string FormatResult(BatterResult result) => result switch
+    public static string FormatResult(BatterResult result) => result switch
     {
         BatterResult.Single => AppResources.SingleResultLabel,
         BatterResult.Double => AppResources.DoubleResultLabel,
         BatterResult.Triple => AppResources.TripleResultLabel,
         BatterResult.HomeRun => AppResources.HomeRunResultLabel,
+        BatterResult.Walk => AppResources.WalkResultLabel,
+        BatterResult.FielderChoice => AppResources.FielderChoiceResultLabel,
         BatterResult.Out => AppResources.OutResultLabel,
         _ => string.Empty,
     };
@@ -565,6 +656,16 @@ public partial class ScoringViewModel : ObservableObject, IQueryAttributable
         _ => string.Empty,
     };
 
+    private static string FormatStartingLocation(RunnerStartingLocation startingLocation) =>
+        startingLocation switch
+        {
+            RunnerStartingLocation.First => AppResources.RunnerOnFirstRoleLabel,
+            RunnerStartingLocation.Second => AppResources.RunnerOnSecondRoleLabel,
+            RunnerStartingLocation.Third => AppResources.RunnerOnThirdRoleLabel,
+            RunnerStartingLocation.Home => AppResources.BatterBadgeLabel,
+            _ => string.Empty,
+        };
+
     private static string FormatBase(ScoringBase scoringBase) => scoringBase switch
     {
         ScoringBase.First => AppResources.FirstBaseHeadingLabel,
@@ -574,12 +675,20 @@ public partial class ScoringViewModel : ObservableObject, IQueryAttributable
     };
 
     private static BaseRunnerViewModel EmptyBaseRunner(string baseLabel) =>
-        new(baseLabel, AppResources.EmptyBaseLabel, null, false, string.Empty, false);
+        new(baseLabel, string.Empty, null, string.Empty, false);
 
-    private void SetHasPendingBatterRunner(bool value)
+    private void SetPendingBatterResolved(bool value)
     {
-        if (SetProperty(ref hasPendingBatterRunner, value))
+        if (SetProperty(ref isPendingBatterResolved, value))
             OnPropertyChanged(nameof(IsCurrentBatterVisible));
+    }
+
+    private void SetUnresolvedRunnerOutcomes(IReadOnlyList<RunnerOutcomeViewModel> value)
+    {
+        UnresolvedRunnerOutcomes = value;
+        OnPropertyChanged(nameof(UnresolvedRunnerOutcomes));
+        OnPropertyChanged(nameof(HasUnresolvedRunnerOutcomes));
+        OnPropertyChanged(nameof(CanCompletePlateAppearance));
     }
 
     private static bool TryParseId(IDictionary<string, object> query, string key, out int id)
@@ -592,8 +701,12 @@ public partial class ScoringViewModel : ObservableObject, IQueryAttributable
 }
 
 public sealed record BaseRunnerViewModel(
-    string BaseLabel, string PlayerName, int? PlayerId, bool IsOccupied, string RoleLabel,
-    bool IsCurrentBatter);
+    string BaseLabel, string PlayerName, int? PlayerId, string RoleLabel, bool IsCurrentBatter)
+{
+    public bool IsOccupied => PlayerId.HasValue;
+    public string BackgroundColor => IsOccupied ? "#4DFFD54F" : "White";
+    public string BorderColor => IsOccupied ? "#B8860B" : "#919191";
+}
 
 public sealed record ScoredPlayerViewModel(
     int PlayerId, string RoleLabel, string PlayerName)
@@ -601,6 +714,15 @@ public sealed record ScoredPlayerViewModel(
     public string DisplayText => string.Format(AppResources.ScoredPlayerCardFormat,
         RoleLabel, PlayerName);
 }
+
+public sealed record OutPlayerViewModel(int OutNumber, string PlayerName)
+{
+    public string DisplayText => string.Format(
+        AppResources.OutPlayerDisplayFormat, OutNumber, PlayerName);
+}
+
+public sealed record RunnerOutcomeViewModel(
+    int PlayerId, string PlayerName, RunnerStartingLocation StartingLocation, string RoleLabel);
 
 public sealed record HalfInningTransitionViewModel(
     int Id,

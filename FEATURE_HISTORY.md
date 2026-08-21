@@ -10,9 +10,9 @@ Stable product and architecture decisions belong in the project architecture doc
 
 ## Current Project Status
 
-- **Latest completed story:** Story 6.4.3 — Scoring Regression Coverage Hardening
-- **Completed stories:** Stories 0.0 through 6.4.3; Stories 3.2 through 3.4 retain their recorded validation status
-- **Current story:** None; Story 6.4.3 is complete
+- **Latest completed story:** Story 6.5 — Walk and Fielder’s Choice Scoring
+- **Completed stories:** Stories 0.0 through 6.5; Stories 3.2 through 3.4 retain their recorded validation status
+- **Current story:** None; Story 6.5 is complete and PR-ready on `task/walk-fc-scorer`
 - **Current phase:** Scoring interaction refinement
 - **Foundation status:** Complete
 
@@ -2240,6 +2240,82 @@ Future intentional changes to protected scoring behavior must update the relevan
 #### Intended Commit Message
 
 `Harden scoring regression coverage`
+
+### Story 6.5 — Walk and Fielder’s Choice Scoring
+
+**Status:** Complete and PR-ready on `task/walk-fc-scorer`; implementation, automated validation, Windows build validation, and physical Android tablet validation are complete
+
+#### Result Semantics and Scoring Architecture
+
+- Added distinct persisted `Walk` and `FielderChoice` plate-appearance results. A focused `PlateAppearanceResultDefinition` registry now centralizes each supported result’s batter default, existing-runner default policy, completion behavior, contextual availability, and guided-resolution requirement. Plate-appearance classification remains separate from runner destination and play-level out count; no Double Play or Triple Play batter-result values or dedicated commit paths were added.
+- Walk uses forced-only defaults: the batter goes to First, runners advance only through an occupied force chain, and non-forced runners hold. Selection commits the deterministic play transactionally, persists `Walk` rather than `Single`, and advances the batter immediately without `Next Batter`; a bases-loaded Walk scores exactly the forced runner from Third. Unusual post-Walk advancement remains deferred to completed-play correction/Undo.
+- Fielder’s Choice is hidden from the result menu when committed bases are empty and is also rejected by the repository when no existing runner is present. With runners aboard, it remains a distinct persisted plate-appearance classification from `Single` and generic `Out`, defaults the batter to First without guessing an Out, and persists pre-play participant identity and starting locations plus explicit confirmation state. Zero/one-Out resolution proceeds from the lead runner backward through the batter only while a genuine scorer choice remains; two-Out FC uses the dedicated third-Out participant flow.
+- Every offered and applied FC destination continues through the existing `BaseRunnerResolver`; Story 6.5 extended its use without redesigning it or duplicating destination legality in the result-definition layer. Resolver displacement reopens confirmation for affected participants. Generic runner-Out, multiple-Out, third-out, run-ruling, half-inning, score, batting-order, and opponent-entry machinery remains authoritative, while FC classification is preserved whether the batter or a runner is retired.
+
+#### Presentation and Player Identity
+
+- The initial empty-base/highlight presentation attempted to blank only reset placeholders and used XAML occupied-state triggers. Follow-up physical Android validation later proved that the loaded-state path still supplied `Empty` and that Android could retain a trigger's occupied colors after a base object was replaced; the final correction is recorded under Physical-Validation Refinement.
+- The large blank runner-dialog control was the visually secondary Cancel button despite its non-empty resource text. The unnecessary control and handler were removed; modal/background behavior, FC context, `Choose outcome` guidance, Player-name prominence, destination actions, and Android system-back cancellation remain intact.
+- FC plays beginning with two Outs use a dedicated blocking `Who was Out?` dialog containing every existing runner and the batter by exact Player name and original role. Selecting a participant persists only that Player's third-Out movement and immediately invokes the existing Story 6.4 plate-appearance/third-out completion transaction; no ordinary destination prompt or `Next Batter` follows, no trailing safe destinations are invented, and the FC PA classification is preserved.
+- FC plays beginning with zero or one Out retain resolver-guided ordering, forced-outcome propagation, and automatic single commit. The existing third-out run-count ruling remains unchanged for hit and other supported pending-play scenarios where the current runner model can record possible scored runners before another runner is Out.
+
+- Added one shared blocking, background-dimming runner-destination modal used by normal pending-play corrections, FC guidance, scored runners, pending batter-runners, and existing runner-Out edits. It displays the persisted Player name as a centered, bold 28-point header separated from the destination buttons; the buttons contain only destinations returned by the existing resolver-backed ViewModel/repository workflow, and Android system-back cancellation remains supported.
+- Added resource-backed Walk and Fielder’s Choice labels. Existing portrait and landscape scoring layouts, runner buttons, tap entry points, Player identity/order, pending corrections, and scored-runner presentation remain otherwise unchanged.
+
+#### Physical-Validation Refinement
+
+- Initial physical Android testing exposed that the guided FC menu could derive choices from an over-advanced placeholder destination, omitting a legal Second destination for a runner who started on First. Guided availability and execution now enumerate complete arrangements through `BaseRunnerResolver` from immutable pre-play participant identity and starting locations, constrained only by already confirmed scorer choices, FC result semantics, and the existing three-out limit.
+- After every scorer choice, the same resolver arrangements are compared across every unresolved participant. Any destination shared by every remaining arrangement is persisted automatically, and propagation continues without another modal; a participant remains unresolved and is prompted only while multiple legal outcomes remain. Once every outcome is explicit or uniquely inferred, FC invokes the existing transactional commit machinery exactly once and advances the batter without a redundant `Next Batter` tap. PA classification remains Fielder’s Choice regardless of which participant is Out or where the batter finishes.
+- Unresolved placeholder destinations are no longer presented on the diamond as confirmed outcomes. Confirmed pending destinations are shown, while unresolved existing runners remain at their committed pre-play locations and unresolved batter-runners remain at Home. Runs and scored-runner cards likewise include only confirmed pending outcomes.
+- The runner-destination modal remains blocking and background-dimming, but is wider and uses a compact wrapped action layout. The Player name remains the most prominent centered element, with resource-backed `Choose outcome` guidance, compact FC context, and a divider.
+- Follow-up physical Android validation found two presentation defects after FC auto-completion: loaded empty bases still rendered the `Empty` resource text, and First retained its occupied/yellow trigger styling after its runner advanced to Second and the batter was Out. Persisted final base state was already correct, so scoring semantics, `BaseRunnerResolver`, FC rules, Walk rules, and out/third-out handling were not changed for this correction.
+- Base text, occupied state, background, and border now come from the same immutable current-occupant presentation object. A missing occupant produces a blank Player name, a null Player id, `IsOccupied == false`, and neutral colors; a current occupant produces the exact Player name, a non-null Player id, `IsOccupied == true`, and occupied colors. The base buttons bind colors directly to that replacement object instead of relying on Android-retained XAML trigger setters, so post-auto-commit reload, pending display, Exit/Resume, and half-inning clearing all render from the current displayed occupant.
+- All previously pending pinpoint Android scenarios subsequently passed on the physical target device before the final presentation-only refinement below. This included Walk auto-completion, blank/neutral empty bases, exact occupied Player identity and highlight, runner-dialog presentation, FC runner/batter/multiple-runner/third-out flows, automatic completion, cleared third-out bases, and the Single/Double/Triple/Home Run/Out smoke checks.
+
+#### Final Presentation-Only Refinement
+
+- Portrait places On Deck and In the Hole inside a compact, resource-backed `UPCOMING` card beside a matching `OUTS THIS INNING` card. Android landscape review found the first landscape refinement stacked Outs beneath Upcoming on the left despite available right-rail space. Landscape now preserves Upcoming in its original left position and places a compact `OUTS THIS INNING` section at the top of the existing right information rail, sharing that rail vertically with pending scored-runner content while leaving the scoreboard, center diamond, dividers, and Next Batter composition unchanged.
+- `OUTS THIS INNING` is reconstructed on every normal scoring load from existing persisted plate appearances and runner movements for the session's current inning. Normal batter Outs use the persisted Out plate appearance; FC and other runner/batter retirements use the actual persisted Out movements. Rows retain persisted play/movement order and repeated Player identities are not deduplicated.
+- Exit/Resume therefore reconstructs the same current-half list without new persistence. Advancing to the next half visually produces an empty list because the session inning changes while prior plate appearances and movements remain persisted; Reset removes the existing scoring history and the ViewModel reset also clears presentation state.
+- This panel records Players physically retired, not batter responsibility. Beer Rules, batter-responsibility evaluation, and dedicated Double Play/Triple Play behavior remain deferred, and no scoring, resolver, FC, Walk, persistence, out, or third-out semantics changed.
+- Portrait and landscape bind the same `OutsThisInning` collection and resource-backed row format; no orientation-specific state exists. The landscape section retains its heading with zero Outs but renders no placeholder or `Empty` row.
+- Android landscape review also found that a pending batter-Out presentation could leave the resolved batter card visible while portrait appeared cleared. The shared presentation derivation now treats a pending result without a batter-movement row, such as Out, as a resolved batter; confirmed safe or Out batter movements are likewise resolved, while no pending result and unresolved FC batters remain visible. Both orientations continue binding the same `IsCurrentBatterVisible` property, and no landscape-specific rule or visibility override was added.
+- Portrait XAML structure and positioning were not changed by the right-rail/visibility correction. Final physical Android revalidation confirmed the corrected landscape right rail, batter visibility, half-inning clearing, portrait cards, and rotation behavior without changing scoring semantics.
+
+#### Statistics and Boundary Decisions
+
+- Story 6.5 records enough distinction for later statistics: Walk and Fielder’s Choice remain separate persisted plate-appearance classifications, and actual runner/batter retirements remain represented by movement and play-level Out data. The `OUTS THIS INNING` panel intentionally shows Players physically retired rather than assigning batter responsibility.
+- AVG, OBP, hits, at-bats, Beer Rules, batter-responsibility evaluation, and dedicated Double Play/Triple Play behavior are not calculated or implemented here. Future statistics work must consume the persisted classifications and movement history rather than reinterpret FC as `Single` or generic `Out`.
+
+#### Automated Tests and Validation
+
+- Added 35 focused cases covering Walk force configurations and immediate completion; FC availability, normal zero/one-Out resolver guidance, propagation, classification, identity, final base occupancy, and duplicate-commit protection; dedicated two-out runner/batter/bases-loaded participant selection; isolated third-Out movement persistence; inning/batting-order transition; result regeneration; internally consistent empty/occupied base presentation bindings; both scoring modal contracts; Upcoming identity; current-half normal/FC Out identity and order; duplicate identities; Exit/Resume reconstruction; half-inning reset; Reset cleanup; shared current-batter resolution visibility; and portrait/left-rail/right-rail landscape contracts.
+- Final focused Story 6.5 validation passed 35 of 35. The broader scoring/resolver regression group passed 260 of 260. The complete automated test project passed 434 of 434 with zero failures and zero skips against isolated temporary SQLite databases. One earlier parallel full-suite invocation failed before test execution because it contended with the regression build for `SoftballScorekeeper.Core.deps.json`; subsequent full-suite runs, including this final sequential run, passed cleanly. The earlier solution-wide test command ran the then-current 426 tests successfully but returned failure because its MAUI Android target could not locate the Android SDK (`XA5300`).
+- The explicit Windows `net9.0-windows10.0.19041.0` build passed with zero errors and 114 existing warning instances in the established `CS8602`, `MVVMTK0045`, and `XC0025` categories. Windows runtime validation was not performed. Local Android compilation could not run because the Android SDK is unavailable (`XA5300`); physical target-device validation was performed separately and is recorded below.
+- Final repository hygiene passed: `git diff --check` reported no whitespace errors, only line-ending normalization warnings. Final status/diff review found only Story 6.5 implementation, tests, resources, presentation, persistence/domain, and this feature-history update; no unrelated files or generated artifacts were introduced.
+
+#### Physical Android Tablet Validation
+
+- Empty-base, runner-on-First, and bases-loaded Walks applied forced-only movement, committed immediately, scored the forced loaded-bases run, and advanced without `Next Batter`.
+- Empty bases displayed no `Empty` text, occupied bases showed the exact Player with the occupied highlight, empty bases remained neutral, and the runner dialog contained no blank control.
+- Runner-to-Second/batter-Out and runner-Out/batter-to-First FC scenarios persisted FC, displayed final occupancy correctly, and advanced automatically without a redundant batter modal or `Next Batter`.
+- Multiple-runner zero/one-Out FC resolution prompted only while ambiguity remained, propagated unique outcomes, committed automatically, and displayed final occupied bases correctly.
+- Two-Out runner and bases-loaded FC dialogs showed exact participant identities; selecting the retired runner or batter immediately completed the half, cleared bases/highlights, retained one FC plate appearance and the correct Out, and entered the correct next-half state.
+- Single, Double, and Triple retained their pending/`Next Batter` boundary; Home Run remained immediate; established Out behavior remained unchanged; portrait/landscape checks showed no regression.
+- Final landscape revalidation passed with Upcoming retained on the left and `OUTS THIS INNING` in the right rail. Zero Outs showed the heading without placeholder rows; one and two normal Outs showed exact Player identities in play order with no clipping or overlap and a balanced center.
+- Batter-Out presentation cleared the resolved batter card and tap hint consistently with portrait without changing batting-order behavior. FC runner-Out presentation listed the actual retired runner while preserving the accepted FC batter presentation.
+- The third Out completed the established half-inning transition and cleared stale Out rows. Scores, HR totals, inning/Outs, 1-Up, Upcoming, Current Batter, Next Batter, the base diamond, scored-runner rail, and vertical dividers showed no landscape regression.
+- Rotation back to portrait confirmed the `UPCOMING` and `OUTS THIS INNING` cards remained aligned, readable, correctly identified, and unclipped. These accepted target-device results complete the Android acceptance standard for Story 6.5.
+
+#### Deferred Scope
+
+`Out` retains its Story 6.5 meaning that the runner did not successfully reach the destination being resolved. `Out Attempting to Advance`, Out-at-base variants, and safe-base-then-Out movement history are explicitly deferred to the next scoring story.
+
+Dedicated Double Play/Triple Play presentation, sacrifice results, HR-limit/dead-ball results, errors/reached-on-error, Beer Rules, batter-responsibility evaluation, and statistics remain deferred. Future DP/TP behavior must build on Fielder’s Choice plus generic multiple-runner-Out resolution rather than add DP/TP batter-result classifications.
+
+#### Intended Commit Message
+
+`Add Walk and fielder's choice scoring`
 
 ## Maintenance Rules
 

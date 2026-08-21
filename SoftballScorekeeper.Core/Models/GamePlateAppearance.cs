@@ -29,4 +29,6 @@ public enum BatterResult
     Triple = 3,
     HomeRun = 4,
     Out = 5,
+    Walk = 6,
+    FielderChoice = 7,
 }

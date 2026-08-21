@@ -930,6 +930,8 @@ namespace SoftballScorekeeper.Resources.Strings {
         public static string DoubleResultLabel { get { return ResourceManager.GetString("DoubleResultLabel", resourceCulture); } }
         public static string TripleResultLabel { get { return ResourceManager.GetString("TripleResultLabel", resourceCulture); } }
         public static string HomeRunResultLabel { get { return ResourceManager.GetString("HomeRunResultLabel", resourceCulture); } }
+        public static string WalkResultLabel { get { return ResourceManager.GetString("WalkResultLabel", resourceCulture); } }
+        public static string FielderChoiceResultLabel { get { return ResourceManager.GetString("FielderChoiceResultLabel", resourceCulture); } }
         public static string OutResultLabel { get { return ResourceManager.GetString("OutResultLabel", resourceCulture); } }
         public static string OutDestinationLabel { get { return ResourceManager.GetString("OutDestinationLabel", resourceCulture); } }
         public static string RunCountQuestionFormat { get { return ResourceManager.GetString("RunCountQuestionFormat", resourceCulture); } }
@@ -974,6 +976,13 @@ namespace SoftballScorekeeper.Resources.Strings {
         public static string RunnerBadgeLabel { get { return ResourceManager.GetString("RunnerBadgeLabel", resourceCulture); } }
         public static string BatterResultMenuFormat { get { return ResourceManager.GetString("BatterResultMenuFormat", resourceCulture); } }
         public static string RunnerDestinationMenuFormat { get { return ResourceManager.GetString("RunnerDestinationMenuFormat", resourceCulture); } }
+        public static string ChooseOutcomeInstruction { get { return ResourceManager.GetString("ChooseOutcomeInstruction", resourceCulture); } }
+        public static string ResolveFielderChoiceLabel { get { return ResourceManager.GetString("ResolveFielderChoiceLabel", resourceCulture); } }
+        public static string FielderChoiceThirdOutTitle { get { return ResourceManager.GetString("FielderChoiceThirdOutTitle", resourceCulture); } }
+        public static string FielderChoiceThirdOutInstruction { get { return ResourceManager.GetString("FielderChoiceThirdOutInstruction", resourceCulture); } }
+        public static string RunnerOnFirstRoleLabel { get { return ResourceManager.GetString("RunnerOnFirstRoleLabel", resourceCulture); } }
+        public static string RunnerOnSecondRoleLabel { get { return ResourceManager.GetString("RunnerOnSecondRoleLabel", resourceCulture); } }
+        public static string RunnerOnThirdRoleLabel { get { return ResourceManager.GetString("RunnerOnThirdRoleLabel", resourceCulture); } }
         public static string RunsOnPlayFormat { get { return ResourceManager.GetString("RunsOnPlayFormat", resourceCulture); } }
         public static string ScoredHeading { get { return ResourceManager.GetString("ScoredHeading", resourceCulture); } }
         public static string TapBatterHint { get { return ResourceManager.GetString("TapBatterHint", resourceCulture); } }
@@ -1028,6 +1037,9 @@ namespace SoftballScorekeeper.Resources.Strings {
         public static string OneUpOnLabel { get { return ResourceManager.GetString("OneUpOnLabel", resourceCulture); } }
         public static string OnDeckLabel { get { return ResourceManager.GetString("OnDeckLabel", resourceCulture); } }
         public static string InTheHoleLabel { get { return ResourceManager.GetString("InTheHoleLabel", resourceCulture); } }
+        public static string UpcomingHeading { get { return ResourceManager.GetString("UpcomingHeading", resourceCulture); } }
+        public static string OutsThisInningHeading { get { return ResourceManager.GetString("OutsThisInningHeading", resourceCulture); } }
+        public static string OutPlayerDisplayFormat { get { return ResourceManager.GetString("OutPlayerDisplayFormat", resourceCulture); } }
         public static string GameOverButton { get { return ResourceManager.GetString("GameOverButton", resourceCulture); } }
         public static string GameOverTitle { get { return ResourceManager.GetString("GameOverTitle", resourceCulture); } }
         public static string GameOverConfirmationMessage { get { return ResourceManager.GetString("GameOverConfirmationMessage", resourceCulture); } }
