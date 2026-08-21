@@ -129,6 +129,33 @@ public static class BaseRunnerResolver
         return available.AsReadOnly();
     }
 
+    public static IReadOnlyList<BaseRunnerResolutionState> GetLegalArrangements(
+        BaseRunnerResolutionState state)
+    {
+        if (state is null) return [];
+        var arrangements = new List<BaseRunnerResolutionState>();
+        var candidate = new RunnerDestination[state.Participants.Count];
+        Search(0);
+        return arrangements.AsReadOnly();
+
+        void Search(int participantIndex)
+        {
+            if (participantIndex == candidate.Length)
+            {
+                if (!IsLegal(candidate)) return;
+                arrangements.Add(new(state.Participants.Select((participant, index) =>
+                    participant with { Destination = candidate[index] })));
+                return;
+            }
+
+            foreach (var destination in CandidateDestinationOrder)
+            {
+                candidate[participantIndex] = destination;
+                Search(participantIndex + 1);
+            }
+        }
+    }
+
     private static int FindParticipantIndex(
         IReadOnlyList<BaseRunnerParticipant> participants, int playerId)
     {

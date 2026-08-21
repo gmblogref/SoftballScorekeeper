@@ -23,6 +23,43 @@ public sealed record GameScoringState(
         return (sequence[(currentIndex + 1) % sequence.Length].PlayerId,
             sequence[(currentIndex + 2) % sequence.Length].PlayerId);
     }
+
+    public IReadOnlyList<int> GetCurrentHalfInningOutPlayerIds()
+    {
+        var currentAppearances = PlateAppearances
+            .Where(item => item.Inning == Session.CurrentInning)
+            .OrderBy(item => item.PlateAppearanceNumber)
+            .ToArray();
+        var outMovements = RunnerMovements
+            .Where(item => item.Destination == RunnerDestination.Out)
+            .GroupBy(item => item.GamePlateAppearanceId)
+            .ToDictionary(group => group.Key, group => group.OrderBy(item => item.Id).ToArray());
+        var playerIds = new List<int>();
+
+        foreach (var appearance in currentAppearances)
+        {
+            if (appearance.Result == BatterResult.Out)
+                playerIds.Add(appearance.PlayerId);
+
+            if (!outMovements.TryGetValue(appearance.Id, out var movements)) continue;
+            playerIds.AddRange(movements
+                .Where(item => appearance.Result != BatterResult.Out
+                    || item.PlayerId != appearance.PlayerId)
+                .Select(item => item.PlayerId));
+        }
+
+        return playerIds;
+    }
+
+    public bool IsPendingBatterResolved()
+    {
+        if (PendingPlay is null) return false;
+        var definition = PlateAppearanceResultDefinitions.Get(PendingPlay.Play.Result);
+        if (!definition.IncludesBatterMovement) return true;
+        return PendingPlay.Movements.Any(item =>
+            item.PlayerId == PendingPlay.Play.BatterPlayerId
+            && !item.RequiresOutcomeConfirmation);
+    }
 }
 
 public sealed record UpdateGameRulesResult(

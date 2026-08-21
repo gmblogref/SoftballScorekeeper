@@ -10,6 +10,7 @@ public partial class ScoringPage : ContentPage
     private bool isExiting;
     private bool isHandlingInningTransition;
     private bool isResolvingPlay;
+    private bool isGuidingFielderChoice;
 
     public ScoringPage(ScoringViewModel viewModel)
     {
@@ -25,6 +26,7 @@ public partial class ScoringPage : ContentPage
         if (isHandlingInningTransition) return;
         await viewModel.LoadAsync();
         await HandlePendingInningTransitionAsync();
+        await HandlePendingFielderChoiceResolutionAsync();
     }
 
     protected override bool OnBackButtonPressed()
@@ -70,33 +72,22 @@ public partial class ScoringPage : ContentPage
 
     private async Task ShowBatterResultMenuAsync()
     {
-        var options = new List<string>
-        {
-            AppResources.SingleResultLabel,
-            AppResources.DoubleResultLabel,
-            AppResources.TripleResultLabel,
-            AppResources.HomeRunResultLabel,
-            AppResources.OutResultLabel,
-        };
+        var results = viewModel.AvailableBatterResults;
+        var options = results.Select(ScoringViewModel.FormatResult).ToList();
         var selection = await DisplayActionSheet(
             string.Format(AppResources.BatterResultMenuFormat,
                 viewModel.CurrentBatterDisplayName),
             AppResources.CancelButton,
             null,
             options.ToArray());
-        var result = selection switch
-        {
-            var value when value == AppResources.SingleResultLabel => BatterResult.Single,
-            var value when value == AppResources.DoubleResultLabel => BatterResult.Double,
-            var value when value == AppResources.TripleResultLabel => BatterResult.Triple,
-            var value when value == AppResources.HomeRunResultLabel => BatterResult.HomeRun,
-            var value when value == AppResources.OutResultLabel => BatterResult.Out,
-            _ => (BatterResult?)null,
-        };
+        var selectedIndex = options.IndexOf(selection);
+        var result = selectedIndex >= 0 ? results[selectedIndex] : (BatterResult?)null;
         if (result is not null)
         {
             await viewModel.SelectResultAsync(result.Value);
             await HandlePendingInningTransitionAsync();
+            if (result == BatterResult.FielderChoice)
+                await HandlePendingFielderChoiceResolutionAsync();
         }
     }
 
@@ -111,31 +102,28 @@ public partial class ScoringPage : ContentPage
             _ => ((int PlayerId, string PlayerName)?)null,
         };
         if (participant is null) return;
-        var destinations = await viewModel.GetValidRunnerDestinationsAsync(
-            participant.Value.PlayerId);
-        if (destinations.Count == 0) return;
-        var options = destinations.Select(ScoringViewModel.FormatDestination).ToArray();
-        var selection = await DisplayActionSheet(
-            string.Format(AppResources.RunnerDestinationMenuFormat,
-                participant.Value.PlayerName),
-            AppResources.CancelButton,
-            null,
-            options);
-        var destination = selection switch
-        {
-            var value when value == AppResources.FirstBaseLabel => RunnerDestination.First,
-            var value when value == AppResources.SecondBaseLabel => RunnerDestination.Second,
-            var value when value == AppResources.ThirdBaseLabel => RunnerDestination.Third,
-            var value when value == AppResources.ScoresDestinationLabel => RunnerDestination.Scores,
-            var value when value == AppResources.OutDestinationLabel => RunnerDestination.Out,
-            _ => (RunnerDestination?)null,
-        };
+        var destination = await ShowRunnerDestinationMenuAsync(
+            participant.Value.PlayerId, participant.Value.PlayerName,
+            viewModel.HasUnresolvedRunnerOutcomes);
         if (destination is not null)
+        {
             await viewModel.ChangeRunnerDestinationAsync(
                 participant.Value.PlayerId, destination.Value);
+            await HandlePendingFielderChoiceResolutionAsync();
+        }
     }
 
     private async void OnNextBatterClicked(object sender, EventArgs e)
+    {
+        if (viewModel.HasUnresolvedRunnerOutcomes)
+        {
+            await HandlePendingFielderChoiceResolutionAsync();
+            if (viewModel.HasUnresolvedRunnerOutcomes) return;
+        }
+        await CompletePendingPlayAsync();
+    }
+
+    private async Task CompletePendingPlayAsync()
     {
         if (isResolvingPlay || !viewModel.CanCompletePlateAppearance) return;
         isResolvingPlay = true;
@@ -161,6 +149,51 @@ public partial class ScoringPage : ContentPage
         {
             isResolvingPlay = false;
         }
+    }
+
+    private async Task HandlePendingFielderChoiceResolutionAsync()
+    {
+        if (isGuidingFielderChoice || !viewModel.IsPendingFielderChoice) return;
+        isGuidingFielderChoice = true;
+        try
+        {
+            if (viewModel.RequiresFielderChoiceThirdOutSelection)
+            {
+                var dialog = new FielderChoiceThirdOutDialog(
+                    viewModel.UnresolvedRunnerOutcomes);
+                var outPlayerId = await dialog.ShowAsync(Navigation);
+                if (outPlayerId is null) return;
+                if (await viewModel.CompleteFielderChoiceThirdOutAsync(outPlayerId.Value))
+                    await HandlePendingInningTransitionAsync();
+                return;
+            }
+
+            while (viewModel.UnresolvedRunnerOutcomes.Count > 0)
+            {
+                var participant = viewModel.UnresolvedRunnerOutcomes[0];
+                var destination = await ShowRunnerDestinationMenuAsync(
+                    participant.PlayerId, participant.PlayerName,
+                    isFielderChoiceResolution: true);
+                if (destination is null) return;
+                await viewModel.ChangeRunnerDestinationAsync(
+                    participant.PlayerId, destination.Value);
+            }
+            await CompletePendingPlayAsync();
+        }
+        finally
+        {
+            isGuidingFielderChoice = false;
+        }
+    }
+
+    private async Task<RunnerDestination?> ShowRunnerDestinationMenuAsync(
+        int playerId, string playerName, bool isFielderChoiceResolution)
+    {
+        var destinations = await viewModel.GetValidRunnerDestinationsAsync(playerId);
+        if (destinations.Count == 0) return null;
+        var dialog = new RunnerDestinationDialog(
+            playerName, destinations, isFielderChoiceResolution);
+        return await dialog.ShowAsync(Navigation);
     }
 
     private async Task ExitAsync()

@@ -545,6 +545,8 @@
   <data name="DoubleResultLabel" xml:space="preserve"><value>Double</value></data>
   <data name="TripleResultLabel" xml:space="preserve"><value>Triple</value></data>
   <data name="HomeRunResultLabel" xml:space="preserve"><value>Home Run</value></data>
+  <data name="WalkResultLabel" xml:space="preserve"><value>Walk</value></data>
+  <data name="FielderChoiceResultLabel" xml:space="preserve"><value>Fielder's Choice</value></data>
   <data name="OutResultLabel" xml:space="preserve"><value>OUT</value></data>
   <data name="OutDestinationLabel" xml:space="preserve"><value>Out</value></data>
   <data name="RunCountQuestionFormat" xml:space="preserve"><value>Does {0}'s run count?</value></data>
@@ -589,6 +591,13 @@
   <data name="RunnerBadgeLabel" xml:space="preserve"><value>● RUNNER</value></data>
   <data name="BatterResultMenuFormat" xml:space="preserve"><value>What did {0} do?</value></data>
   <data name="RunnerDestinationMenuFormat" xml:space="preserve"><value>Move {0} To</value></data>
+  <data name="ChooseOutcomeInstruction" xml:space="preserve"><value>Choose outcome</value></data>
+  <data name="ResolveFielderChoiceLabel" xml:space="preserve"><value>Fielder's Choice - Resolve runner</value></data>
+  <data name="FielderChoiceThirdOutTitle" xml:space="preserve"><value>Fielder's Choice - Who was Out?</value></data>
+  <data name="FielderChoiceThirdOutInstruction" xml:space="preserve"><value>Select the Player retired for the third Out</value></data>
+  <data name="RunnerOnFirstRoleLabel" xml:space="preserve"><value>Runner on First</value></data>
+  <data name="RunnerOnSecondRoleLabel" xml:space="preserve"><value>Runner on Second</value></data>
+  <data name="RunnerOnThirdRoleLabel" xml:space="preserve"><value>Runner on Third</value></data>
   <data name="RunsOnPlayFormat" xml:space="preserve"><value>RUNS: {0}</value></data>
   <data name="ScoredHeading" xml:space="preserve"><value>SCORED</value></data>
   <data name="TapBatterHint" xml:space="preserve"><value>Tap batter to choose or change result</value></data>
@@ -607,6 +616,9 @@
   <data name="OneUpOnLabel" xml:space="preserve"><value>1-UP ON</value></data>
   <data name="OnDeckLabel" xml:space="preserve"><value>ON DECK</value></data>
   <data name="InTheHoleLabel" xml:space="preserve"><value>IN THE HOLE</value></data>
+  <data name="UpcomingHeading" xml:space="preserve"><value>UPCOMING</value></data>
+  <data name="OutsThisInningHeading" xml:space="preserve"><value>OUTS THIS INNING</value></data>
+  <data name="OutPlayerDisplayFormat" xml:space="preserve"><value>{0}. {1}</value></data>
   <data name="GameOverButton" xml:space="preserve"><value>Game Over</value></data>
   <data name="GameOverTitle" xml:space="preserve"><value>Complete Game?</value></data>
   <data name="GameOverConfirmationMessage" xml:space="preserve"><value>The Game will be marked Completed and live scoring will end. Resume Game will no longer be available; future historical correction is a separate workflow.</value></data>
