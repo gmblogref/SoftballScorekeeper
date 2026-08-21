@@ -17,5 +17,9 @@ public sealed class GamePlateAppearanceRunnerMovement
 
     public RunnerDestination Destination { get; set; }
 
+    public RunnerDestination? SafeDestination { get; set; }
+
+    public RunnerDestination? AttemptedDestination { get; set; }
+
     public bool? RunCounts { get; set; }
 }

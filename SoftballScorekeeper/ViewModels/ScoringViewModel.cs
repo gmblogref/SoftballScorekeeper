@@ -115,6 +115,7 @@ public partial class ScoringViewModel : ObservableObject, IQueryAttributable
     public bool HasUnresolvedRunnerOutcomes => UnresolvedRunnerOutcomes.Count > 0;
     public bool IsPendingFielderChoice { get; private set; }
     public bool RequiresFielderChoiceThirdOutSelection { get; private set; }
+    public bool PendingFielderChoiceCompletesHalfInning { get; private set; }
     public bool IsAwaitingResult => !HasPendingPlay;
     public bool IsCurrentBatterVisible => !isPendingBatterResolved;
     public bool CanCompletePlateAppearance =>
@@ -426,8 +427,13 @@ public partial class ScoringViewModel : ObservableObject, IQueryAttributable
     }
 
     public async Task ChangeRunnerDestinationAsync(int playerId, RunnerDestination destination)
+        => await ChangeRunnerOutcomeAsync(
+            playerId, RunnerOutcomeChoice.ForDestination(destination));
+
+    public async Task ChangeRunnerOutcomeAsync(int playerId, RunnerOutcomeChoice outcome)
     {
-        var response = await sessionRepository.AdjustPendingRunnerAsync(GameId, playerId, destination);
+        var response = await sessionRepository.AdjustPendingRunnerOutcomeAsync(
+            GameId, playerId, outcome);
         if (!response.IsSuccess)
         {
             var message = response.FailureReason == PendingPlayFailure.DuplicateDestination
@@ -445,6 +451,16 @@ public partial class ScoringViewModel : ObservableObject, IQueryAttributable
     {
         var result = await sessionRepository.GetValidRunnerDestinationsAsync(GameId, playerId);
         if (result.IsSuccess) return result.Destinations;
+        ValidationMessage = AppResources.ScoringProposalFailed;
+        return [];
+    }
+
+    public async Task<IReadOnlyList<RunnerOutcomeChoice>> GetValidRunnerOutcomesAsync(
+        int playerId)
+    {
+        var result = await sessionRepository.GetValidRunnerOutcomeChoicesAsync(
+            GameId, playerId);
+        if (result.IsSuccess) return result.Choices;
         ValidationMessage = AppResources.ScoringProposalFailed;
         return [];
     }
@@ -469,6 +485,8 @@ public partial class ScoringViewModel : ObservableObject, IQueryAttributable
         OnPropertyChanged(nameof(IsPendingFielderChoice));
         RequiresFielderChoiceThirdOutSelection = false;
         OnPropertyChanged(nameof(RequiresFielderChoiceThirdOutSelection));
+        PendingFielderChoiceCompletesHalfInning = false;
+        OnPropertyChanged(nameof(PendingFielderChoiceCompletesHalfInning));
         SetPendingBatterResolved(false);
         FirstBaseRunner = EmptyBaseRunner(AppResources.FirstBaseHeadingLabel);
         SecondBaseRunner = EmptyBaseRunner(AppResources.SecondBaseHeadingLabel);
@@ -578,6 +596,13 @@ public partial class ScoringViewModel : ObservableObject, IQueryAttributable
         RequiresFielderChoiceThirdOutSelection = IsPendingFielderChoice
             && state.Session.CurrentOuts == 2;
         OnPropertyChanged(nameof(RequiresFielderChoiceThirdOutSelection));
+        PendingFielderChoiceCompletesHalfInning = IsPendingFielderChoice
+            && state.PendingPlay is not null
+            && state.PendingPlay.Movements.All(item =>
+                !item.RequiresOutcomeConfirmation)
+            && state.Session.CurrentOuts + state.PendingPlay.Movements.Count(item =>
+                item.Destination == RunnerDestination.Out) == 3;
+        OnPropertyChanged(nameof(PendingFielderChoiceCompletesHalfInning));
         if (state.PendingPlay is null) return;
         SetPendingBatterResolved(state.IsPendingBatterResolved());
         SelectedResultDisplay = string.Format(AppResources.SelectedResultFormat,
@@ -655,6 +680,19 @@ public partial class ScoringViewModel : ObservableObject, IQueryAttributable
         RunnerDestination.Out => AppResources.OutDestinationLabel,
         _ => string.Empty,
     };
+
+    public static string FormatRunnerOutcome(RunnerOutcomeChoice outcome)
+    {
+        if (!outcome.IsOutAttemptingAdvance)
+            return FormatDestination(outcome.Destination);
+        return outcome.AttemptedDestination switch
+        {
+            RunnerDestination.Second => AppResources.OutAttemptingSecondDestinationLabel,
+            RunnerDestination.Third => AppResources.OutAttemptingThirdDestinationLabel,
+            RunnerDestination.Scores => AppResources.OutAttemptingHomeDestinationLabel,
+            _ => string.Empty,
+        };
+    }
 
     private static string FormatStartingLocation(RunnerStartingLocation startingLocation) =>
         startingLocation switch

@@ -93,7 +93,7 @@ public partial class ScoringPage : ContentPage
 
     private async void OnRunnerButtonClicked(object sender, EventArgs e)
     {
-        if (sender is not Button button) return;
+        if (!viewModel.HasPendingPlay || sender is not Button button) return;
         var participant = (button.CommandParameter ?? button.BindingContext) switch
         {
             BaseRunnerViewModel { IsOccupied: true, PlayerId: int id } runner =>
@@ -102,13 +102,13 @@ public partial class ScoringPage : ContentPage
             _ => ((int PlayerId, string PlayerName)?)null,
         };
         if (participant is null) return;
-        var destination = await ShowRunnerDestinationMenuAsync(
+        var outcome = await ShowRunnerDestinationMenuAsync(
             participant.Value.PlayerId, participant.Value.PlayerName,
             viewModel.HasUnresolvedRunnerOutcomes);
-        if (destination is not null)
+        if (outcome is not null)
         {
-            await viewModel.ChangeRunnerDestinationAsync(
-                participant.Value.PlayerId, destination.Value);
+            await viewModel.ChangeRunnerOutcomeAsync(
+                participant.Value.PlayerId, outcome);
             await HandlePendingFielderChoiceResolutionAsync();
         }
     }
@@ -171,14 +171,15 @@ public partial class ScoringPage : ContentPage
             while (viewModel.UnresolvedRunnerOutcomes.Count > 0)
             {
                 var participant = viewModel.UnresolvedRunnerOutcomes[0];
-                var destination = await ShowRunnerDestinationMenuAsync(
+                var outcome = await ShowRunnerDestinationMenuAsync(
                     participant.PlayerId, participant.PlayerName,
                     isFielderChoiceResolution: true);
-                if (destination is null) return;
-                await viewModel.ChangeRunnerDestinationAsync(
-                    participant.PlayerId, destination.Value);
+                if (outcome is null) return;
+                await viewModel.ChangeRunnerOutcomeAsync(
+                    participant.PlayerId, outcome);
             }
-            await CompletePendingPlayAsync();
+            if (viewModel.PendingFielderChoiceCompletesHalfInning)
+                await CompletePendingPlayAsync();
         }
         finally
         {
@@ -186,13 +187,13 @@ public partial class ScoringPage : ContentPage
         }
     }
 
-    private async Task<RunnerDestination?> ShowRunnerDestinationMenuAsync(
+    private async Task<RunnerOutcomeChoice?> ShowRunnerDestinationMenuAsync(
         int playerId, string playerName, bool isFielderChoiceResolution)
     {
-        var destinations = await viewModel.GetValidRunnerDestinationsAsync(playerId);
-        if (destinations.Count == 0) return null;
+        var outcomes = await viewModel.GetValidRunnerOutcomesAsync(playerId);
+        if (outcomes.Count == 0) return null;
         var dialog = new RunnerDestinationDialog(
-            playerName, destinations, isFielderChoiceResolution);
+            playerName, outcomes, isFielderChoiceResolution);
         return await dialog.ShowAsync(Navigation);
     }
 
