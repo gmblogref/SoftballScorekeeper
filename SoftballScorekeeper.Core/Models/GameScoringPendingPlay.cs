@@ -32,5 +32,9 @@ public sealed class GameScoringPendingRunnerMovement
 
     public RunnerDestination Destination { get; set; }
 
+    public RunnerDestination? SafeDestination { get; set; }
+
+    public RunnerDestination? AttemptedDestination { get; set; }
+
     public bool RequiresOutcomeConfirmation { get; set; }
 }

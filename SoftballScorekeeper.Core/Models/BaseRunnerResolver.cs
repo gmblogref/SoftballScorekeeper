@@ -129,6 +129,35 @@ public static class BaseRunnerResolver
         return available.AsReadOnly();
     }
 
+    public static bool IsLegalArrangement(BaseRunnerResolutionState state) =>
+        state is not null && IsLegal(state.Participants);
+
+    public static bool TryGetOutAttemptingAdvance(
+        BaseRunnerResolutionState state,
+        int participantPlayerId,
+        out RunnerOutcomeChoice? outcome)
+    {
+        outcome = null;
+        if (state is null || participantPlayerId <= 0 || !IsLegal(state.Participants))
+            return false;
+        var participant = state.Participants.FirstOrDefault(item =>
+            item.PlayerId == participantPlayerId);
+        if (participant is null) return false;
+        var attemptedDestination = RunnerOutcomeChoice.GetNextDestination(
+            participant.Destination);
+        if (attemptedDestination is null) return false;
+
+        var candidate = new RunnerOutcomeChoice(
+            RunnerDestination.Out, participant.Destination, attemptedDestination);
+        if (!candidate.IsValidFor(participant.StartingLocation)
+            || !ResolveCorrection(state, participantPlayerId,
+                RunnerDestination.Out).IsSuccess)
+            return false;
+
+        outcome = candidate;
+        return true;
+    }
+
     public static IReadOnlyList<BaseRunnerResolutionState> GetLegalArrangements(
         BaseRunnerResolutionState state)
     {

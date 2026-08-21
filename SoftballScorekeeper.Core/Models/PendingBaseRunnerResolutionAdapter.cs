@@ -19,6 +19,9 @@ public static class PendingBaseRunnerResolutionAdapter
             if (movement.PlayerId <= 0
                 || !Enum.IsDefined(movement.StartingLocation)
                 || !Enum.IsDefined(movement.Destination)
+                || !new RunnerOutcomeChoice(movement.Destination,
+                    movement.SafeDestination, movement.AttemptedDestination)
+                    .IsValidFor(movement.StartingLocation)
                 || (movement.StartingLocation == RunnerStartingLocation.Home) != isBatter)
                 return false;
             participants.Add(new(movement.PlayerId,

@@ -6,12 +6,12 @@ namespace SoftballScorekeeper.Views;
 
 public partial class RunnerDestinationDialog : ContentPage
 {
-    private readonly TaskCompletionSource<RunnerDestination?> completion =
+    private readonly TaskCompletionSource<RunnerOutcomeChoice?> completion =
         new(TaskCreationOptions.RunContinuationsAsynchronously);
     private bool isClosing;
 
     public RunnerDestinationDialog(
-        string playerName, IReadOnlyList<RunnerDestination> destinations,
+        string playerName, IReadOnlyList<RunnerOutcomeChoice> outcomes,
         bool isFielderChoiceResolution)
     {
         InitializeComponent();
@@ -19,22 +19,22 @@ public partial class RunnerDestinationDialog : ContentPage
         FielderChoiceContextLabel.IsVisible = isFielderChoiceResolution;
         FielderChoiceContextLabel.Text = isFielderChoiceResolution
             ? AppResources.ResolveFielderChoiceLabel : string.Empty;
-        foreach (var destination in destinations)
+        foreach (var outcome in outcomes)
         {
             var button = new Button
             {
-                Text = ScoringViewModel.FormatDestination(destination),
+                Text = ScoringViewModel.FormatRunnerOutcome(outcome),
                 MinimumHeightRequest = 56,
-                WidthRequest = 170,
+                WidthRequest = outcome.IsOutAttemptingAdvance ? 220 : 170,
                 Margin = 5,
-                CommandParameter = destination,
+                CommandParameter = outcome,
             };
             button.Clicked += OnDestinationClicked;
             DestinationButtons.Add(button);
         }
     }
 
-    public async Task<RunnerDestination?> ShowAsync(INavigation navigation)
+    public async Task<RunnerOutcomeChoice?> ShowAsync(INavigation navigation)
     {
         await navigation.PushModalAsync(this);
         return await completion.Task;
@@ -48,15 +48,15 @@ public partial class RunnerDestinationDialog : ContentPage
 
     private async void OnDestinationClicked(object? sender, EventArgs e)
     {
-        if (sender is Button { CommandParameter: RunnerDestination destination })
-            await CloseAsync(destination);
+        if (sender is Button { CommandParameter: RunnerOutcomeChoice outcome })
+            await CloseAsync(outcome);
     }
 
-    private async Task CloseAsync(RunnerDestination? destination)
+    private async Task CloseAsync(RunnerOutcomeChoice? outcome)
     {
         if (isClosing) return;
         isClosing = true;
         await Navigation.PopModalAsync();
-        completion.TrySetResult(destination);
+        completion.TrySetResult(outcome);
     }
 }

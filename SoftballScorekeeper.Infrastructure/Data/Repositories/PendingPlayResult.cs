@@ -26,3 +26,10 @@ public sealed record RunnerDestinationChoicesResult(
 {
     public bool IsSuccess => FailureReason == PendingPlayFailure.None;
 }
+
+public sealed record RunnerOutcomeChoicesResult(
+    IReadOnlyList<RunnerOutcomeChoice> Choices,
+    PendingPlayFailure FailureReason)
+{
+    public bool IsSuccess => FailureReason == PendingPlayFailure.None;
+}

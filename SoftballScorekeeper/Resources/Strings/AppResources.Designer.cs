@@ -934,6 +934,9 @@ namespace SoftballScorekeeper.Resources.Strings {
         public static string FielderChoiceResultLabel { get { return ResourceManager.GetString("FielderChoiceResultLabel", resourceCulture); } }
         public static string OutResultLabel { get { return ResourceManager.GetString("OutResultLabel", resourceCulture); } }
         public static string OutDestinationLabel { get { return ResourceManager.GetString("OutDestinationLabel", resourceCulture); } }
+        public static string OutAttemptingSecondDestinationLabel { get { return ResourceManager.GetString("OutAttemptingSecondDestinationLabel", resourceCulture); } }
+        public static string OutAttemptingThirdDestinationLabel { get { return ResourceManager.GetString("OutAttemptingThirdDestinationLabel", resourceCulture); } }
+        public static string OutAttemptingHomeDestinationLabel { get { return ResourceManager.GetString("OutAttemptingHomeDestinationLabel", resourceCulture); } }
         public static string RunCountQuestionFormat { get { return ResourceManager.GetString("RunCountQuestionFormat", resourceCulture); } }
         public static string RunRulingTitle { get { return ResourceManager.GetString("RunRulingTitle", resourceCulture); } }
         public static string RunCountsButton { get { return ResourceManager.GetString("RunCountsButton", resourceCulture); } }

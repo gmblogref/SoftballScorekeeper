@@ -549,6 +549,9 @@
   <data name="FielderChoiceResultLabel" xml:space="preserve"><value>Fielder's Choice</value></data>
   <data name="OutResultLabel" xml:space="preserve"><value>OUT</value></data>
   <data name="OutDestinationLabel" xml:space="preserve"><value>Out</value></data>
+  <data name="OutAttemptingSecondDestinationLabel" xml:space="preserve"><value>Out Attempting Second</value></data>
+  <data name="OutAttemptingThirdDestinationLabel" xml:space="preserve"><value>Out Attempting Third</value></data>
+  <data name="OutAttemptingHomeDestinationLabel" xml:space="preserve"><value>Out Attempting Home</value></data>
   <data name="RunCountQuestionFormat" xml:space="preserve"><value>Does {0}'s run count?</value></data>
   <data name="RunRulingTitle" xml:space="preserve"><value>Third-Out Run Ruling</value></data>
   <data name="RunCountsButton" xml:space="preserve"><value>Run Counts</value></data>

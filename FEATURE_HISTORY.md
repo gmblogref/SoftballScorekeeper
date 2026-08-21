@@ -10,9 +10,9 @@ Stable product and architecture decisions belong in the project architecture doc
 
 ## Current Project Status
 
-- **Latest completed story:** Story 6.5 — Walk and Fielder’s Choice Scoring
-- **Completed stories:** Stories 0.0 through 6.5; Stories 3.2 through 3.4 retain their recorded validation status
-- **Current story:** None; Story 6.5 is complete and PR-ready on `task/walk-fc-scorer`
+- **Latest completed story:** Story 6.5.1 — Runner Out Attempting to Advance
+- **Completed stories:** Stories 0.0 through 6.5.1; Stories 3.2 through 3.4 retain their recorded validation status
+- **Current story:** None; Story 6.5.1 is complete and PR-ready on `task/651-Runner-Out-Attempting-Advance`
 - **Current phase:** Scoring interaction refinement
 - **Foundation status:** Complete
 
@@ -2316,6 +2316,62 @@ Dedicated Double Play/Triple Play presentation, sacrifice results, HR-limit/dead
 #### Intended Commit Message
 
 `Add Walk and fielder's choice scoring`
+
+### Story 6.5.1 — Runner Out Attempting to Advance
+
+**Status:** Complete and PR-ready on `task/651-Runner-Out-Attempting-Advance`; implementation, automated validation, Windows build validation, and focused physical Android tablet acceptance are complete
+
+#### Persisted Semantics and Compatibility
+
+- Added the distinct historical outcome for a runner who safely reaches a base during the current play and is then retired attempting the immediately following destination. Ordinary `Out` retains its Story 6.5 meaning that the runner did not safely reach the destination being resolved and continues to persist with no safe or attempted destination metadata.
+- Added nullable `SafeDestination` and `AttemptedDestination` fields to pending and completed runner-movement rows. An attempted-advance record retains exact Player identity, original `StartingLocation`, the safely reached First/Second/Third destination, the immediately following attempted Second/Third/Scores destination, and authoritative final `Destination = Out`. `Scores` remains the internal representation for the user-facing Home destination; no destination beyond Home is invented.
+- SQLite initialization adds the two nullable columns to existing movement tables without recreating the database. Pre-6.5.1 rows default both fields to null, so existing ordinary Outs and all prior Single/Double/Triple/Home Run/Walk/FC history retain their original interpretation. Pending choices and committed history survive database close/reopen with the same Player, start, safe destination, attempted destination, and final Out state.
+- The additive representation preserves the information later Undo/correction work will need without adding correction UI, Undo/Redo, timestamps, or a chronological play-event engine. Reset continues deleting the scoring-session-owned movement rows through its existing transaction, and completed-game history retains the new fields like every other committed movement.
+
+#### Resolver, Completion, and Scoring Behavior
+
+- Added the focused `RunnerOutcomeChoice` domain value and extended `BaseRunnerResolver` at its existing arrangement boundary. A safe First permits only Out Attempting Second, safe Second only Out Attempting Third, and safe Third only Out Attempting Home (`Scores` internally). The safe destination must be a genuine forward advance from the pre-play starting location; holding the pre-play base, backward combinations, mismatched next destinations, and attempts beyond Home are rejected.
+- Normal pending plays offer the attempted-Out choice only from the runner's current legal safe proposal. Guided zero/one-Out FC resolution requires the participant's exact movement to be persisted as confirmed at the safe destination during the active FC; it then uses the same compatible resolver-arrangement predicate for menu display and execution. Unresolved hypothetical arrangements and a base occupied before the active play cannot manufacture a safe destination. A resolved non-third-Out FC remains active while any current-play participant is safely on First, Second, or Third or has Scores as the pending destination, so that Player remains available for legal same-play correction. Next Batter explicitly commits that legal arrangement when the scorer declares the play finished. FC's dedicated two-Out `Who was Out?` path remains unchanged. No second movement engine or alternate FC completion path was introduced.
+- Selecting the new outcome persists the safe and attempted destinations while finalizing the participant as Out. Existing resolver correction protects identity, runner order, no passing, unique final base occupancy, multiple Scores/Outs, out limits, and menu/execution agreement. The ultimately retired runner never occupies the safely reached base in committed or pending live-base presentation, so another runner may legally finish there without stale occupancy or highlight state.
+- The existing completion transaction remains authoritative for the plate appearance, movement history, score, bases, batter advancement, and exactly one Out per retired Player. Batter-runners are supported without rewriting the recorded PA result: for example, a Single batter may safely reach First and be Out attempting Second while the PA remains Single. Walk remains distinct and keeps its accepted forced-only immediate-completion behavior; because that workflow exposes no pending continuation, Story 6.5.1 does not add a post-Walk adjustment step. FC attempted-advance movements likewise retain `FielderChoice` classification.
+- Attempted-advance Outs feed the existing persisted Out movement history, so the actual retired Player appears exactly once and in play order in `OUTS THIS INNING`, including Exit/Resume reconstruction and duplicate identities across separate plays. Resolved non-terminal FC state, including exact scored-Player identity, survives Exit/Resume without advancing the batter or committing score, Outs, or a plate appearance. A single Core terminality predicate permits repository-owned auto-completion only when the FC arrangement is complete and resolver-legal, no movement needs confirmation, every participant is retired, no safe or scored participant remains editable, and the play produces fewer than three Outs. The predicate is based on typed pending outcomes rather than physical base occupancy. An FC whose resolved movements create the third Out remains excluded and completes through the existing third-out machinery; half-inning completion, run rulings, base clearing, outs reset, inning advancement, batting continuity, and opponent workflow remain unchanged.
+- Safe/attempted destination history does not infer play timing. When a runner Out attempting to advance creates the third Out while another runner may have scored, the existing scorer-controlled third-out run-count ruling remains required and authoritative.
+
+#### Presentation
+
+- The accepted blocking, background-dimming runner dialog and prominent exact Player-name header remain unchanged. Its outcome buttons now carry typed `RunnerOutcomeChoice` values and add resource-backed `Out Attempting Second`, `Out Attempting Third`, or `Out Attempting Home` labels only when that specific relationship is legal. Attempted-Out buttons receive additional width for the longer softball-friendly labels; the scoring screen composition, portrait/landscape rails, scoreboard, Current Batter, Upcoming, Outs This Inning, bases, and scoring menu were not redesigned.
+
+#### Statistics and Deferred Boundaries
+
+- Plate-appearance classification remains separate from final runner outcome, preserving future hit, Walk, FC, AVG, OBP, and at-bat derivation. Current-play correction ends when Next Batter, all-retired terminal completion, or third-Out completion commits the play; reopening or editing committed history belongs to future Undo/correction work. Story 6.5.1 adds no post-commit editing, statistics, or batter-responsibility calculation.
+- Full chronological play-by-play, automatic run timing, dedicated Double Play/Triple Play classifications, Sacrifice Fly, Error/Reach on Error, HR-limit or 1-Up enforcement, Beer Rules, substitutions, live lineup management, global Undo/Redo, and completed-game correction remain deferred.
+
+#### Automated and Platform Validation
+
+- The pre-change scoring/resolver baseline passed 260 of 260. Added 18 focused cases covering the three legal safe/attempted relationships; invalid, backward, held-base, mismatched, and beyond-Home rejection; menu/execution agreement; batter Single and existing-runner integration; exact persisted identity/start/safe/attempted/final-Out state; final bases; exactly-once out counting and Outs This Inning; FC classification; immediate Walk compatibility; third-out transition and retained run ruling; pending and committed reload; old-schema additive migration; ordinary-Out compatibility; resource-backed UI labels; and the physical-device FC disagreement described below.
+- After the final scored-runner editability refinement, the combined Walk/FC and attempted-advance focused group passed 59 of 59. The scoring/resolver-named regression group passed 268 of 268. The complete automated suite passed 458 of 458 with zero failures and zero skips against isolated temporary SQLite databases.
+- The Windows `net9.0-windows10.0.19041.0` non-incremental build passed with zero errors and 114 existing warning instances in the established `CS8602`, `MVVMTK0045`, and `XC0025` categories. Windows runtime validation was not performed.
+- Android command-line compilation remains unavailable because the local Android SDK is not configured; the build failed with `XA5300`, zero warnings, and one error before application compilation.
+
+#### Physical Android Findings, Corrections, and Final Acceptance
+
+- Physical Android validation successfully exercised Single → safe Third → Out Attempting Home. The same validation then exposed an FC menu/execution disagreement: after an FC presentation placed a runner at Second, selecting `Out Attempting Third` returned the existing failed-save message and left the runner on Second.
+- Repository-state investigation found that the failing one-runner FC had already been auto-committed after its guided outcomes became unique. That removed the current-play safe destination and advanced the batter before the scorer could extend the runner's movement. Treating the runner's resulting Second-base occupancy as part of the next play would be invalid, but hiding the choice alone would have preserved the premature FC lifecycle.
+- The first targeted correction kept resolved non-third-Out FCs pending so an explicitly confirmed First-to-Second movement could continue to Third or Out Attempting Third. Subsequent review removed a redundant Next Batter tap when every participant was terminal, initially treating both Scores and Out as terminal outcomes. Final boundary review established that Scores remains editable pending-play state: a scorer may still move that exact Player back to a legal base before commit. The final predicate therefore auto-completes only an all-retired legal FC; any safe or scored participant requires Next Batter, while Out and Out Attempting are terminal for that Player. Menu and execution still use the same exact-current-play attempted-advance predicate, the PA remains Fielder's Choice, and Exit/Resume restores genuinely pending safe/scored state. A runner who merely occupied Second before the active play still cannot gain Out Attempting Third from that occupancy; ordinary Out remains available. Resolved FC movements that create the third Out continue through the authoritative existing machinery, including run-count rulings and the two-Out `Who Was Out?` route. Rejected invalid states do not mutate score, outs, bases, or pending movements.
+- Final physical Android validation accepted the corrected lifecycle and pending/commit boundary. FC First-to-safe-Second remained pending and editable until Next Batter; the same runner could continue to Third and commit there; First-to-safe-Second-to-Out Attempting Third saved without error, removed the runner, counted the Out once, preserved FC classification, and auto-completed when every participant was retired. A later play did not derive Out Attempting Third from pre-play Second-base occupancy, and ordinary Out remained available.
+- Physical Android also accepted the scored-runner boundary with one Out: after a runner from Third scored and the batter became Out Attempting Second, the scored Player remained visible/editable, the play and current batter remained pending, the Player could be corrected to a legal base and restored to Scores, and Next Batter committed the score and PA. The dedicated two-Out `Who Was Out?` FC path still ended the half automatically. Pending FC state, current batter, and editable runners restored through Exit/Resume. Single to safe Third to Out Attempting Home, ordinary FC, ordinary runner Out, Walk, portrait, and landscape smoke checks were accepted with no observed clipping, overlap, or stale base state.
+
+#### Physical Android Tablet Validation — Accepted
+
+- Accepted safe-runner pending editability, continued safe advancement, explicit Next Batter commit, and all-retired non-third-Out FC auto-completion.
+- Accepted exact attempted-advance execution, persisted FC classification, authoritative exactly-once Out counting, final base removal, and the pre-play occupancy safeguard.
+- Accepted scored-runner pending editability and same-play correction before Next Batter; post-commit correction remains deferred to future Undo/correction functionality.
+- Accepted dedicated third-Out FC completion and Exit/Resume restoration of pending FC state.
+- Accepted Single attempted-advance, ordinary FC, ordinary runner Out, Walk, portrait, and landscape smoke coverage. Multiple-scored-runner physical validation was not separately reported and is not claimed.
+
+#### Intended Commit Message
+
+`Add runner out attempting to advance`
 
 ## Maintenance Rules
 
