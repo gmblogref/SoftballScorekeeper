@@ -31,4 +31,6 @@ public enum BatterResult
     Out = 5,
     Walk = 6,
     FielderChoice = 7,
+    DoublePlay = 8,
+    TriplePlay = 9,
 }

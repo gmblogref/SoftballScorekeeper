@@ -47,7 +47,7 @@ public partial class ScoringViewModel : ObservableObject, IQueryAttributable
     public ObservableCollection<ScoredPlayerViewModel> ScoredPlayers { get; } = [];
     public ObservableCollection<OutPlayerViewModel> OutsThisInning { get; } = [];
     public IReadOnlyList<BatterResult> AvailableBatterResults { get; private set; } =
-        PlateAppearanceResultDefinitions.GetSelectableResults(false);
+        PlateAppearanceResultDefinitions.GetSelectableResults(0);
     public IReadOnlyList<RunnerOutcomeViewModel> UnresolvedRunnerOutcomes { get; private set; } = [];
 
     public string HomeHomeRunDisplay
@@ -116,6 +116,9 @@ public partial class ScoringViewModel : ObservableObject, IQueryAttributable
     public bool IsPendingFielderChoice { get; private set; }
     public bool RequiresFielderChoiceThirdOutSelection { get; private set; }
     public bool PendingFielderChoiceCompletesHalfInning { get; private set; }
+    public bool IsPendingMultiOutPlay { get; private set; }
+    public bool RequiresMultiOutRetirementSelection { get; private set; }
+    public int RequiredMultiOutRetirementCount { get; private set; }
     public bool IsAwaitingResult => !HasPendingPlay;
     public bool IsCurrentBatterVisible => !isPendingBatterResolved;
     public bool CanCompletePlateAppearance =>
@@ -212,7 +215,7 @@ public partial class ScoringViewModel : ObservableObject, IQueryAttributable
         RestoreOutsThisInning(state);
         currentBatterPlayerId = currentPlayer.Id;
         AvailableBatterResults = PlateAppearanceResultDefinitions
-            .GetSelectableResults(state.BaseRunners.Count > 0);
+            .GetSelectableResults(state.BaseRunners.Count, state.Session.CurrentOuts);
         OnPropertyChanged(nameof(AvailableBatterResults));
         RestoreBaseRunners(state);
         RestorePendingPlay(state);
@@ -371,6 +374,18 @@ public partial class ScoringViewModel : ObservableObject, IQueryAttributable
         await LoadAsync();
     }
 
+    public async Task<bool> SelectMultiOutRetirementsAsync(
+        IReadOnlyList<MultiOutRetirementSelection> retirements)
+    {
+        if (!RequiresMultiOutRetirementSelection) return false;
+        var response = await sessionRepository.SelectMultiOutRetirementsAsync(
+            GameId, retirements);
+        await LoadAsync();
+        if (response.IsSuccess) return true;
+        ValidationMessage = AppResources.ScoringProposalFailed;
+        return false;
+    }
+
     public async Task<HalfInningTransitionViewModel?> GetPendingHalfInningTransitionAsync()
     {
         if (!hasValidContext) return null;
@@ -487,6 +502,12 @@ public partial class ScoringViewModel : ObservableObject, IQueryAttributable
         OnPropertyChanged(nameof(RequiresFielderChoiceThirdOutSelection));
         PendingFielderChoiceCompletesHalfInning = false;
         OnPropertyChanged(nameof(PendingFielderChoiceCompletesHalfInning));
+        IsPendingMultiOutPlay = false;
+        OnPropertyChanged(nameof(IsPendingMultiOutPlay));
+        RequiresMultiOutRetirementSelection = false;
+        OnPropertyChanged(nameof(RequiresMultiOutRetirementSelection));
+        RequiredMultiOutRetirementCount = 0;
+        OnPropertyChanged(nameof(RequiredMultiOutRetirementCount));
         SetPendingBatterResolved(false);
         FirstBaseRunner = EmptyBaseRunner(AppResources.FirstBaseHeadingLabel);
         SecondBaseRunner = EmptyBaseRunner(AppResources.SecondBaseHeadingLabel);
@@ -499,7 +520,7 @@ public partial class ScoringViewModel : ObservableObject, IQueryAttributable
         OnPropertyChanged(nameof(HasScoredPlayers));
         OnPropertyChanged(nameof(HasNoScoredPlayers));
         SetUnresolvedRunnerOutcomes([]);
-        AvailableBatterResults = PlateAppearanceResultDefinitions.GetSelectableResults(false);
+        AvailableBatterResults = PlateAppearanceResultDefinitions.GetSelectableResults(0);
         OnPropertyChanged(nameof(AvailableBatterResults));
         currentBatterPlayerId = 0;
         currentTeamSide = default;
@@ -603,6 +624,19 @@ public partial class ScoringViewModel : ObservableObject, IQueryAttributable
             && state.Session.CurrentOuts + state.PendingPlay.Movements.Count(item =>
                 item.Destination == RunnerDestination.Out) == 3;
         OnPropertyChanged(nameof(PendingFielderChoiceCompletesHalfInning));
+        var pendingDefinition = state.PendingPlay is null
+            ? null : PlateAppearanceResultDefinitions.Get(state.PendingPlay.Play.Result);
+        IsPendingMultiOutPlay = pendingDefinition?.RequiredPlayOuts > 0;
+        OnPropertyChanged(nameof(IsPendingMultiOutPlay));
+        RequiredMultiOutRetirementCount = IsPendingMultiOutPlay
+            ? pendingDefinition!.RequiredPlayOuts
+            : 0;
+        OnPropertyChanged(nameof(RequiredMultiOutRetirementCount));
+        RequiresMultiOutRetirementSelection = IsPendingMultiOutPlay
+            && state.PendingPlay is not null
+            && state.PendingPlay.Movements.All(item =>
+                item.RequiresOutcomeConfirmation && item.OutOrder is null);
+        OnPropertyChanged(nameof(RequiresMultiOutRetirementSelection));
         if (state.PendingPlay is null) return;
         SetPendingBatterResolved(state.IsPendingBatterResolved());
         SelectedResultDisplay = string.Format(AppResources.SelectedResultFormat,
@@ -647,6 +681,8 @@ public partial class ScoringViewModel : ObservableObject, IQueryAttributable
         BatterResult.HomeRun => AppResources.HomeRunResultLabel,
         BatterResult.Walk => AppResources.WalkResultLabel,
         BatterResult.FielderChoice => AppResources.FielderChoiceResultLabel,
+        BatterResult.DoublePlay => AppResources.DoublePlayResultLabel,
+        BatterResult.TriplePlay => AppResources.TriplePlayResultLabel,
         BatterResult.Out => AppResources.OutResultLabel,
         _ => string.Empty,
     };

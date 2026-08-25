@@ -24,6 +24,8 @@ public sealed record PlateAppearanceResultDefinition(
     bool RequiresExistingRunner = false,
     bool RequiresExplicitOutcomeConfirmation = false,
     int MinimumPlayOuts = 0,
+    int RequiredPlayOuts = 0,
+    int MinimumParticipants = 1,
     IReadOnlyList<RunnerDestination>? AllowedBatterDestinations = null)
 {
     public RunnerDestination GetExistingRunnerDefaultDestination(
@@ -56,12 +58,19 @@ public sealed record PlateAppearanceResultDefinition(
         };
     }
 
-    public bool IsCompatibleWithArrangement(BaseRunnerResolutionState arrangement)
+    public bool IsCompatibleWithArrangement(
+        BaseRunnerResolutionState arrangement, int currentOuts = 0)
     {
         var batter = arrangement.Participants.Single(item =>
             item.StartingLocation == RunnerStartingLocation.Home);
-        return arrangement.Participants.Count(item =>
-                item.Destination == RunnerDestination.Out) >= MinimumPlayOuts
+        var outCount = arrangement.Participants.Count(item =>
+            item.Destination == RunnerDestination.Out);
+        var hasEnoughOutsRemaining = RequiredPlayOuts == 0
+            || RequiredPlayOuts <= 3 - currentOuts;
+        return arrangement.Participants.Count >= MinimumParticipants
+            && outCount >= MinimumPlayOuts
+            && hasEnoughOutsRemaining
+            && (RequiredPlayOuts == 0 || outCount == RequiredPlayOuts)
             && (AllowedBatterDestinations is null
                 || AllowedBatterDestinations.Contains(batter.Destination));
     }
@@ -94,6 +103,20 @@ public static class PlateAppearanceResultDefinitions
             MinimumPlayOuts: 1,
             AllowedBatterDestinations:
                 [RunnerDestination.First, RunnerDestination.Out]),
+        new(BatterResult.DoublePlay, RunnerDestination.First,
+            ExistingRunnerMovementBehavior.Hold, 0,
+            PlateAppearanceCompletionBehavior.Pending,
+            RequiresExistingRunner: true,
+            RequiresExplicitOutcomeConfirmation: true,
+            RequiredPlayOuts: 2,
+            MinimumParticipants: 2),
+        new(BatterResult.TriplePlay, RunnerDestination.First,
+            ExistingRunnerMovementBehavior.Hold, 0,
+            PlateAppearanceCompletionBehavior.Pending,
+            RequiresExistingRunner: true,
+            RequiresExplicitOutcomeConfirmation: true,
+            RequiredPlayOuts: 3,
+            MinimumParticipants: 3),
         new(BatterResult.Out, RunnerDestination.Out,
             ExistingRunnerMovementBehavior.Hold, 0,
             PlateAppearanceCompletionBehavior.ContextualOut,
@@ -113,8 +136,15 @@ public static class PlateAppearanceResultDefinitions
     }
 
     public static IReadOnlyList<BatterResult> GetSelectableResults(
-        bool hasExistingRunners) => Definitions
-        .Where(item => !item.RequiresExistingRunner || hasExistingRunners)
+        int existingRunnerCount,
+        int currentOuts = 0) => Definitions
+        .Where(item => !item.RequiresExistingRunner || existingRunnerCount > 0)
+        .Where(item => existingRunnerCount + 1 >= item.MinimumParticipants)
+        .Where(item => item.RequiredPlayOuts == 0
+            || item.RequiredPlayOuts <= 3 - currentOuts)
         .Select(item => item.Result)
         .ToArray();
+
+    public static IReadOnlyList<BatterResult> GetSelectableResults(
+        bool hasExistingRunners) => GetSelectableResults(hasExistingRunners ? 1 : 0, 0);
 }

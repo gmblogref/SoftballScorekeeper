@@ -21,5 +21,7 @@ public sealed class GamePlateAppearanceRunnerMovement
 
     public RunnerDestination? AttemptedDestination { get; set; }
 
+    public int? OutOrder { get; set; }
+
     public bool? RunCounts { get; set; }
 }

@@ -11,6 +11,7 @@ public partial class ScoringPage : ContentPage
     private bool isHandlingInningTransition;
     private bool isResolvingPlay;
     private bool isGuidingFielderChoice;
+    private bool isGuidingMultiOutPlay;
 
     public ScoringPage(ScoringViewModel viewModel)
     {
@@ -26,6 +27,7 @@ public partial class ScoringPage : ContentPage
         if (isHandlingInningTransition) return;
         await viewModel.LoadAsync();
         await HandlePendingInningTransitionAsync();
+        await HandlePendingMultiOutResolutionAsync();
         await HandlePendingFielderChoiceResolutionAsync();
     }
 
@@ -86,7 +88,9 @@ public partial class ScoringPage : ContentPage
         {
             await viewModel.SelectResultAsync(result.Value);
             await HandlePendingInningTransitionAsync();
-            if (result == BatterResult.FielderChoice)
+            if (result is BatterResult.DoublePlay or BatterResult.TriplePlay)
+                await HandlePendingMultiOutResolutionAsync();
+            else if (result == BatterResult.FielderChoice)
                 await HandlePendingFielderChoiceResolutionAsync();
         }
     }
@@ -94,6 +98,11 @@ public partial class ScoringPage : ContentPage
     private async void OnRunnerButtonClicked(object sender, EventArgs e)
     {
         if (!viewModel.HasPendingPlay || sender is not Button button) return;
+        if (viewModel.RequiresMultiOutRetirementSelection)
+        {
+            await HandlePendingMultiOutResolutionAsync();
+            return;
+        }
         var participant = (button.CommandParameter ?? button.BindingContext) switch
         {
             BaseRunnerViewModel { IsOccupied: true, PlayerId: int id } runner =>
@@ -109,12 +118,18 @@ public partial class ScoringPage : ContentPage
         {
             await viewModel.ChangeRunnerOutcomeAsync(
                 participant.Value.PlayerId, outcome);
+            await HandlePendingInningTransitionAsync();
             await HandlePendingFielderChoiceResolutionAsync();
         }
     }
 
     private async void OnNextBatterClicked(object sender, EventArgs e)
     {
+        if (viewModel.RequiresMultiOutRetirementSelection)
+        {
+            await HandlePendingMultiOutResolutionAsync();
+            if (viewModel.RequiresMultiOutRetirementSelection) return;
+        }
         if (viewModel.HasUnresolvedRunnerOutcomes)
         {
             await HandlePendingFielderChoiceResolutionAsync();
@@ -184,6 +199,28 @@ public partial class ScoringPage : ContentPage
         finally
         {
             isGuidingFielderChoice = false;
+        }
+    }
+
+    private async Task HandlePendingMultiOutResolutionAsync()
+    {
+        if (isGuidingMultiOutPlay
+            || !viewModel.RequiresMultiOutRetirementSelection) return;
+        isGuidingMultiOutPlay = true;
+        try
+        {
+            var participants = viewModel.UnresolvedRunnerOutcomes;
+            var dialog = new MultiOutSelectionDialog(
+                participants, viewModel.RequiredMultiOutRetirementCount);
+            var retirements = await dialog.ShowAsync(Navigation);
+            if (retirements is null) return;
+
+            if (await viewModel.SelectMultiOutRetirementsAsync(retirements))
+                await HandlePendingInningTransitionAsync();
+        }
+        finally
+        {
+            isGuidingMultiOutPlay = false;
         }
     }
 
