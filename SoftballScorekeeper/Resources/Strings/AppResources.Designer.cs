@@ -932,6 +932,12 @@ namespace SoftballScorekeeper.Resources.Strings {
         public static string HomeRunResultLabel { get { return ResourceManager.GetString("HomeRunResultLabel", resourceCulture); } }
         public static string WalkResultLabel { get { return ResourceManager.GetString("WalkResultLabel", resourceCulture); } }
         public static string FielderChoiceResultLabel { get { return ResourceManager.GetString("FielderChoiceResultLabel", resourceCulture); } }
+        public static string DoublePlayResultLabel { get { return ResourceManager.GetString("DoublePlayResultLabel", resourceCulture); } }
+        public static string TriplePlayResultLabel { get { return ResourceManager.GetString("TriplePlayResultLabel", resourceCulture); } }
+        public static string MultiOutSelectionTitleFormat { get { return ResourceManager.GetString("MultiOutSelectionTitleFormat", resourceCulture); } }
+        public static string MultiOutSelectionSingleTitleFormat { get { return ResourceManager.GetString("MultiOutSelectionSingleTitleFormat", resourceCulture); } }
+        public static string MultiOutSelectionInstruction { get { return ResourceManager.GetString("MultiOutSelectionInstruction", resourceCulture); } }
+        public static string MultiOutSelectionConfirmButton { get { return ResourceManager.GetString("MultiOutSelectionConfirmButton", resourceCulture); } }
         public static string OutResultLabel { get { return ResourceManager.GetString("OutResultLabel", resourceCulture); } }
         public static string OutDestinationLabel { get { return ResourceManager.GetString("OutDestinationLabel", resourceCulture); } }
         public static string OutAttemptingSecondDestinationLabel { get { return ResourceManager.GetString("OutAttemptingSecondDestinationLabel", resourceCulture); } }

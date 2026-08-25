@@ -36,5 +36,7 @@ public sealed class GameScoringPendingRunnerMovement
 
     public RunnerDestination? AttemptedDestination { get; set; }
 
+    public int? OutOrder { get; set; }
+
     public bool RequiresOutcomeConfirmation { get; set; }
 }

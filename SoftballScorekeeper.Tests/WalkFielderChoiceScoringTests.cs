@@ -11,12 +11,18 @@ public sealed class WalkFielderChoiceScoringTests
     public void Walk_and_fielder_choice_are_distinct_selectable_plate_appearance_results()
     {
         Assert.NotEqual((int)BatterResult.Walk, (int)BatterResult.FielderChoice);
-        Assert.DoesNotContain("DoublePlay", Enum.GetNames<BatterResult>());
-        Assert.DoesNotContain("TriplePlay", Enum.GetNames<BatterResult>());
+        Assert.Contains("DoublePlay", Enum.GetNames<BatterResult>());
+        Assert.Contains("TriplePlay", Enum.GetNames<BatterResult>());
         Assert.DoesNotContain(BatterResult.FielderChoice,
             PlateAppearanceResultDefinitions.GetSelectableResults(false));
         Assert.Contains(BatterResult.FielderChoice,
             PlateAppearanceResultDefinitions.GetSelectableResults(true));
+        Assert.Contains(BatterResult.DoublePlay,
+            PlateAppearanceResultDefinitions.GetSelectableResults(1));
+        Assert.DoesNotContain(BatterResult.TriplePlay,
+            PlateAppearanceResultDefinitions.GetSelectableResults(1));
+        Assert.Contains(BatterResult.TriplePlay,
+            PlateAppearanceResultDefinitions.GetSelectableResults(2));
     }
 
     [Theory]

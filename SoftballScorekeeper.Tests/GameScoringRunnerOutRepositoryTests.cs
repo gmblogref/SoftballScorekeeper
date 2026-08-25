@@ -176,7 +176,7 @@ public sealed class GameScoringRunnerOutRepositoryTests
     [Theory]
     [InlineData(true, 1)]
     [InlineData(false, 0)]
-    public async Task Runner_third_out_requires_ruling_and_preserves_physical_score(
+    public async Task Out_attempting_third_out_requires_ruling_and_preserves_physical_score(
         bool runCounts, int expectedRuns)
     {
         await using var db = await TemporaryTestDatabase.CreateAsync();
@@ -187,8 +187,10 @@ public sealed class GameScoringRunnerOutRepositoryTests
         await db.UpdateInningOutStateAsync(initialized.Session!.Id, 1, 2);
         await SeedBasesAsync(db, initialized.Session.Id, context.Players, 3);
         await repository.SelectBatterResultAsync(context.Game.Id, BatterResult.Single);
-        await repository.AdjustPendingRunnerAsync(
-            context.Game.Id, context.Players[0].Id, RunnerDestination.Out);
+        await repository.AdjustPendingRunnerOutcomeAsync(
+            context.Game.Id, context.Players[0].Id,
+            new(RunnerDestination.Out,
+                RunnerDestination.First, RunnerDestination.Second));
 
         var required = await repository.GetRunRulingRequirementsAsync(context.Game.Id);
         Assert.Equal(new[] { context.Players[3].Id }, required.PlayerIds);
@@ -229,8 +231,10 @@ public sealed class GameScoringRunnerOutRepositoryTests
         await repository.SelectBatterResultAsync(context.Game.Id, BatterResult.Single);
         await repository.AdjustPendingRunnerAsync(
             context.Game.Id, context.Players[2].Id, RunnerDestination.Scores);
-        await repository.AdjustPendingRunnerAsync(
-            context.Game.Id, context.Players[0].Id, RunnerDestination.Out);
+        await repository.AdjustPendingRunnerOutcomeAsync(
+            context.Game.Id, context.Players[0].Id,
+            new(RunnerDestination.Out,
+                RunnerDestination.First, RunnerDestination.Second));
 
         var required = await repository.GetRunRulingRequirementsAsync(context.Game.Id);
         Assert.Equal(new[] { context.Players[3].Id, context.Players[2].Id },

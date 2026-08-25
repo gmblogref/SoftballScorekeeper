@@ -62,6 +62,10 @@ public sealed class AppDatabase
             await connection.CreateTableAsync<GameScoringHalfInning>();
             await connection.CreateTableAsync<GameScoringPendingPlay>();
             await connection.CreateTableAsync<GameScoringPendingRunnerMovement>();
+            await AddColumnIfMissingAsync<GamePlateAppearanceRunnerMovement>(
+                nameof(GamePlateAppearanceRunnerMovement.OutOrder), "INTEGER");
+            await AddColumnIfMissingAsync<GameScoringPendingRunnerMovement>(
+                nameof(GameScoringPendingRunnerMovement.OutOrder), "INTEGER");
             await connection.RunInTransactionAsync(transaction =>
             {
                 if (legacyScoringRules)
@@ -76,6 +80,14 @@ public sealed class AppDatabase
         {
             initializationLock.Release();
         }
+    }
+
+    private async Task AddColumnIfMissingAsync<T>(string columnName, string sqlType)
+    {
+        var columns = await connection.GetTableInfoAsync(typeof(T).Name);
+        if (columns.Any(column => column.Name == columnName)) return;
+        await connection.ExecuteAsync(
+            $"ALTER TABLE {typeof(T).Name} ADD COLUMN {columnName} {sqlType}");
     }
 
     private async Task<bool> RequiresScoringRulesCompatibilityAsync()

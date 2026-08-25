@@ -33,7 +33,9 @@ public sealed record GameScoringState(
         var outMovements = RunnerMovements
             .Where(item => item.Destination == RunnerDestination.Out)
             .GroupBy(item => item.GamePlateAppearanceId)
-            .ToDictionary(group => group.Key, group => group.OrderBy(item => item.Id).ToArray());
+            .ToDictionary(group => group.Key, group => group
+                .OrderBy(item => item.OutOrder ?? int.MaxValue)
+                .ThenBy(item => item.Id).ToArray());
         var playerIds = new List<int>();
 
         foreach (var appearance in currentAppearances)
