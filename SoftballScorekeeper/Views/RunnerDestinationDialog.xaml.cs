@@ -11,13 +11,18 @@ public partial class RunnerDestinationDialog : ContentPage
     private bool isClosing;
 
     public RunnerDestinationDialog(
-        string playerName, IReadOnlyList<RunnerOutcomeChoice> outcomes,
-        bool isFielderChoiceResolution)
+        string playerName,
+        string startingLocationLabel,
+        IReadOnlyList<RunnerOutcomeChoice> outcomes,
+        bool showsGuidedResolutionContext)
     {
         InitializeComponent();
         PlayerNameLabel.Text = playerName;
-        FielderChoiceContextLabel.IsVisible = isFielderChoiceResolution;
-        FielderChoiceContextLabel.Text = isFielderChoiceResolution
+        StartingLocationLabel.Text = startingLocationLabel;
+        StartingLocationLabel.IsVisible = !string.IsNullOrWhiteSpace(
+            startingLocationLabel);
+        FielderChoiceContextLabel.IsVisible = showsGuidedResolutionContext;
+        FielderChoiceContextLabel.Text = showsGuidedResolutionContext
             ? AppResources.ResolveFielderChoiceLabel : string.Empty;
         foreach (var outcome in outcomes)
         {

@@ -64,6 +64,12 @@ public sealed class RunnerOutAttemptingAdvanceTests
         var repository = db.CreateGameScoringSessionRepository();
         await repository.InitializeAsync(context.Team.Id, context.Game.Id, TeamGameSide.Home);
         await repository.SelectBatterResultAsync(context.Game.Id, BatterResult.Single);
+        var selectedState = (await repository.GetStateForGameAsync(context.Game.Id))!;
+
+        Assert.Equal(PlayResolutionStatus.ReadyForNextBatter,
+            selectedState.PlayResolution!.Status);
+        Assert.Equal(PlayDecisionRequirement.None,
+            selectedState.PlayResolution.DecisionRequirement);
 
         var choices = await repository.GetValidRunnerOutcomeChoicesAsync(
             context.Game.Id, context.Players[0].Id);
@@ -79,6 +85,8 @@ public sealed class RunnerOutAttemptingAdvanceTests
         AssertMovement(pendingMovement, context.Players[0].Id,
             RunnerStartingLocation.Home, RunnerDestination.First,
             RunnerDestination.Second);
+        Assert.Equal(PlayResolutionStatus.ReadyForNextBatter,
+            pending.PlayResolution!.Status);
         Assert.Empty(pending.BaseRunners);
 
         var completed = await repository.CompletePlateAppearanceAsync(context.Game.Id);
@@ -93,6 +101,7 @@ public sealed class RunnerOutAttemptingAdvanceTests
             RunnerDestination.Second);
         Assert.Equal(new[] { context.Players[0].Id },
             state.GetCurrentHalfInningOutPlayerIds());
+        Assert.Null(state.PlayResolution);
     }
 
     [Fact]
@@ -147,6 +156,11 @@ public sealed class RunnerOutAttemptingAdvanceTests
         Assert.Equal(RunnerDestination.Scores, attempted.AttemptedDestination);
         Assert.True((await repository.AdjustPendingRunnerOutcomeAsync(
             context.Game.Id, context.Players[2].Id, attempted)).IsSuccess);
+        var pending = (await repository.GetStateForGameAsync(context.Game.Id))!;
+        Assert.Equal(PlayDecisionRequirement.ThirdOutRuling,
+            pending.PlayResolution!.DecisionRequirement);
+        Assert.Equal(new[] { context.Players[3].Id },
+            pending.PlayResolution.DecisionPlayerIds);
         var required = await repository.GetRunRulingRequirementsAsync(context.Game.Id);
         Assert.Equal(new[] { context.Players[3].Id }, required.PlayerIds);
 
@@ -188,6 +202,10 @@ public sealed class RunnerOutAttemptingAdvanceTests
         AssertMovement(Assert.Single(pending!.PendingPlay!.Movements),
             context.Players[0].Id, RunnerStartingLocation.Home,
             RunnerDestination.First, RunnerDestination.Second);
+        Assert.Equal(PlayResolutionStatus.ReadyForNextBatter,
+            pending.PlayResolution!.Status);
+        Assert.Equal(PlayDecisionRequirement.None,
+            pending.PlayResolution.DecisionRequirement);
 
         Assert.True((await resumed.CompletePlateAppearanceAsync(context.Game.Id)).IsSuccess);
         await resumedDatabase.CloseAsync();
@@ -514,7 +532,7 @@ public sealed class RunnerOutAttemptingAdvanceTests
         Assert.Contains("OutAttemptingHomeDestinationLabel", viewModel);
         Assert.Contains("FormatRunnerOutcome(outcome)", dialog);
         Assert.Contains("if (!viewModel.HasPendingPlay", page);
-        Assert.Contains("if (viewModel.PendingFielderChoiceCompletesHalfInning)", page);
+        Assert.Contains("ProcessCurrentPlayResolutionAsync", page);
     }
 
     private static void AssertMovement(

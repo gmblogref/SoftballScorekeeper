@@ -9,9 +9,7 @@ public partial class ScoringPage : ContentPage
     private readonly ScoringViewModel viewModel;
     private bool isExiting;
     private bool isHandlingInningTransition;
-    private bool isResolvingPlay;
-    private bool isGuidingFielderChoice;
-    private bool isGuidingMultiOutPlay;
+    private bool isProcessingPlayResolution;
 
     public ScoringPage(ScoringViewModel viewModel)
     {
@@ -27,8 +25,7 @@ public partial class ScoringPage : ContentPage
         if (isHandlingInningTransition) return;
         await viewModel.LoadAsync();
         await HandlePendingInningTransitionAsync();
-        await HandlePendingMultiOutResolutionAsync();
-        await HandlePendingFielderChoiceResolutionAsync();
+        await ProcessCurrentPlayResolutionAsync();
     }
 
     protected override bool OnBackButtonPressed()
@@ -88,19 +85,16 @@ public partial class ScoringPage : ContentPage
         {
             await viewModel.SelectResultAsync(result.Value);
             await HandlePendingInningTransitionAsync();
-            if (result is BatterResult.DoublePlay or BatterResult.TriplePlay)
-                await HandlePendingMultiOutResolutionAsync();
-            else if (result == BatterResult.FielderChoice)
-                await HandlePendingFielderChoiceResolutionAsync();
+            await ProcessCurrentPlayResolutionAsync();
         }
     }
 
     private async void OnRunnerButtonClicked(object sender, EventArgs e)
     {
         if (!viewModel.HasPendingPlay || sender is not Button button) return;
-        if (viewModel.RequiresMultiOutRetirementSelection)
+        if (viewModel.DecisionRequirement == PlayDecisionRequirement.RetirementSelection)
         {
-            await HandlePendingMultiOutResolutionAsync();
+            await ProcessCurrentPlayResolutionAsync();
             return;
         }
         var participant = (button.CommandParameter ?? button.BindingContext) switch
@@ -113,124 +107,132 @@ public partial class ScoringPage : ContentPage
         if (participant is null) return;
         var outcome = await ShowRunnerDestinationMenuAsync(
             participant.Value.PlayerId, participant.Value.PlayerName,
-            viewModel.HasUnresolvedRunnerOutcomes);
+            viewModel.GetParticipantRoleLabel(participant.Value.PlayerId),
+            viewModel.DecisionRequirement == PlayDecisionRequirement.ParticipantOutcome);
         if (outcome is not null)
         {
             await viewModel.ChangeRunnerOutcomeAsync(
                 participant.Value.PlayerId, outcome);
             await HandlePendingInningTransitionAsync();
-            await HandlePendingFielderChoiceResolutionAsync();
+            await ProcessCurrentPlayResolutionAsync();
         }
     }
 
     private async void OnNextBatterClicked(object sender, EventArgs e)
     {
-        if (viewModel.RequiresMultiOutRetirementSelection)
-        {
-            await HandlePendingMultiOutResolutionAsync();
-            if (viewModel.RequiresMultiOutRetirementSelection) return;
-        }
-        if (viewModel.HasUnresolvedRunnerOutcomes)
-        {
-            await HandlePendingFielderChoiceResolutionAsync();
-            if (viewModel.HasUnresolvedRunnerOutcomes) return;
-        }
-        await CompletePendingPlayAsync();
+        await ProcessCurrentPlayResolutionAsync();
+        if (!viewModel.CanAdvanceToNextBatter) return;
+        if (await viewModel.CompletePlateAppearanceAsync())
+            await HandlePendingInningTransitionAsync();
     }
 
-    private async Task CompletePendingPlayAsync()
+    private async Task ProcessCurrentPlayResolutionAsync()
     {
-        if (isResolvingPlay || !viewModel.CanCompletePlateAppearance) return;
-        isResolvingPlay = true;
+        if (isProcessingPlayResolution || !viewModel.IsLoaded) return;
+        isProcessingPlayResolution = true;
         try
         {
-            var requiredRulings = await viewModel.GetRunRulingRequirementsAsync();
-            if (requiredRulings is null) return;
-            var rulings = new Dictionary<int, bool>();
-            foreach (var ruling in requiredRulings)
+            while (viewModel.HasPendingPlay)
             {
-                var counts = await DisplayAlert(
-                    AppResources.RunRulingTitle,
-                    string.Format(AppResources.RunCountQuestionFormat, ruling.PlayerName),
-                    AppResources.RunCountsButton,
-                    AppResources.RunDoesNotCountButton);
-                rulings[ruling.PlayerId] = counts;
-                if (!counts) break;
+                switch (viewModel.DecisionRequirement)
+                {
+                    case PlayDecisionRequirement.RetirementSelection:
+                        if (!await PresentRetirementSelectionAsync()) return;
+                        await HandlePendingInningTransitionAsync();
+                        continue;
+                    case PlayDecisionRequirement.ParticipantOutcome:
+                        var participant = viewModel.DecisionParticipants.FirstOrDefault();
+                        if (participant is null) return;
+                        var outcome = await ShowRunnerDestinationMenuAsync(
+                            participant.PlayerId,
+                            participant.PlayerName,
+                            participant.RoleLabel,
+                            showsGuidedResolutionContext: true);
+                        if (outcome is null) return;
+                        await viewModel.ChangeRunnerOutcomeAsync(
+                            participant.PlayerId, outcome);
+                        await HandlePendingInningTransitionAsync();
+                        continue;
+                    case PlayDecisionRequirement.ThirdOutRuling:
+                        if (!await CompleteWithThirdOutRulingsAsync()) return;
+                        await HandlePendingInningTransitionAsync();
+                        continue;
+                    case PlayDecisionRequirement.None:
+                        if (viewModel.ResolutionStatus is
+                            PlayResolutionStatus.AutoComplete
+                            or PlayResolutionStatus.CommitImmediately)
+                        {
+                            if (!await viewModel.CompletePlateAppearanceAsync()) return;
+                            await HandlePendingInningTransitionAsync();
+                            continue;
+                        }
+                        return;
+                    default:
+                        return;
+                }
             }
-            if (await viewModel.CompletePlateAppearanceAsync(rulings))
-                await HandlePendingInningTransitionAsync();
         }
         finally
         {
-            isResolvingPlay = false;
+            isProcessingPlayResolution = false;
         }
     }
 
-    private async Task HandlePendingFielderChoiceResolutionAsync()
+    private async Task<bool> PresentRetirementSelectionAsync()
     {
-        if (isGuidingFielderChoice || !viewModel.IsPendingFielderChoice) return;
-        isGuidingFielderChoice = true;
-        try
+        IReadOnlyList<MultiOutRetirementSelection>? retirements;
+        if (viewModel.RequiredRetirementCount == 1)
         {
-            if (viewModel.RequiresFielderChoiceThirdOutSelection)
-            {
-                var dialog = new FielderChoiceThirdOutDialog(
-                    viewModel.UnresolvedRunnerOutcomes);
-                var outPlayerId = await dialog.ShowAsync(Navigation);
-                if (outPlayerId is null) return;
-                if (await viewModel.CompleteFielderChoiceThirdOutAsync(outPlayerId.Value))
-                    await HandlePendingInningTransitionAsync();
-                return;
-            }
-
-            while (viewModel.UnresolvedRunnerOutcomes.Count > 0)
-            {
-                var participant = viewModel.UnresolvedRunnerOutcomes[0];
-                var outcome = await ShowRunnerDestinationMenuAsync(
-                    participant.PlayerId, participant.PlayerName,
-                    isFielderChoiceResolution: true);
-                if (outcome is null) return;
-                await viewModel.ChangeRunnerOutcomeAsync(
-                    participant.PlayerId, outcome);
-            }
-            if (viewModel.PendingFielderChoiceCompletesHalfInning)
-                await CompletePendingPlayAsync();
+            var dialog = new FielderChoiceThirdOutDialog(
+                viewModel.DecisionParticipants);
+            var outPlayerId = await dialog.ShowAsync(Navigation);
+            retirements = outPlayerId is null
+                ? null
+                : [new(outPlayerId.Value,
+                    RunnerOutcomeChoice.ForDestination(RunnerDestination.Out))];
         }
-        finally
+        else
         {
-            isGuidingFielderChoice = false;
-        }
-    }
-
-    private async Task HandlePendingMultiOutResolutionAsync()
-    {
-        if (isGuidingMultiOutPlay
-            || !viewModel.RequiresMultiOutRetirementSelection) return;
-        isGuidingMultiOutPlay = true;
-        try
-        {
-            var participants = viewModel.UnresolvedRunnerOutcomes;
             var dialog = new MultiOutSelectionDialog(
-                participants, viewModel.RequiredMultiOutRetirementCount);
-            var retirements = await dialog.ShowAsync(Navigation);
-            if (retirements is null) return;
+                viewModel.DecisionParticipants,
+                viewModel.RequiredRetirementCount);
+            retirements = await dialog.ShowAsync(Navigation);
+        }
+        return retirements is not null
+            && await viewModel.SubmitRetirementSelectionAsync(retirements);
+    }
 
-            if (await viewModel.SelectMultiOutRetirementsAsync(retirements))
-                await HandlePendingInningTransitionAsync();
-        }
-        finally
+    private async Task<bool> CompleteWithThirdOutRulingsAsync()
+    {
+        var requiredRulings = await viewModel.GetRunRulingRequirementsAsync();
+        if (requiredRulings is null) return false;
+        var rulings = new Dictionary<int, bool>();
+        foreach (var ruling in requiredRulings)
         {
-            isGuidingMultiOutPlay = false;
+            var counts = await DisplayAlert(
+                AppResources.RunRulingTitle,
+                string.Format(AppResources.RunCountQuestionFormat, ruling.PlayerName),
+                AppResources.RunCountsButton,
+                AppResources.RunDoesNotCountButton);
+            rulings[ruling.PlayerId] = counts;
+            if (!counts) break;
         }
+        return await viewModel.CompletePlateAppearanceAsync(rulings);
     }
 
     private async Task<RunnerOutcomeChoice?> ShowRunnerDestinationMenuAsync(
-        int playerId, string playerName, bool isFielderChoiceResolution)
+        int playerId,
+        string playerName,
+        string startingLocationLabel,
+        bool showsGuidedResolutionContext)
     {
         var outcomes = await viewModel.GetValidRunnerOutcomesAsync(playerId);
         if (outcomes.Count == 0) return null;
         var dialog = new RunnerDestinationDialog(
-            playerName, outcomes, isFielderChoiceResolution);
+            playerName,
+            startingLocationLabel,
+            outcomes,
+            showsGuidedResolutionContext);
         return await dialog.ShowAsync(Navigation);
     }
 

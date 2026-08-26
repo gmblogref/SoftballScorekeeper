@@ -39,6 +39,7 @@ namespace SoftballScorekeeper
             builder.Services.AddSingleton<SeasonRepository>();
             builder.Services.AddSingleton<GameRepository>();
             builder.Services.AddSingleton<GameLineupRepository>();
+            builder.Services.AddSingleton<Core.Models.PlayResolutionCoordinator>();
             builder.Services.AddSingleton<GameScoringSessionRepository>();
             builder.Services.AddSingleton<LandingPageViewModel>();
             builder.Services.AddTransient<CreateTeamViewModel>();

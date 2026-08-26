@@ -15,6 +15,8 @@ public partial class ScoringViewModel : ObservableObject, IQueryAttributable
     private bool hasValidContext;
     private int currentBatterPlayerId;
     private TeamGameSide currentTeamSide;
+    private IReadOnlyDictionary<int, string> participantRoleLabels =
+        new Dictionary<int, string>();
 
     [ObservableProperty] private int teamId;
     [ObservableProperty] private int gameId;
@@ -36,19 +38,25 @@ public partial class ScoringViewModel : ObservableObject, IQueryAttributable
     private string inningDisplay = string.Empty;
     private string outsDisplay = string.Empty;
     [ObservableProperty, NotifyPropertyChangedFor(nameof(IsAwaitingResult)),
-        NotifyPropertyChangedFor(nameof(CanCompletePlateAppearance))]
+        NotifyPropertyChangedFor(nameof(CanAdvanceToNextBatter)),
+        NotifyPropertyChangedFor(nameof(CanEditParticipantOutcomes))]
     private bool hasPendingPlay;
     private bool isPendingBatterResolved;
-    [ObservableProperty, NotifyPropertyChangedFor(nameof(CanCompletePlateAppearance))]
+    [ObservableProperty, NotifyPropertyChangedFor(nameof(CanAdvanceToNextBatter))]
     private bool isLoaded;
-    [ObservableProperty, NotifyPropertyChangedFor(nameof(CanCompletePlateAppearance))]
+    [ObservableProperty, NotifyPropertyChangedFor(nameof(CanAdvanceToNextBatter))]
     private bool isCompletingPlateAppearance;
+    private PlayResolutionStatus resolutionStatus = PlayResolutionStatus.Completed;
+    private PlayDecisionRequirement decisionRequirement = PlayDecisionRequirement.None;
+    private int requiredRetirementCount;
+    private ThirdOutRunRulingRequirement thirdOutRulingRequirement =
+        ThirdOutRunRulingRequirement.NotApplicable;
 
     public ObservableCollection<ScoredPlayerViewModel> ScoredPlayers { get; } = [];
     public ObservableCollection<OutPlayerViewModel> OutsThisInning { get; } = [];
     public IReadOnlyList<BatterResult> AvailableBatterResults { get; private set; } =
         PlateAppearanceResultDefinitions.GetSelectableResults(0);
-    public IReadOnlyList<RunnerOutcomeViewModel> UnresolvedRunnerOutcomes { get; private set; } = [];
+    public IReadOnlyList<RunnerOutcomeViewModel> DecisionParticipants { get; private set; } = [];
 
     public string HomeHomeRunDisplay
     {
@@ -112,19 +120,55 @@ public partial class ScoringViewModel : ObservableObject, IQueryAttributable
         EmptyBaseRunner(AppResources.ThirdBaseHeadingLabel);
     public bool HasScoredPlayers => ScoredPlayers.Count > 0;
     public bool HasNoScoredPlayers => !HasScoredPlayers;
-    public bool HasUnresolvedRunnerOutcomes => UnresolvedRunnerOutcomes.Count > 0;
-    public bool IsPendingFielderChoice { get; private set; }
-    public bool RequiresFielderChoiceThirdOutSelection { get; private set; }
-    public bool PendingFielderChoiceCompletesHalfInning { get; private set; }
-    public bool IsPendingMultiOutPlay { get; private set; }
-    public bool RequiresMultiOutRetirementSelection { get; private set; }
-    public int RequiredMultiOutRetirementCount { get; private set; }
+    public PlayResolutionStatus ResolutionStatus
+    {
+        get => resolutionStatus;
+        private set
+        {
+            if (!SetProperty(ref resolutionStatus, value)) return;
+            OnPropertyChanged(nameof(CanAdvanceToNextBatter));
+            OnPropertyChanged(nameof(CanEditParticipantOutcomes));
+        }
+    }
+
+    public PlayDecisionRequirement DecisionRequirement
+    {
+        get => decisionRequirement;
+        private set
+        {
+            if (!SetProperty(ref decisionRequirement, value)) return;
+            OnPropertyChanged(nameof(CanAdvanceToNextBatter));
+            OnPropertyChanged(nameof(CanEditParticipantOutcomes));
+        }
+    }
+
+    public int RequiredRetirementCount
+    {
+        get => requiredRetirementCount;
+        private set => SetProperty(ref requiredRetirementCount, value);
+    }
+
+    public ThirdOutRunRulingRequirement ThirdOutRulingRequirement
+    {
+        get => thirdOutRulingRequirement;
+        private set => SetProperty(ref thirdOutRulingRequirement, value);
+    }
+
+    public IReadOnlyList<int> DecisionPlayerIds =>
+        DecisionParticipants.Select(item => item.PlayerId).ToArray();
     public bool IsAwaitingResult => !HasPendingPlay;
     public bool IsCurrentBatterVisible => !isPendingBatterResolved;
-    public bool CanCompletePlateAppearance =>
-        hasValidContext && IsLoaded && HasPendingPlay && !HasUnresolvedRunnerOutcomes
+    public bool CanAdvanceToNextBatter =>
+        hasValidContext && IsLoaded && HasPendingPlay
+        && ResolutionStatus == PlayResolutionStatus.ReadyForNextBatter
+        && DecisionRequirement == PlayDecisionRequirement.None
         && !IsCompletingPlateAppearance;
+    public bool CanEditParticipantOutcomes => HasPendingPlay
+        && DecisionRequirement != PlayDecisionRequirement.RetirementSelection;
     public int CurrentBatterPlayerId => currentBatterPlayerId;
+
+    public string GetParticipantRoleLabel(int playerId) =>
+        participantRoleLabels.GetValueOrDefault(playerId, string.Empty);
 
     public ScoringViewModel(TeamRepository teamRepository, GameRepository gameRepository,
         GameScoringSessionRepository sessionRepository)
@@ -272,7 +316,7 @@ public partial class ScoringViewModel : ObservableObject, IQueryAttributable
     public async Task<bool> CompletePlateAppearanceAsync(
         IReadOnlyDictionary<int, bool>? runRulings = null)
     {
-        if (!CanCompletePlateAppearance) return false;
+        if (!CanCommitCurrentPlay()) return false;
 
         IsCompletingPlateAppearance = true;
         try
@@ -295,21 +339,30 @@ public partial class ScoringViewModel : ObservableObject, IQueryAttributable
         }
     }
 
-    public async Task<bool> CompleteFielderChoiceThirdOutAsync(int outPlayerId)
+    public async Task<bool> SubmitRetirementSelectionAsync(
+        IReadOnlyList<MultiOutRetirementSelection> retirements)
     {
-        if (!RequiresFielderChoiceThirdOutSelection || IsCompletingPlateAppearance
-            || UnresolvedRunnerOutcomes.All(item => item.PlayerId != outPlayerId))
+        if (DecisionRequirement != PlayDecisionRequirement.RetirementSelection
+            || IsCompletingPlateAppearance
+            || retirements.Count != RequiredRetirementCount
+            || retirements.Select(item => item.PlayerId).Distinct().Count()
+                != RequiredRetirementCount
+            || retirements.Any(item => DecisionParticipants.All(participant =>
+                participant.PlayerId != item.PlayerId)))
             return false;
 
         IsCompletingPlateAppearance = true;
         try
         {
-            var result = await sessionRepository.CompleteFielderChoiceThirdOutAsync(
-                GameId, outPlayerId);
-            if (!result.IsSuccess)
+            var succeeded = RequiredRetirementCount == 1
+                ? (await sessionRepository.CompleteFielderChoiceThirdOutAsync(
+                    GameId, retirements[0].PlayerId)).IsSuccess
+                : (await sessionRepository.SelectMultiOutRetirementsAsync(
+                    GameId, retirements)).IsSuccess;
+            if (!succeeded)
             {
                 await LoadAsync();
-                ValidationMessage = AppResources.PlateAppearanceCompletionFailed;
+                ValidationMessage = AppResources.ScoringProposalFailed;
                 return false;
             }
 
@@ -324,7 +377,7 @@ public partial class ScoringViewModel : ObservableObject, IQueryAttributable
 
     public async Task<IReadOnlyList<RunRulingViewModel>?> GetRunRulingRequirementsAsync()
     {
-        if (!CanCompletePlateAppearance) return null;
+        if (DecisionRequirement != PlayDecisionRequirement.ThirdOutRuling) return [];
         var result = await sessionRepository.GetRunRulingRequirementsAsync(GameId);
         if (!result.IsSuccess)
         {
@@ -332,13 +385,13 @@ public partial class ScoringViewModel : ObservableObject, IQueryAttributable
             return null;
         }
         if (result.PlayerIds.Count == 0) return [];
-        var state = await sessionRepository.GetStateForGameAsync(GameId);
-        if (state is null) return null;
         var rulings = new List<RunRulingViewModel>();
         foreach (var playerId in result.PlayerIds)
         {
-            if (!state.PlayersById.TryGetValue(playerId, out var player)) return null;
-            rulings.Add(new(playerId, FormatPlayerName(player.FirstName, player.LastName)));
+            var participant = DecisionParticipants.FirstOrDefault(item =>
+                item.PlayerId == playerId);
+            if (participant is null) return null;
+            rulings.Add(new(playerId, participant.PlayerName));
         }
         return rulings;
     }
@@ -372,18 +425,6 @@ public partial class ScoringViewModel : ObservableObject, IQueryAttributable
             return;
         }
         await LoadAsync();
-    }
-
-    public async Task<bool> SelectMultiOutRetirementsAsync(
-        IReadOnlyList<MultiOutRetirementSelection> retirements)
-    {
-        if (!RequiresMultiOutRetirementSelection) return false;
-        var response = await sessionRepository.SelectMultiOutRetirementsAsync(
-            GameId, retirements);
-        await LoadAsync();
-        if (response.IsSuccess) return true;
-        ValidationMessage = AppResources.ScoringProposalFailed;
-        return false;
     }
 
     public async Task<HalfInningTransitionViewModel?> GetPendingHalfInningTransitionAsync()
@@ -496,18 +537,7 @@ public partial class ScoringViewModel : ObservableObject, IQueryAttributable
         InningOutDisplay = string.Empty;
         InningDisplay = OutsDisplay = string.Empty;
         HasPendingPlay = false;
-        IsPendingFielderChoice = false;
-        OnPropertyChanged(nameof(IsPendingFielderChoice));
-        RequiresFielderChoiceThirdOutSelection = false;
-        OnPropertyChanged(nameof(RequiresFielderChoiceThirdOutSelection));
-        PendingFielderChoiceCompletesHalfInning = false;
-        OnPropertyChanged(nameof(PendingFielderChoiceCompletesHalfInning));
-        IsPendingMultiOutPlay = false;
-        OnPropertyChanged(nameof(IsPendingMultiOutPlay));
-        RequiresMultiOutRetirementSelection = false;
-        OnPropertyChanged(nameof(RequiresMultiOutRetirementSelection));
-        RequiredMultiOutRetirementCount = 0;
-        OnPropertyChanged(nameof(RequiredMultiOutRetirementCount));
+        SetPlayResolution(null, new Dictionary<int, Player>());
         SetPendingBatterResolved(false);
         FirstBaseRunner = EmptyBaseRunner(AppResources.FirstBaseHeadingLabel);
         SecondBaseRunner = EmptyBaseRunner(AppResources.SecondBaseHeadingLabel);
@@ -519,7 +549,6 @@ public partial class ScoringViewModel : ObservableObject, IQueryAttributable
         OutsThisInning.Clear();
         OnPropertyChanged(nameof(HasScoredPlayers));
         OnPropertyChanged(nameof(HasNoScoredPlayers));
-        SetUnresolvedRunnerOutcomes([]);
         AvailableBatterResults = PlateAppearanceResultDefinitions.GetSelectableResults(0);
         OnPropertyChanged(nameof(AvailableBatterResults));
         currentBatterPlayerId = 0;
@@ -610,33 +639,8 @@ public partial class ScoringViewModel : ObservableObject, IQueryAttributable
     private void RestorePendingPlay(GameScoringState state)
     {
         ScoredPlayers.Clear();
-        SetUnresolvedRunnerOutcomes([]);
         HasPendingPlay = state.PendingPlay is not null;
-        IsPendingFielderChoice = state.PendingPlay?.Play.Result == BatterResult.FielderChoice;
-        OnPropertyChanged(nameof(IsPendingFielderChoice));
-        RequiresFielderChoiceThirdOutSelection = IsPendingFielderChoice
-            && state.Session.CurrentOuts == 2;
-        OnPropertyChanged(nameof(RequiresFielderChoiceThirdOutSelection));
-        PendingFielderChoiceCompletesHalfInning = IsPendingFielderChoice
-            && state.PendingPlay is not null
-            && state.PendingPlay.Movements.All(item =>
-                !item.RequiresOutcomeConfirmation)
-            && state.Session.CurrentOuts + state.PendingPlay.Movements.Count(item =>
-                item.Destination == RunnerDestination.Out) == 3;
-        OnPropertyChanged(nameof(PendingFielderChoiceCompletesHalfInning));
-        var pendingDefinition = state.PendingPlay is null
-            ? null : PlateAppearanceResultDefinitions.Get(state.PendingPlay.Play.Result);
-        IsPendingMultiOutPlay = pendingDefinition?.RequiredPlayOuts > 0;
-        OnPropertyChanged(nameof(IsPendingMultiOutPlay));
-        RequiredMultiOutRetirementCount = IsPendingMultiOutPlay
-            ? pendingDefinition!.RequiredPlayOuts
-            : 0;
-        OnPropertyChanged(nameof(RequiredMultiOutRetirementCount));
-        RequiresMultiOutRetirementSelection = IsPendingMultiOutPlay
-            && state.PendingPlay is not null
-            && state.PendingPlay.Movements.All(item =>
-                item.RequiresOutcomeConfirmation && item.OutOrder is null);
-        OnPropertyChanged(nameof(RequiresMultiOutRetirementSelection));
+        SetPlayResolution(state.PlayResolution, state.PlayersById);
         if (state.PendingPlay is null) return;
         SetPendingBatterResolved(state.IsPendingBatterResolved());
         SelectedResultDisplay = string.Format(AppResources.SelectedResultFormat,
@@ -656,18 +660,6 @@ public partial class ScoringViewModel : ObservableObject, IQueryAttributable
                     ? AppResources.BatterBadgeLabel : AppResources.RunnerBadgeLabel,
                 FormatPlayerName(player.FirstName, player.LastName)));
         }
-        SetUnresolvedRunnerOutcomes(state.PendingPlay.Movements
-            .Where(item => item.RequiresOutcomeConfirmation)
-            .OrderByDescending(item => item.StartingLocation)
-            .Select(item => state.PlayersById.TryGetValue(item.PlayerId, out var player)
-                ? new RunnerOutcomeViewModel(item.PlayerId,
-                    FormatPlayerName(player.FirstName, player.LastName),
-                    item.StartingLocation,
-                    FormatStartingLocation(item.StartingLocation))
-                : null)
-            .Where(item => item is not null)
-            .Cast<RunnerOutcomeViewModel>()
-            .ToArray());
         OnPropertyChanged(nameof(HasScoredPlayers));
         OnPropertyChanged(nameof(HasNoScoredPlayers));
         RestoreBaseRunners(state);
@@ -757,13 +749,48 @@ public partial class ScoringViewModel : ObservableObject, IQueryAttributable
             OnPropertyChanged(nameof(IsCurrentBatterVisible));
     }
 
-    private void SetUnresolvedRunnerOutcomes(IReadOnlyList<RunnerOutcomeViewModel> value)
+    private void SetPlayResolution(
+        PlayResolutionResult? resolution,
+        IReadOnlyDictionary<int, Player> playersById)
     {
-        UnresolvedRunnerOutcomes = value;
-        OnPropertyChanged(nameof(UnresolvedRunnerOutcomes));
-        OnPropertyChanged(nameof(HasUnresolvedRunnerOutcomes));
-        OnPropertyChanged(nameof(CanCompletePlateAppearance));
+        ResolutionStatus = resolution?.Status ?? PlayResolutionStatus.Completed;
+        DecisionRequirement = resolution?.DecisionRequirement
+            ?? PlayDecisionRequirement.None;
+        RequiredRetirementCount = resolution?.RequiredRetirementCount ?? 0;
+        ThirdOutRulingRequirement = resolution?.ThirdOutRulingRequirement
+            ?? ThirdOutRunRulingRequirement.NotApplicable;
+        participantRoleLabels = resolution?.Context?.Participants.ToDictionary(
+            item => item.PlayerId,
+            item => FormatStartingLocation(item.StartingLocation))
+            ?? new Dictionary<int, string>();
+        DecisionParticipants = resolution?.DecisionPlayerIds
+            .Select(playerId =>
+            {
+                var participant = resolution.Context?.Participants.FirstOrDefault(item =>
+                    item.PlayerId == playerId);
+                return participant is not null
+                    && playersById.TryGetValue(playerId, out var player)
+                        ? new RunnerOutcomeViewModel(
+                            playerId,
+                            FormatPlayerName(player.FirstName, player.LastName),
+                            participant.StartingLocation,
+                            FormatStartingLocation(participant.StartingLocation))
+                        : null;
+            })
+            .Where(item => item is not null)
+            .Cast<RunnerOutcomeViewModel>()
+            .ToArray() ?? [];
+        OnPropertyChanged(nameof(DecisionParticipants));
+        OnPropertyChanged(nameof(DecisionPlayerIds));
     }
+
+    private bool CanCommitCurrentPlay() =>
+        hasValidContext && IsLoaded && HasPendingPlay && !IsCompletingPlateAppearance
+        && (DecisionRequirement == PlayDecisionRequirement.None
+            && ResolutionStatus is PlayResolutionStatus.ReadyForNextBatter
+                or PlayResolutionStatus.AutoComplete
+                or PlayResolutionStatus.CommitImmediately
+            || DecisionRequirement == PlayDecisionRequirement.ThirdOutRuling);
 
     private static bool TryParseId(IDictionary<string, object> query, string key, out int id)
     {
