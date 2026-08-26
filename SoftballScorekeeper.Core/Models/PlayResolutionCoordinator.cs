@@ -65,27 +65,24 @@ public sealed class PlayResolutionCoordinator
                 definition.RequiredPlayOuts);
 
         if (context.Result == BatterResult.FielderChoice
-            && context.CurrentOuts == 2)
+            && context.CurrentOuts == 2
+            && context.Participants.All(item =>
+                item.StartingLocation == RunnerStartingLocation.Home
+                || item.Destination != RunnerDestination.Out))
         {
-            var completed = context.Participants.Any(item =>
-                    item.RequiresOutcomeConfirmation)
-                ? ResolveRemainingFielderChoiceParticipants(context, definition)
-                : context;
-            if (completed is null
-                || !TryCreateResolverState(completed, out var completedState)
-                || completedState is null
-                || !BaseRunnerResolver.IsLegalArrangement(completedState)
-                || !IsCompatibleWithDefinition(
-                    completed, definition, completedState)
-                || completed.Participants.Count(item =>
-                    item.Destination == RunnerDestination.Out) != 1)
-                return Rejected(context, PlayResolutionFailure.IllegalArrangement);
-
+            var retirementCandidates = context.Participants
+                .Where(item => item.StartingLocation != RunnerStartingLocation.Home)
+                .Select(item => item.PlayerId)
+                .ToArray();
+            if (retirementCandidates.Length == 1)
+                return ApplyFielderChoiceRetirementSelection(
+                    context, retirementCandidates[0], definition);
             return Accepted(
-                completed,
-                PlayResolutionStatus.AutoComplete,
-                thirdOutRulingRequirement:
-                    ThirdOutRunRulingRequirement.AutomaticNoRun);
+                context,
+                PlayResolutionStatus.AwaitingDecision,
+                PlayDecisionRequirement.RetirementSelection,
+                retirementCandidates,
+                requiredRetirementCount: 1);
         }
 
         if (context.Result == BatterResult.FielderChoice
@@ -107,11 +104,22 @@ public sealed class PlayResolutionCoordinator
             .Select(item => item.PlayerId)
             .ToArray();
         if (unresolved.Length > 0)
+        {
+            if (TryCreateResolverState(context, out var unresolvedState)
+                && unresolvedState is not null)
+            {
+                var outcomes = GetParticipantOutcomeChoices(
+                    context, unresolvedState, unresolved[0], definition);
+                if (outcomes.Count == 1)
+                    return ApplyParticipantOutcome(
+                        context, unresolved[0], outcomes[0]);
+            }
             return Accepted(
                 context,
                 PlayResolutionStatus.AwaitingDecision,
                 PlayDecisionRequirement.ParticipantOutcome,
                 unresolved);
+        }
 
         if (!TryCreateResolverState(context, out var resolverState)
             || resolverState is null
@@ -147,13 +155,11 @@ public sealed class PlayResolutionCoordinator
                     thirdOutRulingRequirement: thirdOutRuling);
         }
 
-        if (PendingFielderChoiceCompletion.CanAutoComplete(
-                context.Result, context.Participants, context.CurrentOuts)
-            || context.Result == BatterResult.FielderChoice
-                && outsAfterPlay == 3
-            || definition.RequiredPlayOuts > 0
+        if ((context.Result == BatterResult.FielderChoice
+                && outsAfterPlay == 3)
+            || (definition.RequiredPlayOuts > 0
                 && context.Participants.All(item =>
-                    item.Destination == RunnerDestination.Out))
+                    item.Destination == RunnerDestination.Out)))
             return Accepted(
                 context,
                 PlayResolutionStatus.AutoComplete,
@@ -210,13 +216,17 @@ public sealed class PlayResolutionCoordinator
         var definition = PlateAppearanceResultDefinitions.Get(context.Result);
         if (selected is null
             || selected.IsUnorderedMultiOutRetirement
+            || context.Result == BatterResult.FielderChoice
+                && selected.StartingLocation == RunnerStartingLocation.Home
+                && outcome.Destination == RunnerDestination.Out
             || !outcome.IsValidFor(selected.StartingLocation)
             || !TryCreateResolverState(context, out var currentState)
             || currentState is null)
             return Rejected(context, PlayResolutionFailure.InvalidDecision);
 
         if (definition.RequiresExplicitOutcomeConfirmation
-            && definition.RequiredPlayOuts == 0)
+            && definition.RequiredPlayOuts == 0
+            && selected.RequiresOutcomeConfirmation)
             return ApplyGuidedParticipantOutcome(
                 context, currentState, playerId, outcome, definition);
 
@@ -357,8 +367,22 @@ public sealed class PlayResolutionCoordinator
         if (context is null || retiredPlayerIds is null
             || !PlateAppearanceResultDefinitions.TryGet(
                 context.Result, out var definition)
-            || definition is null
-            || definition.RequiredPlayOuts == 0
+            || definition is null)
+            return Rejected(context, PlayResolutionFailure.InvalidDecision);
+
+        if (context.Result == BatterResult.FielderChoice)
+        {
+            if (context.CurrentOuts != 2
+                || retiredPlayerIds.Count != 1
+                || context.Participants.SingleOrDefault(item =>
+                    retiredPlayerIds.Contains(item.PlayerId)) is not { } selected
+                || selected.StartingLocation == RunnerStartingLocation.Home)
+                return Rejected(context, PlayResolutionFailure.InvalidDecision);
+            return ApplyFielderChoiceRetirementSelection(
+                context, selected.PlayerId, definition);
+        }
+
+        if (definition.RequiredPlayOuts == 0
             || retiredPlayerIds.Count != definition.RequiredPlayOuts
             || retiredPlayerIds.Any(playerId => context.Participants.All(item =>
                 item.PlayerId != playerId)))
@@ -422,6 +446,34 @@ public sealed class PlayResolutionCoordinator
         return Evaluate(proposed);
     }
 
+    private PlayResolutionResult ApplyFielderChoiceRetirementSelection(
+        PlayContext context,
+        int retiredPlayerId,
+        PlateAppearanceResultDefinition definition)
+    {
+        var selected = context.Participants.SingleOrDefault(item =>
+            item.PlayerId == retiredPlayerId);
+        if (selected is null
+            || selected.StartingLocation == RunnerStartingLocation.Home)
+            return Rejected(context, PlayResolutionFailure.InvalidDecision);
+
+        var selectedContext = context.WithParticipants(context.Participants.Select(item =>
+            item.PlayerId == retiredPlayerId
+                ? item with
+                {
+                    Destination = RunnerDestination.Out,
+                    SafeDestination = null,
+                    AttemptedDestination = null,
+                    RequiresOutcomeConfirmation = false,
+                }
+                : item));
+        var completed = ResolveRemainingFielderChoiceParticipants(
+            selectedContext, definition);
+        return completed is null
+            ? Rejected(context, PlayResolutionFailure.IllegalArrangement)
+            : Evaluate(completed);
+    }
+
     public IReadOnlyList<RunnerOutcomeChoice> GetAvailableOutcomes(
         PlayContext? context,
         int playerId)
@@ -439,8 +491,19 @@ public sealed class PlayResolutionCoordinator
             || resolution.DecisionRequirement == PlayDecisionRequirement.RetirementSelection)
             return [];
 
+        return GetParticipantOutcomeChoices(context, state, playerId, definition);
+    }
+
+    private static IReadOnlyList<RunnerOutcomeChoice> GetParticipantOutcomeChoices(
+        PlayContext context,
+        BaseRunnerResolutionState state,
+        int playerId,
+        PlateAppearanceResultDefinition definition)
+    {
         if (definition.RequiresExplicitOutcomeConfirmation
-            && definition.RequiredPlayOuts == 0)
+            && definition.RequiredPlayOuts == 0
+            && context.Participants.Single(item =>
+                item.PlayerId == playerId).RequiresOutcomeConfirmation)
             return GetGuidedOutcomeChoices(context, state, playerId, definition);
 
         if (!BaseRunnerResolver.IsLegalArrangement(state)) return [];

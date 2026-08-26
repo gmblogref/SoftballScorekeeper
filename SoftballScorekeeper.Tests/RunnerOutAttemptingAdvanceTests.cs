@@ -345,7 +345,7 @@ public sealed class RunnerOutAttemptingAdvanceTests
                 item.PlayerId == context.Players[2].Id),
             context.Players[2].Id, RunnerStartingLocation.First,
             RunnerDestination.Second, RunnerDestination.Third);
-        Assert.Equal(1, state.Session.CurrentOuts);
+        Assert.Equal(2, state.Session.CurrentOuts);
     }
 
     [Fact]
@@ -358,10 +358,12 @@ public sealed class RunnerOutAttemptingAdvanceTests
             context.Team.Id, context.Game.Id, TeamGameSide.Home);
         await SeedBaseAsync(db, initialized.Session!.Id,
             context.Players[2].Id, ScoringBase.First);
+        await SeedBaseAsync(db, initialized.Session.Id,
+            context.Players[1].Id, ScoringBase.Third);
         await repository.SelectBatterResultAsync(
             context.Game.Id, BatterResult.FielderChoice);
         Assert.True((await repository.AdjustPendingRunnerAsync(
-            context.Game.Id, context.Players[2].Id, RunnerDestination.Second)).IsSuccess);
+            context.Game.Id, context.Players[1].Id, RunnerDestination.Out)).IsSuccess);
         Assert.True((await repository.CompletePlateAppearanceAsync(
             context.Game.Id)).IsSuccess);
         var committed = await repository.GetStateForGameAsync(context.Game.Id);
@@ -388,10 +390,12 @@ public sealed class RunnerOutAttemptingAdvanceTests
             context.Team.Id, context.Game.Id, TeamGameSide.Away);
         await SeedBaseAsync(db, initialized.Session!.Id,
             context.Players[2].Id, ScoringBase.First);
+        await SeedBaseAsync(db, initialized.Session.Id,
+            context.Players[3].Id, ScoringBase.Third);
         await repository.SelectBatterResultAsync(
             context.Game.Id, BatterResult.FielderChoice);
         Assert.True((await repository.AdjustPendingRunnerAsync(
-            context.Game.Id, context.Players[2].Id, RunnerDestination.Second)).IsSuccess);
+            context.Game.Id, context.Players[3].Id, RunnerDestination.Out)).IsSuccess);
         var pending = await repository.GetStateForGameAsync(context.Game.Id);
         Assert.NotNull(pending!.PendingPlay);
         var runner = pending.PendingPlay.Movements.Single(item =>
@@ -409,7 +413,26 @@ public sealed class RunnerOutAttemptingAdvanceTests
         var after = await repository.GetStateForGameAsync(context.Game.Id);
 
         Assert.True(adjusted.IsSuccess);
-        Assert.Null(adjusted.PendingPlay);
+        Assert.NotNull(adjusted.PendingPlay);
+        Assert.NotNull(after!.PendingPlay);
+
+        await db.Database.CloseAsync();
+        var resumedDatabase = new AppDatabase(db.DatabasePath);
+        var resumedRepository = new GameScoringSessionRepository(resumedDatabase);
+        after = await resumedRepository.GetStateForGameAsync(context.Game.Id);
+        var resumedMovement = after!.PendingPlay!.Movements.Single(item =>
+            item.PlayerId == context.Players[2].Id);
+        AssertMovement(resumedMovement, context.Players[2].Id,
+            RunnerStartingLocation.First, RunnerDestination.Second,
+            RunnerDestination.Third);
+        var resumedBatter = after.PendingPlay.Movements.Single(item =>
+            item.StartingLocation == RunnerStartingLocation.Home);
+        Assert.Equal(RunnerDestination.First, resumedBatter.Destination);
+        Assert.False(resumedBatter.RequiresOutcomeConfirmation);
+
+        Assert.True((await resumedRepository.CompletePlateAppearanceAsync(
+            context.Game.Id)).IsSuccess);
+        after = await resumedRepository.GetStateForGameAsync(context.Game.Id);
         Assert.Null(after!.PendingPlay);
         Assert.Equal(BatterResult.FielderChoice,
             Assert.Single(after.PlateAppearances).Result);
@@ -420,11 +443,14 @@ public sealed class RunnerOutAttemptingAdvanceTests
             RunnerDestination.Third);
         Assert.Equal((2, 2), (after.Session.CurrentOuts,
             after.Session.CurrentBatterPosition));
-        Assert.Empty(after.BaseRunners);
+        Assert.Equal((context.Players[0].Id, ScoringBase.First),
+            (Assert.Single(after.BaseRunners).PlayerId,
+                Assert.Single(after.BaseRunners).Base));
         var outPlayerIds = after.GetCurrentHalfInningOutPlayerIds();
         Assert.Equal(2, outPlayerIds.Count);
-        Assert.Contains(context.Players[0].Id, outPlayerIds);
+        Assert.Contains(context.Players[3].Id, outPlayerIds);
         Assert.Contains(context.Players[2].Id, outPlayerIds);
+        await resumedDatabase.CloseAsync();
     }
 
     [Fact]

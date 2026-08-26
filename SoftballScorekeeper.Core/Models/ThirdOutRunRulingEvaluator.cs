@@ -32,9 +32,6 @@ public static class ThirdOutRunRulingEvaluator
             || result == BatterResult.TriplePlay && currentOuts == 0)
             return ThirdOutRunRulingRequirement.AutomaticNoRun;
 
-        if (result == BatterResult.FielderChoice && currentOuts == 2)
-            return ThirdOutRunRulingRequirement.AutomaticNoRun;
-
         var outsNeeded = 3 - currentOuts;
         var retired = participants
             .Where(item => item.Destination == RunnerDestination.Out)
