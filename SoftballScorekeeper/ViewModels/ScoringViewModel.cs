@@ -354,11 +354,8 @@ public partial class ScoringViewModel : ObservableObject, IQueryAttributable
         IsCompletingPlateAppearance = true;
         try
         {
-            var succeeded = RequiredRetirementCount == 1
-                ? (await sessionRepository.CompleteFielderChoiceThirdOutAsync(
-                    GameId, retirements[0].PlayerId)).IsSuccess
-                : (await sessionRepository.SelectMultiOutRetirementsAsync(
-                    GameId, retirements)).IsSuccess;
+            var succeeded = (await sessionRepository.SelectMultiOutRetirementsAsync(
+                GameId, retirements)).IsSuccess;
             if (!succeeded)
             {
                 await LoadAsync();

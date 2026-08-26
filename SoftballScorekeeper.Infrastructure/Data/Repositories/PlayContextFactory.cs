@@ -32,8 +32,8 @@ public static class PlayContextFactory
                 null,
                 null,
                 null,
-                RequiresOutcomeConfirmation:
-                    definition.RequiresExplicitOutcomeConfirmation)).ToList();
+                RequiresOutcomeConfirmation: definition.RequiresOutcomeConfirmation(
+                    (RunnerStartingLocation)item.Base))).ToList();
         participants.Add(new(
             batterPlayerId,
             RunnerStartingLocation.Home,
@@ -43,8 +43,8 @@ public static class PlayContextFactory
             null,
             null,
             null,
-            RequiresOutcomeConfirmation:
-                definition.RequiresExplicitOutcomeConfirmation));
+            RequiresOutcomeConfirmation: definition.RequiresOutcomeConfirmation(
+                RunnerStartingLocation.Home)));
 
         return TryConstruct(
             batterPlayerId, result, currentOuts, participants, out context);

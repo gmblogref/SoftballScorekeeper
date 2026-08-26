@@ -10,9 +10,9 @@ Stable product and architecture decisions belong in the project architecture doc
 
 ## Current Project Status
 
-- **Latest completed story:** Story 6.6.1 — Play Resolution Coordination Foundation
-- **Completed stories:** Stories 0.0 through 6.6.1; Stories 3.2 through 3.4 retain their recorded validation status
-- **Current story:** None; Story 6.6.1 is complete and PR-ready on `task/play-resolution-coordinator`
+- **Latest completed story:** Story 6.6.2 — Fielder's Choice Semantic Correction
+- **Completed stories:** Stories 0.0 through 6.6.2; Stories 3.2 through 3.4 retain their recorded validation status
+- **Current story:** None; Story 6.6.2 is complete and PR-ready on `task/fielder-choice-semantic-correction`
 - **Current phase:** Scoring interaction refinement
 - **Foundation status:** Complete
 
@@ -2465,6 +2465,58 @@ Dedicated Double Play/Triple Play presentation, sacrifice results, HR-limit/dead
 #### Intended Commit Message
 
 `Add play resolution coordination`
+
+### Story 6.6.2 — Fielder's Choice Semantic Correction
+
+**Status:** Complete and PR-ready on `task/fielder-choice-semantic-correction`; implementation, automated validation, Windows build validation, and physical Android tablet acceptance are complete
+
+#### Corrected Fielder's Choice Semantics
+
+- Corrected the ambiguous Story 6.6.1 FC model: the batter-runner is now safe at First by definition, is already resolved when FC is selected, is never offered as the ordinary FC retirement candidate, and cannot be changed to Out through the FC participant-outcome path. Recording the batter retired at First while another runner advances remains the existing ordinary `Out` workflow rather than FC.
+- FC still requires at least one pre-play runner. Guided decisions now concern existing runners only, in canonical Third, Second, First order. At least one existing runner must be retired, while additional ordinary or Out Attempting retirements remain supported without reclassifying the PA as Double Play or Triple Play. Explicit DP/TP behavior remains separate and unchanged.
+- Safe at First is the FC batter-runner's initial default, not a permanent physical-destination restriction. Once resolved, the batter-runner remains canonically identified as starting at Home and uses `BaseRunnerResolver` for legal correction to First, Second, Third, or Scores. Later advancement does not convert FC into a hit, and no Error/ROE attribution or FC-specific movement engine was introduced.
+- At two Outs, a one-runner FC automatically retires that existing runner; a multi-runner FC requests one retirement from existing runners only. The selected runner becomes the actual third Out, the batter remains safe at First in the play facts, no fourth Out is created, and the PA remains FC. The generic coordinator retirement-selection path now serves FC and multi-out plays; the former repository-specific FC third-Out completion API and the obsolete all-terminal FC predicate were removed.
+- Third-Out handling now evaluates the actual resolved participants rather than treating every two-Out FC as automatic no-run by result name. A two-Out FC does not open a run-ruling dialog merely because it is FC; a timing decision is requested only when the resolved play contains a potentially scoring runner whose run requires a ruling.
+
+#### Persistence, Presentation, and Compatibility
+
+- `PlayResolutionCoordinator` remains the active-play choreography root, `PlayContext` carries the corrected immutable participant facts, `BaseRunnerResolver` remains authoritative for physical runner legality, and `ThirdOutRunRulingEvaluator` remains focused on third-Out run rulings. `ScoringViewModel` did not regain scoring rules or result-specific orchestration. Infrastructure retains its existing SQLite transaction and persistence responsibilities.
+- New pending FC state and database rehydration preserve the corrected batter-safe state, existing-runner retirement, a corrected batter-runner destination beyond First, and exact `SafeDestination` / `AttemptedDestination` metadata where applicable. Exit/Resume does not duplicate retirement, batter advancement, commit, or inning transition.
+- `ScoringViewModel` remains a consumer of generic coordinator decisions. It submits all retirement membership through the shared repository operation; no FC result choreography was reintroduced in the ViewModel or page. The existing retirement dialog receives coordinator-provided existing-runner candidates and count.
+- The obsolete dedicated repository FC third-Out completion path and terminal FC predicate were removed. Existing tests encoding batter-out FC or result-name-only two-Out completion were deliberately updated rather than deleted, preserving regression intent around ordinary Out, hits, Walk, explicit DP/TP, resolver correction, run rulings, scoring history, and persistence.
+
+#### Automated and Platform Validation
+
+- Final validation passed 145 of 145 focused FC/coordinator/resolver tests, 358 of 358 scoring/resolver regression tests, and the complete 532 of 532 automated suite against isolated temporary SQLite databases, with zero failures and zero skips. Coverage includes FC unavailability with empty bases; batter Safe at First; batter exclusion from retirement candidates; existing-runner, multi-runner, and bases-loaded FC retirement; ordinary Out for batter retirement; two-Out FC and no fourth Out; fact-driven third-Out evaluation; FC plus Out Attempting; batter-runner correction to Second, Third, and Scores; resolver menu/execution equivalence; no-passing and destination capacity; singleton-outcome auto-resolution; Exit/Resume; exactly-once commit and inning transition; and DP/TP, ordinary Out, Walk, and hit regressions.
+- The previously completed Windows `net9.0-windows10.0.19041.0` non-incremental build passed with zero errors and 114 existing warnings in the established `CS8602`, `MVVMTK0045`, and `XC0025` categories. It was not rerun after the Android-validation corrections, and Windows runtime validation was not performed.
+
+#### Physical Android Validation Follow-up — Singleton Outcomes
+
+- Physical Android validation found that a zero-Out FC with one runner on First correctly identified the existing runner but still opened the generic participant-outcome dialog with only `Out`. The coordinator now consumes a participant's sole legal outcome before exposing a decision; zero choices retain existing unresolved handling, while two or more choices still require scorer input. The ViewModel remains a generic coordinator consumer.
+- Pending-play creation now persists the coordinator's resolved context immediately, so the automatically retired runner, batter safe at First, subsequent editing/commit choreography, and Exit/Resume state match the former manual selection path. Explicit runner correction remains an invoked editing interaction because cancellation and retaining the current outcome are meaningful there. Retirement membership, Out Attempting, third-Out rulings, and multi-out selection retain scorer input whenever they contain multiple semantic choices.
+- Physical Android revalidation accepted the correction: Runner on First plus FC retired the existing runner automatically, left the batter Safe at First, and displayed no redundant singleton `Out` dialog. Two-Out FC, DP/TP, Out Attempting, third-Out rulings, ordinary Out correction, and meaningful multi-option decisions retained their established interaction behavior.
+
+#### Physical Android Validation Follow-up — FC Batter-Runner Advancement
+
+- Physical Android validation then found that the resolved FC batter-runner's correction menu contained only First. The FC result definition had incorrectly used its allowed-batter-destinations filter to enforce the initial Safe-at-First default as a permanent physical destination, and the coordinator routed every FC participant through guided unresolved-outcome handling. FC now retains First as the initial default while allowing the resolved batter-runner to use the shared resolver for legal safe destinations at First, Second, Third, or Scores. Ordinary batter retirement remains excluded from FC, existing-runner retirement rules are unchanged, and advancing the batter-runner does not change the FC plate-appearance classification.
+- Guided FC handling now applies only while the selected participant still requires outcome confirmation. Once resolved, both the batter-runner and existing runners use normal resolver correction, preserving no-passing, destination capacity, deterministic displacement, and menu/execution equivalence. Other current results were audited: hits already use unrestricted resolver correction, Walk commits immediately, and Out/DP/TP retain their existing correction behavior; no parallel permanent-default restriction was found.
+- Added focused coverage for the Safe-at-First default; legal batter-runner correction to Second, Third, and Scores; exclusion of ordinary Out; retained FC classification and absence of hit reclassification; multi-runner resolver legality; Exit/Resume beyond First; and exactly-once commit. Existing two-Out FC and FC Out Attempting regressions remain green.
+
+#### Physical Android Tablet Validation — Accepted
+
+- Runner on First plus FC automatically retired the existing runner, established the batter Safe at First, and displayed no redundant singleton `Out` outcome dialog. The ordinary batter-Out scenario retained the `Out` workflow: existing runners held their starting locations by default and remained manually advanceable when appropriate.
+- Multi-runner FC excluded the batter from retirement decisions, resolved existing runners correctly, and retained legal survivor correction. The FC batter-runner defaulted to First and could subsequently move to legal later destinations while the plate appearance remained FC.
+- Two-Out FC used an existing runner for the third Out, kept the batter Safe, persisted no fourth Out, and advanced the half inning exactly once. FC plus Out Attempting and pending FC Exit/Resume were accepted without duplicated retirement, batter advancement, or inning transition.
+- Single, ordinary Out, Walk, Double Play, and Triple Play smoke scenarios passed. Portrait and landscape scoring presentation passed on the physical Android tablet.
+
+#### Scope and Deferred Boundaries
+
+- This correction adds no force/tag classification, defensive attribution or chronology, automatic run timing, statistics expansion, Undo/Redo, completed-game correction, new result types, or alternate persistence pipeline. Those remain deferred to their approved stories.
+- Story 6.6.1 remains the historical coordinator-foundation record, but its statements that FC included the batter in guided order and that every two-Out FC was automatic by result name are superseded by this correction.
+
+#### Intended Commit Message
+
+`Correct fielder's choice semantics`
 
 ## Maintenance Rules
 

@@ -28,6 +28,12 @@ public sealed record PlateAppearanceResultDefinition(
     int MinimumParticipants = 1,
     IReadOnlyList<RunnerDestination>? AllowedBatterDestinations = null)
 {
+    public bool RequiresOutcomeConfirmation(
+        RunnerStartingLocation startingLocation) =>
+        RequiresExplicitOutcomeConfirmation
+        && !(Result == BatterResult.FielderChoice
+            && startingLocation == RunnerStartingLocation.Home);
+
     public RunnerDestination GetExistingRunnerDefaultDestination(
         RunnerStartingLocation startingLocation,
         IReadOnlySet<RunnerStartingLocation> occupiedStartingLocations)
@@ -102,7 +108,12 @@ public static class PlateAppearanceResultDefinitions
             RequiresExplicitOutcomeConfirmation: true,
             MinimumPlayOuts: 1,
             AllowedBatterDestinations:
-                [RunnerDestination.First, RunnerDestination.Out]),
+            [
+                RunnerDestination.First,
+                RunnerDestination.Second,
+                RunnerDestination.Third,
+                RunnerDestination.Scores,
+            ]),
         new(BatterResult.DoublePlay, RunnerDestination.First,
             ExistingRunnerMovementBehavior.Hold, 0,
             PlateAppearanceCompletionBehavior.Pending,
