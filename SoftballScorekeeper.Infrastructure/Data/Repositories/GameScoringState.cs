@@ -12,7 +12,8 @@ public sealed record GameScoringState(
     PendingScoringPlay? PendingPlay,
     IReadOnlyList<GameScoringHalfInning> HalfInnings,
     int HomeHomeRuns,
-    int VisitorHomeRuns)
+    int VisitorHomeRuns,
+    PlayResolutionResult? PlayResolution)
 {
     public (int OnDeckPlayerId, int InTheHolePlayerId)? GetUpcomingPlayerIds()
     {

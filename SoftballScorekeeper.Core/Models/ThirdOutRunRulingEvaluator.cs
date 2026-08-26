@@ -7,7 +7,8 @@ public sealed record ResolvedPlayParticipantOutcome(
     RunnerDestination? SafeDestination,
     RunnerDestination? AttemptedDestination,
     int? OutOrder,
-    bool IsUnorderedMultiOutRetirement = false);
+    bool IsUnorderedMultiOutRetirement = false,
+    bool RequiresOutcomeConfirmation = false);
 
 public enum ThirdOutRunRulingRequirement
 {
@@ -29,6 +30,9 @@ public static class ThirdOutRunRulingEvaluator
 
         if (result == BatterResult.DoublePlay && currentOuts == 1
             || result == BatterResult.TriplePlay && currentOuts == 0)
+            return ThirdOutRunRulingRequirement.AutomaticNoRun;
+
+        if (result == BatterResult.FielderChoice && currentOuts == 2)
             return ThirdOutRunRulingRequirement.AutomaticNoRun;
 
         var outsNeeded = 3 - currentOuts;

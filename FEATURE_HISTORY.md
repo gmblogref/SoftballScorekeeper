@@ -10,9 +10,9 @@ Stable product and architecture decisions belong in the project architecture doc
 
 ## Current Project Status
 
-- **Latest completed story:** Story 6.6 — Double Play and Multi-Out Play Resolution
-- **Completed stories:** Stories 0.0 through 6.6; Stories 3.2 through 3.4 retain their recorded validation status
-- **Current story:** None; Story 6.6 is complete and PR-ready on `task/double-play-resolution`
+- **Latest completed story:** Story 6.6.1 — Play Resolution Coordination Foundation
+- **Completed stories:** Stories 0.0 through 6.6.1; Stories 3.2 through 3.4 retain their recorded validation status
+- **Current story:** None; Story 6.6.1 is complete and PR-ready on `task/play-resolution-coordinator`
 - **Current phase:** Scoring interaction refinement
 - **Foundation status:** Complete
 
@@ -2414,6 +2414,57 @@ Dedicated Double Play/Triple Play presentation, sacrifice results, HR-limit/dead
 #### Intended Commit Message
 
 `Add double play resolution`
+
+### Story 6.6.1 — Play Resolution Coordination Foundation
+
+**Status:** Complete and PR-ready on `task/play-resolution-coordinator`; implementation, automated validation, Windows build validation, and focused physical Android tablet acceptance are complete
+
+#### Purpose and Coordinator Boundary
+
+- Result-specific sequencing had accumulated across presentation and repository code while `BaseRunnerResolver`, `ThirdOutRunRulingEvaluator`, and `PendingFielderChoiceCompletion` intentionally remained focused rule components. The missing abstraction was choreography. Story 6.6.1 adds the scoring-specific, stateless `PlayResolutionCoordinator` as the single active-play orchestration root before more scoring special cases are introduced; no generic application-wide coordinator framework was added.
+- The coordinator determines which focused component runs and when and returns one coherent `PlayResolutionResult`. It identifies unresolved participant decisions, retirement selection and count, `ReadyForNextBatter`, `AutoComplete`, `CommitImmediately`, and the third-Out evaluation boundary. It owns no SQLite, MAUI, resources, dialogs, score mutation, inning persistence, game lifecycle, or mutable per-Game state.
+- Final architecture review removed the remaining duplicate guided-FC arrangement and outcome-propagation choreography from `GameScoringSessionRepository`; applying guided participant outcomes, propagating uniquely determined outcomes, and stopping unnecessary questions now occur inside the coordinator. The repository only rehydrates/applies context and owns persistence and transactions.
+
+#### Play Context and Rule Boundaries
+
+- Immutable `PlayContext` represents the current active play only. It separates PA classification from each participant's canonical starting location, destination, terminal Out state, `SafeDestination`, `AttemptedDestination`, Out order/membership facts, and confirmation state. New results construct it from committed pre-play truth; Exit/Resume rehydrates the exact persisted pending movements without regenerating defaults. It is neither a persisted aggregate nor a UI model.
+- `BaseRunnerResolver` remains authoritative for legal arrangements, no passing, destination availability, deterministic correction, attempted-advance relationships, and canonical offensive participant order. Guided FC resolution therefore proceeds from the runner originally on Third, then Second, then First, and finally the batter-runner.
+- `ThirdOutRunRulingEvaluator` remains authoritative for automatic no-run semantics, scorer-decision-required semantics, and meaningful chronological third-Out interpretation. The coordinator owns when that evaluator runs, not its ruling rules. `PendingFielderChoiceCompletion` remains a narrow terminal FC predicate where still used.
+
+#### Presentation and Persistence Reduction
+
+- `ScoringViewModel` now exposes generic coordinator-derived state: `ResolutionStatus`, `DecisionRequirement`, `DecisionParticipants`, `DecisionPlayerIds`, `RequiredRetirementCount`, `ThirdOutRulingRequirement`, `CanAdvanceToNextBatter`, and `CanEditParticipantOutcomes`. The former ViewModel-specific FC/DP predicates and result-specific invocation order were removed.
+- `ScoringPage` runs one current-play resolution loop driven by `PlayDecisionRequirement` instead of reconstructing FC/DP/TP sequencing from result names. Guided dialogs show each participant's resource-backed starting location, and the page reacts to retirement, participant-outcome, and third-Out-ruling requirements returned by the domain.
+- `GameScoringSessionRepository` remains the single SQLite transaction and persistence pipeline. Existing Home Run, ordinary Out, FC automatic/third-Out completion, atomic DP/TP, score, base, inning, and batter-advancement paths remain repository-owned. Ordinary load evaluates only a persisted pending play; completed plate appearances and movement history remain authoritative and are not recalculated.
+
+#### Fielder's Choice and Multi-Out Clarification
+
+- `FielderChoice` remains the PA/result classification when appropriate and is not defined as exactly one Out. A fielder's-choice play can produce multiple participant Outs without automatically changing the PA to `DoublePlay` or `TriplePlay`; an additional runner may become Out Attempting while the PA remains FC. That terminal participant retains `SafeDestination` and `AttemptedDestination`. Explicit DP/TP results remain valid and unchanged for plays intentionally classified as DP/TP, and FC versus DP/TP is not inferred solely from the number of Outs.
+- Guided FC resolution uses canonical offensive order (original Third, Second, First, then batter-runner) and displays starting location. Once the required FC retirement structure is known, unnecessary retirement questions stop. Remaining safe/scored participants are resolved or defaulted through the existing coordinator/resolver path and remain editable until commit where current rules allow.
+- The accepted two-Out rule is `2 Outs + Fielder's Choice = automatic third-Out FC completion`: there is no `Who Was Out?` dialog and no run-timing/ruling dialog merely because the PA is FC; the half inning advances once, the batter advances once, bases clear through the existing inning-transition persistence, no fourth Out is created, and the PA remains FC.
+- This is distinct from `2 Outs + hit + one runner Scores + another runner becomes Out Attempting for the third Out`. That play may still require scorer run-timing input. The coordinator decides when evaluation is needed, and `ThirdOutRunRulingEvaluator` decides the ruling semantics; not every third-Out play is an automatic no-run.
+
+#### Physical Android Tablet Validation — Accepted
+
+- Portrait and landscape visual smoke checks passed. Guided FC resolution passed with starting-location presentation; unnecessary prompts stopped once the retirement structure was known; safe/scored participants remained editable; and FC plus Out Attempting retained FC classification and movement detail.
+- Two-Out FC automatic completion passed with no `Who Was Out?` dialog, no run-ruling dialog, one inning transition, one batter advancement, and no fourth Out. Explicit DP and TP behavior also passed.
+- Pending FC Exit/Resume behavior passed. No duplicate dialogs, duplicate actions, or runtime exceptions were observed in the accepted scenarios. Cancellation/resumption and pending DP Exit/Resume were not separately recorded as physical-device scenarios and are not claimed here.
+
+#### Automated and Platform Validation
+
+- `PlayResolutionCoordinatorTests` passed 31 of 31; focused FC/Walk passed 40 of 40; `RunnerOutAttemptingAdvanceTests` passed 19 of 19; and `MultiOutPlayResolutionTests` passed 31 of 31, all with zero failures and zero skips.
+- The scoring/resolver regression group passed 317 of 317. The complete automated suite passed 520 of 520 against isolated temporary SQLite databases, with zero failures and zero skips.
+- The non-incremental Windows `net9.0-windows10.0.19041.0` build passed with zero errors and 114 existing warnings in the established `CS8602`, `MVVMTK0045`, and `XC0025` categories. Windows runtime validation was not performed.
+- The .NET Android workload is installed, but the Android SDK is not configured or discoverable and `adb` is unavailable. Command-line Android build validation therefore stops at `XA5300` before application compilation; this is an environment limitation, not a Story 6.6.1 code failure. Android interaction acceptance was performed manually on the physical tablet as recorded above.
+
+#### Scope and Deferred Boundaries
+
+- Story 6.6.1 did not add Sacrifice Fly, Error/ROE, force/tag classification, HR-limit enforcement, 1-Up enforcement, Beer Rules, substitutions, live lineup management, statistics expansion, Undo/Redo, Manual Overrides, completed-game correction, generic Team/Player/Game coordinators, MediatR, CQRS, event sourcing, or a rules-engine architecture.
+- Genuine future seams remain future result-specific orchestration and completed-play correction/Undo. They should extend the scoring coordinator and authoritative persisted history when their stories are approved; no speculative component was introduced here.
+
+#### Intended Commit Message
+
+`Add play resolution coordination`
 
 ## Maintenance Rules
 

@@ -106,6 +106,12 @@ public sealed class MultiOutPlayResolutionTests
         await SeedBaseAsync(db, initialized.Session!.Id, context.Players[1], ScoringBase.First);
         await SeedBaseAsync(db, initialized.Session.Id, context.Players[2], ScoringBase.Second);
         await repository.SelectBatterResultAsync(context.Game.Id, BatterResult.DoublePlay);
+        var unresolved = (await repository.GetStateForGameAsync(context.Game.Id))!;
+
+        Assert.Equal(PlayDecisionRequirement.RetirementSelection,
+            unresolved.PlayResolution!.DecisionRequirement);
+        Assert.Equal(2, unresolved.PlayResolution.RequiredRetirementCount);
+        Assert.Equal(3, unresolved.PlayResolution.DecisionPlayerIds.Count);
 
         var selected = await repository.SelectMultiOutRetirementsAsync(
             context.Game.Id,
@@ -115,6 +121,10 @@ public sealed class MultiOutPlayResolutionTests
 
         Assert.True(selected.IsSuccess);
         Assert.NotNull(pending.PendingPlay);
+        Assert.Equal(PlayResolutionStatus.ReadyForNextBatter,
+            pending.PlayResolution!.Status);
+        Assert.Equal(PlayDecisionRequirement.None,
+            pending.PlayResolution.DecisionRequirement);
         Assert.Empty(pending.PlateAppearances);
         Assert.Equal(
             RunnerDestination.First,
@@ -187,6 +197,7 @@ public sealed class MultiOutPlayResolutionTests
         Assert.DoesNotContain(BatterResult.DoublePlay,
             PlateAppearanceResultDefinitions.GetSelectableResults(1, 2));
         Assert.Null(state.PendingPlay);
+        Assert.Null(state.PlayResolution);
         Assert.Empty(state.PlateAppearances);
         Assert.Empty(state.RunnerMovements);
         Assert.Equal(1, state.Session.CurrentInning);
@@ -354,6 +365,7 @@ public sealed class MultiOutPlayResolutionTests
         Assert.True(selected.IsSuccess);
         Assert.Null(selected.PendingPlay);
         Assert.Null(state.PendingPlay);
+        Assert.Null(state.PlayResolution);
         Assert.Equal(BatterResult.TriplePlay, Assert.Single(state.PlateAppearances).Result);
         Assert.Empty(state.RunnerMovements);
         Assert.Empty(state.BaseRunners);
@@ -422,6 +434,7 @@ public sealed class MultiOutPlayResolutionTests
         Assert.True(selected.IsSuccess);
         Assert.Null(selected.PendingPlay);
         Assert.Null(state.PendingPlay);
+        Assert.Null(state.PlayResolution);
         Assert.Equal(BatterResult.DoublePlay, Assert.Single(state.PlateAppearances).Result);
         Assert.Equal(0, state.Session.HomeScore);
         Assert.Equal((2, 0), (state.Session.CurrentInning, state.Session.CurrentOuts));

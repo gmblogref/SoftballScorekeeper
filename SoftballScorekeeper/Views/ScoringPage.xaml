@@ -312,7 +312,7 @@
                     <Button x:Name="NextBatterButton"
                             Grid.Row="2" Grid.Column="1"
                             Text="{x:Static strings:AppResources.CompletePlateAppearanceButton}"
-                            IsEnabled="{Binding CanCompletePlateAppearance}"
+                            IsEnabled="{Binding CanAdvanceToNextBatter}"
                             Clicked="OnNextBatterClicked"
                             MinimumHeightRequest="56"
                             MinimumWidthRequest="260"

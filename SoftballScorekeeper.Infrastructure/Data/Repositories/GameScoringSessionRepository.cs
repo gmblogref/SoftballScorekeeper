@@ -5,8 +5,20 @@ namespace SoftballScorekeeper.Infrastructure.Data.Repositories;
 public sealed class GameScoringSessionRepository
 {
     private readonly AppDatabase database;
+    private readonly PlayResolutionCoordinator playResolutionCoordinator;
 
-    public GameScoringSessionRepository(AppDatabase database) => this.database = database;
+    public GameScoringSessionRepository(AppDatabase database)
+        : this(database, new PlayResolutionCoordinator())
+    {
+    }
+
+    public GameScoringSessionRepository(
+        AppDatabase database,
+        PlayResolutionCoordinator playResolutionCoordinator)
+    {
+        this.database = database;
+        this.playResolutionCoordinator = playResolutionCoordinator;
+    }
 
     public async Task<GameScoringSession?> GetForGameAsync(int gameId)
     {
@@ -371,6 +383,7 @@ public sealed class GameScoringSessionRepository
             .Where(item => item.GameScoringSessionId == session.Id)
             .FirstOrDefaultAsync();
         PendingScoringPlay? pendingPlay = null;
+        PlayResolutionResult? playResolution = null;
         if (pending is not null)
         {
             var pendingMovements = await connection.Table<GameScoringPendingRunnerMovement>()
@@ -378,6 +391,13 @@ public sealed class GameScoringSessionRepository
                 .OrderBy(item => item.StartingLocation)
                 .ToListAsync();
             pendingPlay = new(pending, pendingMovements);
+            PlayContextFactory.TryRehydrate(
+                session.CurrentOuts,
+                pending,
+                pendingMovements,
+                baseRunners,
+                out var playContext);
+            playResolution = playResolutionCoordinator.Evaluate(playContext);
         }
         var teamHomeRuns = plateAppearances.Count(item =>
             item.Result == BatterResult.HomeRun);
@@ -390,7 +410,7 @@ public sealed class GameScoringSessionRepository
         if (sequence.Count == 0)
             return new(session, sequence, new Dictionary<int, Player>(), plateAppearances,
                 baseRunners, runnerMovements, pendingPlay, halfInnings,
-                homeHomeRuns, visitorHomeRuns);
+                homeHomeRuns, visitorHomeRuns, playResolution);
 
         var playerIds = sequence.Select(item => item.PlayerId)
             .Concat(baseRunners.Select(item => item.PlayerId))
@@ -411,7 +431,8 @@ public sealed class GameScoringSessionRepository
             pendingPlay,
             halfInnings,
             homeHomeRuns,
-            visitorHomeRuns);
+            visitorHomeRuns,
+            playResolution);
     }
 
     public async Task<PendingPlayResult> SelectBatterResultAsync(int gameId, BatterResult result)
@@ -450,11 +471,33 @@ public sealed class GameScoringSessionRepository
                     return;
                 }
 
+                if (!PlayContextFactory.TryCreateForNewResult(
+                        context.Session.CurrentOuts,
+                        context.CurrentBatter!.PlayerId,
+                        result,
+                        context.BaseRunners!,
+                        out var playContext)
+                    || playContext is null)
+                {
+                    response = PendingFailure(PendingPlayFailure.InvalidScoringState);
+                    return;
+                }
+                var resolution = playResolutionCoordinator.Evaluate(playContext);
+                if (!resolution.IsAccepted)
+                {
+                    response = PendingFailure(PendingPlayFailure.InvalidRequest);
+                    return;
+                }
+
                 if (definition.RequiredPlayOuts > 0
-                    && context.Session.CurrentOuts + definition.RequiredPlayOuts == 3)
+                    && resolution.Status == PlayResolutionStatus.CommitImmediately)
                 {
                     var completed = CompleteInningEndingMultiOut(
-                        transaction, context, result, definition.RequiredPlayOuts);
+                        transaction,
+                        context,
+                        result,
+                        definition.RequiredPlayOuts,
+                        resolution.ThirdOutRulingRequirement);
                     response = completed.IsSuccess
                         ? new(null, PendingPlayFailure.None)
                         : PendingFailure(MapPendingFailure(completed.FailureReason));
@@ -477,24 +520,19 @@ public sealed class GameScoringSessionRepository
                 foreach (var movement in movements)
                     if (transaction.Insert(movement) != 1)
                         throw new InvalidOperationException("Pending movement insertion did not affect one row.");
-                var requiredMultiOutRetirements = definition.RequiredPlayOuts == 0
-                    ? 0 : definition.RequiredPlayOuts;
-                if (requiredMultiOutRetirements > 0
-                    && movements.Count == requiredMultiOutRetirements)
+                if (resolution.Status == PlayResolutionStatus.AutoComplete)
                 {
-                    var order = 1;
-                    foreach (var movement in movements
-                                 .OrderByDescending(item => item.StartingLocation))
+                    if (resolution.Context is null
+                        || !PlayContextFactory.TryApplyToPendingMovements(
+                            resolution.Context, movements))
                     {
-                        movement.Destination = RunnerDestination.Out;
-                        movement.SafeDestination = null;
-                        movement.AttemptedDestination = null;
-                        movement.OutOrder = order++;
-                        movement.RequiresOutcomeConfirmation = false;
+                        response = PendingFailure(PendingPlayFailure.InvalidScoringState);
+                        return;
+                    }
+                    foreach (var movement in movements)
                         if (transaction.Update(movement) != 1)
                             throw new InvalidOperationException(
                                 "Pending movement update did not affect one row.");
-                    }
                     var completed = CompletePendingPlay(transaction, gameId, result);
                     if (!completed.IsSuccess)
                     {
@@ -504,7 +542,8 @@ public sealed class GameScoringSessionRepository
                     response = new(null, PendingPlayFailure.None);
                     return;
                 }
-                if (result == BatterResult.Walk)
+                if (result == BatterResult.Walk
+                    && resolution.Status == PlayResolutionStatus.CommitImmediately)
                 {
                     var completed = CompletePendingPlay(transaction, gameId, result);
                     if (!completed.IsSuccess)
@@ -575,45 +614,24 @@ public sealed class GameScoringSessionRepository
                     return;
                 }
 
-                var selectedPlayerIds = retirements
-                    .Select(item => item.PlayerId)
-                    .ToHashSet();
-                if (selectedPlayerIds.Any(playerId => movements.All(item =>
-                        item.PlayerId != playerId)))
+                if (!PlayContextFactory.TryRehydrate(
+                        session.CurrentOuts,
+                        play,
+                        movements,
+                        context.BaseRunners!,
+                        out var playContext)
+                    || playContext is null)
                 {
-                    response = PendingFailure(PendingPlayFailure.InvalidRequest);
+                    response = PendingFailure(PendingPlayFailure.InvalidScoringState);
                     return;
                 }
-
-                var internalOrders = movements
-                    .Where(item => selectedPlayerIds.Contains(item.PlayerId))
-                    .OrderByDescending(item => item.StartingLocation)
-                    .Select((item, index) => (item.PlayerId, Order: index + 1))
-                    .ToDictionary(item => item.PlayerId, item => item.Order);
-                foreach (var movement in movements)
-                {
-                    if (internalOrders.TryGetValue(movement.PlayerId, out var internalOrder))
-                    {
-                        movement.Destination = RunnerDestination.Out;
-                        movement.SafeDestination = null;
-                        movement.AttemptedDestination = null;
-                        movement.OutOrder = internalOrder;
-                    }
-                    else
-                    {
-                        movement.OutOrder = null;
-                    }
-                    movement.RequiresOutcomeConfirmation = false;
-                }
-
-                ApplyMultiOutSurvivorDefaults(
-                    play, movements, definition, session.CurrentOuts);
-
-                if (!PendingBaseRunnerResolutionAdapter.TryCreateState(
-                        play, movements, out var state)
-                    || state is null
-                    || !BaseRunnerResolver.IsLegalArrangement(state)
-                    || !definition.IsCompatibleWithArrangement(state, session.CurrentOuts))
+                var resolution = playResolutionCoordinator.ApplyRetirementSelection(
+                    playContext,
+                    retirements.Select(item => item.PlayerId).ToHashSet());
+                if (!resolution.IsAccepted
+                    || resolution.Context is null
+                    || !PlayContextFactory.TryApplyToPendingMovements(
+                        resolution.Context, movements))
                 {
                     response = PendingFailure(PendingPlayFailure.InvalidRequest);
                     return;
@@ -624,8 +642,7 @@ public sealed class GameScoringSessionRepository
                         throw new InvalidOperationException(
                             "Pending movement update did not affect one row.");
 
-                if (definition.RequiredPlayOuts > 0
-                    && movements.All(item => item.Destination == RunnerDestination.Out))
+                if (resolution.Status == PlayResolutionStatus.AutoComplete)
                 {
                     var completed = CompletePendingPlay(transaction, gameId, play.Result);
                     response = completed.IsSuccess
@@ -689,162 +706,43 @@ public sealed class GameScoringSessionRepository
                     response = PendingFailure(PendingPlayFailure.InvalidRequest);
                     return;
                 }
-                if (!PendingBaseRunnerResolutionAdapter.TryCreateState(
-                        play, movements, out var currentResolverState)
-                    || currentResolverState is null)
+                var baseRunners = transaction.Table<GameScoringBaseRunner>()
+                    .Where(item => item.GameScoringSessionId == session.Id)
+                    .ToList();
+                if (!PlayContextFactory.TryRehydrate(
+                        session.CurrentOuts,
+                        play,
+                        movements,
+                        baseRunners,
+                        out var playContext)
+                    || playContext is null)
                 {
                     response = PendingFailure(PendingPlayFailure.DuplicateDestination);
                     return;
                 }
-                var definition = PlateAppearanceResultDefinitions.Get(play.Result);
-                if (definition.RequiredPlayOuts > 0 && movement.OutOrder is not null)
+                var resolution = playResolutionCoordinator.ApplyParticipantOutcome(
+                    playContext, playerId, outcome);
+                if (!resolution.IsAccepted || resolution.Context is null)
                 {
-                    response = PendingFailure(PendingPlayFailure.InvalidRequest);
+                    response = PendingFailure(resolution.FailureReason
+                        == PlayResolutionFailure.InvalidDecision
+                            ? PendingPlayFailure.InvalidRequest
+                            : PendingPlayFailure.DuplicateDestination);
                     return;
                 }
-                var usesGuidedResolution = definition.RequiresExplicitOutcomeConfirmation
-                    && definition.RequiredPlayOuts == 0;
-                if (outcome.IsOutAttemptingAdvance)
+                if (!PlayContextFactory.TryApplyToPendingMovements(
+                        resolution.Context, movements))
                 {
-                    var isAvailable = usesGuidedResolution
-                        ? GetCompatibleGuidedAttemptedOutcomes(
-                            play, movements, session.CurrentOuts, playerId)
-                            .Contains(outcome)
-                        : BaseRunnerResolver.TryGetOutAttemptingAdvance(
-                            currentResolverState, playerId, out var availableOutcome)
-                            && availableOutcome == outcome
-                            && IsCompatibleWithDefinition(definition, session.CurrentOuts,
-                                BaseRunnerResolver.ResolveCorrection(currentResolverState,
-                                    playerId, RunnerDestination.Out));
-                    var isWithinOutLimit = usesGuidedResolution
-                        || IsWithinOutLimit(session.CurrentOuts,
-                            BaseRunnerResolver.ResolveCorrection(currentResolverState,
-                                playerId, RunnerDestination.Out));
-                    if (!isAvailable || !isWithinOutLimit)
-                    {
-                        response = PendingFailure(PendingPlayFailure.InvalidRequest);
-                        return;
-                    }
-                }
-                if (usesGuidedResolution)
-                {
-                    if (play.Result == BatterResult.FielderChoice
-                        && session.CurrentOuts == 2)
-                    {
-                        response = PendingFailure(PendingPlayFailure.InvalidRequest);
-                        return;
-                    }
-                    var fixedOutcomes = movements
-                        .Where(item => !item.RequiresOutcomeConfirmation
-                            && item.PlayerId != playerId)
-                        .ToDictionary(item => item.PlayerId, item => item.Destination);
-                    fixedOutcomes[playerId] = outcome.Destination;
-                    var arrangements = GetCompatibleGuidedArrangements(
-                        play, movements, session.CurrentOuts, fixedOutcomes);
-                    if (arrangements.Count == 0)
-                    {
-                        response = PendingFailure(PendingPlayFailure.DuplicateDestination);
-                        return;
-                    }
-
-                    var resolvedOutcomes = new Dictionary<int, RunnerDestination>(fixedOutcomes);
-                    var establishesThirdOut = session.CurrentOuts
-                        + fixedOutcomes.Count(item => item.Value == RunnerDestination.Out) == 3;
-                    if (establishesThirdOut)
-                    {
-                        var thirdOutArrangement = arrangements
-                            .OrderByDescending(arrangement => arrangement.Participants.Count(
-                                participant => participant.Destination == RunnerDestination.Scores))
-                            .First();
-                        foreach (var participant in thirdOutArrangement.Participants)
-                            resolvedOutcomes[participant.PlayerId] = participant.Destination;
-                    }
-                    else
-                    {
-                        foreach (var unresolved in movements.Where(item =>
-                                     !resolvedOutcomes.ContainsKey(item.PlayerId)))
-                        {
-                            var outcomes = arrangements.Select(arrangement => arrangement.Participants
-                                    .Single(participant => participant.PlayerId == unresolved.PlayerId)
-                                    .Destination)
-                                .Distinct()
-                                .ToArray();
-                            if (outcomes.Length == 1)
-                                resolvedOutcomes[unresolved.PlayerId] = outcomes[0];
-                        }
-                    }
-
-                    var representative = arrangements[0];
-                    foreach (var item in movements)
-                    {
-                        item.Destination = resolvedOutcomes.TryGetValue(
-                            item.PlayerId, out var resolvedDestination)
-                            ? resolvedDestination
-                            : representative.Participants.Single(participant =>
-                                participant.PlayerId == item.PlayerId).Destination;
-                        item.RequiresOutcomeConfirmation =
-                            !resolvedOutcomes.ContainsKey(item.PlayerId);
-                        ApplyOutcomeDetails(item, playerId, outcome);
-                        if (transaction.Update(item) != 1)
-                            throw new InvalidOperationException(
-                                "Pending movement update did not affect one row.");
-                    }
-                    var completesHalfInning = movements.All(item =>
-                            !item.RequiresOutcomeConfirmation)
-                        && session.CurrentOuts + movements.Count(item =>
-                            item.Destination == RunnerDestination.Out) == 3;
-                    var canTerminalAutoComplete =
-                        PendingFielderChoiceCompletion.CanAutoComplete(
-                            play, movements, session.CurrentOuts);
-                    if (canTerminalAutoComplete
-                        || completesHalfInning && movements.All(item =>
-                            item.Destination != RunnerDestination.Scores)
-                            && play.Result == BatterResult.FielderChoice)
-                    {
-                        var completed = CompletePendingPlay(
-                            transaction, gameId, BatterResult.FielderChoice);
-                        if (!completed.IsSuccess)
-                        {
-                            response = PendingFailure(MapPendingFailure(completed.FailureReason));
-                            return;
-                        }
-                        response = new(null, PendingPlayFailure.None);
-                        return;
-                    }
-                    response = new(new(play, movements), PendingPlayFailure.None);
+                    response = PendingFailure(PendingPlayFailure.InvalidScoringState);
                     return;
                 }
-                var resolution = BaseRunnerResolver.ResolveCorrection(
-                    currentResolverState, playerId, outcome.Destination);
-                if (!resolution.IsSuccess
-                    || !IsWithinOutLimit(session.CurrentOuts, resolution)
-                    || !IsCompatibleWithDefinition(
-                        definition, session.CurrentOuts, resolution))
-                {
-                    response = PendingFailure(PendingPlayFailure.DuplicateDestination);
-                    return;
-                }
-                var nextOutOrder = definition.RequiredPlayOuts > 0
-                    && outcome.Destination == RunnerDestination.Out
-                    && movement.OutOrder is null
-                        ? movements.Where(item => item.OutOrder is not null)
-                            .Max(item => item.OutOrder!.Value) + 1
-                        : (int?)null;
                 foreach (var item in movements)
                 {
-                    var resolvedDestination = resolution.Participants
-                        .Single(participant => participant.PlayerId == item.PlayerId)
-                        .Destination;
-                    item.Destination = resolvedDestination;
-                    ApplyOutcomeDetails(item, playerId, outcome);
-                    if (item.PlayerId == playerId && nextOutOrder is not null)
-                        item.OutOrder = nextOutOrder;
                     if (transaction.Update(item) != 1)
                         throw new InvalidOperationException(
                         "Pending movement update did not affect one row.");
                 }
-                if (definition.RequiredPlayOuts > 0
-                    && movements.All(item => item.Destination == RunnerDestination.Out))
+                if (resolution.Status == PlayResolutionStatus.AutoComplete)
                 {
                     var completed = CompletePendingPlay(
                         transaction, gameId, play.Result);
@@ -892,65 +790,19 @@ public sealed class GameScoringSessionRepository
         if (movements.All(item => item.PlayerId != playerId)
             || play.BatterPlayerId <= 0)
             return new([], PendingPlayFailure.InvalidRequest);
-        if (!PendingBaseRunnerResolutionAdapter.TryCreateState(
-                play, movements, out var resolverState)
-            || resolverState is null)
+        var baseRunners = await connection.Table<GameScoringBaseRunner>()
+            .Where(item => item.GameScoringSessionId == session.Id).ToListAsync();
+        if (!PlayContextFactory.TryRehydrate(
+                session.CurrentOuts,
+                play,
+                movements,
+                baseRunners,
+                out var playContext)
+            || playContext is null)
             return new([], PendingPlayFailure.InvalidScoringState);
-        var definition = PlateAppearanceResultDefinitions.Get(play.Result);
-        var selectedMovement = movements.Single(item => item.PlayerId == playerId);
-        if (definition.RequiredPlayOuts > 0 && selectedMovement.OutOrder is not null)
-            return new([], PendingPlayFailure.None);
-        var usesGuidedResolution = definition.RequiresExplicitOutcomeConfirmation
-            && definition.RequiredPlayOuts == 0;
-        if (usesGuidedResolution)
-        {
-            if (play.Result == BatterResult.FielderChoice
-                && session.CurrentOuts == 2)
-                return new([], PendingPlayFailure.None);
-            var fixedOutcomes = movements
-                .Where(item => !item.RequiresOutcomeConfirmation
-                    && item.PlayerId != playerId)
-                .ToDictionary(item => item.PlayerId, item => item.Destination);
-            var arrangements = GetCompatibleGuidedArrangements(
-                play, movements, session.CurrentOuts, fixedOutcomes);
-            var fielderChoiceDestinations = arrangements
-                .Select(arrangement => arrangement.Participants.Single(item =>
-                    item.PlayerId == playerId).Destination)
-                .Distinct()
-                .OrderBy(item => item)
-                .ToArray();
-            var choices = fielderChoiceDestinations
-                .Select(RunnerOutcomeChoice.ForDestination)
-                .Concat(GetCompatibleGuidedAttemptedOutcomes(
-                    play, movements, session.CurrentOuts, playerId))
-                .ToArray();
-            return new(choices,
-                PendingPlayFailure.None);
-        }
-        var destinations = BaseRunnerResolver.GetAvailableDestinations(
-                resolverState, playerId)
-            .Where(destination => IsWithinOutLimit(session.CurrentOuts,
-                BaseRunnerResolver.ResolveCorrection(
-                    resolverState, playerId, destination)))
-            .Where(destination => IsCompatibleWithDefinition(
-                definition, session.CurrentOuts,
-                BaseRunnerResolver.ResolveCorrection(
-                    resolverState, playerId, destination)))
-            .Select(RunnerOutcomeChoice.ForDestination)
-            .ToList();
-        var movement = movements.Single(item => item.PlayerId == playerId);
-        if (!movement.RequiresOutcomeConfirmation
-            && BaseRunnerResolver.TryGetOutAttemptingAdvance(
-                resolverState, playerId, out var attemptedOutcome)
-            && attemptedOutcome is not null
-            && IsWithinOutLimit(session.CurrentOuts,
-                BaseRunnerResolver.ResolveCorrection(
-                    resolverState, playerId, RunnerDestination.Out))
-            && IsCompatibleWithDefinition(definition, session.CurrentOuts,
-                BaseRunnerResolver.ResolveCorrection(
-                    resolverState, playerId, RunnerDestination.Out)))
-            destinations.Add(attemptedOutcome);
-        return new(destinations.AsReadOnly(), PendingPlayFailure.None);
+        return new(
+            playResolutionCoordinator.GetAvailableOutcomes(playContext, playerId),
+            PendingPlayFailure.None);
     }
 
     public async Task<bool> ClearPendingPlayAsync(int gameId)
@@ -1003,8 +855,7 @@ public sealed class GameScoringSessionRepository
                 }
                 var movements = transaction.Table<GameScoringPendingRunnerMovement>()
                     .Where(item => item.GameScoringPendingPlayId == pending.Id).ToList();
-                if (movements.Any(item => item.RequiresOutcomeConfirmation)
-                    || !IsValidPendingPlay(pending, movements, context.CurrentBatter!,
+                if (!IsValidPendingPlay(pending, movements, context.CurrentBatter!,
                         context.BaseRunners!, session.CurrentOuts))
                 {
                     result = new([], PendingPlayFailure.InvalidScoringState);
@@ -1017,14 +868,30 @@ public sealed class GameScoringSessionRepository
                     result = new([], PendingPlayFailure.InvalidScoringState);
                     return;
                 }
-                var rulingRequirement = EvaluateThirdOutRunRuling(
-                    pending, movements, session.CurrentOuts);
+                if (!PlayContextFactory.TryRehydrate(
+                        session.CurrentOuts,
+                        pending,
+                        movements,
+                        context.BaseRunners!,
+                        out var playContext)
+                    || playContext is null)
+                {
+                    result = new([], PendingPlayFailure.InvalidScoringState);
+                    return;
+                }
+                var resolution = playResolutionCoordinator.Evaluate(playContext);
+                if (!resolution.IsAccepted
+                    || resolution.DecisionRequirement is
+                        PlayDecisionRequirement.ParticipantOutcome
+                        or PlayDecisionRequirement.RetirementSelection)
+                {
+                    result = new([], PendingPlayFailure.InvalidScoringState);
+                    return;
+                }
                 var ids = outsAfterPlay == 3
-                    && rulingRequirement
-                        == ThirdOutRunRulingRequirement.ScorerDecisionRequired
-                    ? movements.Where(item => item.Destination == RunnerDestination.Scores)
-                        .OrderByDescending(item => item.StartingLocation)
-                        .Select(item => item.PlayerId).ToArray()
+                    && resolution.DecisionRequirement
+                        == PlayDecisionRequirement.ThirdOutRuling
+                    ? resolution.DecisionPlayerIds
                     : [];
                 result = new(ids, PendingPlayFailure.None);
             });
@@ -1291,7 +1158,7 @@ public sealed class GameScoringSessionRepository
         return new(play, movements);
     }
 
-    private static CompletePlateAppearanceResult CompletePendingPlay(
+    private CompletePlateAppearanceResult CompletePendingPlay(
         SQLite.SQLiteConnection transaction,
         int gameId,
         BatterResult? requiredResult = null,
@@ -1319,9 +1186,8 @@ public sealed class GameScoringSessionRepository
             || pending.Result == BatterResult.Out && session.CurrentOuts >= 2
             || thirdOutPlayerId is not null && !isDedicatedFielderChoiceThirdOut
             || !isDedicatedFielderChoiceThirdOut
-                && (movements.Any(item => item.RequiresOutcomeConfirmation)
-                    || !IsValidPendingPlay(pending, movements, currentBatter,
-                        context.BaseRunners!, session.CurrentOuts)))
+                && !IsValidPendingPlay(pending, movements, currentBatter,
+                    context.BaseRunners!, session.CurrentOuts))
             return CompleteFailure(CompletePlateAppearanceFailure.InvalidScoringState);
 
         IReadOnlyList<GameScoringPendingRunnerMovement> committedMovements = movements;
@@ -1343,8 +1209,21 @@ public sealed class GameScoringSessionRepository
 
         var outsAdded = CountOutsAdded(pending, committedMovements);
         var outsAfterPlay = session.CurrentOuts + outsAdded;
-        var runRulingRequirement = EvaluateThirdOutRunRuling(
-            pending, committedMovements, session.CurrentOuts);
+        if (!PlayContextFactory.TryRehydrate(
+                session.CurrentOuts,
+                pending,
+                movements,
+                context.BaseRunners!,
+                out var playContext)
+            || playContext is null)
+            return CompleteFailure(CompletePlateAppearanceFailure.InvalidScoringState);
+        var resolution = playResolutionCoordinator.Evaluate(playContext);
+        if (!resolution.IsAccepted
+            || resolution.DecisionRequirement is
+                PlayDecisionRequirement.ParticipantOutcome
+                or PlayDecisionRequirement.RetirementSelection)
+            return CompleteFailure(CompletePlateAppearanceFailure.InvalidScoringState);
+        var runRulingRequirement = resolution.ThirdOutRulingRequirement;
         if (outsAfterPlay > 3
             || !TryResolveRunRulings(committedMovements, outsAfterPlay,
                 runRulingRequirement, runRulings, out var resolvedRunRulings))
@@ -1486,53 +1365,17 @@ public sealed class GameScoringSessionRepository
         return true;
     }
 
-    private static ThirdOutRunRulingRequirement EvaluateThirdOutRunRuling(
-        GameScoringPendingPlay pending,
-        IReadOnlyList<GameScoringPendingRunnerMovement> movements,
-        int currentOuts)
-    {
-        var definition = PlateAppearanceResultDefinitions.Get(pending.Result);
-        var outcomes = movements.Select(item => new ResolvedPlayParticipantOutcome(
-            item.PlayerId,
-            item.StartingLocation,
-            item.Destination,
-            item.SafeDestination,
-            item.AttemptedDestination,
-            item.OutOrder,
-            definition.RequiredPlayOuts > 0
-                && item.OutOrder is not null
-                && item.OutOrder <= definition.RequiredPlayOuts)).ToList();
-        if (!definition.IncludesBatterMovement
-            && outcomes.All(item => item.PlayerId != pending.BatterPlayerId))
-        {
-            outcomes.Add(new(
-                pending.BatterPlayerId,
-                RunnerStartingLocation.Home,
-                RunnerDestination.Out,
-                null,
-                null,
-                null));
-        }
-
-        return ThirdOutRunRulingEvaluator.Evaluate(
-            currentOuts,
-            pending.BatterPlayerId,
-            outcomes,
-            pending.Result);
-    }
-
     private static CompletePlateAppearanceResult CompleteInningEndingMultiOut(
         SQLite.SQLiteConnection transaction,
         CompletionContext context,
         BatterResult result,
-        int outsAdded)
+        int outsAdded,
+        ThirdOutRunRulingRequirement rulingRequirement)
     {
         var session = context.Session!;
         var currentBatter = context.CurrentBatter!;
         if (session.CurrentOuts + outsAdded != 3
-            || ThirdOutRunRulingEvaluator.Evaluate(
-                session.CurrentOuts, currentBatter.PlayerId, [], result)
-                != ThirdOutRunRulingRequirement.AutomaticNoRun)
+            || rulingRequirement != ThirdOutRunRulingRequirement.AutomaticNoRun)
             return CompleteFailure(CompletePlateAppearanceFailure.InvalidScoringState);
 
         ClearPending(transaction, session.Id);
@@ -1695,92 +1538,6 @@ public sealed class GameScoringSessionRepository
         && bases.Select(item => item.Base).Distinct().Count() == bases.Count
         && bases.Select(item => item.PlayerId).Distinct().Count() == bases.Count;
 
-    private static bool IsWithinOutLimit(
-        int currentOuts, BaseRunnerResolutionResult resolution) =>
-        resolution.IsSuccess
-        && currentOuts + resolution.Participants.Count(item =>
-            item.Destination == RunnerDestination.Out) <= 3;
-
-    private static bool IsCompatibleWithDefinition(
-        PlateAppearanceResultDefinition definition,
-        int currentOuts,
-        BaseRunnerResolutionResult resolution) =>
-        resolution.IsSuccess
-        && IsCompatibleResolvedMultiOutArrangement(
-            definition,
-            new BaseRunnerResolutionState(resolution.Participants),
-            currentOuts);
-
-    private static bool IsCompatibleResolvedMultiOutArrangement(
-        PlateAppearanceResultDefinition definition,
-        BaseRunnerResolutionState arrangement,
-        int currentOuts)
-    {
-        if (definition.RequiredPlayOuts == 0)
-            return definition.IsCompatibleWithArrangement(arrangement, currentOuts);
-
-        var batter = arrangement.Participants.Single(item =>
-            item.StartingLocation == RunnerStartingLocation.Home);
-        var outCount = arrangement.Participants.Count(item =>
-            item.Destination == RunnerDestination.Out);
-        return arrangement.Participants.Count >= definition.MinimumParticipants
-            && outCount >= definition.RequiredPlayOuts
-            && outCount <= 3 - currentOuts
-            && (definition.AllowedBatterDestinations is null
-                || definition.AllowedBatterDestinations.Contains(batter.Destination));
-    }
-
-    private static IReadOnlyList<BaseRunnerResolutionState> GetCompatibleGuidedArrangements(
-        GameScoringPendingPlay play,
-        IReadOnlyList<GameScoringPendingRunnerMovement> movements,
-        int currentOuts,
-        IReadOnlyDictionary<int, RunnerDestination> fixedOutcomes)
-    {
-        if (!PendingBaseRunnerResolutionAdapter.TryCreateState(
-                play, movements, out var seedState)
-            || seedState is null
-            || !PlateAppearanceResultDefinitions.TryGet(play.Result, out var definition)
-            || definition is null)
-            return [];
-
-        return BaseRunnerResolver.GetLegalArrangements(seedState)
-            .Where(arrangement => definition.IsCompatibleWithArrangement(
-                arrangement, currentOuts))
-            .Where(arrangement => currentOuts + arrangement.Participants.Count(item =>
-                item.Destination == RunnerDestination.Out) <= 3)
-            .Where(arrangement => fixedOutcomes.All(outcome =>
-                arrangement.Participants.Single(item =>
-                    item.PlayerId == outcome.Key).Destination == outcome.Value))
-            .ToArray();
-    }
-
-    private static IReadOnlyList<RunnerOutcomeChoice> GetCompatibleGuidedAttemptedOutcomes(
-        GameScoringPendingPlay play,
-        IReadOnlyList<GameScoringPendingRunnerMovement> movements,
-        int currentOuts,
-        int playerId)
-    {
-        var movement = movements.SingleOrDefault(item => item.PlayerId == playerId);
-        if (movement is null || movement.RequiresOutcomeConfirmation) return [];
-        var attemptedDestination = RunnerOutcomeChoice.GetNextDestination(
-            movement.Destination);
-        var candidate = new RunnerOutcomeChoice(
-            RunnerDestination.Out, movement.Destination, attemptedDestination);
-        if (!candidate.IsValidFor(movement.StartingLocation)) return [];
-
-        var fixedOthers = movements
-            .Where(item => !item.RequiresOutcomeConfirmation && item.PlayerId != playerId)
-            .ToDictionary(item => item.PlayerId, item => item.Destination);
-        var fixedOut = new Dictionary<int, RunnerDestination>(fixedOthers)
-        {
-            [playerId] = RunnerDestination.Out,
-        };
-        if (GetCompatibleGuidedArrangements(
-                play, movements, currentOuts, fixedOut).Count == 0)
-            return [];
-        return [candidate];
-    }
-
     private static List<GameScoringPendingRunnerMovement> CreateDefaultMovements(
         int pendingPlayId, int batterPlayerId, IReadOnlyList<GameScoringBaseRunner> bases,
         BatterResult result)
@@ -1814,81 +1571,6 @@ public sealed class GameScoringSessionRepository
         return movements;
     }
 
-    private static void ApplyMultiOutSurvivorDefaults(
-        GameScoringPendingPlay play,
-        IReadOnlyList<GameScoringPendingRunnerMovement> movements,
-        PlateAppearanceResultDefinition definition,
-        int currentOuts)
-    {
-        if (definition.RequiredPlayOuts == 0) return;
-
-        var occupiedStarts = movements
-            .Where(item => item.StartingLocation != RunnerStartingLocation.Home)
-            .Select(item => item.StartingLocation)
-            .ToHashSet();
-        var firstIsForced = occupiedStarts.Contains(RunnerStartingLocation.First);
-        var secondIsForced = firstIsForced
-            && occupiedStarts.Contains(RunnerStartingLocation.Second);
-        var thirdIsForced = secondIsForced
-            && occupiedStarts.Contains(RunnerStartingLocation.Third);
-
-        foreach (var survivor in movements.Where(item =>
-                     item.Destination != RunnerDestination.Out
-                     && item.StartingLocation != RunnerStartingLocation.Home))
-        {
-            var isForced = survivor.StartingLocation switch
-            {
-                RunnerStartingLocation.First => firstIsForced,
-                RunnerStartingLocation.Second => secondIsForced,
-                RunnerStartingLocation.Third => thirdIsForced,
-                _ => false,
-            };
-            if (!isForced) continue;
-            survivor.Destination = survivor.StartingLocation == RunnerStartingLocation.Third
-                ? RunnerDestination.Scores
-                : (RunnerDestination)((int)survivor.StartingLocation + 1);
-            survivor.SafeDestination = null;
-            survivor.AttemptedDestination = null;
-        }
-
-        if (PendingBaseRunnerResolutionAdapter.TryCreateState(
-                play, movements, out var proposedState)
-            && proposedState is not null
-            && BaseRunnerResolver.IsLegalArrangement(proposedState)
-            && definition.IsCompatibleWithArrangement(proposedState, currentOuts))
-            return;
-
-        if (proposedState is null)
-            throw new InvalidOperationException(
-                "Multi-out survivor defaults could not create a resolver state.");
-
-        var selectedOutPlayerIds = movements
-            .Where(item => item.OutOrder is not null)
-            .Select(item => item.PlayerId)
-            .ToHashSet();
-        var fallback = BaseRunnerResolver.GetLegalArrangements(proposedState)
-            .Where(arrangement => definition.IsCompatibleWithArrangement(
-                arrangement, currentOuts))
-            .Where(arrangement => selectedOutPlayerIds.All(playerId =>
-                arrangement.Participants.Single(item => item.PlayerId == playerId)
-                    .Destination == RunnerDestination.Out))
-            .OrderBy(arrangement => arrangement.Participants.Count(participant =>
-                participant.Destination != proposedState.Participants.Single(item =>
-                    item.PlayerId == participant.PlayerId).Destination))
-            .FirstOrDefault();
-        if (fallback is null)
-            throw new InvalidOperationException(
-                "Multi-out survivor defaults have no legal resolver arrangement.");
-
-        foreach (var survivor in movements.Where(item => item.OutOrder is null))
-        {
-            survivor.Destination = fallback.Participants.Single(item =>
-                item.PlayerId == survivor.PlayerId).Destination;
-            survivor.SafeDestination = null;
-            survivor.AttemptedDestination = null;
-        }
-    }
-
     private static bool HasExpectedPendingParticipants(
         GameScoringPendingPlay play,
         IReadOnlyList<GameScoringPendingRunnerMovement> movements,
@@ -1908,92 +1590,19 @@ public sealed class GameScoringSessionRepository
             .ToHashSet().SetEquals(expectedStarts);
     }
 
-    private static bool IsValidPendingPlay(GameScoringPendingPlay play,
+    private bool IsValidPendingPlay(GameScoringPendingPlay play,
         IReadOnlyList<GameScoringPendingRunnerMovement> movements,
         GameScoringLineupPlayer currentBatter,
         IReadOnlyList<GameScoringBaseRunner> bases,
         int currentOuts)
     {
-        if (!PlateAppearanceResultDefinitions.TryGet(play.Result, out var definition)
-            || definition is null) return false;
-        var includesBatterMovement = definition.IncludesBatterMovement;
-        if (definition.RequiresExistingRunner && bases.Count == 0
-            || play.BatterPlayerId != currentBatter.PlayerId
+        if (play.BatterPlayerId != currentBatter.PlayerId
             || play.BatterPosition != currentBatter.BattingPosition
-            || movements.Count != bases.Count + (includesBatterMovement ? 1 : 0)
-            || movements.Select(item => item.PlayerId).Distinct().Count() != movements.Count
-            || movements.Any(item => !Enum.IsDefined(item.StartingLocation)
-                || !Enum.IsDefined(item.Destination)
-                || !new RunnerOutcomeChoice(item.Destination,
-                    item.SafeDestination, item.AttemptedDestination)
-                    .IsValidFor(item.StartingLocation)
-                || item.RequiresOutcomeConfirmation
-                    && (item.SafeDestination is not null
-                        || item.AttemptedDestination is not null))) return false;
-        var expectedStarts = bases.Select(item =>
-            (item.PlayerId, (RunnerStartingLocation)item.Base)).ToHashSet();
-        if (includesBatterMovement)
-            expectedStarts.Add((currentBatter.PlayerId, RunnerStartingLocation.Home));
-        if (!movements.Select(item => (item.PlayerId, item.StartingLocation))
-            .ToHashSet().SetEquals(expectedStarts)) return false;
-        if (definition.RequiresExplicitOutcomeConfirmation)
-        {
-            if (!PendingBaseRunnerResolutionAdapter.TryCreateState(
-                    play, movements, out var resolvedState)
-                || resolvedState is null
-                || !IsCompatibleResolvedMultiOutArrangement(
-                    definition, resolvedState, currentOuts))
-                return false;
-            var participant = resolvedState.Participants[0];
-            if (!BaseRunnerResolver.ResolveCorrection(resolvedState,
-                    participant.PlayerId, participant.Destination).IsSuccess)
-                return false;
-        }
-        if (definition.RequiredPlayOuts > 0)
-        {
-            var orderedOuts = movements
-                .Where(item => item.OutOrder is not null)
-                .OrderBy(item => item.OutOrder)
-                .ToArray();
-            var totalOuts = movements.Count(item =>
-                item.Destination == RunnerDestination.Out);
-            if (definition.RequiredPlayOuts > 3 - currentOuts
-                || orderedOuts.Length < definition.RequiredPlayOuts
-                || totalOuts != orderedOuts.Length
-                || totalOuts > 3 - currentOuts
-                || !orderedOuts.Select(item => item.OutOrder)
-                    .SequenceEqual(Enumerable.Range(1, orderedOuts.Length)
-                        .Select(value => (int?)value))
-                || movements.Any(item => item.Destination != RunnerDestination.Out
-                    && item.OutOrder is not null))
-                return false;
-        }
-        else if (movements.Any(item => item.OutOrder is not null)) return false;
+            || !PlayContextFactory.TryRehydrate(
+                currentOuts, play, movements, bases, out var playContext))
+            return false;
 
-        return movements.Where(item => item.Destination is RunnerDestination.First
-                or RunnerDestination.Second or RunnerDestination.Third)
-            .Select(item => item.Destination).Distinct().Count()
-            == movements.Count(item => item.Destination is RunnerDestination.First
-                or RunnerDestination.Second or RunnerDestination.Third);
-    }
-
-    private static void ApplyOutcomeDetails(
-        GameScoringPendingRunnerMovement movement,
-        int selectedPlayerId,
-        RunnerOutcomeChoice selectedOutcome)
-    {
-        if (movement.PlayerId == selectedPlayerId)
-        {
-            movement.SafeDestination = selectedOutcome.SafeDestination;
-            movement.AttemptedDestination = selectedOutcome.AttemptedDestination;
-            return;
-        }
-
-        if (movement.Destination != RunnerDestination.Out)
-        {
-            movement.SafeDestination = null;
-            movement.AttemptedDestination = null;
-        }
+        return playResolutionCoordinator.Evaluate(playContext).IsAccepted;
     }
 
     private static void ClearPending(SQLite.SQLiteConnection transaction, int sessionId)
