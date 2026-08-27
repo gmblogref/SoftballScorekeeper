@@ -10,9 +10,9 @@ Stable product and architecture decisions belong in the project architecture doc
 
 ## Current Project Status
 
-- **Latest completed story:** Story 6.7 — Sacrifice Fly Scoring
-- **Completed stories:** Stories 0.0 through 6.7; Stories 3.2 through 3.4 retain their recorded validation status
-- **Current story:** None; Story 6.7 is complete and PR-ready on `task/sacrifice-fly-scoring`
+- **Latest completed story:** Story 6.7.1 — PA Classification Reconciliation: Fielder's Choice + Sacrifice Fly
+- **Completed stories:** Stories 0.0 through 6.7.1; Stories 3.2 through 3.4 retain their recorded validation status
+- **Current story:** None; Story 6.7.1 is complete and PR-ready on `task/fc-sac-fly-updates`
 - **Current phase:** Scoring interaction refinement
 - **Foundation status:** Complete
 
@@ -2550,6 +2550,40 @@ Dedicated Double Play/Triple Play presentation, sacrifice results, HR-limit/dead
 
 - Although unusual sacrifice-fly situations may theoretically involve a runner scoring from a base other than Third, explicit Sac Fly is intentionally available only when a runner already occupies Third. The app does not capture enough defensive or catch detail to infer those uncommon classifications reliably; other batter-Out runner movement continues through the ordinary Out workflow.
 - Scorer-friendly plate-appearance classification reconciliation for FC and Sac Fly, Android UI/integration automation, runner-movement UX improvements, Error/Reach on Error, statistics, HR-limit/1-Up enforcement, Beer Rules, substitutions, Undo/Redo, and completed-game correction remain deferred. Story 6.7 adds no future reconciliation behavior.
+
+### Story 6.7.1 — PA Classification Reconciliation: Fielder's Choice + Sacrifice Fly (Complete — PR-ready)
+
+#### Reconciliation Behavior and Boundaries
+
+- Added active-play-only reconciliation so a scorer can enter the physical facts of a pending play without needing perfect classification knowledge or using Undo/re-entry. Completed historical plate appearances are never rewritten. Explicit result-menu replacement remains unchanged and continues to rebuild pending state from committed-base truth.
+- Fielder's Choice selection now requests exactly one primary Out from the batter and all existing runners, including when only one existing runner is present. Selecting an existing runner preserves `FielderChoice` and the batter remains safe; selecting the batter silently reconciles the pending result to ordinary `Out` while existing runners remain safe and editable. Exactly one primary PA-resolution Out is allowed through FC; two primary Outs remain Double Play territory. A later legal `Out Attempting` remains distinct advancement behavior and retains its attempted and safe destinations.
+- Sac Fly availability and defaults remain unchanged: Third must be occupied with fewer than two Outs, the batter defaults Out, and the runner who started on Third defaults `Scores`. Correcting that runner away from `Scores` silently reconciles the pending result to ordinary `Out`, removes the pending run, and preserves the single batter Out without Undo/re-entry.
+- Reconciliation preserves compatible physical facts: participant identity, destination, legal ordinary runner Outs, `SafeDestination`, and `AttemptedDestination`. It regenerates incompatible classification-derived state, including FC primary-Out state, the Sac Fly explicit batter movement and `OutOrder`, and result-specific completion or confirmation state. Canonical ordinary-Out persistence omits a duplicate explicit batter movement so the batter retirement is counted exactly once.
+- There is no reverse automatic inference from Out to FC or Sac Fly, no generic PA-classification engine, and no completed-PA correction. Broader classification assistance, sacrifice ground-ball or bunt classification, and other scoring backlog work remain outside this story.
+
+#### Architecture and Persistence
+
+- `PlayResolutionCoordinator` owns reconciliation choreography and evaluates final reconciled participant facts for third-Out run rulings. `BaseRunnerResolver` remains authoritative for legal physical movement, base capacity, no-passing rules, and Out/Out Attempting availability. No scoring rules were added to `ScoringViewModel` or `ScoringPage`.
+- Infrastructure synchronizes the pending result header and runner movements atomically. FC or Sac Fly reconciliation to ordinary Out removes incompatible result-derived movements, preserves compatible existing-runner facts, and resets classification-specific Out-order and confirmation state before normal completion evaluation.
+- Pending Exit/Resume rehydrates the persisted reconciled classification and participant facts rather than reapplying FC or Sac Fly defaults. Automated repository coverage verifies reconciled FC-to-Out and Sac-Fly-to-Out pending reload, player identity, destinations and Out Attempting metadata, current batter, inning/Out state, and subsequent normal commit.
+- The reconciled semantic result is available to future statistics work, but this story does not implement or change statistics.
+
+#### Automated and Platform Validation
+
+- Final automated validation passed 137 of 137 focused FC/Sac Fly/Out Attempting tests, 393 of 393 scoring/resolver regression tests, and the complete 567 of 567 suite against isolated temporary SQLite databases, with zero failures and zero skips.
+- The Windows `net9.0-windows10.0.19041.0` non-incremental rebuild passed with zero errors and 114 existing warnings in categories `CS8602`, `MVVMTK0045`, and `XC0025`. Windows runtime validation was not performed.
+
+#### Physical Android Tablet Validation — Accepted
+
+- True FC requested exactly one primary Out and offered both the batter and existing runner. Selecting the runner preserved `FielderChoice`, left the batter safe, recorded exactly one primary Out, and retained runner advancement and correction.
+- Selecting the batter as the FC primary Out silently reconciled the pending result to ordinary `Out`, left the existing runner safe and editable, and required no Undo/re-entry. A later legal `Out Attempting` remained separate from the primary PA-resolution Out.
+- Sac Fly retained its Third-occupied/fewer-than-two-Out availability, batter-Out and Third-runner-Scores defaults. Correcting the Third-starting runner away from Scores silently reconciled to ordinary `Out`, removed the pending run, preserved exactly one batter Out, and required no Undo/re-entry.
+- Normal FC, normal Sac Fly, ordinary Out, Single, Walk, Double Play, Triple Play, portrait, and landscape smoke scenarios were accepted during the physical Android validation recorded for Stories 6.6.2 and 6.7 and were not altered by this story.
+- Exit/Resume after a newly reconciled FC-to-Out play and after a newly reconciled Sac-Fly-to-Out play were not separately exercised on the physical Android tablet. Their persisted behavior is covered by the automated repository tests and remains the exact outstanding physical validation limitation.
+
+#### Scope and Deferred Boundaries
+
+- Undo/global correction, completed-PA correction, broader classification assistance, sacrifice ground-ball/bunt classification, and statistics remain deferred. Android UI automation and unrelated scoring backlog stories were not introduced.
 
 ## Maintenance Rules
 

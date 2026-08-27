@@ -627,17 +627,13 @@ public sealed class GameScoringSessionRepository
                     retirements.Select(item => item.PlayerId).ToHashSet());
                 if (!resolution.IsAccepted
                     || resolution.Context is null
-                    || !PlayContextFactory.TryApplyToPendingMovements(
-                        resolution.Context, movements))
+                    || !TrySynchronizePendingPlay(
+                        transaction, play, movements, resolution.Context,
+                        out var synchronizedMovements))
                 {
                     response = PendingFailure(PendingPlayFailure.InvalidRequest);
                     return;
                 }
-
-                foreach (var movement in movements)
-                    if (transaction.Update(movement) != 1)
-                        throw new InvalidOperationException(
-                            "Pending movement update did not affect one row.");
 
                 if (resolution.Status == PlayResolutionStatus.AutoComplete)
                 {
@@ -647,8 +643,17 @@ public sealed class GameScoringSessionRepository
                         : PendingFailure(MapPendingFailure(completed.FailureReason));
                     return;
                 }
+                if (play.Result == BatterResult.Out
+                    && resolution.Status == PlayResolutionStatus.CommitImmediately)
+                {
+                    var completed = CompleteImmediateOut(transaction, context);
+                    response = completed.IsSuccess
+                        ? new(null, PendingPlayFailure.None)
+                        : PendingFailure(MapPendingFailure(completed.FailureReason));
+                    return;
+                }
 
-                response = new(new(play, movements), PendingPlayFailure.None);
+                response = new(new(play, synchronizedMovements), PendingPlayFailure.None);
             });
         }
         catch
@@ -717,8 +722,16 @@ public sealed class GameScoringSessionRepository
                     response = PendingFailure(PendingPlayFailure.DuplicateDestination);
                     return;
                 }
-                var resolution = playResolutionCoordinator.ApplyParticipantOutcome(
-                    playContext, playerId, outcome);
+                var currentResolution = playResolutionCoordinator.Evaluate(playContext);
+                var resolution = currentResolution.DecisionRequirement
+                        == PlayDecisionRequirement.RetirementSelection
+                    && currentResolution.DecisionPlayerIds.Contains(playerId)
+                    && outcome == RunnerOutcomeChoice.ForDestination(
+                        RunnerDestination.Out)
+                        ? playResolutionCoordinator.ApplyRetirementSelection(
+                            playContext, new HashSet<int> { playerId })
+                        : playResolutionCoordinator.ApplyParticipantOutcome(
+                            playContext, playerId, outcome);
                 if (!resolution.IsAccepted || resolution.Context is null)
                 {
                     response = PendingFailure(resolution.FailureReason
@@ -727,17 +740,12 @@ public sealed class GameScoringSessionRepository
                             : PendingPlayFailure.DuplicateDestination);
                     return;
                 }
-                if (!PlayContextFactory.TryApplyToPendingMovements(
-                        resolution.Context, movements))
+                if (!TrySynchronizePendingPlay(
+                        transaction, play, movements, resolution.Context,
+                        out var synchronizedMovements))
                 {
                     response = PendingFailure(PendingPlayFailure.InvalidScoringState);
                     return;
-                }
-                foreach (var item in movements)
-                {
-                    if (transaction.Update(item) != 1)
-                        throw new InvalidOperationException(
-                        "Pending movement update did not affect one row.");
                 }
                 if (resolution.Status == PlayResolutionStatus.AutoComplete)
                 {
@@ -748,7 +756,17 @@ public sealed class GameScoringSessionRepository
                         : PendingFailure(MapPendingFailure(completed.FailureReason));
                     return;
                 }
-                response = new(new(play, movements), PendingPlayFailure.None);
+                if (play.Result == BatterResult.Out
+                    && resolution.Status == PlayResolutionStatus.CommitImmediately)
+                {
+                    var completionContext = LoadCompletionContext(transaction, gameId);
+                    var completed = CompleteImmediateOut(transaction, completionContext);
+                    response = completed.IsSuccess
+                        ? new(null, PendingPlayFailure.None)
+                        : PendingFailure(MapPendingFailure(completed.FailureReason));
+                    return;
+                }
+                response = new(new(play, synchronizedMovements), PendingPlayFailure.None);
             });
         }
         catch
@@ -1524,6 +1542,65 @@ public sealed class GameScoringSessionRepository
             });
         }
         return movements;
+    }
+
+    private static bool TrySynchronizePendingPlay(
+        SQLite.SQLiteConnection transaction,
+        GameScoringPendingPlay play,
+        IReadOnlyList<GameScoringPendingRunnerMovement> currentMovements,
+        PlayContext context,
+        out List<GameScoringPendingRunnerMovement> synchronizedMovements)
+    {
+        synchronizedMovements = [];
+        if (context.BatterPlayerId != play.BatterPlayerId) return false;
+        if (context.Result == play.Result)
+        {
+            synchronizedMovements = currentMovements.ToList();
+            if (!PlayContextFactory.TryApplyToPendingMovements(
+                    context, synchronizedMovements))
+                return false;
+            foreach (var movement in synchronizedMovements)
+                if (transaction.Update(movement) != 1)
+                    throw new InvalidOperationException(
+                        "Pending movement update did not affect one row.");
+            return true;
+        }
+        if (context.Result != BatterResult.Out
+            || play.Result is not BatterResult.FielderChoice
+                and not BatterResult.SacrificeFly)
+            return false;
+        var existing = context.Participants.Where(item =>
+            item.StartingLocation != RunnerStartingLocation.Home).ToArray();
+        if (existing.Any(item => item.OutOrder is not null
+                || item.RequiresOutcomeConfirmation)
+            || existing.Select(item => item.PlayerId).Distinct().Count() != existing.Length
+            || existing.Select(item => item.StartingLocation).Distinct().Count()
+                != existing.Length)
+            return false;
+        play.Result = BatterResult.Out;
+        if (transaction.Update(play) != 1)
+            throw new InvalidOperationException(
+                "Pending-play reconciliation update did not affect one row.");
+        transaction.Execute(
+            "DELETE FROM GameScoringPendingRunnerMovement WHERE GameScoringPendingPlayId = ?",
+            play.Id);
+        synchronizedMovements = existing.Select(item =>
+            new GameScoringPendingRunnerMovement
+            {
+                GameScoringPendingPlayId = play.Id,
+                PlayerId = item.PlayerId,
+                StartingLocation = item.StartingLocation,
+                Destination = item.Destination,
+                SafeDestination = item.SafeDestination,
+                AttemptedDestination = item.AttemptedDestination,
+                OutOrder = null,
+                RequiresOutcomeConfirmation = false,
+            }).ToList();
+        foreach (var movement in synchronizedMovements)
+            if (transaction.Insert(movement) != 1)
+                throw new InvalidOperationException(
+                    "Reconciled pending movement insertion did not affect one row.");
+        return true;
     }
 
     private bool IsValidPendingPlay(GameScoringPendingPlay play,

@@ -1,4 +1,5 @@
 using SoftballScorekeeper.Core.Models;
+using SoftballScorekeeper.Infrastructure.Data;
 using SoftballScorekeeper.Infrastructure.Data.Repositories;
 
 namespace SoftballScorekeeper.Tests;
@@ -626,6 +627,48 @@ public sealed class SacrificeFlyScoringTests
                 resumed.Session.CurrentBatterPosition
             )
         );
+    }
+
+    [Fact]
+    public async Task Third_runner_correction_reconciles_to_canonical_out_and_resumes()
+    {
+        await using var db = await TemporaryTestDatabase.CreateAsync();
+        var context = await CreateReadyGameAsync(db, 4);
+        var repository = db.CreateGameScoringSessionRepository();
+        var initialized = await repository.InitializeAsync(
+            context.Team.Id, context.Game.Id, TeamGameSide.Home);
+        await SeedBaseAsync(db, initialized.Session!.Id,
+            context.Players[1].Id, ScoringBase.First);
+        await SeedBaseAsync(db, initialized.Session.Id,
+            context.Players[3].Id, ScoringBase.Third);
+        await repository.SelectBatterResultAsync(context.Game.Id, BatterResult.SacrificeFly);
+        await repository.AdjustPendingRunnerAsync(context.Game.Id,
+            context.Players[1].Id, RunnerDestination.Second);
+        var attempted = new RunnerOutcomeChoice(RunnerDestination.Out,
+            RunnerDestination.Second, RunnerDestination.Third);
+        await repository.AdjustPendingRunnerOutcomeAsync(
+            context.Game.Id, context.Players[1].Id, attempted);
+
+        Assert.True((await repository.AdjustPendingRunnerAsync(context.Game.Id,
+            context.Players[3].Id, RunnerDestination.Third)).IsSuccess);
+        var pending = (await repository.GetStateForGameAsync(context.Game.Id))!.PendingPlay!;
+        Assert.Equal(BatterResult.Out, pending.Play.Result);
+        Assert.DoesNotContain(pending.Movements, item =>
+            item.StartingLocation == RunnerStartingLocation.Home);
+        Assert.All(pending.Movements, item => Assert.Null(item.OutOrder));
+        var preserved = pending.Movements.Single(item =>
+            item.PlayerId == context.Players[1].Id);
+        Assert.Equal((RunnerDestination.Out, RunnerDestination.Second,
+                RunnerDestination.Third),
+            (preserved.Destination, preserved.SafeDestination,
+                preserved.AttemptedDestination));
+
+        await db.Database.CloseAsync();
+        var resumedDatabase = new AppDatabase(db.DatabasePath);
+        var resumed = (await new GameScoringSessionRepository(resumedDatabase)
+            .GetStateForGameAsync(context.Game.Id))!;
+        Assert.Equal(BatterResult.Out, resumed.PendingPlay!.Play.Result);
+        await resumedDatabase.CloseAsync();
     }
 
     private static async Task SeedBaseAsync(

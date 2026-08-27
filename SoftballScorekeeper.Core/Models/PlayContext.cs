@@ -49,6 +49,11 @@ public sealed class PlayContext
     public PlayContext WithParticipants(
         IEnumerable<ResolvedPlayParticipantOutcome> participants) =>
         new(BatterPlayerId, Result, CurrentOuts, participants);
+
+    public PlayContext WithResultAndParticipants(
+        BatterResult result,
+        IEnumerable<ResolvedPlayParticipantOutcome> participants) =>
+        new(BatterPlayerId, result, CurrentOuts, participants);
 }
 
 public enum PlayResolutionStatus
