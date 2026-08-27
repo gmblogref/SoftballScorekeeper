@@ -2,6 +2,30 @@ namespace SoftballScorekeeper.Core.Models;
 
 public sealed class PlayResolutionCoordinator
 {
+    public PlayResolutionResult InitializeResult(PlayContext? context)
+    {
+        if (context?.Result != BatterResult.SacrificeFly)
+            return Evaluate(context);
+
+        var thirdBaseRunner = context.Participants.SingleOrDefault(item =>
+            item.StartingLocation == RunnerStartingLocation.Third);
+        if (thirdBaseRunner is null)
+            return Rejected(context, PlayResolutionFailure.ResultUnavailable);
+
+        var initialized = context.WithParticipants(context.Participants.Select(item =>
+            item.PlayerId == thirdBaseRunner.PlayerId
+                ? item with
+                {
+                    Destination = RunnerDestination.Scores,
+                    SafeDestination = null,
+                    AttemptedDestination = null,
+                    OutOrder = null,
+                    RequiresOutcomeConfirmation = false,
+                }
+                : item));
+        return Evaluate(initialized);
+    }
+
     public PlayResolutionResult Evaluate(PlayContext? context)
     {
         if (context is null
@@ -13,6 +37,10 @@ public sealed class PlayResolutionCoordinator
         if (context.Participants.Count < definition.MinimumParticipants
             || definition.RequiresExistingRunner
                 && context.OccupiedStartingLocations.Count == 0
+            || definition.RequiredOccupiedStartingLocation is not null
+                && !context.OccupiedStartingLocations.Contains(
+                    definition.RequiredOccupiedStartingLocation.Value)
+            || context.CurrentOuts > definition.MaximumCurrentOuts
             || definition.RequiredPlayOuts > 3 - context.CurrentOuts)
             return Rejected(context, PlayResolutionFailure.ResultUnavailable);
 
@@ -132,6 +160,10 @@ public sealed class PlayResolutionCoordinator
         if (outsAfterPlay > 3)
             return Rejected(context, PlayResolutionFailure.IllegalArrangement);
 
+        if (context.Result == BatterResult.SacrificeFly
+            && !SacrificeFlyCompletionEvaluator.IsSatisfied(context.Participants))
+            return Accepted(context, PlayResolutionStatus.AwaitingDecision);
+
         var thirdOutRuling = ThirdOutRunRulingRequirement.NotApplicable;
         if (outsAfterPlay == 3)
         {
@@ -248,7 +280,7 @@ public sealed class PlayResolutionCoordinator
                 context, definition, new(resolution.Participants)))
             return Rejected(context, PlayResolutionFailure.IllegalArrangement);
 
-        var nextOutOrder = definition.RequiredPlayOuts > 0
+        var nextOutOrder = definition.UsesOrderedOuts
             && outcome.Destination == RunnerDestination.Out
             && selected.OutOrder is null
                 ? context.Participants.Where(item => item.OutOrder is not null)
@@ -265,7 +297,9 @@ public sealed class PlayResolutionCoordinator
                     Destination = destination,
                     SafeDestination = outcome.SafeDestination,
                     AttemptedDestination = outcome.AttemptedDestination,
-                    OutOrder = nextOutOrder ?? item.OutOrder,
+                    OutOrder = destination == RunnerDestination.Out
+                        ? nextOutOrder ?? item.OutOrder
+                        : null,
                     RequiresOutcomeConfirmation = false,
                 };
             return item with
@@ -275,6 +309,8 @@ public sealed class PlayResolutionCoordinator
                     ? item.SafeDestination : null,
                 AttemptedDestination = destination == RunnerDestination.Out
                     ? item.AttemptedDestination : null,
+                OutOrder = destination == RunnerDestination.Out
+                    ? item.OutOrder : null,
             };
         }).ToArray();
         return Evaluate(context.WithParticipants(updated));

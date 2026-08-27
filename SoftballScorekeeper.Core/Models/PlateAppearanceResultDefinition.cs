@@ -26,8 +26,13 @@ public sealed record PlateAppearanceResultDefinition(
     int MinimumPlayOuts = 0,
     int RequiredPlayOuts = 0,
     int MinimumParticipants = 1,
+    int MaximumCurrentOuts = 2,
+    RunnerStartingLocation? RequiredOccupiedStartingLocation = null,
     IReadOnlyList<RunnerDestination>? AllowedBatterDestinations = null)
 {
+    public bool UsesOrderedOuts => RequiredPlayOuts > 0
+        || Result == BatterResult.SacrificeFly;
+
     public bool RequiresOutcomeConfirmation(
         RunnerStartingLocation startingLocation) =>
         RequiresExplicitOutcomeConfirmation
@@ -74,6 +79,10 @@ public sealed record PlateAppearanceResultDefinition(
         var hasEnoughOutsRemaining = RequiredPlayOuts == 0
             || RequiredPlayOuts <= 3 - currentOuts;
         return arrangement.Participants.Count >= MinimumParticipants
+            && currentOuts <= MaximumCurrentOuts
+            && (RequiredOccupiedStartingLocation is null
+                || arrangement.Participants.Any(item =>
+                    item.StartingLocation == RequiredOccupiedStartingLocation))
             && outCount >= MinimumPlayOuts
             && hasEnoughOutsRemaining
             && (RequiredPlayOuts == 0 || outCount == RequiredPlayOuts)
@@ -128,6 +137,13 @@ public static class PlateAppearanceResultDefinitions
             RequiresExplicitOutcomeConfirmation: true,
             RequiredPlayOuts: 3,
             MinimumParticipants: 3),
+        new(BatterResult.SacrificeFly, RunnerDestination.Out,
+            ExistingRunnerMovementBehavior.Hold, 0,
+            PlateAppearanceCompletionBehavior.Pending,
+            RequiresExistingRunner: true,
+            MaximumCurrentOuts: 1,
+            RequiredOccupiedStartingLocation: RunnerStartingLocation.Third,
+            AllowedBatterDestinations: [RunnerDestination.Out]),
         new(BatterResult.Out, RunnerDestination.Out,
             ExistingRunnerMovementBehavior.Hold, 0,
             PlateAppearanceCompletionBehavior.ContextualOut,
@@ -151,6 +167,24 @@ public static class PlateAppearanceResultDefinitions
         int currentOuts = 0) => Definitions
         .Where(item => !item.RequiresExistingRunner || existingRunnerCount > 0)
         .Where(item => existingRunnerCount + 1 >= item.MinimumParticipants)
+        .Where(item => item.RequiredOccupiedStartingLocation is null)
+        .Where(item => currentOuts <= item.MaximumCurrentOuts)
+        .Where(item => item.RequiredPlayOuts == 0
+            || item.RequiredPlayOuts <= 3 - currentOuts)
+        .Select(item => item.Result)
+        .ToArray();
+
+    public static IReadOnlyList<BatterResult> GetSelectableResults(
+        IReadOnlySet<RunnerStartingLocation> occupiedStartingLocations,
+        int currentOuts = 0) => Definitions
+        .Where(item => !item.RequiresExistingRunner
+            || occupiedStartingLocations.Count > 0)
+        .Where(item => occupiedStartingLocations.Count + 1
+            >= item.MinimumParticipants)
+        .Where(item => item.RequiredOccupiedStartingLocation is null
+            || occupiedStartingLocations.Contains(
+                item.RequiredOccupiedStartingLocation.Value))
+        .Where(item => currentOuts <= item.MaximumCurrentOuts)
         .Where(item => item.RequiredPlayOuts == 0
             || item.RequiredPlayOuts <= 3 - currentOuts)
         .Select(item => item.Result)

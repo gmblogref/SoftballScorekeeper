@@ -549,6 +549,7 @@
   <data name="FielderChoiceResultLabel" xml:space="preserve"><value>Fielder's Choice</value></data>
   <data name="DoublePlayResultLabel" xml:space="preserve"><value>Double Play</value></data>
   <data name="TriplePlayResultLabel" xml:space="preserve"><value>Triple Play</value></data>
+  <data name="SacrificeFlyResultLabel" xml:space="preserve"><value>Sac Fly</value></data>
   <data name="MultiOutSelectionTitleFormat" xml:space="preserve"><value>Select {0} Players Who Were Out</value></data>
   <data name="MultiOutSelectionSingleTitleFormat" xml:space="preserve"><value>Select {0} Player Who Was Out</value></data>
   <data name="MultiOutSelectionInstruction" xml:space="preserve"><value>Tap Players to select or deselect them.</value></data>

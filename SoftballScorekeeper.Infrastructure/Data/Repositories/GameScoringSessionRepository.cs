@@ -482,7 +482,7 @@ public sealed class GameScoringSessionRepository
                     response = PendingFailure(PendingPlayFailure.InvalidScoringState);
                     return;
                 }
-                var resolution = playResolutionCoordinator.Evaluate(playContext);
+                var resolution = playResolutionCoordinator.InitializeResult(playContext);
                 if (!resolution.IsAccepted)
                 {
                     response = PendingFailure(PendingPlayFailure.InvalidRequest);
@@ -1173,7 +1173,10 @@ public sealed class GameScoringSessionRepository
         if (!resolution.IsAccepted
             || resolution.DecisionRequirement is
                 PlayDecisionRequirement.ParticipantOutcome
-                or PlayDecisionRequirement.RetirementSelection)
+                or PlayDecisionRequirement.RetirementSelection
+            || resolution.Status == PlayResolutionStatus.AwaitingDecision
+                && resolution.DecisionRequirement
+                    != PlayDecisionRequirement.ThirdOutRuling)
             return CompleteFailure(CompletePlateAppearanceFailure.InvalidScoringState);
         var runRulingRequirement = resolution.ThirdOutRulingRequirement;
         if (outsAfterPlay > 3

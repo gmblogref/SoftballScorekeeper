@@ -10,9 +10,9 @@ Stable product and architecture decisions belong in the project architecture doc
 
 ## Current Project Status
 
-- **Latest completed story:** Story 6.6.2 — Fielder's Choice Semantic Correction
-- **Completed stories:** Stories 0.0 through 6.6.2; Stories 3.2 through 3.4 retain their recorded validation status
-- **Current story:** None; Story 6.6.2 is complete and PR-ready on `task/fielder-choice-semantic-correction`
+- **Latest completed story:** Story 6.7 — Sacrifice Fly Scoring
+- **Completed stories:** Stories 0.0 through 6.7; Stories 3.2 through 3.4 retain their recorded validation status
+- **Current story:** None; Story 6.7 is complete and PR-ready on `task/sacrifice-fly-scoring`
 - **Current phase:** Scoring interaction refinement
 - **Foundation status:** Complete
 
@@ -2517,6 +2517,39 @@ Dedicated Double Play/Triple Play presentation, sacrifice results, HR-limit/dead
 #### Intended Commit Message
 
 `Correct fielder's choice semantics`
+
+### Story 6.7 — Sacrifice Fly Scoring (Complete — PR-ready)
+
+#### Implementation and Architecture
+
+- Appended persisted `BatterResult.SacrificeFly = 10` without changing values 1–9. SQLite continues to store pending and completed batter results as integers, so no schema migration was added. Explicit Sac Fly selection requires a pre-play runner on Third and fewer than two Outs. Plays where a runner scores from First or Second while Third was empty are recorded as ordinary Out because the app does not capture enough defensive detail to classify those unusual plays reliably.
+- Sac Fly selection defaults the batter to a terminal Out, automatically moves the runner starting on Third to `Scores`, and holds other existing runners. Other runners remain editable through the shared resolver with no Sac Fly-specific destination menu. `PlayResolutionCoordinator` applies the automatic initial outcome, while rehydration preserves exact persisted corrections rather than regenerating the Third-base movement.
+- The focused `SacrificeFlyCompletionEvaluator` recognizes completion only when a participant identified by immutable pre-play facts as an existing runner finishes at `Scores`. The automatic Third-base outcome normally satisfies this rule immediately, but the coordinator and repository retain it as a defensive invariant and reject stale, corrupt, or reconstructed Sac Fly state with no scored pre-play runner. Changing the result still rebuilds from committed pre-play bases rather than carrying pending Sac Fly corrections forward.
+- The batter retirement is persisted as an explicit Home-to-Out participant with play-relative `OutOrder = 1`. Later runner Outs and Out Attempting use the existing runner correction path and receive subsequent Out order, allowing the existing third-Out evaluator to identify the actual third participant without Sac Fly-specific run-timing rules. Authoritative Out counting comes from persisted participant movements rather than a new result-name counter.
+- `BaseRunnerResolver` remains unchanged and authoritative for legal destinations, Scores, Out, Out Attempting, no passing, and base capacity. `ThirdOutRunRulingEvaluator` also remains unchanged; scorer run rulings and `RunCounts` continue through the established generic path. Additional runner Outs use the existing machinery and preserve Out ordering, no fourth Out can persist, and third-Out rulings remain based on actual participant facts.
+- Home/Away score mapping, inning transitions, batter advancement, pending Exit/Resume, completed reload, and lineup preservation reuse existing repository transactions and persistence. Commit advances the current batter exactly once; the frozen starting lineup and `GameScoringLineupPlayer` remain unchanged. Pending and completed Sac Fly state preserves player identity, destinations, classification, and corrections across reload/database reopen.
+- Added the localized `Sac Fly` result label through the existing resource and ViewModel formatting path. The scoring page continues to generate its result menu from Core availability and remains presentation-focused; no XAML redesign or presentation scoring rule was introduced.
+- Sac Fly is now a distinct semantic plate-appearance result available for future statistical treatment. Story 6.7 does not implement AVG, OBP, AB totals, RBI, SF totals, slugging, or statistics UI.
+
+#### Automated and Platform Validation
+
+- Added focused enum-compatibility, Third-base-specific availability, automatic Third-runner scoring, terminal-batter, immediate pending readiness, defensive completion-invariant, multi-runner correction, result-change, additional-Out, Out Attempting, third-Out ruling, no-fourth-Out, score-mapping, lineup-preservation, and pending/completed reload coverage in `SacrificeFlyScoringTests`. Corrected validation passed 30 of 30 Sac Fly-only tests, 133 of 133 focused Story 6.7/coordinator/resolver tests, 388 of 388 scoring/resolver regression tests, and the complete 562 of 562 automated suite, with zero failures and zero skips.
+- The non-incremental `net9.0-windows10.0.19041.0` build passed with zero errors and the existing 114 warnings in categories `CS8602`, `MVVMTK0045`, and `XC0025`. Windows runtime validation was not performed.
+
+#### Physical Android Tablet Validation — Accepted
+
+- With zero Outs and a runner on Third, Sac Fly was selectable, retired the batter, automatically displayed the Third-base runner as scored, remained pending until Next Batter, and then committed one Out and one Run with correct bases, inning continuation, and batter advancement.
+- With one Out and a runner on Third, the runner automatically scored, Next Batter committed normally, Outs became two, the Run counted, and the inning did not transition.
+- Sac Fly was unavailable with a runner only on First, a runner only on Second, and a runner on Third with two Outs, confirming the final availability boundary.
+- With multiple runners, the Third-base runner automatically scored, another runner initially held and remained legally advanceable through the shared resolver, final bases and totals were correct, and the plate appearance remained Sac Fly.
+- When another existing runner was retired, the plate appearance remained Sac Fly and the existing third-Out run-ruling workflow correctly requested whether the run counted while preserving player identities and Out handling. The physical pass exercised ordinary Out, not Out Attempting; automated coverage remains authoritative for Out Attempting metadata behavior.
+- Pending Exit/Resume restored the Sac Fly classification, batter retirement, automatically scored Third-base runner, exact pending runner state, current batter, inning, and Outs, and the restored play subsequently committed normally.
+- Physical regression smoke validation passed for Single, ordinary Out, Walk, Fielder's Choice, Double Play, Triple Play, portrait presentation, and landscape presentation.
+
+#### Scope and Deferred Boundaries
+
+- Although unusual sacrifice-fly situations may theoretically involve a runner scoring from a base other than Third, explicit Sac Fly is intentionally available only when a runner already occupies Third. The app does not capture enough defensive or catch detail to infer those uncommon classifications reliably; other batter-Out runner movement continues through the ordinary Out workflow.
+- Scorer-friendly plate-appearance classification reconciliation for FC and Sac Fly, Android UI/integration automation, runner-movement UX improvements, Error/Reach on Error, statistics, HR-limit/1-Up enforcement, Beer Rules, substitutions, Undo/Redo, and completed-game correction remain deferred. Story 6.7 adds no future reconciliation behavior.
 
 ## Maintenance Rules
 
