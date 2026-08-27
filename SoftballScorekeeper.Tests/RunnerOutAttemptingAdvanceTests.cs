@@ -313,6 +313,9 @@ public sealed class RunnerOutAttemptingAdvanceTests
         Assert.Null(unchanged.SafeDestination);
         Assert.Null(unchanged.AttemptedDestination);
         Assert.True((await repository.AdjustPendingRunnerAsync(
+            context.Game.Id, context.Players[3].Id,
+            RunnerDestination.Out)).IsSuccess);
+        Assert.True((await repository.AdjustPendingRunnerAsync(
             context.Game.Id, context.Players[2].Id, RunnerDestination.Second)).IsSuccess);
 
         var choices = await repository.GetValidRunnerOutcomeChoicesAsync(

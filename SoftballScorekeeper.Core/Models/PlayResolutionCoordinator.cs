@@ -54,13 +54,7 @@ public sealed class PlayResolutionCoordinator
             return Accepted(context, PlayResolutionStatus.CommitImmediately);
 
         if (context.Result == BatterResult.Out)
-        {
-            var commitsImmediately = context.OccupiedStartingLocations.Count == 0
-                || context.CurrentOuts == 2;
-            return Accepted(context, commitsImmediately
-                ? PlayResolutionStatus.CommitImmediately
-                : PlayResolutionStatus.ReadyForNextBatter);
-        }
+            return EvaluateOrdinaryOut(context);
 
         if (definition.RequiredPlayOuts > 0
             && context.CurrentOuts + definition.RequiredPlayOuts == 3)
@@ -93,18 +87,12 @@ public sealed class PlayResolutionCoordinator
                 definition.RequiredPlayOuts);
 
         if (context.Result == BatterResult.FielderChoice
-            && context.CurrentOuts == 2
             && context.Participants.All(item =>
-                item.StartingLocation == RunnerStartingLocation.Home
-                || item.Destination != RunnerDestination.Out))
+                item.Destination != RunnerDestination.Out))
         {
             var retirementCandidates = context.Participants
-                .Where(item => item.StartingLocation != RunnerStartingLocation.Home)
                 .Select(item => item.PlayerId)
                 .ToArray();
-            if (retirementCandidates.Length == 1)
-                return ApplyFielderChoiceRetirementSelection(
-                    context, retirementCandidates[0], definition);
             return Accepted(
                 context,
                 PlayResolutionStatus.AwaitingDecision,
@@ -251,6 +239,11 @@ public sealed class PlayResolutionCoordinator
             || context.Result == BatterResult.FielderChoice
                 && selected.StartingLocation == RunnerStartingLocation.Home
                 && outcome.Destination == RunnerDestination.Out
+            || context.Result == BatterResult.FielderChoice
+                && outcome == RunnerOutcomeChoice.ForDestination(
+                    RunnerDestination.Out)
+                && context.Participants.Any(item =>
+                    item.Destination == RunnerDestination.Out)
             || !outcome.IsValidFor(selected.StartingLocation)
             || !TryCreateResolverState(context, out var currentState)
             || currentState is null)
@@ -313,7 +306,14 @@ public sealed class PlayResolutionCoordinator
                     ? item.OutOrder : null,
             };
         }).ToArray();
-        return Evaluate(context.WithParticipants(updated));
+        var updatedContext = context.WithParticipants(updated);
+        if (context.Result == BatterResult.SacrificeFly
+            && updatedContext.Participants.Single(item =>
+                item.StartingLocation == RunnerStartingLocation.Third).Destination
+                != RunnerDestination.Scores)
+            return ReconcileToOrdinaryOut(updatedContext);
+
+        return Evaluate(updatedContext);
     }
 
     private PlayResolutionResult ApplyGuidedParticipantOutcome(
@@ -408,12 +408,17 @@ public sealed class PlayResolutionCoordinator
 
         if (context.Result == BatterResult.FielderChoice)
         {
-            if (context.CurrentOuts != 2
-                || retiredPlayerIds.Count != 1
+            if (retiredPlayerIds.Count != 1
                 || context.Participants.SingleOrDefault(item =>
-                    retiredPlayerIds.Contains(item.PlayerId)) is not { } selected
-                || selected.StartingLocation == RunnerStartingLocation.Home)
+                    retiredPlayerIds.Contains(item.PlayerId)) is not { } selected)
                 return Rejected(context, PlayResolutionFailure.InvalidDecision);
+            if (selected.StartingLocation == RunnerStartingLocation.Home)
+            {
+                if (!TryCreateResolverState(context, out var state)
+                    || state is null)
+                    return Rejected(context, PlayResolutionFailure.InvalidDecision);
+                return ReconcileFielderChoiceBatterOut(context, state);
+            }
             return ApplyFielderChoiceRetirementSelection(
                 context, selected.PlayerId, definition);
         }
@@ -556,12 +561,124 @@ public sealed class PlayResolutionCoordinator
             })
             .Select(RunnerOutcomeChoice.ForDestination)
             .ToList();
+        var canBecomeOut = choices.Any(item =>
+            item.Destination == RunnerDestination.Out);
+        if (context.Result == BatterResult.FielderChoice
+            && context.Participants.Any(item =>
+                item.Destination == RunnerDestination.Out))
+            choices.RemoveAll(item =>
+                item == RunnerOutcomeChoice.ForDestination(RunnerDestination.Out));
         if (BaseRunnerResolver.TryGetOutAttemptingAdvance(
                 state, playerId, out var attempted)
             && attempted is not null
-            && choices.Any(item => item.Destination == RunnerDestination.Out))
+            && canBecomeOut)
             choices.Add(attempted);
-        return choices.AsReadOnly();
+        return choices.Distinct().ToArray();
+    }
+
+    private PlayResolutionResult ReconcileFielderChoiceBatterOut(
+        PlayContext context,
+        BaseRunnerResolutionState seedState)
+    {
+        var fixedOutcomes = context.Participants
+            .Where(item => item.StartingLocation != RunnerStartingLocation.Home
+                && !item.RequiresOutcomeConfirmation)
+            .ToDictionary(item => item.PlayerId, item => item.Destination);
+        var arrangement = GetOrdinaryOutArrangements(context, seedState, fixedOutcomes)
+            .OrderBy(item => item.Participants.Count(participant =>
+                participant.Destination != context.Participants.Single(original =>
+                    original.PlayerId == participant.PlayerId).Destination))
+            .ThenBy(item => item.Participants.Count(participant =>
+                participant.Destination == RunnerDestination.Out))
+            .FirstOrDefault();
+        return arrangement is null
+            ? Rejected(context, PlayResolutionFailure.IllegalArrangement)
+            : ReconcileToOrdinaryOut(context.WithParticipants(
+                ApplyResolvedDestinations(context, arrangement)));
+    }
+
+    private PlayResolutionResult ReconcileToOrdinaryOut(PlayContext context)
+    {
+        var participants = context.Participants.Select(item => item with
+        {
+            SafeDestination = item.Destination == RunnerDestination.Out
+                && item.StartingLocation != RunnerStartingLocation.Home
+                    ? item.SafeDestination : null,
+            AttemptedDestination = item.Destination == RunnerDestination.Out
+                && item.StartingLocation != RunnerStartingLocation.Home
+                    ? item.AttemptedDestination : null,
+            OutOrder = null,
+            IsUnorderedMultiOutRetirement = false,
+            RequiresOutcomeConfirmation = false,
+        }).ToArray();
+        return Evaluate(context.WithResultAndParticipants(
+            BatterResult.Out, participants));
+    }
+
+    private static IReadOnlyList<ResolvedPlayParticipantOutcome> ApplyResolvedDestinations(
+        PlayContext context,
+        BaseRunnerResolutionState arrangement) => context.Participants.Select(item =>
+    {
+        var destination = arrangement.Participants.Single(participant =>
+            participant.PlayerId == item.PlayerId).Destination;
+        return item with
+        {
+            Destination = destination,
+            SafeDestination = destination == RunnerDestination.Out
+                ? item.SafeDestination : null,
+            AttemptedDestination = destination == RunnerDestination.Out
+                ? item.AttemptedDestination : null,
+        };
+    }).ToArray();
+
+    private static IReadOnlyList<BaseRunnerResolutionState> GetOrdinaryOutArrangements(
+        PlayContext context,
+        BaseRunnerResolutionState seedState,
+        IReadOnlyDictionary<int, RunnerDestination> fixedExistingOutcomes) =>
+        BaseRunnerResolver.GetLegalArrangements(seedState)
+            .Where(arrangement => arrangement.Participants.Single(item =>
+                item.StartingLocation == RunnerStartingLocation.Home).Destination
+                == RunnerDestination.Out)
+            .Where(arrangement => context.CurrentOuts
+                + arrangement.Participants.Count(item =>
+                    item.Destination == RunnerDestination.Out) <= 3)
+            .Where(arrangement => fixedExistingOutcomes.All(outcome =>
+                arrangement.Participants.Single(item =>
+                    item.PlayerId == outcome.Key).Destination == outcome.Value))
+            .ToArray();
+
+    private static PlayResolutionResult EvaluateOrdinaryOut(PlayContext context)
+    {
+        if (!TryCreateResolverState(context, out var state)
+            || state is null
+            || !BaseRunnerResolver.IsLegalArrangement(state))
+            return Rejected(context, PlayResolutionFailure.IllegalArrangement);
+        var outsAfterPlay = context.CurrentOuts + context.Participants.Count(item =>
+            item.Destination == RunnerDestination.Out);
+        if (outsAfterPlay > 3)
+            return Rejected(context, PlayResolutionFailure.IllegalArrangement);
+        var ruling = ThirdOutRunRulingRequirement.NotApplicable;
+        if (outsAfterPlay == 3)
+        {
+            ruling = ThirdOutRunRulingEvaluator.Evaluate(
+                context.CurrentOuts, context.BatterPlayerId,
+                context.Participants, context.Result);
+            var scoringIds = context.Participants
+                .Where(item => item.Destination == RunnerDestination.Scores)
+                .OrderByDescending(item => item.StartingLocation)
+                .Select(item => item.PlayerId).ToArray();
+            if (ruling == ThirdOutRunRulingRequirement.ScorerDecisionRequired
+                && scoringIds.Length > 0)
+                return Accepted(context, PlayResolutionStatus.AwaitingDecision,
+                    PlayDecisionRequirement.ThirdOutRuling, scoringIds,
+                    thirdOutRulingRequirement: ruling);
+        }
+        var immediate = context.OccupiedStartingLocations.Count == 0
+            || context.CurrentOuts == 2;
+        return Accepted(context, immediate
+                ? PlayResolutionStatus.CommitImmediately
+                : PlayResolutionStatus.ReadyForNextBatter,
+            thirdOutRulingRequirement: ruling);
     }
 
     private static IReadOnlyList<RunnerOutcomeChoice> GetGuidedOutcomeChoices(

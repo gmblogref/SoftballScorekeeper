@@ -604,7 +604,7 @@
   <data name="ChooseOutcomeInstruction" xml:space="preserve"><value>Choose outcome</value></data>
   <data name="ResolveFielderChoiceLabel" xml:space="preserve"><value>Fielder's Choice - Resolve runner</value></data>
   <data name="FielderChoiceThirdOutTitle" xml:space="preserve"><value>Fielder's Choice - Who was Out?</value></data>
-  <data name="FielderChoiceThirdOutInstruction" xml:space="preserve"><value>Select the Player retired for the third Out</value></data>
+  <data name="FielderChoiceThirdOutInstruction" xml:space="preserve"><value>Select the player who was Out</value></data>
   <data name="RunnerOnFirstRoleLabel" xml:space="preserve"><value>Runner on First</value></data>
   <data name="RunnerOnSecondRoleLabel" xml:space="preserve"><value>Runner on Second</value></data>
   <data name="RunnerOnThirdRoleLabel" xml:space="preserve"><value>Runner on Third</value></data>
