@@ -42,7 +42,10 @@ public static class PlayContextFactory
                 : RunnerDestination.Out,
             null,
             null,
-            null,
+            definition.UsesOrderedOuts
+                && definition.BatterDefaultDestination == RunnerDestination.Out
+                    ? 1
+                    : null,
             RequiresOutcomeConfirmation: definition.RequiresOutcomeConfirmation(
                 RunnerStartingLocation.Home)));
 
@@ -161,13 +164,17 @@ public static class PlayContextFactory
         IReadOnlyList<ResolvedPlayParticipantOutcome> participants,
         PlateAppearanceResultDefinition definition)
     {
-        if (definition.RequiredPlayOuts == 0)
+        if (!definition.UsesOrderedOuts)
             return participants.All(item => item.OutOrder is null);
         var ordered = participants
             .Where(item => item.OutOrder is not null)
             .OrderBy(item => item.OutOrder)
             .ToArray();
-        return ordered.All(item => item.Destination == RunnerDestination.Out)
+        return participants.All(item =>
+                item.Destination == RunnerDestination.Out
+                    ? item.OutOrder is not null
+                    : item.OutOrder is null)
+            && ordered.All(item => item.Destination == RunnerDestination.Out)
             && ordered.Select(item => item.OutOrder)
                 .SequenceEqual(Enumerable.Range(1, ordered.Length)
                     .Select(value => (int?)value));

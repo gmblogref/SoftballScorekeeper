@@ -259,7 +259,10 @@ public partial class ScoringViewModel : ObservableObject, IQueryAttributable
         RestoreOutsThisInning(state);
         currentBatterPlayerId = currentPlayer.Id;
         AvailableBatterResults = PlateAppearanceResultDefinitions
-            .GetSelectableResults(state.BaseRunners.Count, state.Session.CurrentOuts);
+            .GetSelectableResults(
+                state.BaseRunners.Select(item =>
+                    (RunnerStartingLocation)item.Base).ToHashSet(),
+                state.Session.CurrentOuts);
         OnPropertyChanged(nameof(AvailableBatterResults));
         RestoreBaseRunners(state);
         RestorePendingPlay(state);
@@ -672,6 +675,7 @@ public partial class ScoringViewModel : ObservableObject, IQueryAttributable
         BatterResult.FielderChoice => AppResources.FielderChoiceResultLabel,
         BatterResult.DoublePlay => AppResources.DoublePlayResultLabel,
         BatterResult.TriplePlay => AppResources.TriplePlayResultLabel,
+        BatterResult.SacrificeFly => AppResources.SacrificeFlyResultLabel,
         BatterResult.Out => AppResources.OutResultLabel,
         _ => string.Empty,
     };

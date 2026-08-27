@@ -33,4 +33,5 @@ public enum BatterResult
     FielderChoice = 7,
     DoublePlay = 8,
     TriplePlay = 9,
+    SacrificeFly = 10,
 }
