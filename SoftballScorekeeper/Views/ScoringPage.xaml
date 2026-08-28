@@ -94,7 +94,7 @@
             </VisualStateGroup>
         </VisualStateManager.VisualStateGroups>
         <Grid RowDefinitions="Auto,Auto" ColumnDefinitions="Auto,*">
-            <Button Text="&#x2630;"
+            <Button AutomationId="ScoringMenuButton" Text="&#x2630;"
                     Clicked="OnScoringMenuClicked"
                     FontSize="28"
                     MinimumHeightRequest="52"
@@ -121,7 +121,7 @@
                             BackgroundColor="Transparent" TextColor="Black"
                             MinimumHeightRequest="52" MinimumWidthRequest="180" Padding="20,12" />
                     <BoxView BackgroundColor="Black" HeightRequest="1" />
-                    <Button Text="{x:Static strings:AppResources.ExitGameButton}"
+                    <Button AutomationId="ExitGameButton" Text="{x:Static strings:AppResources.ExitGameButton}"
                             Clicked="OnExitGameClicked"
                             BackgroundColor="Transparent"
                             TextColor="Black"
@@ -165,7 +165,7 @@
                            HorizontalTextAlignment="Center"
                            LineBreakMode="TailTruncation"
                            MaxLines="1" />
-                    <Label x:Name="HomeScoreValue"
+                    <Label x:Name="HomeScoreValue" AutomationId="HomeScoreValue"
                            Grid.Row="2"
                            Text="{Binding HomeScore}"
                            FontSize="64"
@@ -200,7 +200,7 @@
                            HorizontalTextAlignment="Center"
                            LineBreakMode="TailTruncation"
                            MaxLines="1" />
-                    <Label x:Name="VisitorScoreValue"
+                    <Label x:Name="VisitorScoreValue" AutomationId="VisitorScoreValue"
                            Grid.Row="2"
                            Text="{Binding VisitorScore}"
                            FontSize="64"
@@ -213,17 +213,17 @@
                 <VerticalStackLayout x:Name="GameStatusPanel"
                                      Grid.Row="1" Grid.ColumnSpan="3"
                                      Spacing="2">
-                    <Label x:Name="InningOutLabel"
+                    <Label x:Name="InningOutLabel" AutomationId="InningOutStateLabel"
                            Text="{Binding InningOutDisplay}"
                            FontSize="20"
                            FontAttributes="Bold"
                            HorizontalTextAlignment="Center" />
-                    <Label x:Name="LandscapeInningLabel"
+                    <Label x:Name="LandscapeInningLabel" AutomationId="InningStateLabel"
                            Text="{Binding InningDisplay}"
                            IsVisible="False"
                            FontSize="16" FontAttributes="Bold"
                            HorizontalTextAlignment="Center" />
-                    <Label x:Name="LandscapeOutsLabel"
+                    <Label x:Name="LandscapeOutsLabel" AutomationId="OutsStateLabel"
                            Text="{Binding OutsDisplay}"
                            IsVisible="False"
                            FontSize="16" FontAttributes="Bold"
@@ -293,7 +293,7 @@
                                          HorizontalOptions="Center">
                         <Label Text="{Binding FirstBaseRunner.BaseLabel}"
                                FontAttributes="Bold" HorizontalTextAlignment="Center" />
-                        <Button CommandParameter="{Binding FirstBaseRunner}"
+                        <Button AutomationId="FirstBaseRunnerButton" CommandParameter="{Binding FirstBaseRunner}"
                                 Text="{Binding FirstBaseRunner.PlayerName}"
                                 IsEnabled="{Binding FirstBaseRunner.IsOccupied}"
                                 BackgroundColor="{Binding FirstBaseRunner.BackgroundColor}"
@@ -309,7 +309,7 @@
                                TextColor="{StaticResource Primary}"
                                HorizontalTextAlignment="Center" />
                     </VerticalStackLayout>
-                    <Button x:Name="NextBatterButton"
+                    <Button x:Name="NextBatterButton" AutomationId="NextBatterButton"
                             Grid.Row="2" Grid.Column="1"
                             Text="{x:Static strings:AppResources.CompletePlateAppearanceButton}"
                             IsEnabled="{Binding CanAdvanceToNextBatter}"
@@ -363,7 +363,7 @@
                                    FontAttributes="Bold"
                                    TextColor="{StaticResource Primary}"
                                    HorizontalTextAlignment="Center" />
-                            <Label x:Name="CurrentBatterName"
+                            <Label x:Name="CurrentBatterName" AutomationId="CurrentBatter"
                                    Text="{Binding CurrentBatterDisplayName}"
                                    FontSize="28"
                                    FontAttributes="Bold"
