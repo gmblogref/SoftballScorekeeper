@@ -13,6 +13,7 @@ public sealed class AndroidSessionSmokeTests
     [AndroidUiFact]
     public void Installed_application_creates_an_Appium_session()
     {
+        fixture.ResetApplication();
         Assert.False(string.IsNullOrWhiteSpace(fixture.Driver.SessionId?.ToString()));
     }
 }

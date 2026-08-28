@@ -6,10 +6,26 @@ namespace SoftballScorekeeper.AndroidUiTests;
 
 public sealed class AndroidAppiumFixture : IDisposable
 {
+    private AndroidDriver? driver;
+
     public AndroidAppiumFixture()
     {
-        var configuration = AndroidUiTestConfiguration.Load();
-        Configuration = configuration;
+        Configuration = AndroidUiTestConfiguration.Load();
+    }
+
+    public AndroidDriver Driver => driver ??= CreatePreparedDriver(Configuration);
+    internal AndroidUiTestConfiguration Configuration { get; }
+
+    public void ResetApplication()
+    {
+        driver?.Quit();
+        driver = null;
+        _ = Driver;
+    }
+
+    private static AndroidDriver CreatePreparedDriver(
+        AndroidUiTestConfiguration configuration)
+    {
         ResetAppDataAndRequestSeed(configuration);
         var driver = CreateDriver(configuration);
 
@@ -21,7 +37,7 @@ public sealed class AndroidAppiumFixture : IDisposable
                 {
                     ["appId"] = AndroidAutomationConstants.AppPackage,
                 });
-            Driver = driver;
+            return driver;
         }
         catch
         {
@@ -29,9 +45,6 @@ public sealed class AndroidAppiumFixture : IDisposable
             throw;
         }
     }
-
-    public AndroidDriver Driver { get; }
-    internal AndroidUiTestConfiguration Configuration { get; }
 
     public string CaptureFailureArtifacts(string testName, Exception exception)
     {
@@ -68,7 +81,7 @@ public sealed class AndroidAppiumFixture : IDisposable
         return artifactDirectory;
     }
 
-    public void Dispose() => Driver.Quit();
+    public void Dispose() => driver?.Quit();
 
     private static AndroidDriver CreateDriver(AndroidUiTestConfiguration configuration)
     {

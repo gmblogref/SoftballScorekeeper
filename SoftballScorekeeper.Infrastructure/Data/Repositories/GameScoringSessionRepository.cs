@@ -815,9 +815,15 @@ public sealed class GameScoringSessionRepository
                 out var playContext)
             || playContext is null)
             return new([], PendingPlayFailure.InvalidScoringState);
+        var participant = playContext.Participants.Single(item =>
+            item.PlayerId == playerId);
         return new(
             playResolutionCoordinator.GetAvailableOutcomes(playContext, playerId),
-            PendingPlayFailure.None);
+            PendingPlayFailure.None,
+            new RunnerOutcomeChoice(
+                participant.Destination,
+                participant.SafeDestination,
+                participant.AttemptedDestination));
     }
 
     public async Task<bool> ClearPendingPlayAsync(int gameId)

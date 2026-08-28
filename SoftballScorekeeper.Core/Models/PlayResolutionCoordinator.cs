@@ -195,24 +195,27 @@ public sealed class PlayResolutionCoordinator
         PlayContext context,
         PlateAppearanceResultDefinition definition)
     {
-        if (!TryCreateResolverState(context, out var seedState)
+        var defaultedParticipants = context.Participants.ToArray();
+        ApplyFielderChoiceDisplacementDefaults(defaultedParticipants);
+        var defaultedContext = context.WithParticipants(defaultedParticipants);
+        if (!TryCreateResolverState(defaultedContext, out var seedState)
             || seedState is null)
             return null;
 
-        var fixedOutcomes = context.Participants
+        var fixedOutcomes = defaultedContext.Participants
             .Where(item => !item.RequiresOutcomeConfirmation)
             .ToDictionary(item => item.PlayerId, item => item.Destination);
         var arrangement = GetCompatibleArrangements(
-                context, seedState, definition, fixedOutcomes)
+                defaultedContext, seedState, definition, fixedOutcomes)
             .OrderBy(item => item.Participants.Count(participant =>
                 participant.Destination == RunnerDestination.Out))
             .ThenBy(item => item.Participants.Count(participant =>
-                participant.Destination != context.Participants.Single(original =>
+                participant.Destination != defaultedContext.Participants.Single(original =>
                     original.PlayerId == participant.PlayerId).Destination))
             .FirstOrDefault();
         if (arrangement is null) return null;
 
-        return context.WithParticipants(context.Participants.Select(item =>
+        return defaultedContext.WithParticipants(defaultedContext.Participants.Select(item =>
             item.RequiresOutcomeConfirmation
                 ? item with
                 {
@@ -770,6 +773,41 @@ public sealed class PlayResolutionCoordinator
                 SafeDestination = null,
                 AttemptedDestination = null,
             };
+        }
+    }
+
+    private static void ApplyFielderChoiceDisplacementDefaults(
+        ResolvedPlayParticipantOutcome[] participants)
+    {
+        var primaryRetirement = participants.SingleOrDefault(item =>
+            item.StartingLocation != RunnerStartingLocation.Home
+            && item.Destination == RunnerDestination.Out
+            && item.SafeDestination is null
+            && item.AttemptedDestination is null
+            && !item.RequiresOutcomeConfirmation);
+        if (primaryRetirement is null) return;
+
+        var destination = RunnerOutcomeChoice.GetNextDestination(
+            (RunnerDestination)primaryRetirement.StartingLocation);
+        while (destination is RunnerDestination.First
+            or RunnerDestination.Second or RunnerDestination.Third)
+        {
+            var startingLocation = (RunnerStartingLocation)destination.Value;
+            var index = Array.FindIndex(participants, item =>
+                item.StartingLocation == startingLocation);
+            if (index < 0 || !participants[index].RequiresOutcomeConfirmation)
+                return;
+
+            var nextDestination = RunnerOutcomeChoice.GetNextDestination(
+                destination.Value);
+            if (nextDestination is null) return;
+            participants[index] = participants[index] with
+            {
+                Destination = nextDestination.Value,
+                SafeDestination = null,
+                AttemptedDestination = null,
+            };
+            destination = nextDestination;
         }
     }
 

@@ -7,7 +7,8 @@
     Shell.NavBarIsVisible="False"
     BackgroundColor="#99000000">
     <Grid Padding="36">
-        <Border Padding="28"
+        <Border AutomationId="RunnerDestinationDialog"
+                Padding="28"
                 WidthRequest="620"
                 MaximumWidthRequest="680"
                 HorizontalOptions="Center"
@@ -30,6 +31,12 @@
                        FontSize="16"
                        HorizontalTextAlignment="Center"
                        TextColor="{AppThemeBinding Light={StaticResource Gray600}, Dark={StaticResource Gray300}}" />
+                <Label x:Name="CurrentOutcomeLabel"
+                       AutomationId="RunnerCurrentOutcomeLabel"
+                       FontSize="18"
+                       FontAttributes="Bold"
+                       HorizontalTextAlignment="Center"
+                       TextColor="{StaticResource Primary}" />
                 <BoxView HeightRequest="1"
                          Color="{AppThemeBinding Light={StaticResource Gray300}, Dark={StaticResource Gray600}}" />
                 <Label Text="{x:Static strings:AppResources.ChooseOutcomeInstruction}"
@@ -40,6 +47,12 @@
                             Wrap="Wrap"
                             JustifyContent="Center"
                             AlignItems="Center" />
+                <Button AutomationId="RunnerDestinationCancelButton"
+                        Text="{x:Static strings:AppResources.CancelButton}"
+                        Clicked="OnCancelClicked"
+                        MinimumHeightRequest="56"
+                        MinimumWidthRequest="170"
+                        HorizontalOptions="Center" />
             </VerticalStackLayout>
         </Border>
     </Grid>
