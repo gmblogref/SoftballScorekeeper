@@ -36,7 +36,19 @@ public sealed class AndroidUiTestDataInitializer
         EnsureSingleRow(await teamRepository.CreateAsync(team), "team");
 
         var playerIds = new List<int>();
-        foreach (var firstName in new[] { "Alex", "Blake", "Casey" })
+        foreach (var firstName in new[]
+        {
+            "Alex",
+            "Blake",
+            "Casey",
+            "Drew",
+            "Evan",
+            "Finley",
+            "Gray",
+            "Harper",
+            "Jordan",
+            "Morgan",
+        })
         {
             var result = await playerRepository.CreateForTeamAsync(
                 new Player

@@ -29,7 +29,8 @@ public sealed record RunnerDestinationChoicesResult(
 
 public sealed record RunnerOutcomeChoicesResult(
     IReadOnlyList<RunnerOutcomeChoice> Choices,
-    PendingPlayFailure FailureReason)
+    PendingPlayFailure FailureReason,
+    RunnerOutcomeChoice? CurrentOutcome = null)
 {
     public bool IsSuccess => FailureReason == PendingPlayFailure.None;
 }

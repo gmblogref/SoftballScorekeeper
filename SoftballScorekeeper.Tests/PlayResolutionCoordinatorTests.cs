@@ -234,6 +234,28 @@ public sealed class PlayResolutionCoordinatorTests
     }
 
     [Fact]
+    public void Fielder_choice_displacement_default_does_not_overwrite_resolved_correction()
+    {
+        var result = coordinator.Evaluate(Context(
+            BatterResult.FielderChoice,
+            0,
+            Participant(4, RunnerStartingLocation.Third, RunnerDestination.Third),
+            Participant(3, RunnerStartingLocation.Second, RunnerDestination.Second,
+                confirmation: true),
+            Participant(2, RunnerStartingLocation.First, RunnerDestination.Out),
+            Participant(1, RunnerStartingLocation.Home, RunnerDestination.First)));
+
+        Assert.True(result.IsAccepted);
+        Assert.Equal(PlayResolutionStatus.ReadyForNextBatter, result.Status);
+        Assert.Equal(RunnerDestination.Third, result.Context!.Participants.Single(item =>
+            item.StartingLocation == RunnerStartingLocation.Third).Destination);
+        Assert.Equal(RunnerDestination.Second, result.Context.Participants.Single(item =>
+            item.StartingLocation == RunnerStartingLocation.Second).Destination);
+        Assert.All(result.Context.Participants,
+            item => Assert.False(item.RequiresOutcomeConfirmation));
+    }
+
+    [Fact]
     public void Fielder_choice_can_record_two_outs_without_reclassification()
     {
         var result = coordinator.Evaluate(Context(

@@ -226,12 +226,13 @@ public partial class ScoringPage : ContentPage
         string startingLocationLabel,
         bool showsGuidedResolutionContext)
     {
-        var outcomes = await viewModel.GetValidRunnerOutcomesAsync(playerId);
-        if (outcomes.Count == 0) return null;
+        var menu = await viewModel.GetRunnerOutcomeMenuAsync(playerId);
+        if (menu is null || menu.Choices.Count == 0) return null;
         var dialog = new RunnerDestinationDialog(
             playerName,
             startingLocationLabel,
-            outcomes,
+            menu.CurrentOutcome,
+            menu.Choices,
             showsGuidedResolutionContext);
         return await dialog.ShowAsync(Navigation);
     }

@@ -15,6 +15,7 @@ public sealed class ScoringResumeWorkflowTests
     [AndroidUiFact]
     public void Single_next_batter_exit_and_resume_preserves_visible_scoring_state()
     {
+        fixture.ResetApplication();
         var driver = fixture.Driver;
         try
         {

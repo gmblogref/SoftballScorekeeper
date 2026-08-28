@@ -19,7 +19,7 @@ public sealed record RunnerOutcomeChoice(
         return SafeDestination is RunnerDestination.First
                 or RunnerDestination.Second or RunnerDestination.Third
             && AttemptedDestination == GetNextDestination(SafeDestination.Value)
-            && (int)SafeDestination.Value > (int)startingLocation;
+            && (int)SafeDestination.Value >= (int)startingLocation;
     }
 
     public static RunnerOutcomeChoice ForDestination(RunnerDestination destination) =>

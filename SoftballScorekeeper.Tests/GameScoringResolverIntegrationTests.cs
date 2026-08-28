@@ -134,6 +134,8 @@ public sealed class GameScoringResolverIntegrationTests
         Assert.True(mapped);
         var expected = BaseRunnerResolver.ResolveCorrection(
             resolverState!, batterId, RunnerDestination.Second);
+        var outcomeMenu = await repository.GetValidRunnerOutcomeChoicesAsync(
+            context.Game.Id, batterId);
         var choices = await repository.GetValidRunnerDestinationsAsync(
             context.Game.Id, batterId);
         var adjusted = await repository.AdjustPendingRunnerAsync(
@@ -141,6 +143,12 @@ public sealed class GameScoringResolverIntegrationTests
         var after = await repository.GetStateForGameAsync(context.Game.Id);
 
         Assert.True(expected.IsSuccess);
+        Assert.Equal(
+            RunnerOutcomeChoice.ForDestination(RunnerDestination.First),
+            outcomeMenu.CurrentOutcome);
+        Assert.Contains(
+            RunnerOutcomeChoice.ForDestination(RunnerDestination.Second),
+            outcomeMenu.Choices);
         Assert.Contains(RunnerDestination.Second, choices.Destinations);
         Assert.True(adjusted.IsSuccess);
         Assert.Equal(ExpectedDestinations(expected),

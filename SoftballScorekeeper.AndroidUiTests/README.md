@@ -3,7 +3,7 @@
 `SoftballScorekeeper.AndroidUiTests` is the separately runnable Appium suite for Android UI and integration automation. It does not reference or replace `SoftballScorekeeper.Tests`, which remains the fast, emulator-independent repository test suite.
 
 The Android UI tests are opt-in acceptance tests. Ordinary solution, Test Explorer,
-and `SoftballScorekeeper.Tests` runs do not require Appium or an emulator; the two
+and `SoftballScorekeeper.Tests` runs do not require Appium or an emulator; the three
 Android UI tests are discovered but skipped unless the supported runner explicitly
 enables them. A runner-enabled test still fails normally when an Appium or emulator
 prerequisite is broken.
@@ -94,10 +94,13 @@ dotnet test SoftballScorekeeper.AndroidUiTests/SoftballScorekeeper.AndroidUiTest
 `EmbedAssembliesIntoApk=true` is required because the fixture clears application data;
 a Fast Deployment APK loses its separately deployed assemblies when that data is
 cleared. The fixture then creates a Debug-only seed request through `adb`, launches
-the installed package, and the app prepares one Team, three Players, roster
-memberships, one Season, one Game, and a frozen lineup. Release builds contain no
-seed initializer. Every test process starts from a newly cleared application-data
-directory.
+the installed package, and the app prepares one Team, ten Players, roster
+memberships, one Season, one Game, and a frozen lineup ordered Alex Automation,
+Blake Automation, Casey Automation, Drew Automation, Evan Automation, Finley
+Automation, Gray Automation, Harper Automation, Jordan Automation, and Morgan
+Automation. Release builds contain no seed initializer. Every Android UI test starts
+from newly cleared application data and a new Appium session, so scoring workflows
+remain independently runnable.
 
 For lower-level troubleshooting only, opt in and run the complete Android UI suite
 against an already installed APK, including the session smoke test:

@@ -602,6 +602,7 @@
   <data name="BatterResultMenuFormat" xml:space="preserve"><value>What did {0} do?</value></data>
   <data name="RunnerDestinationMenuFormat" xml:space="preserve"><value>Move {0} To</value></data>
   <data name="ChooseOutcomeInstruction" xml:space="preserve"><value>Choose outcome</value></data>
+  <data name="CurrentRunnerOutcomeFormat" xml:space="preserve"><value>Current: {0}</value></data>
   <data name="ResolveFielderChoiceLabel" xml:space="preserve"><value>Fielder's Choice - Resolve runner</value></data>
   <data name="FielderChoiceThirdOutTitle" xml:space="preserve"><value>Fielder's Choice - Who was Out?</value></data>
   <data name="FielderChoiceThirdOutInstruction" xml:space="preserve"><value>Select the player who was Out</value></data>

@@ -10,4 +10,5 @@ internal static class AndroidAutomationConstants
     public const string TestSeedRequestFileName = "android-ui-test-seed";
     public const string FirstBatterName = "Alex Automation";
     public const string SecondBatterName = "Blake Automation";
+    public const string ThirdBatterName = "Casey Automation";
 }

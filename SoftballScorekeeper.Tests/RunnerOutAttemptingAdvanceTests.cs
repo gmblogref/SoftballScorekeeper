@@ -10,9 +10,15 @@ public sealed class RunnerOutAttemptingAdvanceTests
     [Theory]
     [InlineData(RunnerStartingLocation.Home, RunnerDestination.First,
         RunnerDestination.Second)]
+    [InlineData(RunnerStartingLocation.First, RunnerDestination.First,
+        RunnerDestination.Second)]
     [InlineData(RunnerStartingLocation.First, RunnerDestination.Second,
         RunnerDestination.Third)]
+    [InlineData(RunnerStartingLocation.Second, RunnerDestination.Second,
+        RunnerDestination.Third)]
     [InlineData(RunnerStartingLocation.Second, RunnerDestination.Third,
+        RunnerDestination.Scores)]
+    [InlineData(RunnerStartingLocation.Third, RunnerDestination.Third,
         RunnerDestination.Scores)]
     public void Resolver_exposes_only_the_immediate_advance_after_a_safe_destination(
         RunnerStartingLocation startingLocation,
@@ -25,7 +31,9 @@ public sealed class RunnerOutAttemptingAdvanceTests
         };
         if (startingLocation != RunnerStartingLocation.Home)
             participants.Add(new(11, RunnerStartingLocation.Home,
-                RunnerDestination.First));
+                safeDestination == RunnerDestination.First
+                    ? RunnerDestination.Out
+                    : RunnerDestination.First));
         var state = new BaseRunnerResolutionState(participants);
 
         var available = BaseRunnerResolver.TryGetOutAttemptingAdvance(
@@ -38,7 +46,7 @@ public sealed class RunnerOutAttemptingAdvanceTests
 
     [Theory]
     [InlineData(RunnerStartingLocation.First, RunnerDestination.First,
-        RunnerDestination.Second)]
+        RunnerDestination.Third)]
     [InlineData(RunnerStartingLocation.Second, RunnerDestination.Third,
         RunnerDestination.Second)]
     [InlineData(RunnerStartingLocation.Home, RunnerDestination.Second,
@@ -121,6 +129,9 @@ public sealed class RunnerOutAttemptingAdvanceTests
             item.IsOutAttemptingAdvance));
         Assert.True((await repository.AdjustPendingRunnerOutcomeAsync(
             context.Game.Id, context.Players[1].Id, attempted)).IsSuccess);
+        var updatedMenu = await repository.GetValidRunnerOutcomeChoicesAsync(
+            context.Game.Id, context.Players[1].Id);
+        Assert.Equal(attempted, updatedMenu.CurrentOutcome);
         Assert.True((await repository.CompletePlateAppearanceAsync(context.Game.Id)).IsSuccess);
         var state = await repository.GetStateForGameAsync(context.Game.Id);
 
@@ -254,7 +265,7 @@ public sealed class RunnerOutAttemptingAdvanceTests
     }
 
     [Fact]
-    public async Task Pre_play_base_is_not_treated_as_a_safe_advance_and_forged_choice_is_rejected()
+    public async Task Pre_play_base_can_be_last_safe_destination_for_immediate_attempt()
     {
         await using var db = await TemporaryTestDatabase.CreateAsync();
         var context = await CreateReadyGameAsync(db, 3);
@@ -267,19 +278,28 @@ public sealed class RunnerOutAttemptingAdvanceTests
 
         var choices = await repository.GetValidRunnerOutcomeChoicesAsync(
             context.Game.Id, context.Players[2].Id);
-        Assert.DoesNotContain(choices.Choices, item => item.IsOutAttemptingAdvance);
-        var forged = new RunnerOutcomeChoice(RunnerDestination.Out,
+        var attempted = new RunnerOutcomeChoice(RunnerDestination.Out,
             RunnerDestination.First, RunnerDestination.Second);
-        var rejected = await repository.AdjustPendingRunnerOutcomeAsync(
-            context.Game.Id, context.Players[2].Id, forged);
-        var state = await repository.GetStateForGameAsync(context.Game.Id);
+        Assert.Contains(attempted, choices.Choices);
+        var adjusted = await repository.AdjustPendingRunnerOutcomeAsync(
+            context.Game.Id, context.Players[2].Id, attempted);
+        var pending = await repository.GetStateForGameAsync(context.Game.Id);
 
-        Assert.Equal(PendingPlayFailure.InvalidRequest, rejected.FailureReason);
-        var movement = state!.PendingPlay!.Movements.Single(item =>
-            item.PlayerId == context.Players[2].Id);
-        Assert.Equal(RunnerDestination.First, movement.Destination);
-        Assert.Null(movement.SafeDestination);
-        Assert.Null(movement.AttemptedDestination);
+        Assert.True(adjusted.IsSuccess);
+        AssertMovement(pending!.PendingPlay!.Movements.Single(item =>
+                item.PlayerId == context.Players[2].Id),
+            context.Players[2].Id, RunnerStartingLocation.First,
+            RunnerDestination.First, RunnerDestination.Second);
+
+        Assert.True((await repository.CompletePlateAppearanceAsync(
+            context.Game.Id)).IsSuccess);
+        var completed = (await repository.GetStateForGameAsync(context.Game.Id))!;
+        Assert.Equal(BatterResult.Out, Assert.Single(completed.PlateAppearances).Result);
+        Assert.Equal(2, completed.Session.CurrentOuts);
+        AssertMovement(completed.RunnerMovements.Single(item =>
+                item.PlayerId == context.Players[2].Id),
+            context.Players[2].Id, RunnerStartingLocation.First,
+            RunnerDestination.First, RunnerDestination.Second);
     }
 
     [Fact]
@@ -352,7 +372,72 @@ public sealed class RunnerOutAttemptingAdvanceTests
     }
 
     [Fact]
-    public async Task Runner_committed_to_second_by_FC_does_not_gain_attempted_third_in_next_play()
+    public async Task Fielder_choice_runner_safe_on_third_can_be_out_attempting_home_and_reload()
+    {
+        await using var db = await TemporaryTestDatabase.CreateAsync();
+        var context = await CreateReadyGameAsync(db, 4);
+        var repository = db.CreateGameScoringSessionRepository();
+        var initialized = await repository.InitializeAsync(
+            context.Team.Id, context.Game.Id, TeamGameSide.Away);
+        await SeedBaseAsync(db, initialized.Session!.Id,
+            context.Players[2].Id, ScoringBase.Third);
+        await SeedBaseAsync(db, initialized.Session.Id,
+            context.Players[3].Id, ScoringBase.First);
+        await repository.SelectBatterResultAsync(
+            context.Game.Id, BatterResult.FielderChoice);
+        Assert.True((await repository.AdjustPendingRunnerAsync(
+            context.Game.Id, context.Players[3].Id,
+            RunnerDestination.Out)).IsSuccess);
+
+        var before = (await repository.GetStateForGameAsync(context.Game.Id))!;
+        var runner = before.PendingPlay!.Movements.Single(item =>
+            item.PlayerId == context.Players[2].Id);
+        Assert.Equal(RunnerStartingLocation.Third, runner.StartingLocation);
+        Assert.Equal(RunnerDestination.Third, runner.Destination);
+        Assert.False(runner.RequiresOutcomeConfirmation);
+
+        var menu = await repository.GetValidRunnerOutcomeChoicesAsync(
+            context.Game.Id, runner.PlayerId);
+        Assert.DoesNotContain(
+            RunnerOutcomeChoice.ForDestination(RunnerDestination.Out),
+            menu.Choices);
+        var attemptedHome = Assert.Single(menu.Choices.Where(item =>
+            item == new RunnerOutcomeChoice(
+                RunnerDestination.Out,
+                RunnerDestination.Third,
+                RunnerDestination.Scores)));
+        Assert.True((await repository.AdjustPendingRunnerOutcomeAsync(
+            context.Game.Id, runner.PlayerId, attemptedHome)).IsSuccess);
+
+        await db.Database.CloseAsync();
+        var resumedDatabase = new AppDatabase(db.DatabasePath);
+        var resumedRepository = new GameScoringSessionRepository(resumedDatabase);
+        var resumed = (await resumedRepository.GetStateForGameAsync(
+            context.Game.Id))!;
+        Assert.Equal(BatterResult.FielderChoice, resumed.PendingPlay!.Play.Result);
+        AssertMovement(resumed.PendingPlay.Movements.Single(item =>
+                item.PlayerId == runner.PlayerId),
+            runner.PlayerId, RunnerStartingLocation.Third,
+            RunnerDestination.Third, RunnerDestination.Scores);
+        Assert.Equal(2, resumed.PendingPlay.Movements.Count(item =>
+            item.Destination == RunnerDestination.Out));
+
+        Assert.True((await resumedRepository.CompletePlateAppearanceAsync(
+            context.Game.Id)).IsSuccess);
+        var completed = (await resumedRepository.GetStateForGameAsync(
+            context.Game.Id))!;
+        Assert.Equal(BatterResult.FielderChoice,
+            Assert.Single(completed.PlateAppearances).Result);
+        Assert.Equal(2, completed.Session.CurrentOuts);
+        AssertMovement(completed.RunnerMovements.Single(item =>
+                item.PlayerId == runner.PlayerId),
+            runner.PlayerId, RunnerStartingLocation.Third,
+            RunnerDestination.Third, RunnerDestination.Scores);
+        await resumedDatabase.CloseAsync();
+    }
+
+    [Fact]
+    public async Task Runner_on_second_in_next_play_can_attempt_third_without_rewriting_prior_FC()
     {
         await using var db = await TemporaryTestDatabase.CreateAsync();
         var context = await CreateReadyGameAsync(db, 3);
@@ -380,7 +465,13 @@ public sealed class RunnerOutAttemptingAdvanceTests
 
         Assert.Contains(choices.Choices, item =>
             item == RunnerOutcomeChoice.ForDestination(RunnerDestination.Out));
-        Assert.DoesNotContain(choices.Choices, item => item.IsOutAttemptingAdvance);
+        Assert.Contains(choices.Choices, item =>
+            item == new RunnerOutcomeChoice(
+                RunnerDestination.Out,
+                RunnerDestination.Second,
+                RunnerDestination.Third));
+        Assert.Equal(BatterResult.FielderChoice,
+            Assert.Single(committed.PlateAppearances).Result);
     }
 
     [Fact]

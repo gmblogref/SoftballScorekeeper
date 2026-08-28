@@ -511,14 +511,15 @@ public partial class ScoringViewModel : ObservableObject, IQueryAttributable
         return [];
     }
 
-    public async Task<IReadOnlyList<RunnerOutcomeChoice>> GetValidRunnerOutcomesAsync(
+    public async Task<RunnerOutcomeMenuViewModel?> GetRunnerOutcomeMenuAsync(
         int playerId)
     {
         var result = await sessionRepository.GetValidRunnerOutcomeChoicesAsync(
             GameId, playerId);
-        if (result.IsSuccess) return result.Choices;
+        if (result is { IsSuccess: true, CurrentOutcome: not null })
+            return new(result.CurrentOutcome, result.Choices);
         ValidationMessage = AppResources.ScoringProposalFailed;
-        return [];
+        return null;
     }
 
     private void ResetPresentation()
@@ -658,7 +659,8 @@ public partial class ScoringViewModel : ObservableObject, IQueryAttributable
                 movement.PlayerId,
                 movement.StartingLocation == RunnerStartingLocation.Home
                     ? AppResources.BatterBadgeLabel : AppResources.RunnerBadgeLabel,
-                FormatPlayerName(player.FirstName, player.LastName)));
+                FormatPlayerName(player.FirstName, player.LastName),
+                movement.StartingLocation));
         }
         OnPropertyChanged(nameof(HasScoredPlayers));
         OnPropertyChanged(nameof(HasNoScoredPlayers));
@@ -811,11 +813,26 @@ public sealed record BaseRunnerViewModel(
 }
 
 public sealed record ScoredPlayerViewModel(
-    int PlayerId, string RoleLabel, string PlayerName)
+    int PlayerId,
+    string RoleLabel,
+    string PlayerName,
+    RunnerStartingLocation StartingLocation)
 {
     public string DisplayText => string.Format(AppResources.ScoredPlayerCardFormat,
         RoleLabel, PlayerName);
+    public string AutomationId => StartingLocation switch
+    {
+        RunnerStartingLocation.Home => "ScoredBatterButton",
+        RunnerStartingLocation.First => "ScoredRunnerFromFirstButton",
+        RunnerStartingLocation.Second => "ScoredRunnerFromSecondButton",
+        RunnerStartingLocation.Third => "ScoredRunnerFromThirdButton",
+        _ => "ScoredRunnerButton",
+    };
 }
+
+public sealed record RunnerOutcomeMenuViewModel(
+    RunnerOutcomeChoice CurrentOutcome,
+    IReadOnlyList<RunnerOutcomeChoice> Choices);
 
 public sealed record OutPlayerViewModel(int OutNumber, string PlayerName)
 {

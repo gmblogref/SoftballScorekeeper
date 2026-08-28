@@ -761,6 +761,85 @@ public sealed class WalkFielderChoiceScoringTests
         Assert.Empty(completed.HalfInnings);
     }
 
+    [Theory]
+    [InlineData("1,2,3", 1, "0:1,1:5,2:3,3:4")]
+    [InlineData("1,2", 1, "0:1,1:5,2:3")]
+    [InlineData("1,3", 1, "0:1,1:5,3:3")]
+    [InlineData("2,3", 2, "0:1,2:5,3:4")]
+    [InlineData("2", 2, "0:1,2:5")]
+    [InlineData("3", 3, "0:1,3:5")]
+    public async Task Fielder_choice_defaults_only_retirement_displacement_chain(
+        string occupiedBases,
+        int retiredStartingBase,
+        string expectedMovements)
+    {
+        await using var db = await TemporaryTestDatabase.CreateAsync();
+        var context = await CreateReadyGameAsync(db, 5);
+        var repository = db.CreateGameScoringSessionRepository();
+        var initialized = await repository.InitializeAsync(
+            context.Team.Id, context.Game.Id, TeamGameSide.Home);
+        await SeedBasesAsync(db, initialized.Session!.Id, context.Players, occupiedBases);
+        await repository.SelectBatterResultAsync(
+            context.Game.Id, BatterResult.FielderChoice);
+
+        var retirement = await repository.SelectMultiOutRetirementsAsync(
+            context.Game.Id,
+            [new(context.Players[retiredStartingBase].Id,
+                RunnerOutcomeChoice.ForDestination(RunnerDestination.Out))]);
+        var pending = (await repository.GetStateForGameAsync(context.Game.Id))!;
+
+        Assert.True(retirement.IsSuccess);
+        Assert.Equal(BatterResult.FielderChoice, pending.PendingPlay!.Play.Result);
+        Assert.Equal(ParseMovements(expectedMovements),
+            MovementValues(pending.PendingPlay.Movements));
+        Assert.Single(pending.PendingPlay.Movements.Where(item =>
+            item.Destination == RunnerDestination.Out));
+        var retired = pending.PendingPlay.Movements.Single(item =>
+            item.StartingLocation == (RunnerStartingLocation)retiredStartingBase);
+        Assert.Null(retired.SafeDestination);
+        Assert.Null(retired.AttemptedDestination);
+    }
+
+    [Fact]
+    public async Task Corrected_fielder_choice_displacement_defaults_survive_exit_and_resume()
+    {
+        await using var db = await TemporaryTestDatabase.CreateAsync();
+        var context = await CreateReadyGameAsync(db, 5);
+        var repository = db.CreateGameScoringSessionRepository();
+        var initialized = await repository.InitializeAsync(
+            context.Team.Id, context.Game.Id, TeamGameSide.Home);
+        await SeedBasesAsync(db, initialized.Session!.Id, context.Players, "1,2,3");
+        await repository.SelectBatterResultAsync(
+            context.Game.Id, BatterResult.FielderChoice);
+        Assert.True((await repository.SelectMultiOutRetirementsAsync(
+            context.Game.Id,
+            [new(context.Players[1].Id,
+                RunnerOutcomeChoice.ForDestination(RunnerDestination.Out))])).IsSuccess);
+
+        Assert.True((await repository.AdjustPendingRunnerAsync(
+            context.Game.Id, context.Players[3].Id,
+            RunnerDestination.Third)).IsSuccess);
+        await db.Database.CloseAsync();
+        var resumedDatabase = new AppDatabase(db.DatabasePath);
+        var resumedRepository = new GameScoringSessionRepository(resumedDatabase);
+        var resumed = (await resumedRepository.GetStateForGameAsync(context.Game.Id))!;
+
+        Assert.Equal(BatterResult.FielderChoice, resumed.PendingPlay!.Play.Result);
+        Assert.Equal(RunnerDestination.First, resumed.PendingPlay.Movements.Single(item =>
+            item.StartingLocation == RunnerStartingLocation.Home).Destination);
+        Assert.Equal(RunnerDestination.Out, resumed.PendingPlay.Movements.Single(item =>
+            item.StartingLocation == RunnerStartingLocation.First).Destination);
+        Assert.Equal(RunnerDestination.Second, resumed.PendingPlay.Movements.Single(item =>
+            item.StartingLocation == RunnerStartingLocation.Second).Destination);
+        Assert.Equal(RunnerDestination.Third, resumed.PendingPlay.Movements.Single(item =>
+            item.StartingLocation == RunnerStartingLocation.Third).Destination);
+        Assert.Single(resumed.PendingPlay.Movements.Where(item =>
+            item.Destination == RunnerDestination.Out));
+        Assert.True((await resumedRepository.CompletePlateAppearanceAsync(
+            context.Game.Id)).IsSuccess);
+        await resumedDatabase.CloseAsync();
+    }
+
     [Fact]
     public async Task Scored_fielder_choice_runners_remain_editable_until_next_batter()
     {
@@ -1205,12 +1284,15 @@ public sealed class WalkFielderChoiceScoringTests
         var codePath = dialogPath + ".cs";
         var dialog = XDocument.Load(dialogPath);
         var ns = dialog.Root!.Name.Namespace;
+        var x = XNamespace.Get("http://schemas.microsoft.com/winfx/2009/xaml");
         var nameLabel = dialog.Descendants(ns + "Label").Single(item =>
-            item.Attribute(XNamespace.Get("http://schemas.microsoft.com/winfx/2009/xaml")
-                + "Name")?.Value == "PlayerNameLabel");
+            item.Attribute(x + "Name")?.Value == "PlayerNameLabel");
         var startingLocationLabel = dialog.Descendants(ns + "Label").Single(item =>
-            item.Attribute(XNamespace.Get("http://schemas.microsoft.com/winfx/2009/xaml")
-                + "Name")?.Value == "StartingLocationLabel");
+            item.Attribute(x + "Name")?.Value == "StartingLocationLabel");
+        var currentOutcomeLabel = dialog.Descendants(ns + "Label").Single(item =>
+            item.Attribute(x + "Name")?.Value == "CurrentOutcomeLabel");
+        var cancelButton = dialog.Descendants(ns + "Button").Single(item =>
+            item.Attribute("AutomationId")?.Value == "RunnerDestinationCancelButton");
         var code = File.ReadAllText(codePath);
 
         Assert.Equal("Center", nameLabel.Attribute("HorizontalTextAlignment")?.Value);
@@ -1220,6 +1302,11 @@ public sealed class WalkFielderChoiceScoringTests
         Assert.Equal("Center",
             startingLocationLabel.Attribute("HorizontalTextAlignment")?.Value);
         Assert.Contains("StartingLocationLabel.Text = startingLocationLabel;", code);
+        Assert.Equal("RunnerCurrentOutcomeLabel",
+            currentOutcomeLabel.Attribute("AutomationId")?.Value);
+        Assert.Equal("Bold", currentOutcomeLabel.Attribute("FontAttributes")?.Value);
+        Assert.Equal("{x:Static strings:AppResources.CancelButton}",
+            cancelButton.Attribute("Text")?.Value);
         var pageCode = File.ReadAllText(Path.Combine(repositoryRoot,
             "SoftballScorekeeper", "Views", "ScoringPage.xaml.cs"));
         var viewModelCode = File.ReadAllText(Path.Combine(repositoryRoot,
@@ -1228,10 +1315,14 @@ public sealed class WalkFielderChoiceScoringTests
         Assert.Contains("startingLocationLabel", pageCode);
         Assert.Contains("participant.RoleLabel", pageCode);
         Assert.Contains("FormatRunnerOutcome(outcome)", code);
+        Assert.Contains("CurrentRunnerOutcomeFormat", code);
+        Assert.Contains("GetRunnerOutcomeMenuAsync", pageCode);
+        Assert.Contains("RunnerDestinationSecondButton", code);
+        Assert.Contains("RunnerOutAttemptingHomeButton", code);
         Assert.Contains("ResolutionStatus == PlayResolutionStatus.ReadyForNextBatter",
             viewModelCode);
-        Assert.DoesNotContain("OnCancelClicked", code);
-        Assert.DoesNotContain("OnCancelClicked", File.ReadAllText(dialogPath));
+        Assert.Contains("OnCancelClicked", code);
+        Assert.Contains("OnCancelClicked", File.ReadAllText(dialogPath));
     }
 
     [Fact]
@@ -1251,6 +1342,15 @@ public sealed class WalkFielderChoiceScoringTests
             "SoftballScorekeeper", "Views", "FielderChoiceThirdOutDialog.xaml.cs"));
 
         Assert.Equal(3, baseButtons.Length);
+        Assert.Equal(
+            new[]
+            {
+                "FirstBaseRunnerButton",
+                "SecondBaseRunnerButton",
+                "ThirdBaseRunnerButton",
+            },
+            baseButtons.Select(button => button.Attribute("AutomationId")?.Value)
+                .OrderBy(value => value));
         Assert.All(baseButtons, button =>
         {
             var prefix = button.Attribute("Text")!.Value.Replace(".PlayerName}", string.Empty);

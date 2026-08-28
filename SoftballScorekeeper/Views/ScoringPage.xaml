@@ -251,7 +251,8 @@
                                          Spacing="6" WidthRequest="160">
                         <Label Text="{Binding SecondBaseRunner.BaseLabel}"
                                FontAttributes="Bold" HorizontalTextAlignment="Center" />
-                        <Button CommandParameter="{Binding SecondBaseRunner}"
+                        <Button AutomationId="SecondBaseRunnerButton"
+                                CommandParameter="{Binding SecondBaseRunner}"
                                 Text="{Binding SecondBaseRunner.PlayerName}"
                                 IsEnabled="{Binding SecondBaseRunner.IsOccupied}"
                                 BackgroundColor="{Binding SecondBaseRunner.BackgroundColor}"
@@ -272,7 +273,8 @@
                                          HorizontalOptions="Center">
                         <Label Text="{Binding ThirdBaseRunner.BaseLabel}"
                                FontAttributes="Bold" HorizontalTextAlignment="Center" />
-                        <Button CommandParameter="{Binding ThirdBaseRunner}"
+                        <Button AutomationId="ThirdBaseRunnerButton"
+                                CommandParameter="{Binding ThirdBaseRunner}"
                                 Text="{Binding ThirdBaseRunner.PlayerName}"
                                 IsEnabled="{Binding ThirdBaseRunner.IsOccupied}"
                                 BackgroundColor="{Binding ThirdBaseRunner.BackgroundColor}"
@@ -335,7 +337,8 @@
                                         ItemsLayout="HorizontalList" HorizontalOptions="Center">
                             <CollectionView.ItemTemplate>
                                 <DataTemplate x:DataType="viewModels:ScoredPlayerViewModel">
-                                    <Button Text="{Binding PlayerName}" Clicked="OnRunnerButtonClicked"
+                                    <Button AutomationId="{Binding AutomationId}"
+                                            Text="{Binding PlayerName}" Clicked="OnRunnerButtonClicked"
                                             Margin="6,0" MinimumWidthRequest="190"
                                             MinimumHeightRequest="68" FontSize="16"
                                             FontAttributes="Bold" Padding="14,8" />
@@ -491,7 +494,8 @@
                                         ItemsLayout="VerticalList">
                             <CollectionView.ItemTemplate>
                                 <DataTemplate x:DataType="viewModels:ScoredPlayerViewModel">
-                                    <Button Text="{Binding PlayerName}"
+                                    <Button AutomationId="{Binding AutomationId}"
+                                            Text="{Binding PlayerName}"
                                             Clicked="OnRunnerButtonClicked"
                                             Margin="0,3"
                                             MinimumHeightRequest="48"
