@@ -10,13 +10,13 @@ Stable product and architecture decisions belong in the project architecture doc
 
 ## Current Project Status
 
-- **Latest completed story:** Story 6.7.1 — PA Classification Reconciliation: Fielder's Choice + Sacrifice Fly
-- **Completed stories:** Stories 0.0 through 6.7.1; Stories 3.2 through 3.4 retain their recorded validation status
-- **Current story:** None; Story 6.7.1 is complete and PR-ready on `task/fc-sac-fly-updates`
+- **Latest completed story:** Story 6.7.2 — Android UI / Integration Test Automation Harness
+- **Completed stories:** Stories 0.0 through 6.7.2; Stories 3.2 through 3.4 retain their recorded validation status
+- **Current story:** None; Story 6.7.2 is complete and PR-ready on `task/android-ui-test-harness`
 - **Current phase:** Scoring interaction refinement
 - **Foundation status:** Complete
 
-The repository contains a four-project .NET 9 solution: the Android- and Windows-targeted .NET MAUI application, platform-independent Core, Infrastructure, and the automated test project. Its implemented foundation includes repository guidance, pragmatic layered dependencies, CommunityToolkit.Mvvm, MAUI dependency injection, device-local SQLite initialization, centralized user-facing resources, strongly typed application settings, and isolated xUnit repository integration tests. Team Workspace contains local Games and Roster sections, supports adding or removing existing active Players, and supports creating a global Player with immediate TeamPlayer membership from the Team-scoped Add Players workflow. Player Workspace shows active Team memberships, and Player Manager retains bulk lifecycle actions; Game schedule management and other later softball workflows remain deferred.
+The repository contains a five-project .NET 9 solution: the Android- and Windows-targeted .NET MAUI application, platform-independent Core, Infrastructure, the emulator-independent automated test project, and the opt-in Android UI test project. Its implemented foundation includes repository guidance, pragmatic layered dependencies, CommunityToolkit.Mvvm, MAUI dependency injection, device-local SQLite initialization, centralized user-facing resources, strongly typed application settings, and isolated xUnit repository integration tests. Team Workspace contains local Games and Roster sections, supports adding or removing existing active Players, and supports creating a global Player with immediate TeamPlayer membership from the Team-scoped Add Players workflow. Player Workspace shows active Team memberships, and Player Manager retains bulk lifecycle actions; Game schedule management and other later softball workflows remain deferred.
 
 ## Approved Project-Wide Direction
 
@@ -2584,6 +2584,43 @@ Dedicated Double Play/Triple Play presentation, sacrifice results, HR-limit/dead
 #### Scope and Deferred Boundaries
 
 - Undo/global correction, completed-PA correction, broader classification assistance, sacrifice ground-ball/bunt classification, and statistics remain deferred. Android UI automation and unrelated scoring backlog stories were not introduced.
+
+### Story 6.7.2 — Android UI / Integration Test Automation Harness (Complete — PR-ready)
+
+#### Initial Harness
+
+- Added the separate `SoftballScorekeeper.AndroidUiTests` xUnit project targeting `net9.0`; it has no reference to `SoftballScorekeeper.Tests` or to production projects and remains independently runnable.
+- Added Appium 8.3.2 client configuration for Android/UiAutomator2, portable server, device, and `adb` environment-variable overrides, installed-package activation for `com.companyname.softballscorekeeper`, reusable explicit waits for MAUI `AutomationId` resource IDs, one session smoke test, and project-local setup documentation.
+- The smoke test deliberately stops at session creation, installed-app activation, and clean session disposal. Current automated coverage is intentionally limited to that smoke test and the scoring workflow below.
+
+#### Single -> Next Batter -> Exit -> Resume Workflow
+
+- Added one end-to-end Appium workflow that opens a prepared Game, completes the real first-start Away/Game Rules modal, verifies Alex Automation as Current Batter, selects Single through the existing native action sheet, verifies Alex on First as pending state, advances to Blake Automation, exits through the scoring menu, resumes from Game Workspace, and verifies the batter, First-base runner, tied 0-0 score, Top 1 inning, and zero-Out state remain visible and intact.
+- Added only the durable `AutomationId` contracts needed by this workflow: Score Game, Resume Game, Away side, Game Rules confirmation, scoring menu, Exit Game, Current Batter, First-base runner, Next Batter, both scores, and compact/landscape inning and Out state. The existing native Single action-sheet option has no XAML control on which to place an ID and is the workflow's sole visible-text selector.
+- Added an isolated, deterministic Debug-only initializer registered and invoked only in Debug builds. The fixture clears application data with `adb`, creates a private marker through Android `run-as`, and the initializer consumes that marker once to create one Team, three Players and roster memberships, one Season, one Game, and a known frozen lineup before navigating to Game Workspace. Release builds contain neither the registration nor initializer, and no visible debug menu, production reset action, or scoring-semantic change was introduced.
+- Failures now write the step-wrapped exception, screenshot, Appium page source, and recent `adb logcat` output beneath ignored test-output `TestResults`. The README documents the repeatable embedded-assembly Android build, APK install, workflow filter, full-suite command, and why a Fast Deployment APK cannot survive the fixture's application-data reset.
+
+#### Validation and Limitations
+
+- The Android UI test project built with zero warnings and zero errors. The focused scoring workflow passed three consecutive clean-state runs; every process cleared application data and recreated the known seed state.
+- The accepted emulator-independent suite passed 567 of 567. Visual Studio Test Explorer reported 569 total with 567 passed, zero failed, and the two opt-in Android UI tests skipped. The intentional Android runner executed and passed 2 of 2 with zero failures and zero skips against the Android 15 / API 35 emulator using Appium 3.7.0 and UiAutomator2 8.5.0.
+- The non-incremental embedded-APK Android build succeeded with zero errors and 7 existing warnings, the APK installation succeeded, and the non-incremental Windows build succeeded with zero errors and 114 existing warnings. Android validation was emulator-only; no physical-tablet run was performed for this story.
+
+#### One-Command Local Runner
+
+- Added `scripts/run-android-ui-tests.ps1` as the preferred repository-root command for the existing harness. It verifies `dotnet`, `adb`, one explicit or safely auto-selected usable device, and Appium's status endpoint; performs the required serialized non-incremental embedded-assembly Android build; verifies and installs the signed APK; forwards the selected device, Appium URL, and `adb` path to the fixture; and runs the complete UI suite by default or an optional `dotnet test` filter.
+- The runner now starts the configurable `softball_tablet_api_35` standard AVD when no usable device is connected, discovers its assigned emulator serial, polls bounded `adb` and Android boot-completion state, and shuts down only an emulator it started through failure-safe cleanup. `-AvdName`/`SOFTBALL_ANDROID_AVD` override the default and `-KeepEmulatorRunning` retains a runner-started emulator; pre-existing usable devices are selected through the existing rules and are never shut down by the runner. Appium remains externally managed.
+- From a zero-device state, the runner started `softball_tablet_api_35`, dynamically discovered its emulator serial, observed Android boot completion, built and installed the app, passed the complete Android UI suite, and cleanly shut down only that runner-started emulator. Build-free checks also confirmed `-KeepEmulatorRunning` retains a runner-started emulator and a pre-existing usable emulator remains connected when the runner exits early. Appium startup remains external.
+
+#### Opt-In Test Execution Correction
+
+- Visual Studio Test Explorer originally treated the two Appium tests as ordinary tests because the Android UI project is an `IsTestProject` solution member and both methods used standard xUnit facts. Replaced those facts with a discovery-time Android UI fact that skips unless `SOFTBALL_RUN_ANDROID_UI_TESTS=1`; ordinary solution/Test Explorer runs therefore require neither Appium nor an emulator, while the project remains buildable, discoverable, and explicitly runnable.
+- The Android runner sets and restores the opt-in environment variable around `dotnet test`, so its supported command executes the complete Android UI suite and preserves hard failures for broken prerequisites. The accepted normal and intentional results are recorded above.
+
+#### Deferred Boundaries
+
+- Appium process startup and shutdown remain intentionally external. Broader Android UI scenarios and broad orientation automation are future work.
+- Emulator Crashpad and lock-file stability investigation belongs in a separate follow-up story and was not included here.
 
 ## Maintenance Rules
 

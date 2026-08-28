@@ -5,6 +5,9 @@ using SoftballScorekeeper.Infrastructure.Data;
 using SoftballScorekeeper.Infrastructure.Data.Repositories;
 using SoftballScorekeeper.ViewModels;
 using SoftballScorekeeper.Views;
+#if DEBUG
+using SoftballScorekeeper.Testing;
+#endif
 
 namespace SoftballScorekeeper
 {
@@ -41,6 +44,9 @@ namespace SoftballScorekeeper
             builder.Services.AddSingleton<GameLineupRepository>();
             builder.Services.AddSingleton<Core.Models.PlayResolutionCoordinator>();
             builder.Services.AddSingleton<GameScoringSessionRepository>();
+#if DEBUG
+            builder.Services.AddSingleton<AndroidUiTestDataInitializer>();
+#endif
             builder.Services.AddSingleton<LandingPageViewModel>();
             builder.Services.AddTransient<CreateTeamViewModel>();
             builder.Services.AddTransient<EditTeamViewModel>();

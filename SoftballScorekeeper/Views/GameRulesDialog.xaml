@@ -19,7 +19,7 @@
                     <Label Text="{x:Static strings:AppResources.OurTeamLabel}"
                            FontSize="18" FontAttributes="Bold" />
                     <Grid ColumnDefinitions="*,*" ColumnSpacing="12">
-                        <RadioButton x:Name="AwayOption" GroupName="TeamSide"
+                        <RadioButton x:Name="AwayOption" AutomationId="AwayTeamSideOption" GroupName="TeamSide"
                                      Content="{x:Static strings:AppResources.AwayButton}"
                                      IsChecked="True" MinimumHeightRequest="52" />
                         <RadioButton Grid.Column="1" GroupName="TeamSide"
@@ -61,7 +61,7 @@
                 <Grid ColumnDefinitions="*,*" ColumnSpacing="16">
                     <Button Text="{x:Static strings:AppResources.CancelButton}"
                             Clicked="OnCancelClicked" MinimumHeightRequest="56" />
-                    <Button x:Name="SaveButton" Grid.Column="1"
+                    <Button x:Name="SaveButton" AutomationId="ConfirmGameRulesButton" Grid.Column="1"
                             Clicked="OnSaveClicked" MinimumHeightRequest="56" />
                 </Grid>
             </VerticalStackLayout>

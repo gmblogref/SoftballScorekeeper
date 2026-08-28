@@ -44,8 +44,8 @@
         </Grid>
         <Grid Grid.Row="4" ColumnDefinitions="Auto,Auto" ColumnSpacing="20"
               HorizontalOptions="Center" IsVisible="{Binding IsLoaded}">
-            <Button Text="{x:Static strings:AppResources.ScoreGameButton}" Clicked="OnScoreGameClicked" IsVisible="{Binding ShowScoreGame}" MinimumHeightRequest="52" MinimumWidthRequest="200" Padding="24,14" />
-            <Button Text="{x:Static strings:AppResources.ResumeGameButton}" Command="{Binding ResumeGameCommand}" IsVisible="{Binding ShowResumeGame}" MinimumHeightRequest="52" MinimumWidthRequest="200" Padding="24,14" />
+            <Button AutomationId="ScoreGameButton" Text="{x:Static strings:AppResources.ScoreGameButton}" Clicked="OnScoreGameClicked" IsVisible="{Binding ShowScoreGame}" MinimumHeightRequest="52" MinimumWidthRequest="200" Padding="24,14" />
+            <Button AutomationId="ResumeGameButton" Text="{x:Static strings:AppResources.ResumeGameButton}" Command="{Binding ResumeGameCommand}" IsVisible="{Binding ShowResumeGame}" MinimumHeightRequest="52" MinimumWidthRequest="200" Padding="24,14" />
             <Button Grid.Column="1" Text="{x:Static strings:AppResources.ResetGameButton}"
                     Clicked="OnResetGameClicked" IsVisible="{Binding ShowResetGame}"
                     MinimumHeightRequest="52" MinimumWidthRequest="200" Padding="24,14" />
