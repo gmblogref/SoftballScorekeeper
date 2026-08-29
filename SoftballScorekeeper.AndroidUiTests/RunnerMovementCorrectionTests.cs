@@ -105,8 +105,7 @@ public sealed class RunnerMovementCorrectionTests
         {
             AndroidElementWait.UntilAutomationIdText(
                 driver, "CurrentBatter", AndroidAutomationConstants.ThirdBatterName);
-            AndroidElementWait.UntilAutomationIdText(
-                driver, "InningOutStateLabel", "Top 1    0 Outs");
+            AndroidElementWait.UntilInningAndOutState(driver, "Top 1", "0 Outs");
             AndroidElementWait.UntilAutomationIdText(driver, "HomeScoreValue", "0");
             AndroidElementWait.UntilAutomationIdText(driver, "VisitorScoreValue", "0");
         });

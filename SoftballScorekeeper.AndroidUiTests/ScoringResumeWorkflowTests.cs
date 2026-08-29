@@ -81,8 +81,7 @@ public sealed class ScoringResumeWorkflowTests
             AndroidElementWait.UntilAutomationIdText(
                 driver, "FirstBaseRunnerButton", expectedFirstBaseRunner));
         Step("verify inning and out state", () =>
-            AndroidElementWait.UntilAutomationIdText(
-                driver, "InningOutStateLabel", "Top 1    0 Outs"));
+            AndroidElementWait.UntilInningAndOutState(driver, "Top 1", "0 Outs"));
         Step("verify the score remains tied at zero", () =>
         {
             AndroidElementWait.UntilAutomationIdText(driver, "HomeScoreValue", "0");

@@ -99,6 +99,58 @@ function Get-EmulatorAvdName {
         Select-Object -First 1
 }
 
+function Wait-ForEmulatorShutdown {
+    param(
+        [string]$AdbExecutable,
+        [string]$EmulatorId,
+        [System.Diagnostics.Process]$EmulatorProcess,
+        [int]$TimeoutSeconds = 60
+    )
+
+    $deadline = [DateTime]::UtcNow.AddSeconds($TimeoutSeconds)
+    $consecutiveAbsentChecks = 0
+    Write-Stage "Waiting up to $TimeoutSeconds seconds for $EmulatorId to shut down completely..."
+
+    while ([DateTime]::UtcNow -lt $deadline) {
+        $deviceStates = Get-AdbDeviceStates -AdbExecutable $AdbExecutable
+        if ($deviceStates.ContainsKey($EmulatorId)) {
+            $consecutiveAbsentChecks = 0
+        }
+        else {
+            $consecutiveAbsentChecks++
+        }
+
+        $emulatorProcessExited = $true
+        if ($null -ne $EmulatorProcess) {
+            $EmulatorProcess.Refresh()
+            $emulatorProcessExited = $EmulatorProcess.HasExited
+        }
+
+        if ($consecutiveAbsentChecks -ge 2 -and $emulatorProcessExited) {
+            Write-Stage "Emulator shutdown completed: $EmulatorId"
+            return
+        }
+
+        Start-Sleep -Seconds 1
+    }
+
+    $finalDeviceStates = Get-AdbDeviceStates -AdbExecutable $AdbExecutable
+    $adbState = if ($finalDeviceStates.ContainsKey($EmulatorId)) {
+        $finalDeviceStates[$EmulatorId]
+    }
+    else {
+        'absent'
+    }
+    $processState = if ($null -eq $EmulatorProcess -or $EmulatorProcess.HasExited) {
+        'exited'
+    }
+    else {
+        "still running (PID $($EmulatorProcess.Id))"
+    }
+
+    throw "Emulator '$EmulatorId' did not shut down completely within $TimeoutSeconds seconds (adb state: $adbState; runner-owned process: $processState). Do not delete AVD lock files while an emulator process is still running."
+}
+
 function Start-ConfiguredEmulator {
     param(
         [string]$AdbExecutable,
@@ -144,8 +196,21 @@ function Start-ConfiguredEmulator {
             while ([DateTime]::UtcNow -lt $deadline) {
                 $bootCompleted = & $AdbExecutable -s $emulatorId shell getprop sys.boot_completed 2>$null
                 if ($LASTEXITCODE -eq 0 -and ($bootCompleted -join '').Trim() -eq '1') {
-                    Write-Stage "Android boot completed on $emulatorId."
-                    return $emulatorId
+                    Write-Stage "Android boot completed on $emulatorId. Waiting for package manager readiness..."
+                    while ([DateTime]::UtcNow -lt $deadline) {
+                        $packageManagerOutput = & $AdbExecutable -s $emulatorId shell pm path android 2>$null
+                        if ($LASTEXITCODE -eq 0 -and ($packageManagerOutput -join "`n") -match '(?m)^package:') {
+                            Write-Stage "Android package manager is ready on $emulatorId."
+                            return $emulatorId
+                        }
+                        if ($emulatorProcess.HasExited) {
+                            throw "Android emulator '$RequestedAvdName' exited while waiting for package manager readiness (exit code $($emulatorProcess.ExitCode))."
+                        }
+
+                        Start-Sleep -Seconds 2
+                    }
+
+                    throw "Android emulator '$RequestedAvdName' completed boot as '$emulatorId', but its package manager did not become ready within $TimeoutSeconds seconds."
                 }
 
                 Start-Sleep -Seconds 2
@@ -306,11 +371,22 @@ catch {
 finally {
     if ($startedEmulator -and -not $KeepEmulatorRunning -and -not [string]::IsNullOrWhiteSpace($selectedEmulatorId)) {
         try {
-            Write-Stage "Shutting down emulator started by this script: $selectedEmulatorId"
-            & $adbExecutable -s $selectedEmulatorId emu kill | ForEach-Object { Write-Host $_ }
-            if ($LASTEXITCODE -ne 0) {
-                throw "adb emulator shutdown failed with exit code $LASTEXITCODE."
+            $cleanupDeviceStates = Get-AdbDeviceStates -AdbExecutable $adbExecutable
+            if ($cleanupDeviceStates.ContainsKey($selectedEmulatorId)) {
+                Write-Stage "Shutting down emulator started by this script: $selectedEmulatorId"
+                & $adbExecutable -s $selectedEmulatorId emu kill | ForEach-Object { Write-Host $_ }
+                if ($LASTEXITCODE -ne 0) {
+                    throw "adb emulator shutdown failed with exit code $LASTEXITCODE."
+                }
             }
+            else {
+                Write-Stage "Runner-owned emulator is already absent from adb: $selectedEmulatorId"
+            }
+
+            Wait-ForEmulatorShutdown `
+                -AdbExecutable $adbExecutable `
+                -EmulatorId $selectedEmulatorId `
+                -EmulatorProcess $startedEmulatorProcess
         }
         catch {
             Write-Warning "[Android UI] Emulator cleanup failed: $($_.Exception.Message)"

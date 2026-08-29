@@ -54,6 +54,37 @@ internal static class AndroidElementWait
         }) ?? throw new NoSuchElementException();
     }
 
+    public static void UntilInningAndOutState(
+        AndroidDriver driver,
+        string expectedInning,
+        string expectedOuts,
+        TimeSpan? timeout = null)
+    {
+        var wait = CreateWait(driver, timeout);
+        wait.Until(currentDriver =>
+        {
+            var combinedState = currentDriver
+                .FindElements(By.Id(ResourceId("InningOutStateLabel")))
+                .FirstOrDefault(element => element.Displayed);
+            if (combinedState is not null)
+                return string.Equals(
+                    combinedState.Text,
+                    $"{expectedInning}    {expectedOuts}",
+                    StringComparison.Ordinal);
+
+            var inningState = currentDriver
+                .FindElements(By.Id(ResourceId("InningStateLabel")))
+                .FirstOrDefault(element => element.Displayed);
+            var outState = currentDriver
+                .FindElements(By.Id(ResourceId("OutsStateLabel")))
+                .FirstOrDefault(element => element.Displayed);
+            return inningState is not null
+                && outState is not null
+                && string.Equals(inningState.Text, expectedInning, StringComparison.Ordinal)
+                && string.Equals(outState.Text, expectedOuts, StringComparison.Ordinal);
+        });
+    }
+
     private static WebDriverWait CreateWait(AndroidDriver driver, TimeSpan? timeout)
     {
         var wait = new WebDriverWait(driver, timeout ?? DefaultTimeout);
