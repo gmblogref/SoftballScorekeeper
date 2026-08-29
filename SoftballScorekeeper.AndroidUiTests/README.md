@@ -40,11 +40,14 @@ The runner then:
 
 - Uses an existing usable device when exactly one is connected, or starts the
   standard `softball_tablet_api_35` AVD when necessary.
-- Waits for the emulator to become an `adb` device and for Android boot completion.
+- Waits for the emulator to become an `adb` device, for Android boot completion,
+  and for the package manager to accept install operations.
 - Builds the required embedded-assembly Android APK.
 - Installs the APK on the selected device.
 - Runs the complete Android UI suite.
-- Shuts down only an emulator that it started, including during failure cleanup.
+- Shuts down only an emulator that it started, including during failure cleanup,
+  and waits for both adb disappearance and the runner-owned process to exit before
+  returning.
 
 Appium remains externally managed. The runner verifies Appium's `/status` endpoint,
 but it does not start or stop the Appium server.
@@ -77,6 +80,38 @@ Optional runner parameters:
 `-DeviceId`, `-AppiumServerUrl`, and `-AdbPath` override their corresponding
 environment variables for that run. `-TestFilter` is passed to `dotnet test`; omit
 it to run the complete suite.
+
+## Emulator lifecycle recovery
+
+Normal runner-owned shutdown uses the supported `adb emu kill` command and waits up
+to 60 seconds for the selected serial and owned emulator process to disappear. This
+makes an immediate next run safe without a fixed delay. A healthy emulator retained
+with `-KeepEmulatorRunning`, left by an interrupted runner, or started before the
+runner is treated as pre-existing on the next invocation: it is reused when it is the
+only usable device and is not shut down by that invocation.
+
+To return one known emulator to a clean state, target its exact serial and wait until
+it is absent from `adb devices` before rerunning:
+
+```powershell
+adb devices
+adb -s emulator-5554 emu kill
+adb devices
+```
+
+If the exact emulator is still starting, offline, or shutting down, let that lifecycle
+finish or close that specific AVD through Android Device Manager before retrying. Do
+not kill all emulator, qemu, adb, or Crashpad processes. Do not delete an AVD lock
+merely because it exists: active emulators legitimately own lock files, and a
+persistent lock filename alone does not prove stale state. Crashpad diagnostics alone
+also do not establish the cause of an emulator failure. If startup continues to fail
+after `adb` shows no device and the selected AVD has no live emulator process, capture
+the exact emulator output and use Android Device Manager to inspect or cold-boot that
+AVD rather than deleting SDK or AVD directories.
+
+Appium remains a separate prerequisite. If its process was stopped or exited during
+an interrupted run, start it again with `appium`; the runner reports the unavailable
+endpoint and does not take ownership of the Appium process.
 
 ## Lower-level manual commands
 
