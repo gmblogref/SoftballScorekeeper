@@ -10,9 +10,9 @@ Stable product and architecture decisions belong in the project architecture doc
 
 ## Current Project Status
 
-- **Latest completed story:** Story 6.7.2 — Android UI / Integration Test Automation Harness
-- **Completed stories:** Stories 0.0 through 6.7.2; Stories 3.2 through 3.4 retain their recorded validation status
-- **Current story:** None; Story 6.7.2 is complete and PR-ready on `task/android-ui-test-harness`
+- **Latest completed story:** Story 6.7.6 — Broader Android UI Scenario and Orientation Automation Coverage
+- **Completed stories:** Stories 0.0 through 6.7.6; Stories 3.2 through 3.4 retain their recorded validation status
+- **Current story:** None; Story 6.7.6 is complete and awaiting the user-managed commit on `task/automate-appium-lifecycle`
 - **Current phase:** Scoring interaction refinement
 - **Foundation status:** Complete
 
@@ -2700,6 +2700,33 @@ Dedicated Double Play/Triple Play presentation, sacrifice results, HR-limit/dead
 #### Intended Commit Message
 
 `Automate Appium lifecycle for Android UI tests`
+
+### Story 6.7.6 — Broader Android UI Scenario and Orientation Automation Coverage (Complete — awaiting user-managed commit)
+
+#### Coverage Inventory and Selection
+
+- The existing three-test Appium suite covered session startup, a normal Single/Next/Exit/Resume path, and direct pending-runner correction with persistence. The 579-test emulator-independent suite already covered FC, Sac Fly, Out Attempting, DP/TP, inning transitions, resolver legality, reconciliation, and persistence extensively, while physical tablet acceptance had historically exercised the important scoring interactions and both orientations. The remaining gap was representative end-to-end protection across MAUI controls, dialogs, ViewModel/coordinator state, SQLite persistence, navigation, and responsive layout.
+- Added seven independent scenarios rather than reproducing domain permutations through Appium: a true FC that retires the runner from First, displaces the Second-starting survivor to Third, and leaves the batter safe at First; FC batter retirement reconciliation to ordinary Out with the complex pending state preserved through Exit/Resume; valid Sac Fly followed by scored-runner correction and reconciliation to Out; Second-to-Third Out Attempting; a zero-Out Double Play that records two Outs without advancing the inning; three ordinary Outs through summary/opponent entry into Top 2 with cleared bases; and scoring-state preservation plus runner correction across portrait and landscape. Together with the existing three tests, the representative suite now contains 10 tests.
+- Detailed metadata permutations, bases-loaded and alternate FC displacement chains, separate unreconciled Sac Fly commit, other Out Attempting destinations, Triple Play, alternate third-Out/multi-out paths, run-ruling permutations, and exhaustive orientation/visual checks remain in normal tests or deferred manual acceptance. The Appium suite is a compact integration safety net, not exhaustive scoring coverage.
+
+#### Harness and Selector Changes
+
+- Added `AndroidScoringWorkflow` for deterministic scoring setup, result selection, pending completion, semantic state assertions, Exit/Resume, and consistent failure-artifact capture. Every scenario retains the established per-test application-data reset and fresh Appium session; no test ordering, coordinates, hierarchy XPath, fixed sleeps, production debug controls, scoring-rule changes, or fixture-data expansion were introduced.
+- Retirement participants now expose semantic IDs by immutable starting role (`RetireBatterButton` and runner-from-First/Second/Third equivalents). The existing retirement dialogs expose stable dialog/cancel/confirm IDs, and the opponent-half-inning dialog exposes stable dialog/submit IDs. Established IDs were not renamed.
+- Orientation automation determines the selected device's natural orientation from its physical display size, applies Android's user-rotation lock through the fixture's configured adb connection, waits on existing semantic inning/out and runner controls, and restores landscape before each fresh Appium session. The scenario proves equivalent state and operability in portrait and landscape and returns to landscape without pixel assertions or arbitrary settling delays.
+- The Android UI README now records the 10-test representative coverage, continued separation from exhaustive normal tests, and orientation/reset strategy. No durable repository-wide rule change was needed in `AGENTS.md`.
+
+#### Validation and Lifecycle Evidence
+
+- The seven new scenarios passed 7 of 7 with zero failures or skips after correcting test-only assumptions discovered from Appium artifacts: production labels are `Sac Fly` and `OUT`, reconciled FC/Sac Fly plays remain pending until Next, and the landscape-native emulator requires a persistent rotation lock rather than Appium's transient sensor rotation. No accepted product-behavior defect was found or changed.
+- The final strengthened expanded suite passed three consecutive clean-state runs at 10 of 10 with zero failures or skips and measured test durations of 3m06s, 3m06s, and 3m07s. All three reused retained `emulator-5554`, each started and stopped a fresh runner-owned Appium process, and no duplicate emulator or manual cleanup occurred between runs. A separate final focused run passed 7 of 7 in 2m20s.
+- A Windows Crashpad breakpoint popup occurred during validation, but adb continued reporting `emulator-5554` as usable, emulator/qemu remained live, runner-owned Appium cleanup completed, and all subsequent retained-emulator runs passed. This matches Story 6.7.4's incidental Crashpad finding and provides no evidence of a new emulator lifecycle defect.
+- The emulator-independent suite passed 579 of 579 with zero failures or skips. The Android UI test project built with zero warnings and zero errors. Repeated embedded Android application builds/installations succeeded with zero errors and 7 existing `CS8602` / `XC0025` warnings. The Windows `net9.0-windows10.0.19041.0` non-incremental build succeeded with zero errors and 114 existing `CS8602`, `MVVMTK0045`, and `XC0025` warnings.
+- Physical Android tablet sanity was not performed; this story's objective orientation and interaction acceptance was emulator-driven. Subjective portrait/landscape touch feel and clipping remain governed by prior physical acceptance and future device checks when the tablet is available. Failure artifacts from initial test-only stabilization failures remained under ignored build output and are not repository changes.
+
+#### Intended Commit Message
+
+`Expand Android scoring UI coverage`
 
 ## Maintenance Rules
 

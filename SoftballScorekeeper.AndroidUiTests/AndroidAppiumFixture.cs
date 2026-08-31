@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using OpenQA.Selenium;
 using OpenQA.Selenium.Appium;
 using OpenQA.Selenium.Appium.Android;
 
@@ -20,7 +21,30 @@ public sealed class AndroidAppiumFixture : IDisposable
     {
         driver?.Quit();
         driver = null;
+        SetOrientation(ScreenOrientation.Landscape);
         _ = Driver;
+    }
+
+    public void SetOrientation(ScreenOrientation orientation)
+    {
+        var sizeOutput = RunAdb(Configuration, "shell", "wm", "size");
+        var sizeMatch = System.Text.RegularExpressions.Regex.Match(
+            sizeOutput, @"Physical size:\s*(\d+)x(\d+)");
+        if (!sizeMatch.Success)
+            throw new InvalidOperationException(
+                $"Could not determine the device's physical display size: {sizeOutput}");
+
+        var naturalLandscape = int.Parse(sizeMatch.Groups[1].Value)
+            > int.Parse(sizeMatch.Groups[2].Value);
+        var rotation = (orientation, naturalLandscape) switch
+        {
+            (ScreenOrientation.Landscape, true) => "0",
+            (ScreenOrientation.Portrait, false) => "0",
+            (ScreenOrientation.Landscape, false) => "1",
+            (ScreenOrientation.Portrait, true) => "1",
+            _ => throw new ArgumentOutOfRangeException(nameof(orientation)),
+        };
+        RunAdb(Configuration, "shell", "cmd", "window", "user-rotation", "lock", rotation);
     }
 
     private static AndroidDriver CreatePreparedDriver(

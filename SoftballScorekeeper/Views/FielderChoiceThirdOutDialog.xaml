@@ -7,7 +7,8 @@
     Shell.NavBarIsVisible="False"
     BackgroundColor="#99000000">
     <Grid Padding="36">
-        <Border Padding="28"
+        <Border AutomationId="RetirementSelectionDialog"
+                Padding="28"
                 WidthRequest="620"
                 MaximumWidthRequest="680"
                 HorizontalOptions="Center"

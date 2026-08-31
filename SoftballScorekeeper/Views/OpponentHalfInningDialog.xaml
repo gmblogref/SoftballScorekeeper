@@ -8,6 +8,7 @@
     BackgroundColor="#99000000">
     <Grid Padding="48">
         <Border
+            AutomationId="OpponentHalfInningDialog"
             Padding="32"
             BackgroundColor="{AppThemeBinding Light=White, Dark={StaticResource Gray900}}"
             Stroke="{AppThemeBinding Light={StaticResource Gray300}, Dark={StaticResource Gray600}}"
@@ -72,6 +73,7 @@
                     HorizontalTextAlignment="Center" />
                 <Button
                     x:Name="SubmitButton"
+                    AutomationId="OpponentHalfInningSubmitButton"
                     Grid.Row="3"
                     Grid.ColumnSpan="2"
                     Text="{x:Static strings:AppResources.OkButton}"
