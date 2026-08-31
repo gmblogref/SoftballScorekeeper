@@ -7,7 +7,8 @@
     Shell.NavBarIsVisible="False"
     BackgroundColor="#99000000">
     <Grid Padding="36">
-        <Border Padding="28"
+        <Border AutomationId="RetirementSelectionDialog"
+                Padding="28"
                 WidthRequest="620"
                 MaximumWidthRequest="680"
                 HorizontalOptions="Center"
@@ -27,10 +28,12 @@
                          Color="{AppThemeBinding Light={StaticResource Gray300}, Dark={StaticResource Gray600}}" />
                 <VerticalStackLayout x:Name="ParticipantButtons" Spacing="10" />
                 <Grid ColumnDefinitions="*,*" ColumnSpacing="12">
-                    <Button Text="{x:Static strings:AppResources.CancelButton}"
+                    <Button AutomationId="RetirementSelectionCancelButton"
+                            Text="{x:Static strings:AppResources.CancelButton}"
                             Clicked="OnCancelClicked"
                             MinimumHeightRequest="56" />
                     <Button x:Name="ConfirmButton"
+                            AutomationId="RetirementSelectionConfirmButton"
                             Grid.Column="1"
                             Text="{x:Static strings:AppResources.MultiOutSelectionConfirmButton}"
                             Clicked="OnConfirmClicked"

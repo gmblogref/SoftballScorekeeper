@@ -841,7 +841,17 @@ public sealed record OutPlayerViewModel(int OutNumber, string PlayerName)
 }
 
 public sealed record RunnerOutcomeViewModel(
-    int PlayerId, string PlayerName, RunnerStartingLocation StartingLocation, string RoleLabel);
+    int PlayerId, string PlayerName, RunnerStartingLocation StartingLocation, string RoleLabel)
+{
+    public string RetirementAutomationId => StartingLocation switch
+    {
+        RunnerStartingLocation.Home => "RetireBatterButton",
+        RunnerStartingLocation.First => "RetireRunnerFromFirstButton",
+        RunnerStartingLocation.Second => "RetireRunnerFromSecondButton",
+        RunnerStartingLocation.Third => "RetireRunnerFromThirdButton",
+        _ => "RetireParticipantButton",
+    };
+}
 
 public sealed record HalfInningTransitionViewModel(
     int Id,

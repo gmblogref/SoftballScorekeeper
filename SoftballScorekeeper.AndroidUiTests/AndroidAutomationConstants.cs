@@ -11,4 +11,5 @@ internal static class AndroidAutomationConstants
     public const string FirstBatterName = "Alex Automation";
     public const string SecondBatterName = "Blake Automation";
     public const string ThirdBatterName = "Casey Automation";
+    public const string FourthBatterName = "Drew Automation";
 }

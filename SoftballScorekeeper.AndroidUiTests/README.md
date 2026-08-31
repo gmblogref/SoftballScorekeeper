@@ -3,7 +3,7 @@
 `SoftballScorekeeper.AndroidUiTests` is the separately runnable Appium suite for Android UI and integration automation. It does not reference or replace `SoftballScorekeeper.Tests`, which remains the fast, emulator-independent repository test suite.
 
 The Android UI tests are opt-in acceptance tests. Ordinary solution, Test Explorer,
-and `SoftballScorekeeper.Tests` runs do not require Appium or an emulator; the three
+and `SoftballScorekeeper.Tests` runs do not require Appium or an emulator; the ten
 Android UI tests are discovered but skipped unless the supported runner explicitly
 enables them. A runner-enabled test still fails normally when an Appium or emulator
 prerequisite is broken.
@@ -55,6 +55,17 @@ quiet, while startup and unexpected-exit failures include the recent log output.
 
 The runner supplies the internal `SOFTBALL_RUN_ANDROID_UI_TESTS=1` opt-in automatically;
 developers do not need to set it for the supported workflow.
+
+The compact suite covers session startup, normal hit/runner movement, runner
+correction, Fielder's Choice and FC-to-Out reconciliation, Sac Fly reconciliation,
+Out Attempting, Double Play, third-Out inning transition, Exit/Resume persistence,
+and scoring-state preservation across portrait and landscape. It intentionally
+leaves combinatorial scoring-rule coverage to `SoftballScorekeeper.Tests`.
+
+Orientation coverage uses the selected device's physical display size and Android's
+user-rotation lock through the same configured `adb` connection used by the fixture.
+Every test reset restores landscape before creating its Appium session, so orientation
+tests remain isolated and do not affect later scenarios.
 
 To leave an emulator started by the runner running after the tests, use:
 

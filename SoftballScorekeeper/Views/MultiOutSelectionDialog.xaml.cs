@@ -60,6 +60,7 @@ public partial class MultiOutSelectionDialog : ContentPage
             content.Add(role, 0, 1);
             var selectionButton = new Button
             {
+                AutomationId = participant.RetirementAutomationId,
                 BackgroundColor = Colors.Transparent,
                 CommandParameter = participant.PlayerId,
                 MinimumHeightRequest = 68,
