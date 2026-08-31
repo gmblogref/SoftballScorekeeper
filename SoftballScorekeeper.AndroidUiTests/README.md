@@ -23,21 +23,17 @@ hardcode an emulator serial.
 
 ## Preferred workflow
 
-1. Start Appium in a separate terminal. The runner expects the current default
-   endpoint at `http://127.0.0.1:4723/`:
+From the repository root, run:
 
-   ```powershell
-   appium
-   ```
-
-2. From the repository root, run:
-
-   ```powershell
-   .\scripts\run-android-ui-tests.ps1
-   ```
+```powershell
+.\scripts\run-android-ui-tests.ps1
+```
 
 The runner then:
 
+- Checks the configured Appium status endpoint. It reuses a healthy pre-existing
+  server, or starts the installed Appium CLI and waits for a healthy status response.
+- Verifies that UiAutomator2 is installed before starting a new emulator.
 - Uses an existing usable device when exactly one is connected, or starts the
   standard `softball_tablet_api_35` AVD when necessary.
 - Waits for the emulator to become an `adb` device, for Android boot completion,
@@ -45,12 +41,17 @@ The runner then:
 - Builds the required embedded-assembly Android APK.
 - Installs the APK on the selected device.
 - Runs the complete Android UI suite.
+- Shuts down only the exact Appium process it started. A healthy Appium server that
+  existed before the runner began remains running.
 - Shuts down only an emulator that it started, including during failure cleanup,
   and waits for both adb disappearance and the runner-owned process to exit before
   returning.
 
-Appium remains externally managed. The runner verifies Appium's `/status` endpoint,
-but it does not start or stop the Appium server.
+Appium and the compatible UiAutomator2 driver must already be installed; the runner
+does not install or upgrade npm packages. Runner-owned Appium stdout and stderr are
+captured beneath the ignored
+`SoftballScorekeeper.AndroidUiTests/TestResults/Appium` directory. Routine runs stay
+quiet, while startup and unexpected-exit failures include the recent log output.
 
 The runner supplies the internal `SOFTBALL_RUN_ANDROID_UI_TESTS=1` opt-in automatically;
 developers do not need to set it for the supported workflow.
@@ -73,13 +74,43 @@ Optional runner parameters:
 .\scripts\run-android-ui-tests.ps1 -AvdName softball_tablet_api_35
 .\scripts\run-android-ui-tests.ps1 -TestFilter 'FullyQualifiedName~ScoringResumeWorkflowTests'
 .\scripts\run-android-ui-tests.ps1 -AppiumServerUrl 'http://127.0.0.1:4723/' -AdbPath 'adb'
+.\scripts\run-android-ui-tests.ps1 -AppiumCommand 'appium'
 ```
 
 `-AvdName` overrides `SOFTBALL_ANDROID_AVD`; both override the default
 `softball_tablet_api_35` AVD used only when no usable device is connected.
 `-DeviceId`, `-AppiumServerUrl`, and `-AdbPath` override their corresponding
-environment variables for that run. `-TestFilter` is passed to `dotnet test`; omit
-it to run the complete suite.
+environment variables for that run. `-AppiumCommand` selects an already-installed
+Appium CLI when it is not available under the default `appium` command.
+`-TestFilter` is passed to `dotnet test`; omit it to run the complete suite.
+
+The Appium URL defaults to `http://127.0.0.1:4723/`. A local override supplies the
+host, port, and optional base path used for automatic startup as well as the URL
+forwarded to the tests. The runner can reuse a healthy remote Appium endpoint, but it
+will not attempt to start or own a remote server. If the configured endpoint responds
+without a healthy Appium status payload, the runner reports the conflict and does not
+terminate the process occupying that port.
+
+## Appium lifecycle troubleshooting
+
+If Appium cannot be resolved, the runner fails before starting a new emulator and
+reports the missing command. If installed-driver discovery does not report
+UiAutomator2, it fails with the driver installation prerequisite; it never installs
+or upgrades the driver automatically. Confirm the validated local setup with:
+
+```powershell
+appium --version
+appium driver list --installed
+```
+
+If automatic startup times out, Appium exits early, or the port is already occupied,
+review the error's log tail and the captured stdout/stderr files in the Appium test
+results directory. Resolve only the reported endpoint or runner-owned PID. Never kill
+all `node.exe` processes: unrelated developer tools may also use Node.
+
+Manually running `appium` remains useful for debugging. A healthy manually started
+server is detected and preserved by the repository runner. Stop that server from the
+terminal that owns it when debugging is complete.
 
 ## Emulator lifecycle recovery
 
@@ -109,9 +140,10 @@ after `adb` shows no device and the selected AVD has no live emulator process, c
 the exact emulator output and use Android Device Manager to inspect or cold-boot that
 AVD rather than deleting SDK or AVD directories.
 
-Appium remains a separate prerequisite. If its process was stopped or exited during
-an interrupted run, start it again with `appium`; the runner reports the unavailable
-endpoint and does not take ownership of the Appium process.
+Appium lifecycle is independent of `-KeepEmulatorRunning`. When the runner starts
+both resources, it stops Appium first after the tests and then either synchronously
+stops its emulator or retains that emulator when requested. A later run reuses the
+retained emulator and starts a fresh runner-owned Appium server when needed.
 
 ## Lower-level manual commands
 
@@ -138,9 +170,11 @@ from newly cleared application data and a new Appium session, so scoring workflo
 remain independently runnable.
 
 For lower-level troubleshooting only, opt in and run the complete Android UI suite
-against an already installed APK, including the session smoke test:
+against an already installed APK and a separately started Appium server, including
+the session smoke test:
 
 ```powershell
+appium
 $env:SOFTBALL_RUN_ANDROID_UI_TESTS = '1'
 dotnet test SoftballScorekeeper.AndroidUiTests/SoftballScorekeeper.AndroidUiTests.csproj
 ```
