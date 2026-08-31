@@ -5,6 +5,7 @@ param(
     [switch]$KeepEmulatorRunning,
     [string]$TestFilter,
     [string]$AppiumServerUrl,
+    [string]$AppiumCommand = 'appium',
     [string]$AdbPath
 )
 
@@ -20,6 +21,10 @@ $exitCode = 0
 $startedEmulator = $false
 $selectedEmulatorId = $null
 $startedEmulatorProcess = $null
+$startedAppium = $false
+$startedAppiumProcess = $null
+$appiumStandardOutputPath = $null
+$appiumStandardErrorPath = $null
 
 function Write-Stage {
     param([string]$Message)
@@ -56,6 +61,189 @@ function Invoke-RequiredCommand {
         $exception.Data['ExitCode'] = $commandExitCode
         throw $exception
     }
+}
+
+function Resolve-AppiumLaunch {
+    param([string]$RequestedCommand)
+
+    $command = Get-Command -Name $RequestedCommand -CommandType Application -ErrorAction SilentlyContinue |
+        Select-Object -First 1
+    if ($null -eq $command) {
+        throw "Appium was not found as '$RequestedCommand'. Install and configure Appium, ensure it is available on PATH, or supply -AppiumCommand."
+    }
+
+    if ($env:OS -eq 'Windows_NT' -and $command.Source.EndsWith('.cmd', [StringComparison]::OrdinalIgnoreCase)) {
+        $appiumEntryPoint = Join-Path (Split-Path -Parent $command.Source) 'node_modules\appium\index.js'
+        if (-not (Test-Path -LiteralPath $appiumEntryPoint -PathType Leaf)) {
+            throw "The Appium npm wrapper '$($command.Source)' was found, but its Node entry point was not found at '$appiumEntryPoint'. Repair the existing Appium installation."
+        }
+
+        return [pscustomobject]@{
+            FilePath = Resolve-RequiredCommand -Name 'node' -RequestedCommand 'node'
+            PrefixArguments = @($appiumEntryPoint)
+            Description = $command.Source
+        }
+    }
+
+    return [pscustomobject]@{
+        FilePath = $command.Source
+        PrefixArguments = @()
+        Description = $command.Source
+    }
+}
+
+function Assert-UiAutomator2DriverInstalled {
+    param([pscustomobject]$AppiumLaunch)
+
+    $driverArguments = @($AppiumLaunch.PrefixArguments) + @('driver', 'list', '--installed', '--json')
+    $driverOutput = & $AppiumLaunch.FilePath @driverArguments 2>&1
+    if ($LASTEXITCODE -ne 0) {
+        throw "Appium was found at '$($AppiumLaunch.Description)', but installed-driver discovery failed. Ensure Appium and its extensions are usable. $($driverOutput -join ' ')"
+    }
+
+    try {
+        $driverState = ($driverOutput -join "`n") | ConvertFrom-Json -ErrorAction Stop
+    }
+    catch {
+        throw "Appium returned an unreadable installed-driver response. Ensure the installed Appium CLI supports 'driver list --installed --json'. $($driverOutput -join ' ')"
+    }
+
+    $uiautomator2 = $driverState.PSObject.Properties['uiautomator2']
+    if ($null -eq $uiautomator2 -or $uiautomator2.Value.installed -ne $true) {
+        throw "Appium UiAutomator2 support is unavailable. Install the compatible driver with 'appium driver install uiautomator2' before running Android UI tests."
+    }
+
+    Write-Stage "Appium is available at '$($AppiumLaunch.Description)'; UiAutomator2 $($uiautomator2.Value.version) is installed."
+}
+
+function Get-AppiumStatus {
+    param([string]$StatusUrl)
+
+    try {
+        $response = Invoke-RestMethod -Uri $StatusUrl -Method Get -TimeoutSec 2 -UseBasicParsing
+    }
+    catch {
+        if ($null -ne $_.Exception.Response) {
+            return [pscustomobject]@{ Kind = 'Conflict'; Detail = $_.Exception.Message }
+        }
+        return [pscustomobject]@{ Kind = 'Unavailable'; Detail = $_.Exception.Message }
+    }
+
+    $valueProperty = $response.PSObject.Properties['value']
+    $readyProperty = if ($null -ne $valueProperty) {
+        $valueProperty.Value.PSObject.Properties['ready']
+    }
+    else {
+        $null
+    }
+    if ($null -ne $readyProperty -and $readyProperty.Value -is [bool] -and $readyProperty.Value) {
+        return [pscustomobject]@{ Kind = 'Healthy'; Detail = $valueProperty.Value.message }
+    }
+
+    return [pscustomobject]@{
+        Kind = 'Conflict'
+        Detail = 'The endpoint responded, but it did not return a healthy Appium status payload.'
+    }
+}
+
+function Get-AppiumLogTail {
+    param([int]$LineCount = 40)
+
+    $sections = @()
+    if (-not [string]::IsNullOrWhiteSpace($script:appiumStandardOutputPath) -and
+        (Test-Path -LiteralPath $script:appiumStandardOutputPath -PathType Leaf)) {
+        $sections += "Appium stdout:`n$((Get-Content -LiteralPath $script:appiumStandardOutputPath -Tail $LineCount) -join "`n")"
+    }
+    if (-not [string]::IsNullOrWhiteSpace($script:appiumStandardErrorPath) -and
+        (Test-Path -LiteralPath $script:appiumStandardErrorPath -PathType Leaf)) {
+        $sections += "Appium stderr:`n$((Get-Content -LiteralPath $script:appiumStandardErrorPath -Tail $LineCount) -join "`n")"
+    }
+    return $sections -join "`n"
+}
+
+function Start-OwnedAppium {
+    param(
+        [pscustomobject]$AppiumLaunch,
+        [Uri]$ServerUri,
+        [string]$StatusUrl,
+        [string]$RepositoryRoot,
+        [int]$TimeoutSeconds = 30
+    )
+
+    if ($ServerUri.Scheme -ne 'http' -or
+        $ServerUri.Host -notin @('127.0.0.1', 'localhost', '::1')) {
+        throw "No healthy Appium server is available at '$($ServerUri.AbsoluteUri)', and the runner can only start and own a local HTTP Appium endpoint (127.0.0.1, localhost, or ::1)."
+    }
+
+    $logDirectory = Join-Path $RepositoryRoot 'SoftballScorekeeper.AndroidUiTests\TestResults\Appium'
+    New-Item -ItemType Directory -Path $logDirectory -Force | Out-Null
+    $timestamp = [DateTime]::UtcNow.ToString('yyyyMMdd-HHmmssfff')
+    $script:appiumStandardOutputPath = Join-Path $logDirectory "appium-$timestamp.stdout.log"
+    $script:appiumStandardErrorPath = Join-Path $logDirectory "appium-$timestamp.stderr.log"
+
+    $arguments = @($AppiumLaunch.PrefixArguments) + @(
+        '--address', $ServerUri.Host,
+        '--port', $ServerUri.Port.ToString()
+    )
+    $basePath = $ServerUri.AbsolutePath.TrimEnd('/')
+    if (-not [string]::IsNullOrWhiteSpace($basePath)) {
+        $arguments += @('--base-path', $basePath)
+    }
+
+    $startArguments = @($arguments | ForEach-Object {
+        if ($_ -match '\s') { '"' + $_.Replace('"', '\"') + '"' } else { $_ }
+    })
+    Write-Stage "Starting Appium at $($ServerUri.AbsoluteUri)..."
+    $script:startedAppiumProcess = Start-Process `
+        -FilePath $AppiumLaunch.FilePath `
+        -ArgumentList $startArguments `
+        -RedirectStandardOutput $script:appiumStandardOutputPath `
+        -RedirectStandardError $script:appiumStandardErrorPath `
+        -PassThru `
+        -WindowStyle Hidden
+    $script:startedAppium = $true
+    Write-Stage "Waiting up to $TimeoutSeconds seconds for runner-owned Appium PID $($script:startedAppiumProcess.Id) to become ready..."
+
+    $deadline = [DateTime]::UtcNow.AddSeconds($TimeoutSeconds)
+    while ([DateTime]::UtcNow -lt $deadline) {
+        $script:startedAppiumProcess.Refresh()
+        if ($script:startedAppiumProcess.HasExited) {
+            throw "Runner-owned Appium PID $($script:startedAppiumProcess.Id) exited before readiness with code $($script:startedAppiumProcess.ExitCode).`n$(Get-AppiumLogTail)"
+        }
+
+        $status = Get-AppiumStatus -StatusUrl $StatusUrl
+        if ($status.Kind -eq 'Healthy') {
+            Write-Stage "Runner-owned Appium is ready (PID $($script:startedAppiumProcess.Id))."
+            return
+        }
+        if ($status.Kind -eq 'Conflict') {
+            throw "Appium startup encountered a non-Appium or unhealthy service at '$StatusUrl'. The runner will not terminate the unknown service. $($status.Detail)`n$(Get-AppiumLogTail)"
+        }
+
+        Start-Sleep -Milliseconds 500
+    }
+
+    throw "Runner-owned Appium PID $($script:startedAppiumProcess.Id) did not become ready within $TimeoutSeconds seconds.`n$(Get-AppiumLogTail)"
+}
+
+function Stop-OwnedAppium {
+    param(
+        [System.Diagnostics.Process]$AppiumProcess,
+        [int]$TimeoutSeconds = 15
+    )
+
+    $AppiumProcess.Refresh()
+    if ($AppiumProcess.HasExited) {
+        Write-Stage "Runner-owned Appium PID $($AppiumProcess.Id) is already stopped."
+        return
+    }
+
+    Write-Stage "Stopping runner-owned Appium PID $($AppiumProcess.Id)..."
+    Stop-Process -Id $AppiumProcess.Id -ErrorAction Stop
+    if (-not $AppiumProcess.WaitForExit($TimeoutSeconds * 1000)) {
+        throw "Runner-owned Appium PID $($AppiumProcess.Id) did not stop within $TimeoutSeconds seconds. No unrelated Node processes were terminated."
+    }
+    Write-Stage "Runner-owned Appium stopped: PID $($AppiumProcess.Id)"
 }
 
 function Get-AdbDeviceStates {
@@ -238,6 +426,41 @@ try {
     Write-Stage "Repository: $repositoryRoot"
     $dotnetExecutable = Resolve-RequiredCommand -Name 'dotnet' -RequestedCommand 'dotnet'
 
+    if ([string]::IsNullOrWhiteSpace($AppiumServerUrl)) {
+        $AppiumServerUrl = if ([string]::IsNullOrWhiteSpace($env:SOFTBALL_APPIUM_SERVER_URL)) {
+            'http://127.0.0.1:4723/'
+        }
+        else {
+            $env:SOFTBALL_APPIUM_SERVER_URL.Trim()
+        }
+    }
+    $parsedAppiumUri = $null
+    if (-not [Uri]::TryCreate($AppiumServerUrl, [UriKind]::Absolute, [ref]$parsedAppiumUri)) {
+        throw "Appium server URL '$AppiumServerUrl' is not an absolute URL."
+    }
+
+    $appiumStatusUrl = "$($parsedAppiumUri.AbsoluteUri.TrimEnd('/'))/status"
+    Write-Stage "Checking Appium: $appiumStatusUrl"
+    $appiumStatus = Get-AppiumStatus -StatusUrl $appiumStatusUrl
+    if ($appiumStatus.Kind -eq 'Healthy') {
+        Write-Stage 'Reusing healthy pre-existing Appium; this runner will not stop it.'
+    }
+    elseif ($appiumStatus.Kind -eq 'Conflict') {
+        throw "The configured endpoint '$appiumStatusUrl' is occupied by a non-Appium or unhealthy service. The runner will not start Appium on that port or terminate the unknown service. $($appiumStatus.Detail)"
+    }
+    else {
+        if ([string]::IsNullOrWhiteSpace($AppiumCommand)) {
+            $AppiumCommand = 'appium'
+        }
+        $appiumLaunch = Resolve-AppiumLaunch -RequestedCommand $AppiumCommand.Trim()
+        Assert-UiAutomator2DriverInstalled -AppiumLaunch $appiumLaunch
+        Start-OwnedAppium `
+            -AppiumLaunch $appiumLaunch `
+            -ServerUri $parsedAppiumUri `
+            -StatusUrl $appiumStatusUrl `
+            -RepositoryRoot $repositoryRoot
+    }
+
     if ([string]::IsNullOrWhiteSpace($AdbPath)) {
         $AdbPath = if ([string]::IsNullOrWhiteSpace($env:SOFTBALL_ADB_PATH)) {
             'adb'
@@ -291,28 +514,6 @@ try {
 
     Write-Stage "Using device: $DeviceId"
 
-    if ([string]::IsNullOrWhiteSpace($AppiumServerUrl)) {
-        $AppiumServerUrl = if ([string]::IsNullOrWhiteSpace($env:SOFTBALL_APPIUM_SERVER_URL)) {
-            'http://127.0.0.1:4723/'
-        }
-        else {
-            $env:SOFTBALL_APPIUM_SERVER_URL.Trim()
-        }
-    }
-    $parsedAppiumUri = $null
-    if (-not [Uri]::TryCreate($AppiumServerUrl, [UriKind]::Absolute, [ref]$parsedAppiumUri)) {
-        throw "Appium server URL '$AppiumServerUrl' is not an absolute URL."
-    }
-
-    $appiumStatusUrl = "$($parsedAppiumUri.AbsoluteUri.TrimEnd('/'))/status"
-    Write-Stage "Checking Appium: $appiumStatusUrl"
-    try {
-        Invoke-RestMethod -Uri $appiumStatusUrl -Method Get -TimeoutSec 5 -UseBasicParsing | Out-Null
-    }
-    catch {
-        throw "Appium is not reachable at '$AppiumServerUrl'. Start it in a separate terminal with 'appium'. $($_.Exception.Message)"
-    }
-
     $appProject = Join-Path $repositoryRoot 'SoftballScorekeeper\SoftballScorekeeper.csproj'
     Write-Stage 'Building embedded-assembly Android APK...'
     Invoke-RequiredCommand -Description 'Android build' -FilePath $dotnetExecutable -Arguments @(
@@ -356,6 +557,13 @@ try {
     }
     Invoke-RequiredCommand -Description 'Android UI tests' -FilePath $dotnetExecutable -Arguments $testArguments
 
+    if ($startedAppium) {
+        $startedAppiumProcess.Refresh()
+        if ($startedAppiumProcess.HasExited) {
+            throw "Runner-owned Appium PID $($startedAppiumProcess.Id) exited unexpectedly with code $($startedAppiumProcess.ExitCode).`n$(Get-AppiumLogTail)"
+        }
+    }
+
     Write-Stage 'Build, install, and Android UI tests succeeded.'
 }
 catch {
@@ -367,8 +575,26 @@ catch {
         1
     }
     Write-Error "[Android UI] $($caughtException.Message)" -ErrorAction Continue
+    if ($startedAppium -and $null -ne $startedAppiumProcess) {
+        $startedAppiumProcess.Refresh()
+        if ($startedAppiumProcess.HasExited) {
+            Write-Warning "[Android UI] Runner-owned Appium PID $($startedAppiumProcess.Id) exited unexpectedly with code $($startedAppiumProcess.ExitCode).`n$(Get-AppiumLogTail)"
+        }
+    }
 }
 finally {
+    if ($startedAppium -and $null -ne $startedAppiumProcess) {
+        try {
+            Stop-OwnedAppium -AppiumProcess $startedAppiumProcess
+        }
+        catch {
+            Write-Warning "[Android UI] Appium cleanup failed: $($_.Exception.Message)"
+            if ($exitCode -eq 0) {
+                $exitCode = 1
+            }
+        }
+    }
+
     if ($startedEmulator -and -not $KeepEmulatorRunning -and -not [string]::IsNullOrWhiteSpace($selectedEmulatorId)) {
         try {
             $cleanupDeviceStates = Get-AdbDeviceStates -AdbExecutable $adbExecutable

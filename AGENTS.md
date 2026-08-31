@@ -426,6 +426,8 @@ When the story changes only documentation, tests may be unnecessary unless the d
 
 Android validation is required for UI and interaction stories because Android tablet behavior is the primary acceptance standard. Windows remains useful for development and secondary validation.
 
+Run Android UI acceptance tests through `scripts/run-android-ui-tests.ps1`. Repository orchestration may stop only Appium and emulator processes that the runner itself started and precisely tracks; never broadly kill Node, Appium, emulator, qemu, adb, or Crashpad processes.
+
 Major scoring and tablet-interaction stories should be exercised on the actual target 10-inch Android tablet when it is available. Emulator validation is useful and is acceptable until the physical tablet is available when documented honestly, but it does not permanently replace real-device validation for major touch workflows. Non-UI stories should use validation appropriate to their scope.
 
 At minimum, validate the affected supported targets when practical:
