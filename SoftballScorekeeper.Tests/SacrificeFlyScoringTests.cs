@@ -4,7 +4,7 @@ using SoftballScorekeeper.Infrastructure.Data.Repositories;
 
 namespace SoftballScorekeeper.Tests;
 
-public sealed class SacrificeFlyScoringTests
+public sealed partial class SacrificeFlyScoringTests
 {
     [Theory]
     [InlineData("", 0, false)]

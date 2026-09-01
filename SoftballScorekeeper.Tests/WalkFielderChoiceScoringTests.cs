@@ -5,7 +5,7 @@ using SoftballScorekeeper.Infrastructure.Data.Repositories;
 
 namespace SoftballScorekeeper.Tests;
 
-public sealed class WalkFielderChoiceScoringTests
+public sealed partial class WalkFielderChoiceScoringTests
 {
     [Fact]
     public void Walk_and_fielder_choice_are_distinct_selectable_plate_appearance_results()
@@ -1372,7 +1372,7 @@ public sealed class WalkFielderChoiceScoringTests
     }
 
     [Fact]
-    public void Scoring_information_uses_resource_backed_portrait_panels_and_compact_landscape_rails()
+    public void Scoring_information_uses_shared_portrait_and_landscape_undo_redo_panels()
     {
         var repositoryRoot = Path.GetFullPath(Path.Combine(
             AppContext.BaseDirectory, "..", "..", "..", ".."));
@@ -1389,31 +1389,42 @@ public sealed class WalkFielderChoiceScoringTests
 
         var portraitPanels = namedElements["PortraitInfoPanels"];
         Assert.Equal("*,*", portraitPanels.Attribute("ColumnDefinitions")?.Value);
-        Assert.Equal(2, portraitPanels.Elements(ns + "Border").Count());
+        Assert.Equal("Auto,Auto", portraitPanels.Attribute("RowDefinitions")?.Value);
+        var upcomingPanel = namedElements["UpcomingInfoPanel"];
+        var outsPanel = namedElements["OutsInfoPanel"];
+        Assert.Equal(portraitPanels, upcomingPanel.Parent);
+        Assert.Equal(portraitPanels, outsPanel.Parent);
+        Assert.Equal(upcomingPanel.Attribute("Grid.Row")?.Value,
+            outsPanel.Attribute("Grid.Row")?.Value);
         Assert.Contains(page.Descendants(ns + "Label"), item =>
             item.Attribute("Text")?.Value == "{x:Static strings:AppResources.UpcomingHeading}");
         Assert.Contains(page.Descendants(ns + "Label"), item =>
             item.Attribute("Text")?.Value == "{x:Static strings:AppResources.OutsThisInningHeading}");
-        Assert.Equal(2, page.Descendants().Count(item =>
+        Assert.Equal(1, page.Descendants().Count(item =>
             item.Attribute("BindableLayout.ItemsSource")?.Value == "{Binding OutsThisInning}"));
-        Assert.Equal("False", namedElements["LandscapeUpcomingBattersList"]
-            .Attribute("IsVisible")?.Value);
         Assert.Contains(page.Descendants(ns + "Setter"), item =>
-            item.Attribute("TargetName")?.Value == "LandscapeUpcomingBattersList"
-            && item.Attribute("Property")?.Value == "IsVisible"
-            && item.Attribute("Value")?.Value == "True");
-        var landscapeOuts = namedElements["LandscapeOutsThisInning"];
-        Assert.Contains(landscapeOuts.Descendants(), item =>
-            item.Attribute("BindableLayout.ItemsSource")?.Value == "{Binding OutsThisInning}");
-        Assert.DoesNotContain(landscapeOuts.Descendants(ns + "Label"), item =>
-            item.Attribute("Text")?.Value == "{x:Static strings:AppResources.EmptyBaseLabel}");
-        Assert.Equal("LandscapeScoredRail",
-            landscapeOuts.Ancestors().First(item => item.Attribute(x + "Name") is not null)
-                .Attribute(x + "Name")?.Value);
+            item.Attribute("TargetName")?.Value == "PortraitInfoPanels"
+            && item.Attribute("Property")?.Value == "ColumnDefinitions"
+            && item.Attribute("Value")?.Value == "210,*,240");
         Assert.Contains(page.Descendants(ns + "Setter"), item =>
-            item.Attribute("TargetName")?.Value == "LandscapeScoredRail"
+            item.Attribute("TargetName")?.Value == "OutsInfoPanel"
             && item.Attribute("Property")?.Value == "Grid.Column"
-            && item.Attribute("Value")?.Value == "4");
+            && item.Attribute("Value")?.Value == "2");
+        Assert.Contains(page.Descendants(ns + "Setter"), item =>
+            item.Attribute("TargetName")?.Value == "PortraitInfoPanels"
+            && item.Attribute("Property")?.Value == "RowDefinitions"
+            && item.Attribute("Value")?.Value == "Auto,*,Auto");
+        Assert.All(new[] { "UndoScoringButton", "RedoScoringButton" }, buttonName =>
+            Assert.Contains(page.Descendants(ns + "Setter"), item =>
+                item.Attribute("TargetName")?.Value == buttonName
+                && item.Attribute("Property")?.Value == "Grid.Row"
+                && item.Attribute("Value")?.Value == "2"));
+        Assert.Equal("UndoScoringButton", portraitPanels.Descendants(ns + "Button")
+            .Single(item => item.Attribute("AutomationId")?.Value == "UndoScoringButton")
+            .Attribute("AutomationId")?.Value);
+        Assert.Equal("RedoScoringButton", portraitPanels.Descendants(ns + "Button")
+            .Single(item => item.Attribute("AutomationId")?.Value == "RedoScoringButton")
+            .Attribute("AutomationId")?.Value);
         Assert.DoesNotContain(page.Descendants(ns + "Setter"), item =>
             item.Attribute("TargetName")?.Value == "CurrentBatterBorder"
             && item.Attribute("Property")?.Value == "IsVisible");

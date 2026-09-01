@@ -46,6 +46,8 @@ public partial class ScoringViewModel : ObservableObject, IQueryAttributable
     private bool isLoaded;
     [ObservableProperty, NotifyPropertyChangedFor(nameof(CanAdvanceToNextBatter))]
     private bool isCompletingPlateAppearance;
+    private bool canUndo;
+    private bool canRedo;
     private PlayResolutionStatus resolutionStatus = PlayResolutionStatus.Completed;
     private PlayDecisionRequirement decisionRequirement = PlayDecisionRequirement.None;
     private int requiredRetirementCount;
@@ -266,12 +268,54 @@ public partial class ScoringViewModel : ObservableObject, IQueryAttributable
         OnPropertyChanged(nameof(AvailableBatterResults));
         RestoreBaseRunners(state);
         RestorePendingPlay(state);
+        var historyAvailability = await sessionRepository
+            .GetUndoRedoAvailabilityAsync(GameId);
+        CanUndo = historyAvailability.CanUndo;
+        CanRedo = historyAvailability.CanRedo;
         ValidationMessage = string.Empty;
         IsLoaded = true;
     }
 
     [RelayCommand]
     public Task ExitGameAsync() => Shell.Current.GoToAsync("..");
+
+    public Task<bool> UndoAsync() => RestoreScoringHistoryAsync(isUndo: true);
+
+    public Task<bool> RedoAsync() => RestoreScoringHistoryAsync(isUndo: false);
+
+    private async Task<bool> RestoreScoringHistoryAsync(bool isUndo)
+    {
+        if (!IsLoaded || IsCompletingPlateAppearance
+            || isUndo && !CanUndo || !isUndo && !CanRedo)
+            return false;
+        IsCompletingPlateAppearance = true;
+        try
+        {
+            var result = isUndo
+                ? await sessionRepository.UndoAsync(GameId)
+                : await sessionRepository.RedoAsync(GameId);
+            await LoadAsync();
+            if (result.IsSuccess) return true;
+            ValidationMessage = AppResources.UndoRedoFailedMessage;
+            return false;
+        }
+        finally
+        {
+            IsCompletingPlateAppearance = false;
+        }
+    }
+
+    public bool CanUndo
+    {
+        get => canUndo;
+        private set => SetProperty(ref canUndo, value);
+    }
+
+    public bool CanRedo
+    {
+        get => canRedo;
+        private set => SetProperty(ref canRedo, value);
+    }
 
     public async Task<bool> UpdateGameRulesAsync(int homeRunLimit, bool isOneUpEnabled)
     {
@@ -538,6 +582,8 @@ public partial class ScoringViewModel : ObservableObject, IQueryAttributable
         InningOutDisplay = string.Empty;
         InningDisplay = OutsDisplay = string.Empty;
         HasPendingPlay = false;
+        CanUndo = false;
+        CanRedo = false;
         SetPlayResolution(null, new Dictionary<int, Player>());
         SetPendingBatterResolved(false);
         FirstBaseRunner = EmptyBaseRunner(AppResources.FirstBaseHeadingLabel);

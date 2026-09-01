@@ -635,6 +635,9 @@
   <data name="GameOverConfirmationMessage" xml:space="preserve"><value>The Game will be marked Completed and live scoring will end. Resume Game will no longer be available; future historical correction is a separate workflow.</value></data>
   <data name="GameOverBlockedMessage" xml:space="preserve"><value>Finish the current play and any required half-inning opponent entry before completing the Game.</value></data>
   <data name="GameOverFailedMessage" xml:space="preserve"><value>The Game could not be completed. It remains In Progress.</value></data>
+  <data name="UndoScoringButton" xml:space="preserve"><value>Undo</value></data>
+  <data name="RedoScoringButton" xml:space="preserve"><value>Redo</value></data>
+  <data name="UndoRedoFailedMessage" xml:space="preserve"><value>The scoring change could not be restored. The current scoring state was preserved.</value></data>
   <data name="ResetGameButton" xml:space="preserve"><value>Reset Game</value></data>
   <data name="ResetGameTitle" xml:space="preserve"><value>Reset Scoring?</value></data>
   <data name="ResetGameFirstConfirmation" xml:space="preserve"><value>All scoring progress will be discarded and the Game will return to Ready to Score.</value></data>

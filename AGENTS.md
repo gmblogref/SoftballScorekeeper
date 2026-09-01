@@ -426,7 +426,7 @@ When the story changes only documentation, tests may be unnecessary unless the d
 
 Android validation is required for UI and interaction stories because Android tablet behavior is the primary acceptance standard. Windows remains useful for development and secondary validation.
 
-Run Android UI acceptance tests through `scripts/run-android-ui-tests.ps1`. Repository orchestration may stop only Appium and emulator processes that the runner itself started and precisely tracks; never broadly kill Node, Appium, emulator, qemu, adb, or Crashpad processes.
+Codex may create Android UI/Appium tests, but MUST NOT execute emulator/Appium tests unless the user explicitly authorizes that run. When authorized, run Android UI acceptance tests through `scripts/run-android-ui-tests.ps1`. Repository orchestration may stop only Appium and emulator processes that the runner itself started and precisely tracks; never broadly kill Node, Appium, emulator, qemu, adb, or Crashpad processes.
 
 Major scoring and tablet-interaction stories should be exercised on the actual target 10-inch Android tablet when it is available. Emulator validation is useful and is acceptable until the physical tablet is available when documented honestly, but it does not permanently replace real-device validation for major touch workflows. Non-UI stories should use validation appropriate to their scope.
 
@@ -442,6 +442,10 @@ Repository tests must use isolated temporary SQLite databases, never use the rea
 Repository tests do not provide MAUI UI coverage and must not be reported as Android or Windows runtime validation. UI behavior still requires appropriate manual or UI-level validation. Keep test changes story-focused and report untested areas honestly rather than adding unrelated future-feature coverage.
 
 Scoring-engine development requires comprehensive table-driven tests covering base states, out counts, batter outcomes, runner movement, corrections, and derived statistics. Repository integration tests may use isolated temporary SQLite databases. UI automation is not required unless a later story explicitly adds it.
+
+Every newly introduced committed scoring action must participate atomically in persisted scoring Undo/Redo and include focused reversal/restoration regression coverage.
+
+Pending-play Undo/Redo uses persisted semantic checkpoints. One result selection plus its automatic resolver defaults is one checkpoint; meaningful scorer decisions create checkpoints, backtracking to an earlier semantic state collapses redundant history, and progressive runner decisions remain separately reversible. Committing a play collapses its temporary pending checkpoints into the single committed-action boundary.
 
 ## Completion Review and Definition of Done
 

@@ -5,6 +5,7 @@ namespace SoftballScorekeeper.Infrastructure.Data;
 
 public sealed class AppDatabase
 {
+    internal static readonly TimeSpan ScoringHistoryRetention = TimeSpan.FromDays(21);
     private readonly SQLiteAsyncConnection connection;
     private readonly SemaphoreSlim initializationLock = new(1, 1);
     private volatile bool isInitialized;
@@ -62,6 +63,12 @@ public sealed class AppDatabase
             await connection.CreateTableAsync<GameScoringHalfInning>();
             await connection.CreateTableAsync<GameScoringPendingPlay>();
             await connection.CreateTableAsync<GameScoringPendingRunnerMovement>();
+            await connection.CreateTableAsync<GameScoringHistory>();
+            await connection.CreateTableAsync<GameScoringHistorySnapshot>();
+            await AddColumnIfMissingAsync<GameScoringSession>(
+                nameof(GameScoringSession.CompletedAtUtc), "DATETIME");
+            await AddColumnIfMissingAsync<GameScoringHistory>(
+                nameof(GameScoringHistory.PendingStartPosition), "INTEGER");
             await AddColumnIfMissingAsync<GamePlateAppearanceRunnerMovement>(
                 nameof(GamePlateAppearanceRunnerMovement.OutOrder), "INTEGER");
             await AddColumnIfMissingAsync<GameScoringPendingRunnerMovement>(
@@ -73,6 +80,7 @@ public sealed class AppDatabase
                         "UPDATE GameScoringSession SET HomeRunLimit = ?",
                         GameScoringSession.DefaultHomeRunLimit);
                 UpgradeStory60ScoringSessions(transaction);
+                CleanupExpiredScoringHistory(transaction, DateTime.UtcNow);
             });
             isInitialized = true;
         }
@@ -103,6 +111,28 @@ public sealed class AppDatabase
     private sealed class SqliteTable
     {
         public string Name { get; set; } = string.Empty;
+    }
+
+    internal static void CleanupExpiredScoringHistory(
+        SQLiteConnection transaction, DateTime utcNow)
+    {
+        var cutoff = utcNow - ScoringHistoryRetention;
+        var expiredSessionIds = transaction.Table<GameScoringSession>()
+            .Where(item => item.Status == GameScoringStatus.Completed
+                && item.CompletedAtUtc != null
+                && item.CompletedAtUtc <= cutoff)
+            .ToList()
+            .Select(item => item.Id)
+            .ToArray();
+        foreach (var sessionId in expiredSessionIds)
+        {
+            transaction.Execute(
+                "DELETE FROM GameScoringHistorySnapshot WHERE GameScoringSessionId = ?",
+                sessionId);
+            transaction.Execute(
+                "DELETE FROM GameScoringHistory WHERE GameScoringSessionId = ?",
+                sessionId);
+        }
     }
 
     public Task CloseAsync()
