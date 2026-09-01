@@ -3,7 +3,7 @@ using SoftballScorekeeper.Infrastructure.Data.Repositories;
 
 namespace SoftballScorekeeper.Tests;
 
-public sealed class GameScoringSessionRepositoryTests
+public sealed partial class GameScoringSessionRepositoryTests
 {
     [Fact]
     public async Task Complete_plate_appearance_persists_batter_advances_wraps_and_preserves_scoring_foundations()

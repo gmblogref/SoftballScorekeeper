@@ -5,7 +5,7 @@ using SoftballScorekeeper.Infrastructure.Data.Repositories;
 
 namespace SoftballScorekeeper.Tests;
 
-public sealed class RunnerOutAttemptingAdvanceTests
+public sealed partial class RunnerOutAttemptingAdvanceTests
 {
     [Theory]
     [InlineData(RunnerStartingLocation.Home, RunnerDestination.First,

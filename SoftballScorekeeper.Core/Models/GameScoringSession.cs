@@ -29,6 +29,8 @@ public sealed class GameScoringSession
     public int HomeRunLimit { get; set; } = DefaultHomeRunLimit;
 
     public bool IsOneUpEnabled { get; set; }
+
+    public DateTime? CompletedAtUtc { get; set; }
 }
 
 public enum GameScoringStatus

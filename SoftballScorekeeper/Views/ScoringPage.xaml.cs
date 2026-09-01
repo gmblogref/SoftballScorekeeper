@@ -39,6 +39,18 @@ public partial class ScoringPage : ContentPage
 
     private async void OnExitGameClicked(object sender, EventArgs e) => await ExitAsync();
 
+    private async void OnUndoClicked(object sender, EventArgs e)
+    {
+        ScoringMenu.IsVisible = false;
+        await viewModel.UndoAsync();
+    }
+
+    private async void OnRedoClicked(object sender, EventArgs e)
+    {
+        ScoringMenu.IsVisible = false;
+        await viewModel.RedoAsync();
+    }
+
     private async void OnGameRulesClicked(object sender, EventArgs e)
     {
         ScoringMenu.IsVisible = false;

@@ -1056,6 +1056,9 @@ namespace SoftballScorekeeper.Resources.Strings {
         public static string GameOverConfirmationMessage { get { return ResourceManager.GetString("GameOverConfirmationMessage", resourceCulture); } }
         public static string GameOverBlockedMessage { get { return ResourceManager.GetString("GameOverBlockedMessage", resourceCulture); } }
         public static string GameOverFailedMessage { get { return ResourceManager.GetString("GameOverFailedMessage", resourceCulture); } }
+        public static string UndoScoringButton { get { return ResourceManager.GetString("UndoScoringButton", resourceCulture); } }
+        public static string RedoScoringButton { get { return ResourceManager.GetString("RedoScoringButton", resourceCulture); } }
+        public static string UndoRedoFailedMessage { get { return ResourceManager.GetString("UndoRedoFailedMessage", resourceCulture); } }
         public static string ResetGameButton { get { return ResourceManager.GetString("ResetGameButton", resourceCulture); } }
         public static string ResetGameTitle { get { return ResourceManager.GetString("ResetGameTitle", resourceCulture); } }
         public static string ResetGameFirstConfirmation { get { return ResourceManager.GetString("ResetGameFirstConfirmation", resourceCulture); } }

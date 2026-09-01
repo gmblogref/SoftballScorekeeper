@@ -12,7 +12,7 @@ Stable product and architecture decisions belong in the project architecture doc
 
 - **Latest completed story:** Story 6.7.6 — Broader Android UI Scenario and Orientation Automation Coverage
 - **Completed stories:** Stories 0.0 through 6.7.6; Stories 3.2 through 3.4 retain their recorded validation status
-- **Current story:** None; Story 6.7.6 is complete and awaiting the user-managed commit on `task/automate-appium-lifecycle`
+- **Current story:** Story 6.8 — Scoring Undo / Redo acceptance refinement; implementation and automated validation are complete, and user-authorized pinpoint Android validation remains pending on `task/redo-undo-scoring`
 - **Current phase:** Scoring interaction refinement
 - **Foundation status:** Complete
 
@@ -2727,6 +2727,33 @@ Dedicated Double Play/Triple Play presentation, sacrifice results, HR-limit/dead
 #### Intended Commit Message
 
 `Expand Android scoring UI coverage`
+
+### Story 6.8 — Scoring Undo / Redo (Pinpoint Android acceptance pending)
+
+#### Persisted Atomic History
+
+- Added session-scoped `GameScoringHistory` cursor state and JSON-backed `GameScoringHistorySnapshot` rows for both committed scoring boundaries and temporary pending-PA semantic checkpoints. Snapshots contain authoritative session score/batter/inning/Out counters, plate appearances, committed runner movements including `SafeDestination`, `AttemptedDestination`, `OutOrder`, and `RunCounts`, base occupancy, completed half innings, and exact pending-play/result/movement metadata when applicable. Team, Game, Season, frozen/live lineup, rules configuration, and presentation state are not duplicated.
+- Undo and Redo restore snapshots inside the repository's existing SQLite transactions. Restoration replaces all session-owned mutable scoring rows coherently and reinserts their original IDs explicitly, so PA/movement and half-inning identities remain stable. A persisted multi-level cursor supports repeated Undo/Redo across repository recreation, Exit/Resume, and database close/reopen; committing a new action after Undo deletes the abandoned Redo chain.
+- Every existing completion path records the same atomic boundary: Single, Double, Triple, immediate Home Run, forced-only Walk, ordinary Out, true FC and displacement, reconciled FC-to-Out, Sac Fly, reconciled Sac-Fly-to-Out, Out Attempting, DP, TP, and all third-Out/run-ruling outcomes. Undo restores exact pre-action batter/upcoming order, bases, scores/HR totals, Outs, inning, history, and movement metadata; Redo restores the recorded post-action facts without rerunning current rules.
+- The half-inning summary and opponent-total entry complete the inning-ending scoring action rather than creating extra Undo presses. Undo after the completed modal workflow returns directly to the pre-third-Out half, while Redo restores the exact third-Out transition and opponent runs/HR totals once. Undo/Redo remains unavailable until that modal state is resolved.
+- Pending PA Undo/Redo uses meaningful scoring checkpoints rather than raw taps. Result selection plus all resolver-produced defaults is one checkpoint; runner destination changes, primary-Out selection, Out Attempting metadata, reconciliation, and other semantic decisions preserve exact historical state. Automatic resolver movements are never independent steps. Progressive movement such as Second → Third → Scores remains two steps, while returning to an earlier/default semantic state collapses redundant back-and-forth history. Undo can cross from the pending result to exact PA-start state and then into earlier committed actions; Redo crosses the same states without rerunning current rules. Any new meaningful action after Undo invalidates the abandoned forward branch.
+- Committing a pending play collapses its temporary checkpoints into the existing single atomic committed-action boundary, preserving Story 6.8 committed Undo/Redo behavior. Half-inning modal state still blocks restoration until resolved. Game Over disables live history restoration and does not reopen a completed game. Reset remains non-undoable and deletes cursor and snapshot recovery history. Rule edits are intentionally not scoring actions and are not reverted by scoring Undo.
+- Added `CompletedAtUtc` and a lazy database-startup cleanup that removes only `GameScoringHistory` and `GameScoringHistorySnapshot` rows once a Game has been Completed for 21 days. Games, plate appearances, result classifications, committed movements, bases/history needed for statistics, lineups, and all other canonical scoring records are retained. No scheduler or background service was introduced.
+
+#### UI and Automated Coverage
+
+- Moved the resource-backed `Undo` and `Redo` buttons out of the scoring menu and onto the visible scoring surface without changing their `UndoScoringButton` / `RedoScoringButton` AutomationIds. Portrait places Undo directly below UPCOMING and Redo directly below OUTS THIS INNING; both information panels share one grid row so sparse Outs content cannot collapse its panel below the Upcoming panel's height. Landscape reuses the left and right side columns but stretches their layout through the field height, placing Undo and Redo in the lower reach area with clean flexible spacing beneath the top information panels and no duplicate interface or field redesign.
+- Expanded normal coverage for pending Single Undo/Redo, resolver-default atomicity, semantic runner corrections, progressive and coalesced movement, exact PA-start restoration, pending/committed boundary traversal, Redo branching, FC retirement metadata, completed-game blocking, Reset, 21-day cleanup, and canonical-history preservation, while retaining the committed-result regression matrix.
+- Added targeted Appium coverage for visible direct controls, relative placement below the two information panels in portrait and landscape, and pending Single Undo/Redo. Existing committed Single and third-Out transition scenarios now use the direct controls. The Android UI suite contains 13 opt-in tests. Per the durable policy added to `AGENTS.md`, Codex built but did not execute Appium/emulator tests; pinpoint execution requires explicit user authorization.
+- Focused Undo/Redo, pending-reset, and scoring-layout validation passed 27 of 27. The complete emulator-independent suite passed 609 of 609 with zero failures or skips. The Android app build passed with zero errors and the existing 7 `CS8602` / `XC0025` warnings; the Android UI test-project build passed with zero warnings and zero errors; and the Windows non-incremental rebuild passed with zero errors and the existing 114 `CS8602`, `MVVMTK0045`, and `XC0025` warnings. No Android emulator/Appium or physical-tablet runtime validation was performed during the refinement.
+
+#### Scope and Deferred Boundaries
+
+- Completed-game correction remains a separate future editor over canonical scoring history; arbitrary historical PA editing, direct score/Out/inning/stat overrides, generic application Undo, and a visible history timeline remain deferred. Cleanup of disposable recovery snapshots does not limit future completed-game correction. Error/Reach on Error, HR-limit/1-Up enforcement, Beer Rules, substitutions, and statistics were not introduced.
+
+#### Intended Commit Message
+
+`Add scoring undo and redo`
 
 ## Maintenance Rules
 

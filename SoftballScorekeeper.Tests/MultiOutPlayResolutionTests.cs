@@ -3,7 +3,7 @@ using SoftballScorekeeper.Infrastructure.Data.Repositories;
 
 namespace SoftballScorekeeper.Tests;
 
-public sealed class MultiOutPlayResolutionTests
+public sealed partial class MultiOutPlayResolutionTests
 {
     [Theory]
     [InlineData(0, 0, false, false)]

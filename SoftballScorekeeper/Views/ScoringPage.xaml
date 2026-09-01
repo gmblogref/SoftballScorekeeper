@@ -63,19 +63,24 @@
                         <Setter TargetName="ScoringContentLayout" Property="RowDefinitions" Value="Auto" />
                         <Setter TargetName="FieldSection" Property="Grid.Row" Value="0" />
                         <Setter TargetName="FieldSection" Property="Grid.Column" Value="2" />
-                        <Setter TargetName="PortraitInfoPanels" Property="IsVisible" Value="False" />
-                        <Setter TargetName="LandscapeUpcomingBattersList" Property="Grid.Row" Value="0" />
-                        <Setter TargetName="LandscapeUpcomingBattersList" Property="Grid.Column" Value="0" />
-                        <Setter TargetName="LandscapeUpcomingBattersList" Property="Margin" Value="0,34,12,0" />
-                        <Setter TargetName="LandscapeUpcomingBattersList" Property="MinimumWidthRequest" Value="200" />
-                        <Setter TargetName="LandscapeUpcomingBattersList" Property="VerticalOptions" Value="Start" />
-                        <Setter TargetName="LandscapeUpcomingBattersList" Property="IsVisible" Value="True" />
+                        <Setter TargetName="PortraitInfoPanels" Property="Grid.Row" Value="0" />
+                        <Setter TargetName="PortraitInfoPanels" Property="Grid.Column" Value="0" />
+                        <Setter TargetName="PortraitInfoPanels" Property="Grid.ColumnSpan" Value="5" />
+                        <Setter TargetName="PortraitInfoPanels" Property="ColumnDefinitions" Value="210,*,240" />
+                        <Setter TargetName="PortraitInfoPanels" Property="RowDefinitions" Value="Auto,*,Auto" />
+                        <Setter TargetName="PortraitInfoPanels" Property="Margin" Value="0,34,0,0" />
+                        <Setter TargetName="PortraitInfoPanels" Property="VerticalOptions" Value="Fill" />
+                        <Setter TargetName="OutsInfoPanel" Property="Grid.Column" Value="2" />
+                        <Setter TargetName="UndoScoringButton" Property="Grid.Row" Value="2" />
+                        <Setter TargetName="RedoScoringButton" Property="Grid.Row" Value="2" />
+                        <Setter TargetName="RedoScoringButton" Property="Grid.Column" Value="2" />
+                        <Setter TargetName="LandscapeScoredArea" Property="Grid.Row" Value="1" />
+                        <Setter TargetName="LandscapeScoredArea" Property="Grid.Column" Value="2" />
                         <Setter TargetName="UpcomingDivider" Property="Grid.Column" Value="1" />
                         <Setter TargetName="UpcomingDivider" Property="IsVisible" Value="True" />
                         <Setter TargetName="ScoredDivider" Property="Grid.Column" Value="3" />
                         <Setter TargetName="ScoredDivider" Property="IsVisible" Value="True" />
-                        <Setter TargetName="LandscapeScoredRail" Property="Grid.Column" Value="4" />
-                        <Setter TargetName="LandscapeScoredRail" Property="IsVisible" Value="True" />
+                        <Setter TargetName="LandscapeScoredArea" Property="IsVisible" Value="True" />
                         <Setter TargetName="FieldGrid" Property="RowSpacing" Value="6" />
                         <Setter TargetName="NextBatterButton" Property="MinimumWidthRequest" Value="210" />
                         <Setter TargetName="NextBatterButton" Property="MinimumHeightRequest" Value="52" />
@@ -380,10 +385,13 @@
                 </VerticalStackLayout>
                 <Grid x:Name="PortraitInfoPanels"
                       Grid.Row="1"
+                      RowDefinitions="Auto,Auto"
                       ColumnDefinitions="*,*"
+                      RowSpacing="8"
                       ColumnSpacing="12"
                       Margin="18,12,18,0">
-                    <Border Stroke="{AppThemeBinding Light={StaticResource Gray300}, Dark={StaticResource Gray600}}"
+                    <Border x:Name="UpcomingInfoPanel"
+                            Stroke="{AppThemeBinding Light={StaticResource Gray300}, Dark={StaticResource Gray600}}"
                             StrokeThickness="1"
                             StrokeShape="RoundRectangle 10"
                             Padding="14,8">
@@ -409,7 +417,15 @@
                                    FontSize="16" LineBreakMode="TailTruncation" />
                         </Grid>
                     </Border>
-                    <Border Grid.Column="1"
+                    <Button x:Name="UndoScoringButton"
+                            AutomationId="UndoScoringButton"
+                            Grid.Row="1"
+                            Text="{x:Static strings:AppResources.UndoScoringButton}"
+                            Clicked="OnUndoClicked"
+                            IsEnabled="{Binding CanUndo}"
+                            MinimumHeightRequest="52" />
+                    <Border x:Name="OutsInfoPanel"
+                            Grid.Column="1"
                             Stroke="{AppThemeBinding Light={StaticResource Gray300}, Dark={StaticResource Gray600}}"
                             StrokeThickness="1"
                             StrokeShape="RoundRectangle 10"
@@ -431,61 +447,18 @@
                             </VerticalStackLayout>
                         </VerticalStackLayout>
                     </Border>
-                </Grid>
-                <Grid x:Name="LandscapeUpcomingBattersList"
-                      Grid.Row="1"
-                      RowDefinitions="Auto,Auto"
-                      ColumnDefinitions="Auto,*"
-                      RowSpacing="6" ColumnSpacing="16"
-                      Margin="18,0"
-                      HorizontalOptions="Center"
-                      MinimumWidthRequest="360"
-                      IsVisible="False">
-                        <Label Text="{x:Static strings:AppResources.OnDeckLabel}"
-                               FontAttributes="Bold" />
-                        <Label Grid.Column="1"
-                               Text="{Binding OnDeckDisplayName}"
-                               FontSize="17" LineBreakMode="TailTruncation" />
-                        <Label Grid.Row="1"
-                               Text="{x:Static strings:AppResources.InTheHoleLabel}"
-                               FontAttributes="Bold" />
-                        <Label Grid.Row="1" Grid.Column="1"
-                               Text="{Binding InTheHoleDisplayName}"
-                               FontSize="17" LineBreakMode="TailTruncation" />
-                </Grid>
-                <BoxView x:Name="UpcomingDivider"
-                         Grid.Row="0" Grid.Column="0"
-                         IsVisible="False"
-                         BackgroundColor="{AppThemeBinding Light={StaticResource Gray300}, Dark={StaticResource Gray600}}" />
-                <BoxView x:Name="ScoredDivider"
-                         Grid.Row="0" Grid.Column="0"
-                         IsVisible="False"
-                         BackgroundColor="{AppThemeBinding Light={StaticResource Gray300}, Dark={StaticResource Gray600}}" />
-                <Grid x:Name="LandscapeScoredRail"
-                      Grid.Row="0" Grid.Column="0"
-                      IsVisible="False"
-                      Padding="12,34,0,0"
-                      RowDefinitions="Auto,*"
-                      RowSpacing="12">
-                    <VerticalStackLayout x:Name="LandscapeOutsThisInning" Spacing="4">
-                        <Label Text="{x:Static strings:AppResources.OutsThisInningHeading}"
-                               FontSize="13"
-                               FontAttributes="Bold"
-                               HorizontalTextAlignment="Center" />
-                        <VerticalStackLayout Spacing="2"
-                            BindableLayout.ItemsSource="{Binding OutsThisInning}">
-                            <BindableLayout.ItemTemplate>
-                                <DataTemplate x:DataType="viewModels:OutPlayerViewModel">
-                                    <Label Text="{Binding DisplayText}"
-                                           FontSize="14"
-                                           LineBreakMode="TailTruncation" />
-                                </DataTemplate>
-                            </BindableLayout.ItemTemplate>
-                        </VerticalStackLayout>
-                    </VerticalStackLayout>
-                    <VerticalStackLayout Grid.Row="1"
-                                         IsVisible="{Binding HasPendingPlay}"
+                    <Button x:Name="RedoScoringButton"
+                            AutomationId="RedoScoringButton"
+                            Grid.Row="1" Grid.Column="1"
+                            Text="{x:Static strings:AppResources.RedoScoringButton}"
+                            Clicked="OnRedoClicked"
+                            IsEnabled="{Binding CanRedo}"
+                            MinimumHeightRequest="52" />
+                    <VerticalStackLayout x:Name="LandscapeScoredArea"
+                                         Grid.Row="1" Grid.Column="1"
+                                         IsVisible="False"
                                          Spacing="6">
+                        <VerticalStackLayout IsVisible="{Binding HasPendingPlay}" Spacing="6">
                         <Label Text="{x:Static strings:AppResources.ScoredHeading}"
                                FontAttributes="Bold"
                                HorizontalTextAlignment="Center" />
@@ -508,8 +481,17 @@
                         <Label Text="{x:Static strings:AppResources.EmptyBaseLabel}"
                                IsVisible="{Binding HasNoScoredPlayers}"
                                HorizontalTextAlignment="Center" />
+                        </VerticalStackLayout>
                     </VerticalStackLayout>
                 </Grid>
+                <BoxView x:Name="UpcomingDivider"
+                         Grid.Row="0" Grid.Column="0"
+                         IsVisible="False"
+                         BackgroundColor="{AppThemeBinding Light={StaticResource Gray300}, Dark={StaticResource Gray600}}" />
+                <BoxView x:Name="ScoredDivider"
+                         Grid.Row="0" Grid.Column="0"
+                         IsVisible="False"
+                         BackgroundColor="{AppThemeBinding Light={StaticResource Gray300}, Dark={StaticResource Gray600}}" />
             </Grid>
         </ScrollView>
     </Grid>

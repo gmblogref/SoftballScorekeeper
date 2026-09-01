@@ -1,3 +1,4 @@
+using System.Text.Json;
 using SoftballScorekeeper.Core.Models;
 
 namespace SoftballScorekeeper.Infrastructure.Data.Repositories;
@@ -31,6 +32,98 @@ public sealed class GameScoringSessionRepository
 
     public async Task<bool> ExistsForGameAsync(int gameId) =>
         await GetForGameAsync(gameId) is not null;
+
+    public async Task<ScoringUndoRedoAvailability> GetUndoRedoAvailabilityAsync(int gameId)
+    {
+        if (gameId <= 0) return new(false, false);
+        var connection = await database.GetConnectionAsync();
+        var availability = new ScoringUndoRedoAvailability(false, false);
+        await connection.RunInTransactionAsync(transaction =>
+        {
+            var session = transaction.Table<GameScoringSession>()
+                .FirstOrDefault(item => item.GameId == gameId);
+            availability = GetUndoRedoAvailability(transaction, session);
+        });
+        return availability;
+    }
+
+    public Task<ScoringUndoRedoResult> UndoAsync(int gameId) =>
+        RestoreHistoryAsync(gameId, -1);
+
+    public Task<ScoringUndoRedoResult> RedoAsync(int gameId) =>
+        RestoreHistoryAsync(gameId, 1);
+
+    private async Task<ScoringUndoRedoResult> RestoreHistoryAsync(int gameId, int direction)
+    {
+        var unavailable = new ScoringUndoRedoAvailability(false, false);
+        if (gameId <= 0 || direction is not (-1 or 1))
+            return new(false, ScoringUndoRedoFailure.InvalidRequest, unavailable);
+
+        var connection = await database.GetConnectionAsync();
+        var result = new ScoringUndoRedoResult(
+            false, ScoringUndoRedoFailure.SessionNotFound, unavailable);
+        try
+        {
+            await connection.RunInTransactionAsync(transaction =>
+            {
+                var session = transaction.Table<GameScoringSession>()
+                    .FirstOrDefault(item => item.GameId == gameId);
+                if (session is null) return;
+                if (session.Status != GameScoringStatus.InProgress)
+                {
+                    result = new(false, ScoringUndoRedoFailure.GameCompleted, unavailable);
+                    return;
+                }
+                if (HasPendingHalfInningTransition(transaction, session.Id))
+                {
+                    result = new(false, ScoringUndoRedoFailure.UnresolvedScoringState,
+                        unavailable);
+                    return;
+                }
+
+                var history = transaction.Find<GameScoringHistory>(session.Id);
+                var targetPosition = history is null
+                    ? -1 : history.CurrentPosition + direction;
+                if (history is null || targetPosition < 0)
+                {
+                    result = new(false, direction < 0
+                            ? ScoringUndoRedoFailure.NothingToUndo
+                            : ScoringUndoRedoFailure.NothingToRedo,
+                        GetUndoRedoAvailability(transaction, session));
+                    return;
+                }
+                if (targetPosition > history.LatestPosition)
+                {
+                    result = new(false, ScoringUndoRedoFailure.NothingToRedo,
+                        GetUndoRedoAvailability(transaction, session));
+                    return;
+                }
+
+                var snapshot = transaction.Table<GameScoringHistorySnapshot>()
+                    .FirstOrDefault(item => item.GameScoringSessionId == session.Id
+                        && item.Position == targetPosition);
+                if (snapshot is null)
+                {
+                    result = new(false, ScoringUndoRedoFailure.InvalidHistory,
+                        unavailable);
+                    return;
+                }
+
+                RestoreSnapshot(transaction, session, snapshot);
+                history.CurrentPosition = targetPosition;
+                if (transaction.Update(history) != 1)
+                    throw new InvalidOperationException(
+                        "Scoring-history cursor update did not affect one row.");
+                result = new(true, ScoringUndoRedoFailure.None,
+                    GetUndoRedoAvailability(transaction, session));
+            });
+        }
+        catch
+        {
+            return new(false, ScoringUndoRedoFailure.Persistence, unavailable);
+        }
+        return result;
+    }
 
     public async Task<UpdateGameRulesResult> UpdateGameRulesAsync(
         int gameId, int homeRunLimit, bool isOneUpEnabled)
@@ -97,6 +190,7 @@ public sealed class GameScoringSessionRepository
                     return;
                 }
                 session.Status = GameScoringStatus.Completed;
+                session.CompletedAtUtc = DateTime.UtcNow;
                 if (transaction.Update(session) != 1)
                     throw new InvalidOperationException(
                         "Game completion did not affect one scoring session.");
@@ -147,6 +241,12 @@ public sealed class GameScoringSessionRepository
                     session.Id);
                 transaction.Execute(
                     "DELETE FROM GameScoringHalfInning WHERE GameScoringSessionId = ?",
+                    session.Id);
+                transaction.Execute(
+                    "DELETE FROM GameScoringHistorySnapshot WHERE GameScoringSessionId = ?",
+                    session.Id);
+                transaction.Execute(
+                    "DELETE FROM GameScoringHistory WHERE GameScoringSessionId = ?",
                     session.Id);
                 transaction.Execute(
                     "DELETE FROM GameScoringLineupPlayer WHERE GameScoringSessionId = ?",
@@ -322,6 +422,7 @@ public sealed class GameScoringSessionRepository
                 if (transaction.Update(halfInning) != 1)
                     throw new InvalidOperationException(
                         "Opponent entry did not update one completed half-inning.");
+                ReplaceCurrentHistorySnapshot(transaction, session.Id);
                 result = new(halfInning, true);
             });
         }
@@ -504,6 +605,7 @@ public sealed class GameScoringSessionRepository
                     return;
                 }
 
+                EnsureHistoryInitialized(transaction, context.Session!.Id);
                 ClearPending(transaction, context.Session!.Id);
                 var play = new GameScoringPendingPlay
                 {
@@ -550,6 +652,7 @@ public sealed class GameScoringSessionRepository
                     response = new(null, PendingPlayFailure.None);
                     return;
                 }
+                RecordPendingCheckpoint(transaction, context.Session.Id);
                 response = new(new(play, movements), PendingPlayFailure.None);
             });
         }
@@ -653,6 +756,7 @@ public sealed class GameScoringSessionRepository
                     return;
                 }
 
+                RecordPendingCheckpoint(transaction, session.Id);
                 response = new(new(play, synchronizedMovements), PendingPlayFailure.None);
             });
         }
@@ -766,6 +870,7 @@ public sealed class GameScoringSessionRepository
                         : PendingFailure(MapPendingFailure(completed.FailureReason));
                     return;
                 }
+                RecordPendingCheckpoint(transaction, session.Id);
                 response = new(new(play, synchronizedMovements), PendingPlayFailure.None);
             });
         }
@@ -838,6 +943,7 @@ public sealed class GameScoringSessionRepository
                 var session = transaction.Table<GameScoringSession>()
                     .FirstOrDefault(item => item.GameId == gameId);
                 if (session is null || session.Status != GameScoringStatus.InProgress) return;
+                RewindPendingHistory(transaction, session.Id);
                 ClearPending(transaction, session.Id);
                 cleared = true;
             });
@@ -961,6 +1067,7 @@ public sealed class GameScoringSessionRepository
                     result = CompleteFailure(context.Failure);
                     return;
                 }
+                EnsureHistoryInitialized(transaction, context.Session!.Id);
                 ClearPending(transaction, context.Session!.Id);
                 InsertPendingPlay(transaction, context, BatterResult.HomeRun);
                 result = CompletePendingPlay(transaction, gameId, BatterResult.HomeRun);
@@ -990,11 +1097,13 @@ public sealed class GameScoringSessionRepository
                     return;
                 }
 
+                EnsureHistoryInitialized(transaction, context.Session!.Id);
                 ClearPending(transaction, context.Session!.Id);
                 if (context.BaseRunners!.Count > 0 && context.Session.CurrentOuts < 2)
                 {
                     response = new(InsertPendingPlay(
                         transaction, context, BatterResult.Out), PendingPlayFailure.None);
+                    RecordPendingCheckpoint(transaction, context.Session.Id);
                     return;
                 }
 
@@ -1208,6 +1317,8 @@ public sealed class GameScoringSessionRepository
                 runRulingRequirement, runRulings, out var resolvedRunRulings))
             return CompleteFailure(CompletePlateAppearanceFailure.InvalidScoringState);
 
+        PrepareCommittedHistory(transaction, session.Id);
+
         var previousAppearances = transaction.Table<GamePlateAppearance>()
             .Where(item => item.GameScoringSessionId == session.Id).ToList();
         var appearance = new GamePlateAppearance
@@ -1281,6 +1392,7 @@ public sealed class GameScoringSessionRepository
             throw new InvalidOperationException(
                 "Current-batter advancement did not affect one row.");
         ClearPending(transaction, session.Id);
+        AdvanceHistory(transaction, session.Id);
         return new(appearance, session.CurrentBatterPosition, runs,
             CompletePlateAppearanceFailure.None);
     }
@@ -1357,6 +1469,7 @@ public sealed class GameScoringSessionRepository
             || rulingRequirement != ThirdOutRunRulingRequirement.AutomaticNoRun)
             return CompleteFailure(CompletePlateAppearanceFailure.InvalidScoringState);
 
+        PrepareCommittedHistory(transaction, session.Id);
         ClearPending(transaction, session.Id);
         var previousAppearances = transaction.Table<GamePlateAppearance>()
             .Where(item => item.GameScoringSessionId == session.Id).ToList();
@@ -1385,6 +1498,8 @@ public sealed class GameScoringSessionRepository
             throw new InvalidOperationException(
                 "Scoring-session multi-out update did not affect one row.");
 
+        AdvanceHistory(transaction, session.Id);
+
         return new(appearance, session.CurrentBatterPosition, 0,
             CompletePlateAppearanceFailure.None);
     }
@@ -1395,6 +1510,7 @@ public sealed class GameScoringSessionRepository
         var session = context.Session!;
         if (context.BaseRunners!.Count > 0 && session.CurrentOuts < 2)
             return CompleteFailure(CompletePlateAppearanceFailure.InvalidScoringState);
+        PrepareCommittedHistory(transaction, session.Id);
         ClearPending(transaction, session.Id);
         var currentBatter = context.CurrentBatter!;
         var previousAppearances = transaction.Table<GamePlateAppearance>()
@@ -1433,6 +1549,7 @@ public sealed class GameScoringSessionRepository
         if (transaction.Update(session) != 1)
             throw new InvalidOperationException(
                 "Scoring-session OUT update did not affect one row.");
+        AdvanceHistory(transaction, session.Id);
         return new(appearance, session.CurrentBatterPosition, 0,
             CompletePlateAppearanceFailure.None);
     }
@@ -1631,6 +1748,359 @@ public sealed class GameScoringSessionRepository
         if (pending is null) return;
         transaction.Execute("DELETE FROM GameScoringPendingRunnerMovement WHERE GameScoringPendingPlayId = ?", pending.Id);
         transaction.Delete(pending);
+    }
+
+    private static ScoringUndoRedoAvailability GetUndoRedoAvailability(
+        SQLite.SQLiteConnection transaction,
+        GameScoringSession? session)
+    {
+        if (session is null || session.Status != GameScoringStatus.InProgress
+            || HasPendingHalfInningTransition(transaction, session.Id))
+            return new(false, false);
+        var history = transaction.Find<GameScoringHistory>(session.Id);
+        return history is null
+            ? new(false, false)
+            : new(history.CurrentPosition > 0,
+                history.CurrentPosition < history.LatestPosition);
+    }
+
+    private static bool HasUnresolvedScoringState(
+        SQLite.SQLiteConnection transaction, int sessionId) =>
+        transaction.Table<GameScoringPendingPlay>()
+            .Any(item => item.GameScoringSessionId == sessionId)
+        || HasPendingHalfInningTransition(transaction, sessionId);
+
+    private static bool HasPendingHalfInningTransition(
+        SQLite.SQLiteConnection transaction, int sessionId) =>
+        transaction.Table<GameScoringHalfInning>()
+            .Any(item => item.GameScoringSessionId == sessionId
+                && !item.OpponentEntryCompleted);
+
+    private static void EnsureHistoryInitialized(
+        SQLite.SQLiteConnection transaction, int sessionId)
+    {
+        if (transaction.Find<GameScoringHistory>(sessionId) is not null) return;
+        var history = new GameScoringHistory
+        {
+            GameScoringSessionId = sessionId,
+            CurrentPosition = 0,
+            LatestPosition = 0,
+            PendingStartPosition = null,
+        };
+        if (transaction.Insert(history) != 1)
+            throw new InvalidOperationException(
+                "Scoring-history initialization did not affect one row.");
+        InsertSnapshot(transaction, sessionId, 0);
+    }
+
+    private static void AdvanceHistory(SQLite.SQLiteConnection transaction, int sessionId)
+    {
+        EnsureHistoryInitialized(transaction, sessionId);
+        var history = transaction.Find<GameScoringHistory>(sessionId)
+            ?? throw new InvalidOperationException("Scoring history was not initialized.");
+        transaction.Execute(
+            "DELETE FROM GameScoringHistorySnapshot WHERE GameScoringSessionId = ? AND Position > ?",
+            sessionId, history.CurrentPosition);
+        var nextPosition = checked(history.CurrentPosition + 1);
+        InsertSnapshot(transaction, sessionId, nextPosition);
+        history.CurrentPosition = nextPosition;
+        history.LatestPosition = nextPosition;
+        if (transaction.Update(history) != 1)
+            throw new InvalidOperationException(
+                "Scoring-history advancement did not affect one row.");
+    }
+
+    private static void RecordPendingCheckpoint(
+        SQLite.SQLiteConnection transaction, int sessionId)
+    {
+        EnsureHistoryInitialized(transaction, sessionId);
+        var history = transaction.Find<GameScoringHistory>(sessionId)
+            ?? throw new InvalidOperationException("Scoring history was not initialized.");
+        if (history.PendingStartPosition is null
+            || history.CurrentPosition < history.PendingStartPosition)
+            history.PendingStartPosition = history.CurrentPosition;
+
+        if (history.CurrentPosition < history.LatestPosition)
+        {
+            transaction.Execute(
+                "DELETE FROM GameScoringHistorySnapshot WHERE GameScoringSessionId = ? AND Position > ?",
+                sessionId, history.CurrentPosition);
+            history.LatestPosition = history.CurrentPosition;
+        }
+
+        var stateJson = JsonSerializer.Serialize(CaptureSnapshot(transaction, sessionId));
+        var matchingPosition = transaction.Table<GameScoringHistorySnapshot>()
+            .Where(item => item.GameScoringSessionId == sessionId
+                && item.Position > history.PendingStartPosition.Value
+                && item.Position <= history.CurrentPosition)
+            .ToList()
+            .Where(item => item.StateJson == stateJson)
+            .Select(item => (int?)item.Position)
+            .Max();
+        if (matchingPosition is not null)
+        {
+            transaction.Execute(
+                "DELETE FROM GameScoringHistorySnapshot WHERE GameScoringSessionId = ? AND Position > ?",
+                sessionId, matchingPosition.Value);
+            history.CurrentPosition = matchingPosition.Value;
+            history.LatestPosition = matchingPosition.Value;
+        }
+        else
+        {
+            var nextPosition = checked(history.CurrentPosition + 1);
+            InsertSnapshot(transaction, sessionId, nextPosition, stateJson);
+            history.CurrentPosition = nextPosition;
+            history.LatestPosition = nextPosition;
+        }
+
+        if (transaction.Update(history) != 1)
+            throw new InvalidOperationException(
+                "Pending scoring-history update did not affect one row.");
+    }
+
+    private static void PrepareCommittedHistory(
+        SQLite.SQLiteConnection transaction, int sessionId)
+    {
+        EnsureHistoryInitialized(transaction, sessionId);
+        var history = transaction.Find<GameScoringHistory>(sessionId)
+            ?? throw new InvalidOperationException("Scoring history was not initialized.");
+        if (history.PendingStartPosition is null) return;
+        var committedStartPosition = Math.Min(
+            history.CurrentPosition, history.PendingStartPosition.Value);
+        transaction.Execute(
+            "DELETE FROM GameScoringHistorySnapshot WHERE GameScoringSessionId = ? AND Position > ?",
+            sessionId, committedStartPosition);
+        history.CurrentPosition = committedStartPosition;
+        history.LatestPosition = committedStartPosition;
+        history.PendingStartPosition = null;
+        if (transaction.Update(history) != 1)
+            throw new InvalidOperationException(
+                "Committed scoring-history preparation did not affect one row.");
+    }
+
+    private static void RewindPendingHistory(
+        SQLite.SQLiteConnection transaction, int sessionId)
+    {
+        var history = transaction.Find<GameScoringHistory>(sessionId);
+        if (history?.PendingStartPosition is null) return;
+        transaction.Execute(
+            "DELETE FROM GameScoringHistorySnapshot WHERE GameScoringSessionId = ? AND Position > ?",
+            sessionId, history.PendingStartPosition.Value);
+        history.CurrentPosition = history.PendingStartPosition.Value;
+        history.LatestPosition = history.PendingStartPosition.Value;
+        history.PendingStartPosition = null;
+        if (transaction.Update(history) != 1)
+            throw new InvalidOperationException(
+                "Pending scoring-history rewind did not affect one row.");
+    }
+
+    private static void ReplaceCurrentHistorySnapshot(
+        SQLite.SQLiteConnection transaction, int sessionId)
+    {
+        EnsureHistoryInitialized(transaction, sessionId);
+        var history = transaction.Find<GameScoringHistory>(sessionId)
+            ?? throw new InvalidOperationException("Scoring history was not initialized.");
+        transaction.Execute(
+            "DELETE FROM GameScoringHistorySnapshot WHERE GameScoringSessionId = ? AND Position = ?",
+            sessionId, history.CurrentPosition);
+        InsertSnapshot(transaction, sessionId, history.CurrentPosition);
+    }
+
+    private static void InsertSnapshot(
+        SQLite.SQLiteConnection transaction, int sessionId, int position)
+    {
+        var stateJson = JsonSerializer.Serialize(CaptureSnapshot(transaction, sessionId));
+        InsertSnapshot(transaction, sessionId, position, stateJson);
+    }
+
+    private static void InsertSnapshot(
+        SQLite.SQLiteConnection transaction, int sessionId, int position,
+        string stateJson)
+    {
+        if (transaction.Insert(new GameScoringHistorySnapshot
+        {
+            GameScoringSessionId = sessionId,
+            Position = position,
+            StateJson = stateJson,
+        }) != 1)
+            throw new InvalidOperationException(
+                "Scoring-history snapshot insertion did not affect one row.");
+    }
+
+    private static PersistedScoringState CaptureSnapshot(
+        SQLite.SQLiteConnection transaction, int sessionId)
+    {
+        var session = transaction.Find<GameScoringSession>(sessionId)
+            ?? throw new InvalidOperationException("Scoring session was not found.");
+        var appearances = transaction.Table<GamePlateAppearance>()
+            .Where(item => item.GameScoringSessionId == sessionId)
+            .OrderBy(item => item.PlateAppearanceNumber).ToList();
+        var appearanceIds = appearances.Select(item => item.Id).ToHashSet();
+        var state = new PersistedScoringState
+        {
+            Session = new PersistedSessionState
+            {
+                HomeScore = session.HomeScore,
+                VisitorScore = session.VisitorScore,
+                CurrentBatterPosition = session.CurrentBatterPosition,
+                CurrentInning = session.CurrentInning,
+                CurrentOuts = session.CurrentOuts,
+            },
+            PlateAppearances = appearances,
+            BaseRunners = transaction.Table<GameScoringBaseRunner>()
+                .Where(item => item.GameScoringSessionId == sessionId)
+                .OrderBy(item => item.Base).ToList(),
+            RunnerMovements = transaction.Table<GamePlateAppearanceRunnerMovement>()
+                .ToList().Where(item => appearanceIds.Contains(item.GamePlateAppearanceId))
+                .OrderBy(item => item.GamePlateAppearanceId).ThenBy(item => item.Id).ToList(),
+            HalfInnings = transaction.Table<GameScoringHalfInning>()
+                .Where(item => item.GameScoringSessionId == sessionId)
+                .OrderBy(item => item.Inning).ToList(),
+            PendingPlay = transaction.Table<GameScoringPendingPlay>()
+                .FirstOrDefault(item => item.GameScoringSessionId == sessionId),
+        };
+        if (state.PendingPlay is not null)
+            state.PendingMovements = transaction.Table<GameScoringPendingRunnerMovement>()
+                .Where(item => item.GameScoringPendingPlayId == state.PendingPlay.Id)
+                .OrderBy(item => item.Id).ToList();
+        return state;
+    }
+
+    private static void RestoreSnapshot(
+        SQLite.SQLiteConnection transaction,
+        GameScoringSession session,
+        GameScoringHistorySnapshot snapshot)
+    {
+        var state = JsonSerializer.Deserialize<PersistedScoringState>(snapshot.StateJson)
+            ?? throw new InvalidOperationException("Scoring-history snapshot is invalid.");
+        if (state.Session is null
+            || state.PlateAppearances.Any(item => item.GameScoringSessionId != session.Id)
+            || state.BaseRunners.Any(item => item.GameScoringSessionId != session.Id)
+            || state.HalfInnings.Any(item => item.GameScoringSessionId != session.Id)
+            || state.PendingPlay is not null
+                && state.PendingPlay.GameScoringSessionId != session.Id
+            || state.PendingPlay is null && state.PendingMovements.Count > 0
+            || state.PendingPlay is not null && state.PendingMovements.Any(item =>
+                item.GameScoringPendingPlayId != state.PendingPlay.Id))
+            throw new InvalidOperationException("Scoring-history snapshot has invalid ownership.");
+
+        transaction.Execute(
+            "DELETE FROM GameScoringPendingRunnerMovement WHERE GameScoringPendingPlayId IN (SELECT Id FROM GameScoringPendingPlay WHERE GameScoringSessionId = ?)",
+            session.Id);
+        transaction.Execute(
+            "DELETE FROM GameScoringPendingPlay WHERE GameScoringSessionId = ?", session.Id);
+        transaction.Execute(
+            "DELETE FROM GamePlateAppearanceRunnerMovement WHERE GamePlateAppearanceId IN (SELECT Id FROM GamePlateAppearance WHERE GameScoringSessionId = ?)",
+            session.Id);
+        transaction.Execute(
+            "DELETE FROM GameScoringBaseRunner WHERE GameScoringSessionId = ?", session.Id);
+        transaction.Execute(
+            "DELETE FROM GameScoringHalfInning WHERE GameScoringSessionId = ?", session.Id);
+        transaction.Execute(
+            "DELETE FROM GamePlateAppearance WHERE GameScoringSessionId = ?", session.Id);
+
+        foreach (var appearance in state.PlateAppearances)
+            InsertRestoredRow(transaction, appearance, "plate appearance");
+        var appearanceIds = state.PlateAppearances.Select(item => item.Id).ToHashSet();
+        if (state.RunnerMovements.Any(item =>
+                !appearanceIds.Contains(item.GamePlateAppearanceId)))
+            throw new InvalidOperationException(
+                "Scoring-history runner movement has invalid ownership.");
+        foreach (var movement in state.RunnerMovements)
+            InsertRestoredRow(transaction, movement, "runner movement");
+        foreach (var runner in state.BaseRunners)
+            InsertRestoredRow(transaction, runner, "base runner");
+        foreach (var halfInning in state.HalfInnings)
+            InsertRestoredRow(transaction, halfInning, "half-inning");
+        if (state.PendingPlay is not null)
+        {
+            InsertRestoredRow(transaction, state.PendingPlay, "pending play");
+            foreach (var movement in state.PendingMovements)
+                InsertRestoredRow(transaction, movement, "pending movement");
+        }
+
+        session.HomeScore = state.Session.HomeScore;
+        session.VisitorScore = state.Session.VisitorScore;
+        session.CurrentBatterPosition = state.Session.CurrentBatterPosition;
+        session.CurrentInning = state.Session.CurrentInning;
+        session.CurrentOuts = state.Session.CurrentOuts;
+        if (transaction.Update(session) != 1)
+            throw new InvalidOperationException(
+                "Scoring-history session restoration did not affect one row.");
+    }
+
+    private static void InsertRestoredRow<T>(
+        SQLite.SQLiteConnection transaction, T item, string description)
+    {
+        var affected = item switch
+        {
+            GamePlateAppearance appearance => transaction.Execute(
+                "INSERT INTO GamePlateAppearance (Id, GameScoringSessionId, PlayerId, BattingPosition, PlateAppearanceNumber, Inning, Result) VALUES (?, ?, ?, ?, ?, ?, ?)",
+                appearance.Id, appearance.GameScoringSessionId, appearance.PlayerId,
+                appearance.BattingPosition, appearance.PlateAppearanceNumber,
+                appearance.Inning, appearance.Result),
+            GamePlateAppearanceRunnerMovement movement => transaction.Execute(
+                "INSERT INTO GamePlateAppearanceRunnerMovement (Id, GamePlateAppearanceId, PlayerId, StartingLocation, Destination, SafeDestination, AttemptedDestination, OutOrder, RunCounts) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                movement.Id, movement.GamePlateAppearanceId, movement.PlayerId,
+                movement.StartingLocation, movement.Destination,
+                movement.SafeDestination, movement.AttemptedDestination,
+                movement.OutOrder, movement.RunCounts),
+            GameScoringBaseRunner runner => transaction.Execute(
+                "INSERT INTO GameScoringBaseRunner (Id, GameScoringSessionId, PlayerId, Base) VALUES (?, ?, ?, ?)",
+                runner.Id, runner.GameScoringSessionId, runner.PlayerId, runner.Base),
+            GameScoringHalfInning halfInning => transaction.Execute(
+                "INSERT INTO GameScoringHalfInning (Id, GameScoringSessionId, Inning, TeamRuns, TeamHomeRuns, TeamSummaryAcknowledged, OpponentRuns, OpponentHomeRuns, OpponentEntryCompleted) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                halfInning.Id, halfInning.GameScoringSessionId, halfInning.Inning,
+                halfInning.TeamRuns, halfInning.TeamHomeRuns,
+                halfInning.TeamSummaryAcknowledged, halfInning.OpponentRuns,
+                halfInning.OpponentHomeRuns, halfInning.OpponentEntryCompleted),
+            GameScoringPendingPlay pending => transaction.Execute(
+                "INSERT INTO GameScoringPendingPlay (Id, GameScoringSessionId, BatterPlayerId, BatterPosition, Result) VALUES (?, ?, ?, ?, ?)",
+                pending.Id, pending.GameScoringSessionId, pending.BatterPlayerId,
+                pending.BatterPosition, pending.Result),
+            GameScoringPendingRunnerMovement pendingMovement => transaction.Execute(
+                "INSERT INTO GameScoringPendingRunnerMovement (Id, GameScoringPendingPlayId, PlayerId, StartingLocation, Destination, SafeDestination, AttemptedDestination, OutOrder, RequiresOutcomeConfirmation) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                pendingMovement.Id, pendingMovement.GameScoringPendingPlayId,
+                pendingMovement.PlayerId, pendingMovement.StartingLocation,
+                pendingMovement.Destination, pendingMovement.SafeDestination,
+                pendingMovement.AttemptedDestination, pendingMovement.OutOrder,
+                pendingMovement.RequiresOutcomeConfirmation),
+            _ => throw new InvalidOperationException(
+                $"Unsupported scoring-history row type {typeof(T).Name}."),
+        };
+        if (affected != 1)
+            throw new InvalidOperationException(
+                $"Scoring-history {description} restoration did not affect one row.");
+    }
+
+    private sealed class PersistedScoringState
+    {
+        public PersistedSessionState? Session { get; set; }
+
+        public List<GamePlateAppearance> PlateAppearances { get; set; } = [];
+
+        public List<GameScoringBaseRunner> BaseRunners { get; set; } = [];
+
+        public List<GamePlateAppearanceRunnerMovement> RunnerMovements { get; set; } = [];
+
+        public List<GameScoringHalfInning> HalfInnings { get; set; } = [];
+
+        public GameScoringPendingPlay? PendingPlay { get; set; }
+
+        public List<GameScoringPendingRunnerMovement> PendingMovements { get; set; } = [];
+    }
+
+    private sealed class PersistedSessionState
+    {
+        public int HomeScore { get; set; }
+
+        public int VisitorScore { get; set; }
+
+        public int CurrentBatterPosition { get; set; }
+
+        public int CurrentInning { get; set; }
+
+        public int CurrentOuts { get; set; }
     }
 
     private sealed record CompletionContext(
