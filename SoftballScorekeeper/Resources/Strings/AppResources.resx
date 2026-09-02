@@ -526,6 +526,24 @@
   <data name="HomeButton" xml:space="preserve"><value>Home</value></data>
   <data name="InProgressStatus" xml:space="preserve"><value>In Progress</value></data>
   <data name="CompletedStatus" xml:space="preserve"><value>Completed</value></data>
+  <data name="FinalStatus" xml:space="preserve"><value>FINAL</value></data>
+  <data name="BattingStatisticsHeading" xml:space="preserve"><value>Batting Statistics</value></data>
+  <data name="PlayerStatHeading" xml:space="preserve"><value>Player</value></data>
+  <data name="TeamTotalStatLabel" xml:space="preserve"><value>TEAM TOTAL</value></data>
+  <data name="PlateAppearancesStatHeading" xml:space="preserve"><value>PA</value></data>
+  <data name="AtBatsStatHeading" xml:space="preserve"><value>AB</value></data>
+  <data name="HitsStatHeading" xml:space="preserve"><value>H</value></data>
+  <data name="SinglesStatHeading" xml:space="preserve"><value>1B</value></data>
+  <data name="DoublesStatHeading" xml:space="preserve"><value>2B</value></data>
+  <data name="TriplesStatHeading" xml:space="preserve"><value>3B</value></data>
+  <data name="HomeRunsStatHeading" xml:space="preserve"><value>HR</value></data>
+  <data name="WalksStatHeading" xml:space="preserve"><value>BB</value></data>
+  <data name="FielderChoicesStatHeading" xml:space="preserve"><value>FC</value></data>
+  <data name="SacrificeFliesStatHeading" xml:space="preserve"><value>SF</value></data>
+  <data name="BattingAverageStatHeading" xml:space="preserve"><value>AVG</value></data>
+  <data name="OnBasePercentageStatHeading" xml:space="preserve"><value>OBP</value></data>
+  <data name="SluggingPercentageStatHeading" xml:space="preserve"><value>SLG</value></data>
+  <data name="CompletedGameLoadFailedMessage" xml:space="preserve"><value>The completed Game record could not be loaded.</value></data>
   <data name="ExitGameButton" xml:space="preserve"><value>Exit Game</value></data>
   <data name="ScoringMenuAccessibility" xml:space="preserve"><value>Open scoring menu</value></data>
   <data name="ScoringTitle" xml:space="preserve"><value>Scoring</value></data>

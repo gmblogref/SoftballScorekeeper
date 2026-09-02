@@ -7,59 +7,283 @@
              x:Class="SoftballScorekeeper.Views.GameWorkspacePage"
              x:DataType="viewModels:GameWorkspaceViewModel"
              Title="{x:Static strings:AppResources.GameWorkspaceTitle}">
-    <Grid Padding="40" RowDefinitions="Auto,Auto,Auto,Auto,Auto,*,Auto" RowSpacing="20">
+    <ContentPage.Resources>
+        <Style x:Key="CompletedStatHeading" TargetType="Label">
+            <Setter Property="FontSize" Value="13" />
+            <Setter Property="FontAttributes" Value="Bold" />
+            <Setter Property="HorizontalTextAlignment" Value="Center" />
+            <Setter Property="VerticalTextAlignment" Value="Center" />
+        </Style>
+        <Style x:Key="CompletedStatValue" TargetType="Label">
+            <Setter Property="FontSize" Value="16" />
+            <Setter Property="HorizontalTextAlignment" Value="Center" />
+            <Setter Property="VerticalTextAlignment" Value="Center" />
+        </Style>
+    </ContentPage.Resources>
+
+    <Grid x:Name="RootGrid" Padding="40" RowDefinitions="Auto,Auto,*" RowSpacing="20">
+        <VisualStateManager.VisualStateGroups>
+            <VisualStateGroup x:Name="CompletedWorkspaceLayoutStates">
+                <VisualState x:Name="PortraitCompletedWorkspace">
+                    <VisualState.StateTriggers>
+                        <AdaptiveTrigger MinWindowWidth="0" />
+                    </VisualState.StateTriggers>
+                </VisualState>
+                <VisualState x:Name="LandscapeCompletedWorkspace">
+                    <VisualState.StateTriggers>
+                        <AdaptiveTrigger MinWindowWidth="900" />
+                    </VisualState.StateTriggers>
+                    <VisualState.Setters>
+                        <Setter TargetName="RootGrid" Property="Padding" Value="24,16" />
+                        <Setter TargetName="RootGrid" Property="RowSpacing" Value="12" />
+                        <Setter TargetName="CompletedGameGrid" Property="RowSpacing" Value="8" />
+                        <Setter TargetName="CompletedScoreboard" Property="Padding" Value="18,8" />
+                        <Setter TargetName="CompletedVisitorScore" Property="Label.FontSize" Value="48" />
+                        <Setter TargetName="CompletedHomeScore" Property="Label.FontSize" Value="48" />
+                    </VisualState.Setters>
+                </VisualState>
+            </VisualStateGroup>
+        </VisualStateManager.VisualStateGroups>
+
         <controls:PrimarySectionNavigation Grid.Row="0" CurrentSection="Teams" />
-        <VerticalStackLayout Grid.Row="1" Spacing="6" IsVisible="{Binding IsLoaded}">
-            <Label Text="{Binding TeamName}" Style="{StaticResource Headline}" SemanticProperties.HeadingLevel="Level1" />
-            <Label Text="{x:Static strings:AppResources.GameDetailsHeading}" Style="{StaticResource SubHeadline}" SemanticProperties.HeadingLevel="Level2" />
-        </VerticalStackLayout>
-        <Label Grid.Row="2" Text="{Binding ValidationMessage}" HorizontalTextAlignment="Center">
+
+        <Label AutomationId="GameWorkspaceValidationMessage"
+               Grid.Row="1"
+               Text="{Binding ValidationMessage}"
+               HorizontalTextAlignment="Center">
             <Label.Triggers>
                 <DataTrigger TargetType="Label" Binding="{Binding ValidationMessage}" Value="">
                     <Setter Property="IsVisible" Value="False" />
                 </DataTrigger>
             </Label.Triggers>
         </Label>
-        <Grid Grid.Row="3" IsVisible="{Binding IsLoaded}" RowDefinitions="Auto,Auto,Auto" ColumnDefinitions="*,*" ColumnSpacing="32" RowSpacing="20" Padding="0,12">
-            <VerticalStackLayout Spacing="6">
-                <Label Text="{x:Static strings:AppResources.OpponentLabel}" FontAttributes="Bold" />
-                <Label Text="{Binding OpponentDisplay}" FontSize="22" />
-            </VerticalStackLayout>
-            <VerticalStackLayout Grid.Column="1" Spacing="6">
-                <Label Text="{x:Static strings:AppResources.SeasonLabel}" FontAttributes="Bold" />
-                <Label Text="{Binding SeasonDisplay}" FontSize="22" />
-            </VerticalStackLayout>
-            <VerticalStackLayout Grid.Row="1" Spacing="6">
-                <Label Text="{x:Static strings:AppResources.GameDateLabel}" FontAttributes="Bold" />
-                <Label Text="{Binding DateDisplay}" FontSize="22" />
-            </VerticalStackLayout>
-            <VerticalStackLayout Grid.Row="1" Grid.Column="1" Spacing="6">
-                <Label Text="{x:Static strings:AppResources.GameTimeLabel}" FontAttributes="Bold" />
-                <Label Text="{Binding TimeDisplay}" FontSize="22" />
-            </VerticalStackLayout>
-            <VerticalStackLayout Grid.Row="2" Spacing="6">
-                <Label Text="{x:Static strings:AppResources.FieldLabel}" FontAttributes="Bold" />
-                <Label Text="{Binding FieldDisplay}" FontSize="22" />
-            </VerticalStackLayout>
+
+        <Grid Grid.Row="2">
+            <Grid IsVisible="{Binding ShowStandardWorkspace}"
+                  RowDefinitions="Auto,Auto,Auto,*,Auto"
+                  RowSpacing="20">
+                <VerticalStackLayout Spacing="6">
+                    <Label Text="{Binding TeamName}" Style="{StaticResource Headline}"
+                           SemanticProperties.HeadingLevel="Level1" />
+                    <Label Text="{x:Static strings:AppResources.GameDetailsHeading}"
+                           Style="{StaticResource SubHeadline}"
+                           SemanticProperties.HeadingLevel="Level2" />
+                </VerticalStackLayout>
+                <Grid Grid.Row="1" RowDefinitions="Auto,Auto,Auto"
+                      ColumnDefinitions="*,*" ColumnSpacing="32" RowSpacing="20" Padding="0,12">
+                    <VerticalStackLayout Spacing="6">
+                        <Label Text="{x:Static strings:AppResources.OpponentLabel}" FontAttributes="Bold" />
+                        <Label Text="{Binding OpponentDisplay}" FontSize="22" />
+                    </VerticalStackLayout>
+                    <VerticalStackLayout Grid.Column="1" Spacing="6">
+                        <Label Text="{x:Static strings:AppResources.SeasonLabel}" FontAttributes="Bold" />
+                        <Label Text="{Binding SeasonDisplay}" FontSize="22" />
+                    </VerticalStackLayout>
+                    <VerticalStackLayout Grid.Row="1" Spacing="6">
+                        <Label Text="{x:Static strings:AppResources.GameDateLabel}" FontAttributes="Bold" />
+                        <Label Text="{Binding DateDisplay}" FontSize="22" />
+                    </VerticalStackLayout>
+                    <VerticalStackLayout Grid.Row="1" Grid.Column="1" Spacing="6">
+                        <Label Text="{x:Static strings:AppResources.GameTimeLabel}" FontAttributes="Bold" />
+                        <Label Text="{Binding TimeDisplay}" FontSize="22" />
+                    </VerticalStackLayout>
+                    <VerticalStackLayout Grid.Row="2" Spacing="6">
+                        <Label Text="{x:Static strings:AppResources.FieldLabel}" FontAttributes="Bold" />
+                        <Label Text="{Binding FieldDisplay}" FontSize="22" />
+                    </VerticalStackLayout>
+                </Grid>
+                <Grid Grid.Row="2" ColumnDefinitions="Auto,Auto" ColumnSpacing="20"
+                      HorizontalOptions="Center">
+                    <Button AutomationId="ScoreGameButton"
+                            Text="{x:Static strings:AppResources.ScoreGameButton}"
+                            Clicked="OnScoreGameClicked" IsVisible="{Binding ShowScoreGame}"
+                            MinimumHeightRequest="52" MinimumWidthRequest="200" Padding="24,14" />
+                    <Button AutomationId="ResumeGameButton"
+                            Text="{x:Static strings:AppResources.ResumeGameButton}"
+                            Command="{Binding ResumeGameCommand}" IsVisible="{Binding ShowResumeGame}"
+                            MinimumHeightRequest="52" MinimumWidthRequest="200" Padding="24,14" />
+                    <Button Grid.Column="1"
+                            Text="{x:Static strings:AppResources.ResetGameButton}"
+                            Clicked="OnResetGameClicked" IsVisible="{Binding ShowResetGame}"
+                            MinimumHeightRequest="52" MinimumWidthRequest="200" Padding="24,14" />
+                </Grid>
+                <HorizontalStackLayout Grid.Row="4" HorizontalOptions="Center" Spacing="20">
+                    <Button Text="{x:Static strings:AppResources.EditGameTitle}"
+                            Command="{Binding EditGameCommand}"
+                            MinimumHeightRequest="52" MinimumWidthRequest="200"
+                            HorizontalOptions="Center" Padding="24,14" />
+                    <Button Text="{Binding LineupActionText}"
+                            Command="{Binding SetLineupCommand}"
+                            IsVisible="{Binding ShowLineupAction}"
+                            MinimumHeightRequest="52" MinimumWidthRequest="200" Padding="24,14" />
+                </HorizontalStackLayout>
+            </Grid>
+
+            <Grid x:Name="CompletedGameGrid"
+                  IsVisible="{Binding ShowCompletedGame}"
+                  RowDefinitions="Auto,Auto,*,Auto"
+                  RowSpacing="12">
+                <Border x:Name="CompletedScoreboard"
+                        Stroke="{AppThemeBinding Light={StaticResource Gray300}, Dark={StaticResource Gray600}}"
+                        StrokeShape="RoundRectangle 12" Padding="24,12">
+                    <Grid RowDefinitions="Auto,Auto" RowSpacing="4">
+                        <Label AutomationId="CompletedGameStatus"
+                               Text="{x:Static strings:AppResources.FinalStatus}"
+                               FontSize="20" FontAttributes="Bold"
+                               HorizontalTextAlignment="Center"
+                               SemanticProperties.HeadingLevel="Level1" />
+                        <Grid Grid.Row="1" ColumnDefinitions="*,1,*" ColumnSpacing="24">
+                            <Grid RowDefinitions="Auto,Auto,Auto" RowSpacing="2">
+                                <Label Text="{x:Static strings:AppResources.VisitorScoreboardHeading}"
+                                       FontSize="16" FontAttributes="Bold" HorizontalTextAlignment="Center" />
+                                <Label AutomationId="CompletedVisitorName" Grid.Row="1"
+                                       Text="{Binding CompletedVisitorName}" FontSize="20" FontAttributes="Bold"
+                                       HorizontalTextAlignment="Center" LineBreakMode="TailTruncation" MaxLines="1" />
+                                <Label x:Name="CompletedVisitorScore" AutomationId="CompletedVisitorScore"
+                                       Grid.Row="2" Text="{Binding CompletedVisitorScore}"
+                                       FontSize="56" FontAttributes="Bold" HorizontalTextAlignment="Center" />
+                            </Grid>
+                            <BoxView Grid.Column="1"
+                                     BackgroundColor="{AppThemeBinding Light={StaticResource Gray300}, Dark={StaticResource Gray600}}" />
+                            <Grid Grid.Column="2" RowDefinitions="Auto,Auto,Auto" RowSpacing="2">
+                                <Label Text="{x:Static strings:AppResources.HomeScoreboardHeading}"
+                                       FontSize="16" FontAttributes="Bold" HorizontalTextAlignment="Center" />
+                                <Label AutomationId="CompletedHomeName" Grid.Row="1"
+                                       Text="{Binding CompletedHomeName}" FontSize="20" FontAttributes="Bold"
+                                       HorizontalTextAlignment="Center" LineBreakMode="TailTruncation" MaxLines="1" />
+                                <Label x:Name="CompletedHomeScore" AutomationId="CompletedHomeScore"
+                                       Grid.Row="2" Text="{Binding CompletedHomeScore}"
+                                       FontSize="56" FontAttributes="Bold" HorizontalTextAlignment="Center" />
+                            </Grid>
+                        </Grid>
+                    </Grid>
+                </Border>
+
+                <Label Grid.Row="1" Text="{x:Static strings:AppResources.BattingStatisticsHeading}"
+                       Style="{StaticResource SubHeadline}" SemanticProperties.HeadingLevel="Level2" />
+
+                <ScrollView Grid.Row="2"
+                            AutomationId="CompletedBattingStats"
+                            Orientation="Both"
+                            HorizontalScrollBarVisibility="Always"
+                            VerticalScrollBarVisibility="Default">
+                    <VerticalStackLayout x:Name="CompletedStatsTable"
+                                         Spacing="0"
+                                         MinimumWidthRequest="926"
+                                         HorizontalOptions="Start">
+                        <Grid x:Name="CompletedStatsHeader"
+                              Padding="10,6,10,0"
+                              RowDefinitions="Auto,2"
+                              ColumnDefinitions="180,2,52,52,52,52,52,52,52,52,52,52,68,68,68">
+                            <Label Text="{x:Static strings:AppResources.PlayerStatHeading}"
+                                   FontAttributes="Bold" VerticalTextAlignment="Center" />
+                            <BoxView Grid.Column="1" Grid.RowSpan="2"
+                                     BackgroundColor="{AppThemeBinding Light={StaticResource Gray500}, Dark={StaticResource Gray400}}" />
+                            <Label Grid.Column="2" Text="{x:Static strings:AppResources.PlateAppearancesStatHeading}" Style="{StaticResource CompletedStatHeading}" />
+                            <Label Grid.Column="3" Text="{x:Static strings:AppResources.AtBatsStatHeading}" Style="{StaticResource CompletedStatHeading}" />
+                            <Label Grid.Column="4" Text="{x:Static strings:AppResources.HitsStatHeading}" Style="{StaticResource CompletedStatHeading}" />
+                            <Label Grid.Column="5" Text="{x:Static strings:AppResources.SinglesStatHeading}" Style="{StaticResource CompletedStatHeading}" />
+                            <Label Grid.Column="6" Text="{x:Static strings:AppResources.DoublesStatHeading}" Style="{StaticResource CompletedStatHeading}" />
+                            <Label Grid.Column="7" Text="{x:Static strings:AppResources.TriplesStatHeading}" Style="{StaticResource CompletedStatHeading}" />
+                            <Label Grid.Column="8" Text="{x:Static strings:AppResources.HomeRunsStatHeading}" Style="{StaticResource CompletedStatHeading}" />
+                            <Label Grid.Column="9" Text="{x:Static strings:AppResources.WalksStatHeading}" Style="{StaticResource CompletedStatHeading}" />
+                            <Label Grid.Column="10" Text="{x:Static strings:AppResources.FielderChoicesStatHeading}" Style="{StaticResource CompletedStatHeading}" />
+                            <Label Grid.Column="11" Text="{x:Static strings:AppResources.SacrificeFliesStatHeading}" Style="{StaticResource CompletedStatHeading}" />
+                            <Label Grid.Column="12" Text="{x:Static strings:AppResources.BattingAverageStatHeading}" Style="{StaticResource CompletedStatHeading}" />
+                            <Label Grid.Column="13" Text="{x:Static strings:AppResources.OnBasePercentageStatHeading}" Style="{StaticResource CompletedStatHeading}" />
+                            <Label Grid.Column="14" Text="{x:Static strings:AppResources.SluggingPercentageStatHeading}" Style="{StaticResource CompletedStatHeading}" />
+                            <BoxView Grid.Row="1" Grid.ColumnSpan="15"
+                                     BackgroundColor="{AppThemeBinding Light={StaticResource Gray500}, Dark={StaticResource Gray400}}" />
+                        </Grid>
+
+                        <VerticalStackLayout x:Name="CompletedStatsPlayerRows"
+                                             Spacing="0"
+                                             BindableLayout.ItemsSource="{Binding CompletedBattingRows}">
+                            <BindableLayout.ItemTemplate>
+                                <DataTemplate x:DataType="viewModels:CompletedBattingStatRowViewModel">
+                                    <Grid AutomationId="{Binding AutomationId}"
+                                          Padding="10,0"
+                                          RowDefinitions="44,1"
+                                          ColumnDefinitions="180,2,52,52,52,52,52,52,52,52,52,52,68,68,68">
+                                        <Label Text="{Binding PlayerName}" FontSize="16" FontAttributes="Bold"
+                                               VerticalTextAlignment="Center" LineBreakMode="TailTruncation" MaxLines="1" />
+                                        <BoxView Grid.Column="1" Grid.RowSpan="2"
+                                                 BackgroundColor="{AppThemeBinding Light={StaticResource Gray500}, Dark={StaticResource Gray400}}" />
+                                        <Label AutomationId="{Binding PlateAppearancesAutomationId}" Grid.Column="2" Text="{Binding PlateAppearances}" Style="{StaticResource CompletedStatValue}" />
+                                        <Label AutomationId="{Binding AtBatsAutomationId}" Grid.Column="3" Text="{Binding AtBats}" Style="{StaticResource CompletedStatValue}" />
+                                        <Label AutomationId="{Binding HitsAutomationId}" Grid.Column="4" Text="{Binding Hits}" Style="{StaticResource CompletedStatValue}" />
+                                        <Label Grid.Column="5" Text="{Binding Singles}" Style="{StaticResource CompletedStatValue}" />
+                                        <Label Grid.Column="6" Text="{Binding Doubles}" Style="{StaticResource CompletedStatValue}" />
+                                        <Label Grid.Column="7" Text="{Binding Triples}" Style="{StaticResource CompletedStatValue}" />
+                                        <Label AutomationId="{Binding HomeRunsAutomationId}" Grid.Column="8" Text="{Binding HomeRuns}" Style="{StaticResource CompletedStatValue}" />
+                                        <Label Grid.Column="9" Text="{Binding Walks}" Style="{StaticResource CompletedStatValue}" />
+                                        <Label Grid.Column="10" Text="{Binding FielderChoices}" Style="{StaticResource CompletedStatValue}" />
+                                        <Label Grid.Column="11" Text="{Binding SacrificeFlies}" Style="{StaticResource CompletedStatValue}" />
+                                        <Label AutomationId="{Binding BattingAverageAutomationId}" Grid.Column="12" Text="{Binding BattingAverage}" Style="{StaticResource CompletedStatValue}" />
+                                        <Label AutomationId="{Binding OnBasePercentageAutomationId}" Grid.Column="13" Text="{Binding OnBasePercentage}" Style="{StaticResource CompletedStatValue}" />
+                                        <Label AutomationId="{Binding SluggingPercentageAutomationId}" Grid.Column="14" Text="{Binding SluggingPercentage}" Style="{StaticResource CompletedStatValue}" />
+                                        <BoxView Grid.Row="1" Grid.ColumnSpan="15"
+                                                 BackgroundColor="{AppThemeBinding Light={StaticResource Gray300}, Dark={StaticResource Gray600}}" />
+                                    </Grid>
+                                </DataTemplate>
+                            </BindableLayout.ItemTemplate>
+                        </VerticalStackLayout>
+
+                        <Grid x:Name="CompletedStatsTeamTotal"
+                              AutomationId="CompletedBattingTeamTotal"
+                              Padding="10,0"
+                              RowDefinitions="2,46"
+                              ColumnDefinitions="180,2,52,52,52,52,52,52,52,52,52,52,68,68,68">
+                            <BoxView Grid.ColumnSpan="15"
+                                     BackgroundColor="{AppThemeBinding Light={StaticResource Gray600}, Dark={StaticResource Gray300}}" />
+                            <Label Grid.Row="1" Text="{Binding CompletedBattingTeamTotal.PlayerName}"
+                                   FontSize="16" FontAttributes="Bold" VerticalTextAlignment="Center" />
+                            <BoxView Grid.Row="1" Grid.Column="1"
+                                     BackgroundColor="{AppThemeBinding Light={StaticResource Gray500}, Dark={StaticResource Gray400}}" />
+                            <Label AutomationId="{Binding CompletedBattingTeamTotal.PlateAppearancesAutomationId}" Grid.Row="1" Grid.Column="2" Text="{Binding CompletedBattingTeamTotal.PlateAppearances}" Style="{StaticResource CompletedStatValue}" FontAttributes="Bold" />
+                            <Label AutomationId="{Binding CompletedBattingTeamTotal.AtBatsAutomationId}" Grid.Row="1" Grid.Column="3" Text="{Binding CompletedBattingTeamTotal.AtBats}" Style="{StaticResource CompletedStatValue}" FontAttributes="Bold" />
+                            <Label AutomationId="{Binding CompletedBattingTeamTotal.HitsAutomationId}" Grid.Row="1" Grid.Column="4" Text="{Binding CompletedBattingTeamTotal.Hits}" Style="{StaticResource CompletedStatValue}" FontAttributes="Bold" />
+                            <Label Grid.Row="1" Grid.Column="5" Text="{Binding CompletedBattingTeamTotal.Singles}" Style="{StaticResource CompletedStatValue}" FontAttributes="Bold" />
+                            <Label Grid.Row="1" Grid.Column="6" Text="{Binding CompletedBattingTeamTotal.Doubles}" Style="{StaticResource CompletedStatValue}" FontAttributes="Bold" />
+                            <Label Grid.Row="1" Grid.Column="7" Text="{Binding CompletedBattingTeamTotal.Triples}" Style="{StaticResource CompletedStatValue}" FontAttributes="Bold" />
+                            <Label AutomationId="{Binding CompletedBattingTeamTotal.HomeRunsAutomationId}" Grid.Row="1" Grid.Column="8" Text="{Binding CompletedBattingTeamTotal.HomeRuns}" Style="{StaticResource CompletedStatValue}" FontAttributes="Bold" />
+                            <Label Grid.Row="1" Grid.Column="9" Text="{Binding CompletedBattingTeamTotal.Walks}" Style="{StaticResource CompletedStatValue}" FontAttributes="Bold" />
+                            <Label Grid.Row="1" Grid.Column="10" Text="{Binding CompletedBattingTeamTotal.FielderChoices}" Style="{StaticResource CompletedStatValue}" FontAttributes="Bold" />
+                            <Label Grid.Row="1" Grid.Column="11" Text="{Binding CompletedBattingTeamTotal.SacrificeFlies}" Style="{StaticResource CompletedStatValue}" FontAttributes="Bold" />
+                            <Label AutomationId="{Binding CompletedBattingTeamTotal.BattingAverageAutomationId}" Grid.Row="1" Grid.Column="12" Text="{Binding CompletedBattingTeamTotal.BattingAverage}" Style="{StaticResource CompletedStatValue}" FontAttributes="Bold" />
+                            <Label AutomationId="{Binding CompletedBattingTeamTotal.OnBasePercentageAutomationId}" Grid.Row="1" Grid.Column="13" Text="{Binding CompletedBattingTeamTotal.OnBasePercentage}" Style="{StaticResource CompletedStatValue}" FontAttributes="Bold" />
+                            <Label AutomationId="{Binding CompletedBattingTeamTotal.SluggingPercentageAutomationId}" Grid.Row="1" Grid.Column="14" Text="{Binding CompletedBattingTeamTotal.SluggingPercentage}" Style="{StaticResource CompletedStatValue}" FontAttributes="Bold" />
+                        </Grid>
+                    </VerticalStackLayout>
+                </ScrollView>
+
+                <Border Grid.Row="3"
+                        Stroke="{AppThemeBinding Light={StaticResource Gray300}, Dark={StaticResource Gray600}}"
+                        StrokeShape="RoundRectangle 8" Padding="14,8">
+                    <Grid RowDefinitions="Auto,Auto,Auto" ColumnDefinitions="*,*" RowSpacing="6" ColumnSpacing="24">
+                        <HorizontalStackLayout Spacing="6">
+                            <Label Text="{x:Static strings:AppResources.SeasonLabel}" FontAttributes="Bold" />
+                            <Label Text="{Binding SeasonDisplay}" LineBreakMode="TailTruncation" MaxLines="1" />
+                        </HorizontalStackLayout>
+                        <HorizontalStackLayout Grid.Column="1" Spacing="6">
+                            <Label Text="{x:Static strings:AppResources.OpponentLabel}" FontAttributes="Bold" />
+                            <Label Text="{Binding OpponentDisplay}" LineBreakMode="TailTruncation" MaxLines="1" />
+                        </HorizontalStackLayout>
+                        <HorizontalStackLayout Grid.Row="1" Spacing="6">
+                            <Label Text="{x:Static strings:AppResources.GameDateLabel}" FontAttributes="Bold" />
+                            <Label Text="{Binding DateDisplay}" LineBreakMode="TailTruncation" MaxLines="1" />
+                        </HorizontalStackLayout>
+                        <HorizontalStackLayout Grid.Row="1" Grid.Column="1" Spacing="6">
+                            <Label Text="{x:Static strings:AppResources.GameTimeLabel}" FontAttributes="Bold" />
+                            <Label Text="{Binding TimeDisplay}" LineBreakMode="TailTruncation" MaxLines="1" />
+                        </HorizontalStackLayout>
+                        <HorizontalStackLayout Grid.Row="2" Spacing="6">
+                            <Label Text="{x:Static strings:AppResources.FieldLabel}" FontAttributes="Bold" />
+                            <Label Text="{Binding FieldDisplay}" LineBreakMode="TailTruncation" MaxLines="1" />
+                        </HorizontalStackLayout>
+                    </Grid>
+                </Border>
+            </Grid>
         </Grid>
-        <Grid Grid.Row="4" ColumnDefinitions="Auto,Auto" ColumnSpacing="20"
-              HorizontalOptions="Center" IsVisible="{Binding IsLoaded}">
-            <Button AutomationId="ScoreGameButton" Text="{x:Static strings:AppResources.ScoreGameButton}" Clicked="OnScoreGameClicked" IsVisible="{Binding ShowScoreGame}" MinimumHeightRequest="52" MinimumWidthRequest="200" Padding="24,14" />
-            <Button AutomationId="ResumeGameButton" Text="{x:Static strings:AppResources.ResumeGameButton}" Command="{Binding ResumeGameCommand}" IsVisible="{Binding ShowResumeGame}" MinimumHeightRequest="52" MinimumWidthRequest="200" Padding="24,14" />
-            <Button Grid.Column="1" Text="{x:Static strings:AppResources.ResetGameButton}"
-                    Clicked="OnResetGameClicked" IsVisible="{Binding ShowResetGame}"
-                    MinimumHeightRequest="52" MinimumWidthRequest="200" Padding="24,14" />
-        </Grid>
-        <HorizontalStackLayout Grid.Row="6" HorizontalOptions="Center" Spacing="20">
-            <Button
-                Text="{x:Static strings:AppResources.EditGameTitle}"
-                Command="{Binding EditGameCommand}"
-                IsVisible="{Binding IsLoaded}"
-                MinimumHeightRequest="52"
-                MinimumWidthRequest="200"
-                HorizontalOptions="Center"
-                Padding="24,14" />
-            <Button Text="{Binding LineupActionText}" Command="{Binding SetLineupCommand}" IsVisible="{Binding ShowLineupAction}" MinimumHeightRequest="52" MinimumWidthRequest="200" Padding="24,14" />
-        </HorizontalStackLayout>
     </Grid>
 </ContentPage>

@@ -7,6 +7,7 @@ namespace SoftballScorekeeper.Testing;
 public sealed class AndroidUiTestDataInitializer
 {
     internal const string RequestFileName = "android-ui-test-seed";
+    internal const string MissingGameRequestFileName = "android-ui-test-missing-game";
 
     private readonly TeamRepository teamRepository;
     private readonly PlayerRepository playerRepository;
@@ -28,9 +29,13 @@ public sealed class AndroidUiTestDataInitializer
     internal async Task<AndroidUiTestContext?> InitializeIfRequestedAsync()
     {
         var requestPath = Path.Combine(FileSystem.AppDataDirectory, RequestFileName);
-        if (!File.Exists(requestPath)) return null;
+        var missingGameRequestPath = Path.Combine(
+            FileSystem.AppDataDirectory, MissingGameRequestFileName);
+        var useMissingGame = File.Exists(missingGameRequestPath);
+        if (!File.Exists(requestPath) && !useMissingGame) return null;
 
-        File.Delete(requestPath);
+        if (File.Exists(requestPath)) File.Delete(requestPath);
+        if (useMissingGame) File.Delete(missingGameRequestPath);
 
         var team = new Team { Name = "Automation Team", IsActive = true };
         EnsureSingleRow(await teamRepository.CreateAsync(team), "team");
@@ -81,7 +86,7 @@ public sealed class AndroidUiTestDataInitializer
         if (!lineupResult.IsSuccess)
             throw new InvalidOperationException("Could not seed the Android UI-test lineup.");
 
-        return new AndroidUiTestContext(team.Id, gameId);
+        return new AndroidUiTestContext(team.Id, useMissingGame ? gameId + 1 : gameId);
     }
 
     private static void EnsureSingleRow(int affectedRows, string entityName)

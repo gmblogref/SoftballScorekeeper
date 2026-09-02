@@ -17,12 +17,13 @@ public sealed class AndroidAppiumFixture : IDisposable
     public AndroidDriver Driver => driver ??= CreatePreparedDriver(Configuration);
     internal AndroidUiTestConfiguration Configuration { get; }
 
-    public void ResetApplication()
+    public void ResetApplication(
+        string seedRequestFileName = AndroidAutomationConstants.TestSeedRequestFileName)
     {
         driver?.Quit();
         driver = null;
         SetOrientation(ScreenOrientation.Landscape);
-        _ = Driver;
+        driver = CreatePreparedDriver(Configuration, seedRequestFileName);
     }
 
     public void SetOrientation(ScreenOrientation orientation)
@@ -48,9 +49,10 @@ public sealed class AndroidAppiumFixture : IDisposable
     }
 
     private static AndroidDriver CreatePreparedDriver(
-        AndroidUiTestConfiguration configuration)
+        AndroidUiTestConfiguration configuration,
+        string seedRequestFileName = AndroidAutomationConstants.TestSeedRequestFileName)
     {
-        ResetAppDataAndRequestSeed(configuration);
+        ResetAppDataAndRequestSeed(configuration, seedRequestFileName);
         var driver = CreateDriver(configuration);
 
         try
@@ -130,7 +132,9 @@ public sealed class AndroidAppiumFixture : IDisposable
             TimeSpan.FromMinutes(2));
     }
 
-    private static void ResetAppDataAndRequestSeed(AndroidUiTestConfiguration configuration)
+    private static void ResetAppDataAndRequestSeed(
+        AndroidUiTestConfiguration configuration,
+        string seedRequestFileName)
     {
         RunAdb(configuration, "shell", "am", "force-stop", AndroidAutomationConstants.AppPackage);
         var clearOutput = RunAdb(configuration, "shell", "pm", "clear", AndroidAutomationConstants.AppPackage);
@@ -140,7 +144,7 @@ public sealed class AndroidAppiumFixture : IDisposable
         RunAdb(configuration, "shell", "run-as", AndroidAutomationConstants.AppPackage,
             "mkdir", "-p", "files");
         RunAdb(configuration, "shell", "run-as", AndroidAutomationConstants.AppPackage,
-            "touch", $"files/{AndroidAutomationConstants.TestSeedRequestFileName}");
+            "touch", $"files/{seedRequestFileName}");
         RunAdb(configuration, "logcat", "-c");
     }
 
