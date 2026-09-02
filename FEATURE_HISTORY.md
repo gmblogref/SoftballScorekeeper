@@ -10,10 +10,10 @@ Stable product and architecture decisions belong in the project architecture doc
 
 ## Current Project Status
 
-- **Latest completed story:** Story 6.7.6 — Broader Android UI Scenario and Orientation Automation Coverage
-- **Completed stories:** Stories 0.0 through 6.7.6; Stories 3.2 through 3.4 retain their recorded validation status
-- **Current story:** Story 6.8 — Scoring Undo / Redo acceptance refinement; implementation and automated validation are complete, and user-authorized pinpoint Android validation remains pending on `task/redo-undo-scoring`
-- **Current phase:** Scoring interaction refinement
+- **Latest completed story:** Story 6.9 — Game Completion & Batting Statistics
+- **Completed stories:** Stories 0.0 through 6.9; Stories 3.2 through 3.4 retain their recorded validation status
+- **Current story:** Story 6.9 — Complete and PR-ready; Story 6.9.1 Manual Overrides is deferred
+- **Current phase:** Completed-game presentation and statistics
 - **Foundation status:** Complete
 
 The repository contains a five-project .NET 9 solution: the Android- and Windows-targeted .NET MAUI application, platform-independent Core, Infrastructure, the emulator-independent automated test project, and the opt-in Android UI test project. Its implemented foundation includes repository guidance, pragmatic layered dependencies, CommunityToolkit.Mvvm, MAUI dependency injection, device-local SQLite initialization, centralized user-facing resources, strongly typed application settings, and isolated xUnit repository integration tests. Team Workspace contains local Games and Roster sections, supports adding or removing existing active Players, and supports creating a global Player with immediate TeamPlayer membership from the Team-scoped Add Players workflow. Player Workspace shows active Team memberships, and Player Manager retains bulk lifecycle actions; Game schedule management and other later softball workflows remain deferred.
@@ -2754,6 +2754,36 @@ Dedicated Double Play/Triple Play presentation, sacrifice results, HR-limit/dead
 #### Intended Commit Message
 
 `Add scoring undo and redo`
+
+### Story 6.9 — Game Completion & Batting Statistics (Complete — PR-ready)
+
+#### Completed-Game Workspace
+
+- Game Workspace now presents completed Games as a dedicated FINAL view rather than the Ready or In Progress workspace. It shows the persisted final score with Visitor on the left and Home on the right, the completed batting table, and retained schedule context. Completed Games do not expose Resume Scoring, Reset, lineup editing, or live-scoring actions.
+- The completed presentation uses one shared scorebook-style statistics grid in portrait and landscape, with fixed aligned statistic columns, a strong Player separator, row dividers, and horizontal scrolling when the available width cannot show every column. The final in-grid TEAM TOTAL row sums the authoritative player counting statistics and derives AVG, OBP, and SLG from those aggregate totals. Stable automation identifiers cover the final score and representative player and team statistics in both orientations. A single validation surface remains outside all `IsLoaded`-gated state layouts, so a failed Game load remains visibly represented instead of producing an apparently blank workspace.
+- The opt-in Android UI suite now contains 15 tests. Two new scenarios protect Ready, In Progress, Completed, and failed-load workspace presentation; final Visitor/Home orientation; representative completed batting-stat bindings; absence of Resume after completion; and completed-state preservation across portrait and landscape. The test project was built, but these Appium scenarios were not executed during Story 6.9 finalization.
+
+#### Authoritative Statistics and Projection
+
+- Added one platform-independent `BattingStatisticsCalculator` and an exhaustive contribution definition for every current `BatterResult`. UI and repository projection code do not independently derive PA, AB, H, total bases, AVG, OBP, or SLG. `AGENTS.md` now requires every future result to define those contributions through the same centralized rules.
+- `CompletedGameProjection` reads the canonical plate appearances active in the completed scoring session: the current persisted committed rows after Undo/Redo resolution, excluding pending play state and abandoned Redo history. The projection rejects incomplete committed rows, aggregates by stable `PlayerId` rather than display name, includes frozen-lineup participants with zero appearances, preserves appearance-only participants, and resolves current Player names without excluding inactive Players needed by historical Games.
+- Every committed batter result contributes exactly one PA. Singles, Doubles, Triples, Home Runs, ordinary Outs, Fielder's Choices, Double Plays, and Triple Plays contribute one AB; Walks and Sacrifice Flies do not. Hits are only Singles, Doubles, Triples, and Home Runs, with corresponding 1B/2B/3B/HR totals and 1/2/3/4 total bases. A runner recorded Out Attempting is movement within the authoritative batter result and never creates an additional batter PA or AB.
+- Walk contributes to the OBP numerator and denominator without an AB. Fielder's Choice contributes PA and AB, but no Hit and no OBP numerator credit. Sacrifice Fly contributes PA and the OBP denominator, but no AB or OBP numerator credit. Ordinary Out, Double Play, and Triple Play each contribute one PA, one AB, no Hit, and the AB-based OBP denominator once; DP/TP do not multiply the batter's statistical event by the number of Outs recorded.
+- Persisted final reconciliation is authoritative: an FC whose batter is retired is stored and counted as ordinary Out, and an invalidated Sac Fly is likewise stored and counted as ordinary Out. Statistics do not reinterpret runner movement independently.
+- AVG is `H / AB`; OBP is `(H + BB) / (AB + BB + SF)`; SLG is total bases divided by AB. Zero denominators safely produce zero, and the shared invariant formatter rounds away from zero to deterministic three-decimal baseball notation such as `.000`, `.333`, `1.000`, or `2.500`.
+- Team totals use the centralized statistics calculator to sum PA, AB, H, 1B, 2B, 3B, HR, BB, FC, SF, and TB across player lines. Team AVG, OBP, and SLG are calculated from those aggregate counts rather than by averaging player rates.
+- Completed projections preserve Visitor/Home orientation, final scores, player identity, lineup order, and calculated statistics across repository recreation and database close/reopen. Duplicate display names remain separate because aggregation uses Player IDs.
+
+#### Automated Validation and Deferred Boundaries
+
+- Focused calculator/projection validation passed 38 of 38 with zero failures or skips. Coverage includes every result contribution, rate rounding and zero denominators, mixed and zero-for-three lines, lineup zero lines, stable identities and duplicate names, inactive historical Players, score orientation, abandoned Redo exclusion, reconciled FC/Sac Fly classifications, corrupt incomplete-history rejection, and database close/reopen persistence.
+- Acceptance-refinement validation passed 35 of 35 focused normal tests with zero failures or skips. It covers aggregate team counts and rates (including proof that player percentages are not averaged), shared portrait/landscape grid structure, ordered fixed columns and PA alignment, separators, the in-grid TEAM TOTAL row, completed-game load errors, and absence of Resume Scoring. Appium and emulator automation were not run for this refinement.
+- Final emulator-independent validation passed 647 of 647 with zero failures or skips. The non-incremental embedded-APK Android app build passed with zero errors and the 7 existing `CS8602` / `XC0025` warnings. The Android UI test project non-incremental build passed with zero warnings and zero errors. The Windows non-incremental build passed with zero errors and the 114 existing `CS8602`, `MVVMTK0045`, and `XC0025` warnings. `git diff --check` passed with line-ending notices only.
+- No Android Appium/emulator tests or physical-tablet runtime validation were performed during Story 6.9 finalization. Manual Overrides and completed-game correction/reopen remain deferred to Story 6.9.1. Season/career aggregation, Beer Rules, HBP, Error/Reach on Error, and other new results were not introduced. Beer Rules remain reserved as the final feature before PROD readiness.
+
+#### Intended Commit Message
+
+`Add game completion and batting statistics`
 
 ## Maintenance Rules
 

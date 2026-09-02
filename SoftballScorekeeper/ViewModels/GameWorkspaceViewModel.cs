@@ -1,6 +1,8 @@
+using System.Collections.ObjectModel;
 using System.Globalization;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using SoftballScorekeeper.Core.Statistics;
 using SoftballScorekeeper.Infrastructure.Data.Repositories;
 using SoftballScorekeeper.Resources.Strings;
 
@@ -27,6 +29,11 @@ public partial class GameWorkspaceViewModel : ObservableObject, IQueryAttributab
     [ObservableProperty] private bool hasLineup;
     [ObservableProperty] private bool hasScoringSession;
     [ObservableProperty] private bool isScoringCompleted;
+    [ObservableProperty] private CompletedBattingStatRowViewModel? completedBattingTeamTotal;
+    private string completedVisitorName = string.Empty;
+    private int completedVisitorScore;
+    private string completedHomeName = string.Empty;
+    private int completedHomeScore;
     [ObservableProperty, NotifyCanExecuteChangedFor(nameof(EditGameCommand)), NotifyCanExecuteChangedFor(nameof(SetLineupCommand))] private bool isBusy;
     [ObservableProperty, NotifyCanExecuteChangedFor(nameof(EditGameCommand)), NotifyCanExecuteChangedFor(nameof(SetLineupCommand))] private bool isLoaded;
 
@@ -45,6 +52,33 @@ public partial class GameWorkspaceViewModel : ObservableObject, IQueryAttributab
     }
 
     public string LineupActionText => HasLineup ? AppResources.EditLineupButton : AppResources.SetLineupTitle;
+    public string CompletedVisitorName
+    {
+        get => completedVisitorName;
+        private set => SetProperty(ref completedVisitorName, value);
+    }
+
+    public int CompletedVisitorScore
+    {
+        get => completedVisitorScore;
+        private set => SetProperty(ref completedVisitorScore, value);
+    }
+
+    public string CompletedHomeName
+    {
+        get => completedHomeName;
+        private set => SetProperty(ref completedHomeName, value);
+    }
+
+    public int CompletedHomeScore
+    {
+        get => completedHomeScore;
+        private set => SetProperty(ref completedHomeScore, value);
+    }
+
+    public ObservableCollection<CompletedBattingStatRowViewModel> CompletedBattingRows { get; } = [];
+    public bool ShowStandardWorkspace => IsLoaded && !IsScoringCompleted;
+    public bool ShowCompletedGame => IsLoaded && IsScoringCompleted;
     public bool ShowLineupAction => IsLoaded && !HasScoringSession;
     public bool ShowScoreGame => IsLoaded && HasLineup && !HasScoringSession;
     public bool ShowResumeGame => IsLoaded && HasScoringSession && !IsScoringCompleted;
@@ -91,6 +125,7 @@ public partial class GameWorkspaceViewModel : ObservableObject, IQueryAttributab
 
         IsBusy = true;
         IsLoaded = false;
+        ClearCompletedGame();
         try
         {
             var team = await teamRepository.GetActiveByIdAsync(TeamId);
@@ -124,6 +159,28 @@ public partial class GameWorkspaceViewModel : ObservableObject, IQueryAttributab
             var session = await scoringSessionRepository.GetForGameAsync(GameId);
             HasScoringSession = session is not null;
             IsScoringCompleted = session?.Status == Core.Models.GameScoringStatus.Completed;
+            if (IsScoringCompleted)
+            {
+                var completed = await scoringSessionRepository.GetCompletedGameAsync(GameId);
+                if (completed is null)
+                {
+                    ValidationMessage = AppResources.CompletedGameLoadFailedMessage;
+                }
+                else
+                {
+                    CompletedVisitorName = completed.VisitorName;
+                    CompletedVisitorScore = completed.VisitorScore;
+                    CompletedHomeName = completed.HomeName;
+                    CompletedHomeScore = completed.HomeScore;
+                    foreach (var player in completed.Players)
+                        CompletedBattingRows.Add(new(player));
+                    var teamStatistics = BattingStatisticsCalculator.CalculateTeam(
+                        completed.Players.Select(player => player.BattingStatistics));
+                    CompletedBattingTeamTotal = new(
+                        AppResources.TeamTotalStatLabel,
+                        teamStatistics);
+                }
+            }
             IsLoaded = true;
             NotifyStateChanged();
         }
@@ -228,6 +285,8 @@ public partial class GameWorkspaceViewModel : ObservableObject, IQueryAttributab
     private void NotifyStateChanged()
     {
         OnPropertyChanged(nameof(ShowLineupAction));
+        OnPropertyChanged(nameof(ShowStandardWorkspace));
+        OnPropertyChanged(nameof(ShowCompletedGame));
         OnPropertyChanged(nameof(ShowScoreGame));
         OnPropertyChanged(nameof(ShowResumeGame));
         OnPropertyChanged(nameof(ShowResetGame));
@@ -244,8 +303,17 @@ public partial class GameWorkspaceViewModel : ObservableObject, IQueryAttributab
         HasLineup = false;
         HasScoringSession = false;
         IsScoringCompleted = false;
+        ClearCompletedGame();
         IsLoaded = false;
         hasValidContext = false;
+    }
+
+    private void ClearCompletedGame()
+    {
+        CompletedVisitorName = CompletedHomeName = string.Empty;
+        CompletedVisitorScore = CompletedHomeScore = 0;
+        CompletedBattingRows.Clear();
+        CompletedBattingTeamTotal = null;
     }
 
     private static bool TryParseId(object? value, out int id)

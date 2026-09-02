@@ -911,6 +911,24 @@ namespace SoftballScorekeeper.Resources.Strings {
         public static string HomeButton { get { return ResourceManager.GetString("HomeButton", resourceCulture); } }
         public static string InProgressStatus { get { return ResourceManager.GetString("InProgressStatus", resourceCulture); } }
         public static string CompletedStatus { get { return ResourceManager.GetString("CompletedStatus", resourceCulture); } }
+        public static string FinalStatus { get { return ResourceManager.GetString("FinalStatus", resourceCulture); } }
+        public static string BattingStatisticsHeading { get { return ResourceManager.GetString("BattingStatisticsHeading", resourceCulture); } }
+        public static string PlayerStatHeading { get { return ResourceManager.GetString("PlayerStatHeading", resourceCulture); } }
+        public static string TeamTotalStatLabel { get { return ResourceManager.GetString("TeamTotalStatLabel", resourceCulture); } }
+        public static string PlateAppearancesStatHeading { get { return ResourceManager.GetString("PlateAppearancesStatHeading", resourceCulture); } }
+        public static string AtBatsStatHeading { get { return ResourceManager.GetString("AtBatsStatHeading", resourceCulture); } }
+        public static string HitsStatHeading { get { return ResourceManager.GetString("HitsStatHeading", resourceCulture); } }
+        public static string SinglesStatHeading { get { return ResourceManager.GetString("SinglesStatHeading", resourceCulture); } }
+        public static string DoublesStatHeading { get { return ResourceManager.GetString("DoublesStatHeading", resourceCulture); } }
+        public static string TriplesStatHeading { get { return ResourceManager.GetString("TriplesStatHeading", resourceCulture); } }
+        public static string HomeRunsStatHeading { get { return ResourceManager.GetString("HomeRunsStatHeading", resourceCulture); } }
+        public static string WalksStatHeading { get { return ResourceManager.GetString("WalksStatHeading", resourceCulture); } }
+        public static string FielderChoicesStatHeading { get { return ResourceManager.GetString("FielderChoicesStatHeading", resourceCulture); } }
+        public static string SacrificeFliesStatHeading { get { return ResourceManager.GetString("SacrificeFliesStatHeading", resourceCulture); } }
+        public static string BattingAverageStatHeading { get { return ResourceManager.GetString("BattingAverageStatHeading", resourceCulture); } }
+        public static string OnBasePercentageStatHeading { get { return ResourceManager.GetString("OnBasePercentageStatHeading", resourceCulture); } }
+        public static string SluggingPercentageStatHeading { get { return ResourceManager.GetString("SluggingPercentageStatHeading", resourceCulture); } }
+        public static string CompletedGameLoadFailedMessage { get { return ResourceManager.GetString("CompletedGameLoadFailedMessage", resourceCulture); } }
         public static string ExitGameButton { get { return ResourceManager.GetString("ExitGameButton", resourceCulture); } }
         public static string ScoringMenuAccessibility { get { return ResourceManager.GetString("ScoringMenuAccessibility", resourceCulture); } }
         public static string ScoringTitle { get { return ResourceManager.GetString("ScoringTitle", resourceCulture); } }

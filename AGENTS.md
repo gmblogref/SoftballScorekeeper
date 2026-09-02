@@ -443,6 +443,10 @@ Repository tests do not provide MAUI UI coverage and must not be reported as And
 
 Scoring-engine development requires comprehensive table-driven tests covering base states, out counts, batter outcomes, runner movement, corrections, and derived statistics. Repository integration tests may use isolated temporary SQLite databases. UI automation is not required unless a later story explicitly adds it.
 
+Batting statistics must derive from authoritative batting outcomes through the centralized statistics calculator. UI and future correction workflows must not independently calculate PA, AB, H, AVG, OBP, or SLG.
+
+Every future `BatterResult` must explicitly define its statistical contribution to PA, AB, Hit, Total Bases, and OBP numerator/denominator behavior.
+
 Every newly introduced committed scoring action must participate atomically in persisted scoring Undo/Redo and include focused reversal/restoration regression coverage.
 
 Pending-play Undo/Redo uses persisted semantic checkpoints. One result selection plus its automatic resolver defaults is one checkpoint; meaningful scorer decisions create checkpoints, backtracking to an earlier semantic state collapses redundant history, and progressive runner decisions remain separately reversible. Committing a play collapses its temporary pending checkpoints into the single committed-action boundary.

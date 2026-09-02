@@ -1,5 +1,6 @@
 using System.Text.Json;
 using SoftballScorekeeper.Core.Models;
+using SoftballScorekeeper.Core.Statistics;
 
 namespace SoftballScorekeeper.Infrastructure.Data.Repositories;
 
@@ -32,6 +33,92 @@ public sealed class GameScoringSessionRepository
 
     public async Task<bool> ExistsForGameAsync(int gameId) =>
         await GetForGameAsync(gameId) is not null;
+
+    public async Task<CompletedGameProjection?> GetCompletedGameAsync(int gameId)
+    {
+        if (gameId <= 0) return null;
+
+        var connection = await database.GetConnectionAsync();
+        var session = await connection.Table<GameScoringSession>()
+            .Where(item => item.GameId == gameId
+                && item.Status == GameScoringStatus.Completed)
+            .FirstOrDefaultAsync();
+        if (session is null) return null;
+
+        var game = await connection.FindAsync<Game>(gameId)
+            ?? throw new InvalidOperationException(
+                "The completed scoring session has no scheduled Game.");
+        var team = await connection.FindAsync<Team>(game.TeamId)
+            ?? throw new InvalidOperationException(
+                "The completed Game has no scored Team.");
+        var lineup = await connection.Table<GameScoringLineupPlayer>()
+            .Where(item => item.GameScoringSessionId == session.Id)
+            .OrderBy(item => item.BattingPosition)
+            .ToListAsync();
+        var appearances = await connection.Table<GamePlateAppearance>()
+            .Where(item => item.GameScoringSessionId == session.Id)
+            .OrderBy(item => item.PlateAppearanceNumber)
+            .ToListAsync();
+        if (appearances.Any(item => item.Result is null))
+            throw new InvalidOperationException(
+                "The completed Game contains a committed plate appearance without a final result.");
+
+        var outcomes = appearances.Select(item =>
+            new BattingOutcome(item.PlayerId, item.Result!.Value)).ToArray();
+        var statLines = BattingStatisticsCalculator.Calculate(
+            lineup.Select(item => item.PlayerId), outcomes);
+        var playerIds = statLines.Select(item => item.PlayerId).ToArray();
+        List<Player> players = playerIds.Length == 0
+            ? []
+            : await connection.QueryAsync<Player>(
+                $"SELECT * FROM Player WHERE Id IN ({string.Join(",", playerIds.Select(_ => "?"))})",
+                playerIds.Cast<object>().ToArray());
+        var playersById = players.ToDictionary(item => item.Id);
+        var missingPlayerIds = playerIds.Where(id => !playersById.ContainsKey(id)).ToArray();
+        if (missingPlayerIds.Length > 0)
+            throw new InvalidOperationException(
+                $"The completed Game cannot resolve Player Ids: {string.Join(", ", missingPlayerIds)}.");
+
+        var battingPositions = lineup.ToDictionary(
+            item => item.PlayerId, item => item.BattingPosition);
+        foreach (var appearance in appearances)
+            battingPositions.TryAdd(appearance.PlayerId, appearance.BattingPosition);
+        var projectedPlayers = statLines.Select(statLine =>
+        {
+            var player = playersById[statLine.PlayerId];
+            return new CompletedGamePlayerProjection(
+                statLine.PlayerId,
+                FormatPlayerName(player),
+                battingPositions[statLine.PlayerId],
+                statLine);
+        }).ToArray();
+
+        if (session.TeamSide is not TeamGameSide.Away and not TeamGameSide.Home)
+            throw new InvalidOperationException(
+                "The completed Game has an invalid Team side.");
+        var opponentName = game.Opponent?.Trim() ?? string.Empty;
+        var teamName = team.Name.Trim();
+        var visitorName = session.TeamSide == TeamGameSide.Away
+            ? teamName : opponentName;
+        var homeName = session.TeamSide == TeamGameSide.Home
+            ? teamName : opponentName;
+        return new(
+            game.Id,
+            session.Id,
+            session.Status,
+            session.CompletedAtUtc,
+            session.TeamSide,
+            visitorName,
+            session.VisitorScore,
+            homeName,
+            session.HomeScore,
+            projectedPlayers);
+    }
+
+    private static string FormatPlayerName(Player player) => string.Join(
+        " ", new[] { player.FirstName, player.LastName }
+            .Where(value => !string.IsNullOrWhiteSpace(value))
+            .Select(value => value!.Trim()));
 
     public async Task<ScoringUndoRedoAvailability> GetUndoRedoAvailabilityAsync(int gameId)
     {
