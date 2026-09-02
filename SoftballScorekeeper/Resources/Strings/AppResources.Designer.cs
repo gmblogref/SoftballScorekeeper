@@ -446,6 +446,12 @@ namespace SoftballScorekeeper.Resources.Strings {
             }
         }
 
+        public static string UpcomingStatus { get { return ResourceManager.GetString("UpcomingStatus", resourceCulture); } }
+        public static string WinResultLabel { get { return ResourceManager.GetString("WinResultLabel", resourceCulture); } }
+        public static string LossResultLabel { get { return ResourceManager.GetString("LossResultLabel", resourceCulture); } }
+        public static string TieResultLabel { get { return ResourceManager.GetString("TieResultLabel", resourceCulture); } }
+        public static string FinalGameScoreFormat { get { return ResourceManager.GetString("FinalGameScoreFormat", resourceCulture); } }
+
         public static string LineupNotSetStatusText {
             get {
                 return ResourceManager.GetString("LineupNotSetStatusText", resourceCulture);

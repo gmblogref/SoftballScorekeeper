@@ -6,6 +6,60 @@ namespace SoftballScorekeeper.Tests;
 public sealed partial class GameScoringSessionRepositoryTests
 {
     [Fact]
+    public async Task GetForGamesAsync_returns_only_requested_persisted_sessions()
+    {
+        await using var db = await TemporaryTestDatabase.CreateAsync();
+        var context = await CreateReadyGameAsync(db, DateTime.Today, null, null, 1);
+        var repository = db.CreateGameScoringSessionRepository();
+        var inProgress = (await repository.InitializeAsync(
+            context.Team.Id, context.Game.Id, TeamGameSide.Away)).Session!;
+        await db.UpdateScoringStateAsync(inProgress.Id, 3, 5, 1);
+        var otherGame = new Game
+        {
+            TeamId = context.Team.Id,
+            SeasonId = context.Game.SeasonId,
+            ScheduledDate = context.Game.ScheduledDate.AddDays(1),
+            ScheduledTime = context.Game.ScheduledTime,
+        };
+        Assert.Equal(1, await db.SeedGameAsync(otherGame));
+        var completed = new GameScoringSession
+        {
+            GameId = otherGame.Id,
+            Status = GameScoringStatus.Completed,
+            TeamSide = TeamGameSide.Home,
+            HomeScore = 8,
+            VisitorScore = 6,
+            CurrentBatterPosition = 1,
+            CurrentInning = 1,
+            CompletedAtUtc = DateTime.UtcNow,
+        };
+        Assert.Equal(1, await db.UseConnectionAsync(
+            connection => connection.InsertAsync(completed)));
+
+        var sessions = await repository.GetForGamesAsync(
+            [0, -1, context.Game.Id, otherGame.Id, context.Game.Id, int.MaxValue]);
+
+        Assert.Equal(2, sessions.Count);
+        Assert.Equal((GameScoringStatus.InProgress, TeamGameSide.Away, 3, 5),
+            (sessions[context.Game.Id].Status, sessions[context.Game.Id].TeamSide,
+                sessions[context.Game.Id].HomeScore, sessions[context.Game.Id].VisitorScore));
+        Assert.Equal((GameScoringStatus.Completed, TeamGameSide.Home, 8, 6),
+            (sessions[otherGame.Id].Status, sessions[otherGame.Id].TeamSide,
+                sessions[otherGame.Id].HomeScore, sessions[otherGame.Id].VisitorScore));
+    }
+
+    [Fact]
+    public async Task GetForGamesAsync_returns_empty_for_no_valid_ids()
+    {
+        await using var db = await TemporaryTestDatabase.CreateAsync();
+        var repository = db.CreateGameScoringSessionRepository();
+
+        Assert.Empty(await repository.GetForGamesAsync(null));
+        Assert.Empty(await repository.GetForGamesAsync([]));
+        Assert.Empty(await repository.GetForGamesAsync([0, -1]));
+    }
+
+    [Fact]
     public async Task Complete_plate_appearance_persists_batter_advances_wraps_and_preserves_scoring_foundations()
     {
         await using var db = await TemporaryTestDatabase.CreateAsync();

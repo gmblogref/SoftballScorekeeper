@@ -1,5 +1,6 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using SoftballScorekeeper.Core.Models;
 
 namespace SoftballScorekeeper.ViewModels;
 
@@ -41,6 +42,36 @@ public sealed class GameScheduleItem : ObservableObject
     public required string LineupStatusText { get; init; }
 
     public required string LineupStatusSemanticDescription { get; init; }
+
+    public required GameScheduleStatus Status { get; init; }
+
+    public required string StatusText { get; init; }
+
+    public required TeamGameResult? Result { get; init; }
+
+    public required string ResultText { get; init; }
+
+    public required string FinalScoreDisplay { get; init; }
+
+    public bool IsUpcoming => Status == GameScheduleStatus.Upcoming;
+
+    public bool IsInProgress => Status == GameScheduleStatus.InProgress;
+
+    public bool IsFinal => Status == GameScheduleStatus.Final;
+
+    public bool IsWin => Result == TeamGameResult.Win;
+
+    public bool IsLoss => Result == TeamGameResult.Loss;
+
+    public bool IsTie => Result == TeamGameResult.Tie;
+
+    public bool ShowLineupStatus => IsUpcoming && IsNextPlayingDate;
+
+    public string StatusAutomationId => $"GameScheduleStatus{GameId}";
+
+    public string ResultAutomationId => $"GameScheduleResult{GameId}";
+
+    public string ScoreAutomationId => $"GameScheduleScore{GameId}";
 
     public IAsyncRelayCommand OpenCommand { get; }
 
