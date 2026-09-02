@@ -30,6 +30,10 @@ public partial class GameWorkspaceViewModel : ObservableObject, IQueryAttributab
     [ObservableProperty] private bool hasScoringSession;
     [ObservableProperty] private bool isScoringCompleted;
     [ObservableProperty] private CompletedBattingStatRowViewModel? completedBattingTeamTotal;
+    private BattingStatSortColumn completedBattingSortColumn =
+        BattingStatSortColumn.OnBasePercentage;
+    private BattingStatSortDirection completedBattingSortDirection =
+        BattingStatSortDirection.Descending;
     private string completedVisitorName = string.Empty;
     private int completedVisitorScore;
     private string completedHomeName = string.Empty;
@@ -77,6 +81,54 @@ public partial class GameWorkspaceViewModel : ObservableObject, IQueryAttributab
     }
 
     public ObservableCollection<CompletedBattingStatRowViewModel> CompletedBattingRows { get; } = [];
+    public BattingStatSortColumn CompletedBattingSortColumn
+    {
+        get => completedBattingSortColumn;
+        private set
+        {
+            if (!SetProperty(ref completedBattingSortColumn, value)) return;
+            NotifyCompletedBattingSortHeadersChanged();
+        }
+    }
+
+    public BattingStatSortDirection CompletedBattingSortDirection
+    {
+        get => completedBattingSortDirection;
+        private set
+        {
+            if (!SetProperty(ref completedBattingSortDirection, value)) return;
+            NotifyCompletedBattingSortHeadersChanged();
+        }
+    }
+
+    public string PlayerStatSortHeader => GetStatSortHeader(
+        AppResources.PlayerStatHeading, BattingStatSortColumn.Player);
+    public string PlateAppearancesStatSortHeader => GetStatSortHeader(
+        AppResources.PlateAppearancesStatHeading, BattingStatSortColumn.PlateAppearances);
+    public string AtBatsStatSortHeader => GetStatSortHeader(
+        AppResources.AtBatsStatHeading, BattingStatSortColumn.AtBats);
+    public string HitsStatSortHeader => GetStatSortHeader(
+        AppResources.HitsStatHeading, BattingStatSortColumn.Hits);
+    public string SinglesStatSortHeader => GetStatSortHeader(
+        AppResources.SinglesStatHeading, BattingStatSortColumn.Singles);
+    public string DoublesStatSortHeader => GetStatSortHeader(
+        AppResources.DoublesStatHeading, BattingStatSortColumn.Doubles);
+    public string TriplesStatSortHeader => GetStatSortHeader(
+        AppResources.TriplesStatHeading, BattingStatSortColumn.Triples);
+    public string HomeRunsStatSortHeader => GetStatSortHeader(
+        AppResources.HomeRunsStatHeading, BattingStatSortColumn.HomeRuns);
+    public string WalksStatSortHeader => GetStatSortHeader(
+        AppResources.WalksStatHeading, BattingStatSortColumn.Walks);
+    public string FielderChoicesStatSortHeader => GetStatSortHeader(
+        AppResources.FielderChoicesStatHeading, BattingStatSortColumn.FielderChoices);
+    public string SacrificeFliesStatSortHeader => GetStatSortHeader(
+        AppResources.SacrificeFliesStatHeading, BattingStatSortColumn.SacrificeFlies);
+    public string BattingAverageStatSortHeader => GetStatSortHeader(
+        AppResources.BattingAverageStatHeading, BattingStatSortColumn.BattingAverage);
+    public string OnBasePercentageStatSortHeader => GetStatSortHeader(
+        AppResources.OnBasePercentageStatHeading, BattingStatSortColumn.OnBasePercentage);
+    public string SluggingPercentageStatSortHeader => GetStatSortHeader(
+        AppResources.SluggingPercentageStatHeading, BattingStatSortColumn.SluggingPercentage);
     public bool ShowStandardWorkspace => IsLoaded && !IsScoringCompleted;
     public bool ShowCompletedGame => IsLoaded && IsScoringCompleted;
     public bool ShowLineupAction => IsLoaded && !HasScoringSession;
@@ -172,8 +224,9 @@ public partial class GameWorkspaceViewModel : ObservableObject, IQueryAttributab
                     CompletedVisitorScore = completed.VisitorScore;
                     CompletedHomeName = completed.HomeName;
                     CompletedHomeScore = completed.HomeScore;
-                    foreach (var player in completed.Players)
-                        CompletedBattingRows.Add(new(player));
+                    for (var index = 0; index < completed.Players.Count; index++)
+                        CompletedBattingRows.Add(new(completed.Players[index], index));
+                    ApplyCompletedBattingSort();
                     var teamStatistics = BattingStatisticsCalculator.CalculateTeam(
                         completed.Players.Select(player => player.BattingStatistics));
                     CompletedBattingTeamTotal = new(
@@ -264,6 +317,18 @@ public partial class GameWorkspaceViewModel : ObservableObject, IQueryAttributab
     [RelayCommand]
     private Task ResumeGameAsync() => NavigateToScoringAsync();
 
+    [RelayCommand]
+    private void SortCompletedBattingRows(BattingStatSortColumn column)
+    {
+        var next = new BattingStatSortState(
+            CompletedBattingSortColumn,
+            CompletedBattingSortDirection).Select(column);
+        CompletedBattingSortColumn = next.Column;
+        CompletedBattingSortDirection = next.Direction;
+
+        ApplyCompletedBattingSort();
+    }
+
     private Task NavigateToScoringAsync() => Shell.Current.GoToAsync(
         AppShell.ScoringRoute,
         new ShellNavigationQueryParameters
@@ -314,6 +379,59 @@ public partial class GameWorkspaceViewModel : ObservableObject, IQueryAttributab
         CompletedVisitorScore = CompletedHomeScore = 0;
         CompletedBattingRows.Clear();
         CompletedBattingTeamTotal = null;
+        CompletedBattingSortColumn = BattingStatSortColumn.OnBasePercentage;
+        CompletedBattingSortDirection = BattingStatSortDirection.Descending;
+    }
+
+    private void ApplyCompletedBattingSort()
+    {
+        var rowsByPlayerId = CompletedBattingRows.ToDictionary(row => row.PlayerId);
+        var sorted = BattingStatisticsSorter.Sort(
+            CompletedBattingRows.Select(row => new BattingStatSortEntry(
+                row.PlayerName,
+                row.ProjectionOrder,
+                row.PlayerStatistics!)),
+            CompletedBattingSortColumn,
+            CompletedBattingSortDirection);
+
+        for (var index = 0; index < sorted.Count; index++)
+        {
+            var row = rowsByPlayerId[sorted[index].PlayerId];
+            var currentIndex = CompletedBattingRows.IndexOf(row);
+            if (currentIndex != index)
+                CompletedBattingRows.Move(currentIndex, index);
+        }
+    }
+
+    private string GetStatSortHeader(string heading, BattingStatSortColumn column)
+    {
+        if (CompletedBattingSortColumn != column) return heading;
+        var indicator = CompletedBattingSortDirection == BattingStatSortDirection.Ascending
+            ? AppResources.SortAscendingIndicator
+            : AppResources.SortDescendingIndicator;
+        return string.Format(
+            CultureInfo.CurrentCulture,
+            AppResources.ActiveStatSortHeaderFormat,
+            heading,
+            indicator);
+    }
+
+    private void NotifyCompletedBattingSortHeadersChanged()
+    {
+        OnPropertyChanged(nameof(PlayerStatSortHeader));
+        OnPropertyChanged(nameof(PlateAppearancesStatSortHeader));
+        OnPropertyChanged(nameof(AtBatsStatSortHeader));
+        OnPropertyChanged(nameof(HitsStatSortHeader));
+        OnPropertyChanged(nameof(SinglesStatSortHeader));
+        OnPropertyChanged(nameof(DoublesStatSortHeader));
+        OnPropertyChanged(nameof(TriplesStatSortHeader));
+        OnPropertyChanged(nameof(HomeRunsStatSortHeader));
+        OnPropertyChanged(nameof(WalksStatSortHeader));
+        OnPropertyChanged(nameof(FielderChoicesStatSortHeader));
+        OnPropertyChanged(nameof(SacrificeFliesStatSortHeader));
+        OnPropertyChanged(nameof(BattingAverageStatSortHeader));
+        OnPropertyChanged(nameof(OnBasePercentageStatSortHeader));
+        OnPropertyChanged(nameof(SluggingPercentageStatSortHeader));
     }
 
     private static bool TryParseId(object? value, out int id)
