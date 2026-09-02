@@ -123,6 +123,197 @@ public sealed class CompletedGameProjectionTests
     }
 
     [Fact]
+    public async Task In_progress_projection_includes_zero_lineup_players_and_committed_stats()
+    {
+        await using var db = await TemporaryTestDatabase.CreateAsync();
+        var context = await CreateGameAsync(db, TeamGameSide.Home, 3);
+        await SeedAppearanceAsync(db, context, context.Players[0], BatterResult.Double, 1);
+        await SeedAppearanceAsync(db, context, context.Players[0], BatterResult.Walk, 2);
+        await SeedAppearanceAsync(db, context, context.Players[1], BatterResult.HomeRun, 3);
+
+        var projection = Assert.IsType<GameBattingStatisticsProjection>(
+            await db.CreateGameScoringSessionRepository()
+                .GetInProgressBattingStatisticsAsync(context.Game.Id));
+
+        Assert.Equal((context.Game.Id, context.Session.Id),
+            (projection.GameId, projection.ScoringSessionId));
+        Assert.Equal(context.Players.Select(player => player.Id),
+            projection.Players.Select(player => player.PlayerId));
+        AssertLine(Find(projection, context.Players[0].Id),
+            2, 1, 1, 2, "1.000", "1.000", "2.000");
+        AssertLine(Find(projection, context.Players[1].Id),
+            1, 1, 1, 4, "1.000", "1.000", "4.000");
+        AssertLine(Find(projection, context.Players[2].Id),
+            0, 0, 0, 0, ".000", ".000", ".000");
+    }
+
+    [Fact]
+    public async Task In_progress_projection_excludes_pending_play_and_does_not_mutate_it()
+    {
+        await using var db = await TemporaryTestDatabase.CreateAsync();
+        var context = await CreateGameAsync(db, TeamGameSide.Home, 1);
+        var repository = db.CreateGameScoringSessionRepository();
+        Assert.True((await repository.SelectBatterResultAsync(
+            context.Game.Id, BatterResult.Single)).IsSuccess);
+        var before = (await repository.GetStateForGameAsync(context.Game.Id))!;
+        var undoRedoBefore = await repository.GetUndoRedoAvailabilityAsync(context.Game.Id);
+
+        var projection = (await repository
+            .GetInProgressBattingStatisticsAsync(context.Game.Id))!;
+        var after = (await repository.GetStateForGameAsync(context.Game.Id))!;
+        var undoRedoAfter = await repository.GetUndoRedoAvailabilityAsync(context.Game.Id);
+
+        AssertLine(Find(projection, context.Players[0].Id),
+            0, 0, 0, 0, ".000", ".000", ".000");
+        Assert.NotNull(before.PendingPlay);
+        Assert.NotNull(after.PendingPlay);
+        Assert.Equal(before.PendingPlay.Play.Result, after.PendingPlay.Play.Result);
+        Assert.Equal(before.PlateAppearances.Count, after.PlateAppearances.Count);
+        Assert.Equal(
+            (before.Session.CurrentBatterPosition, before.Session.CurrentInning,
+                before.Session.CurrentOuts, before.Session.HomeScore,
+                before.Session.VisitorScore),
+            (after.Session.CurrentBatterPosition, after.Session.CurrentInning,
+                after.Session.CurrentOuts, after.Session.HomeScore,
+                after.Session.VisitorScore));
+        Assert.Equal(before.BaseRunners.Select(runner => (runner.PlayerId, runner.Base)),
+            after.BaseRunners.Select(runner => (runner.PlayerId, runner.Base)));
+        Assert.Equal(undoRedoBefore, undoRedoAfter);
+    }
+
+    [Fact]
+    public async Task In_progress_projection_tracks_committed_undo_and_redo()
+    {
+        await using var db = await TemporaryTestDatabase.CreateAsync();
+        var context = await CreateGameAsync(db, TeamGameSide.Home, 1);
+        var repository = db.CreateGameScoringSessionRepository();
+        Assert.True((await repository.SelectBatterResultAsync(
+            context.Game.Id, BatterResult.Single)).IsSuccess);
+        Assert.True((await repository.CompletePlateAppearanceAsync(context.Game.Id)).IsSuccess);
+        Assert.Equal(1, Find((await repository.GetInProgressBattingStatisticsAsync(
+            context.Game.Id))!, context.Players[0].Id).Hits);
+
+        Assert.True((await repository.UndoAsync(context.Game.Id)).IsSuccess);
+        Assert.Equal(0, Find((await repository.GetInProgressBattingStatisticsAsync(
+            context.Game.Id))!, context.Players[0].Id).PlateAppearances);
+
+        Assert.True((await repository.RedoAsync(context.Game.Id)).IsSuccess);
+        Assert.Equal(1, Find((await repository.GetInProgressBattingStatisticsAsync(
+            context.Game.Id))!, context.Players[0].Id).Hits);
+    }
+
+    [Fact]
+    public async Task In_progress_projection_uses_reconciled_result_and_ignores_runner_movements()
+    {
+        await using var db = await TemporaryTestDatabase.CreateAsync();
+        var context = await CreateGameAsync(db, TeamGameSide.Home, 2);
+        var repository = db.CreateGameScoringSessionRepository();
+        await SeedBaseAsync(db, context.Session.Id, context.Players[1], ScoringBase.First);
+        Assert.True((await repository.SelectBatterResultAsync(
+            context.Game.Id, BatterResult.FielderChoice)).IsSuccess);
+        Assert.True((await repository.SelectMultiOutRetirementsAsync(
+            context.Game.Id,
+            [new(context.Players[0].Id,
+                RunnerOutcomeChoice.ForDestination(RunnerDestination.Out))])).IsSuccess);
+        Assert.True((await repository.CompletePlateAppearanceAsync(context.Game.Id)).IsSuccess);
+
+        var projection = (await repository
+            .GetInProgressBattingStatisticsAsync(context.Game.Id))!;
+
+        var batter = Find(projection, context.Players[0].Id);
+        Assert.Equal((1, 1, 0),
+            (batter.PlateAppearances, batter.AtBats, batter.FielderChoices));
+        Assert.Equal(0, Find(projection, context.Players[1].Id).PlateAppearances);
+    }
+
+    [Fact]
+    public async Task In_progress_projection_uses_reconciled_sacrifice_fly_result()
+    {
+        await using var db = await TemporaryTestDatabase.CreateAsync();
+        var context = await CreateGameAsync(db, TeamGameSide.Home, 4);
+        var repository = db.CreateGameScoringSessionRepository();
+        await SeedBaseAsync(db, context.Session.Id, context.Players[1], ScoringBase.First);
+        await SeedBaseAsync(db, context.Session.Id, context.Players[3], ScoringBase.Third);
+        await repository.SelectBatterResultAsync(context.Game.Id, BatterResult.SacrificeFly);
+        await repository.AdjustPendingRunnerAsync(
+            context.Game.Id, context.Players[1].Id, RunnerDestination.Second);
+        await repository.AdjustPendingRunnerOutcomeAsync(
+            context.Game.Id,
+            context.Players[1].Id,
+            new(RunnerDestination.Out,
+                RunnerDestination.Second, RunnerDestination.Third));
+        Assert.True((await repository.AdjustPendingRunnerAsync(
+            context.Game.Id, context.Players[3].Id, RunnerDestination.Third)).IsSuccess);
+        Assert.True((await repository.CompletePlateAppearanceAsync(context.Game.Id)).IsSuccess);
+
+        var line = Find((await repository.GetInProgressBattingStatisticsAsync(
+            context.Game.Id))!, context.Players[0].Id);
+
+        Assert.Equal((1, 1, 0),
+            (line.PlateAppearances, line.AtBats, line.SacrificeFlies));
+    }
+
+    [Fact]
+    public async Task In_progress_projection_preserves_true_fielder_choice_and_sacrifice_fly()
+    {
+        await using var db = await TemporaryTestDatabase.CreateAsync();
+        var context = await CreateGameAsync(db, TeamGameSide.Home, 2);
+        await SeedAppearanceAsync(db, context, context.Players[0],
+            BatterResult.FielderChoice, 1);
+        await SeedAppearanceAsync(db, context, context.Players[1],
+            BatterResult.SacrificeFly, 2);
+
+        var projection = (await db.CreateGameScoringSessionRepository()
+            .GetInProgressBattingStatisticsAsync(context.Game.Id))!;
+
+        var fielderChoice = Find(projection, context.Players[0].Id);
+        Assert.Equal((1, 1, 1),
+            (fielderChoice.PlateAppearances, fielderChoice.AtBats,
+                fielderChoice.FielderChoices));
+        var sacrificeFly = Find(projection, context.Players[1].Id);
+        Assert.Equal((1, 0, 1),
+            (sacrificeFly.PlateAppearances, sacrificeFly.AtBats,
+                sacrificeFly.SacrificeFlies));
+    }
+
+    [Fact]
+    public async Task Out_attempting_runner_movement_does_not_add_a_plate_appearance()
+    {
+        await using var db = await TemporaryTestDatabase.CreateAsync();
+        var context = await CreateGameAsync(db, TeamGameSide.Home, 2);
+        var repository = db.CreateGameScoringSessionRepository();
+        await SeedBaseAsync(db, context.Session.Id, context.Players[1], ScoringBase.First);
+        Assert.True((await repository.SelectBatterResultAsync(
+            context.Game.Id, BatterResult.Single)).IsSuccess);
+        var attempted = Assert.Single((await repository.GetValidRunnerOutcomeChoicesAsync(
+            context.Game.Id, context.Players[1].Id)).Choices.Where(choice =>
+            choice.IsOutAttemptingAdvance));
+        Assert.True((await repository.AdjustPendingRunnerOutcomeAsync(
+            context.Game.Id, context.Players[1].Id, attempted)).IsSuccess);
+        Assert.True((await repository.CompletePlateAppearanceAsync(context.Game.Id)).IsSuccess);
+
+        var projection = (await repository
+            .GetInProgressBattingStatisticsAsync(context.Game.Id))!;
+
+        Assert.Equal(1, Find(projection, context.Players[0].Id).PlateAppearances);
+        Assert.Equal(0, Find(projection, context.Players[1].Id).PlateAppearances);
+    }
+
+    [Fact]
+    public async Task Active_and_completed_projection_apis_keep_strict_lifecycle_gates()
+    {
+        await using var db = await TemporaryTestDatabase.CreateAsync();
+        var context = await CreateGameAsync(db, TeamGameSide.Home, 1);
+        var repository = db.CreateGameScoringSessionRepository();
+
+        Assert.NotNull(await repository.GetInProgressBattingStatisticsAsync(context.Game.Id));
+        Assert.Null(await repository.GetCompletedGameAsync(context.Game.Id));
+        Assert.True((await repository.CompleteGameAsync(context.Game.Id)).IsSuccess);
+        Assert.Null(await repository.GetInProgressBattingStatisticsAsync(context.Game.Id));
+        Assert.NotNull(await repository.GetCompletedGameAsync(context.Game.Id));
+    }
+
+    [Fact]
     public async Task Abandoned_redo_branch_is_absent_from_completed_projection()
     {
         await using var db = await TemporaryTestDatabase.CreateAsync();
@@ -270,6 +461,10 @@ public sealed class CompletedGameProjectionTests
         CompletedGameProjection projection, int playerId) =>
         projection.Players.Single(item => item.PlayerId == playerId).BattingStatistics;
 
+    private static PlayerBattingStatLine Find(
+        GameBattingStatisticsProjection projection, int playerId) =>
+        projection.Players.Single(item => item.PlayerId == playerId).BattingStatistics;
+
     private static void AssertLine(
         PlayerBattingStatLine line,
         int pa,
@@ -288,7 +483,7 @@ public sealed class CompletedGameProjectionTests
                 BattingRateFormatter.Format(line.SluggingPercentage)));
     }
 
-    private static object StatValues(CompletedGamePlayerProjection player) => new
+    private static object StatValues(GameBattingPlayerProjection player) => new
     {
         player.PlayerId,
         player.DisplayName,

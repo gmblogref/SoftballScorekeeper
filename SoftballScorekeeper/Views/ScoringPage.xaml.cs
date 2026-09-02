@@ -61,6 +61,22 @@ public partial class ScoringPage : ContentPage
         await dialog.ShowAsync(Navigation);
     }
 
+    private async void OnStatsClicked(object sender, EventArgs e)
+    {
+        ScoringMenu.IsVisible = false;
+        var projection = await viewModel.LoadInGameBattingStatisticsAsync();
+        if (projection is null)
+        {
+            await DisplayAlert(
+                AppResources.BattingStatisticsHeading,
+                AppResources.InGameStatisticsLoadFailedMessage,
+                AppResources.OkButton);
+            return;
+        }
+
+        await new InGameStatsDialog(projection.Players).ShowAsync(Navigation);
+    }
+
     private async void OnGameOverClicked(object sender, EventArgs e)
     {
         ScoringMenu.IsVisible = false;

@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:controls="clr-namespace:SoftballScorekeeper.Views.Controls"
+             xmlns:strings="clr-namespace:SoftballScorekeeper.Resources.Strings"
+             x:Class="SoftballScorekeeper.Views.InGameStatsDialog"
+             Shell.NavBarIsVisible="False"
+             BackgroundColor="{AppThemeBinding Light=White, Dark={StaticResource Gray900}}">
+    <Grid Padding="24,16" RowDefinitions="Auto,*" RowSpacing="12">
+        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="16">
+            <Label Text="{x:Static strings:AppResources.BattingStatisticsHeading}"
+                   Style="{StaticResource Headline}"
+                   VerticalOptions="Center"
+                   SemanticProperties.HeadingLevel="Level1" />
+            <Button AutomationId="CloseInGameStatsButton"
+                    Grid.Column="1"
+                    Text="{x:Static strings:AppResources.CloseButton}"
+                    Clicked="OnCloseClicked"
+                    MinimumHeightRequest="52"
+                    MinimumWidthRequest="120"
+                    Padding="20,12" />
+        </Grid>
+        <controls:BattingStatisticsGrid Grid.Row="1" />
+    </Grid>
+</ContentPage>

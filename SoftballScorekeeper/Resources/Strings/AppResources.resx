@@ -533,6 +533,8 @@
   <data name="CompletedStatus" xml:space="preserve"><value>Completed</value></data>
   <data name="FinalStatus" xml:space="preserve"><value>FINAL</value></data>
   <data name="BattingStatisticsHeading" xml:space="preserve"><value>Batting Statistics</value></data>
+  <data name="StatsButton" xml:space="preserve"><value>Stats</value></data>
+  <data name="InGameStatisticsLoadFailedMessage" xml:space="preserve"><value>In-game statistics could not be loaded.</value></data>
   <data name="PlayerStatHeading" xml:space="preserve"><value>Player</value></data>
   <data name="TeamTotalStatLabel" xml:space="preserve"><value>TEAM TOTAL</value></data>
   <data name="ActiveStatSortHeaderFormat" xml:space="preserve"><value>{0} {1}</value></data>

@@ -13,9 +13,14 @@ public sealed record CompletedGameProjection(
     int VisitorScore,
     string HomeName,
     int HomeScore,
-    IReadOnlyList<CompletedGamePlayerProjection> Players);
+    IReadOnlyList<GameBattingPlayerProjection> Players);
 
-public sealed record CompletedGamePlayerProjection(
+public sealed record GameBattingStatisticsProjection(
+    int GameId,
+    int ScoringSessionId,
+    IReadOnlyList<GameBattingPlayerProjection> Players);
+
+public sealed record GameBattingPlayerProjection(
     int PlayerId,
     string DisplayName,
     int BattingPosition,

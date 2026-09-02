@@ -919,6 +919,8 @@ namespace SoftballScorekeeper.Resources.Strings {
         public static string CompletedStatus { get { return ResourceManager.GetString("CompletedStatus", resourceCulture); } }
         public static string FinalStatus { get { return ResourceManager.GetString("FinalStatus", resourceCulture); } }
         public static string BattingStatisticsHeading { get { return ResourceManager.GetString("BattingStatisticsHeading", resourceCulture); } }
+        public static string StatsButton { get { return ResourceManager.GetString("StatsButton", resourceCulture); } }
+        public static string InGameStatisticsLoadFailedMessage { get { return ResourceManager.GetString("InGameStatisticsLoadFailedMessage", resourceCulture); } }
         public static string PlayerStatHeading { get { return ResourceManager.GetString("PlayerStatHeading", resourceCulture); } }
         public static string TeamTotalStatLabel { get { return ResourceManager.GetString("TeamTotalStatLabel", resourceCulture); } }
         public static string ActiveStatSortHeaderFormat { get { return ResourceManager.GetString("ActiveStatSortHeaderFormat", resourceCulture); } }
