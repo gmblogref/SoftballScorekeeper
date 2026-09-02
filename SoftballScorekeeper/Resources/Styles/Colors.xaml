@@ -20,6 +20,12 @@
     <Color x:Key="OffBlack">#1f1f1f</Color>
     <Color x:Key="Error">#B3261E</Color>
     <Color x:Key="ErrorDark">#FFB4AB</Color>
+    <Color x:Key="WinSurface">#DDF2E3</Color>
+    <Color x:Key="WinSurfaceDark">#153C22</Color>
+    <Color x:Key="WinText">#176B2C</Color>
+    <Color x:Key="WinTextDark">#A8E6B7</Color>
+    <Color x:Key="LossSurface">#F9DEDC</Color>
+    <Color x:Key="LossSurfaceDark">#5C1A16</Color>
     <Color x:Key="WarningSurface">#FFF3CD</Color>
     <Color x:Key="WarningSurfaceDark">#5A4200</Color>
     <Color x:Key="WarningText">#3D2F00</Color>

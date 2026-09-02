@@ -10,9 +10,9 @@ Stable product and architecture decisions belong in the project architecture doc
 
 ## Current Project Status
 
-- **Latest completed story:** Story 6.9.1 — Completed Game Statistics Sorting
-- **Completed stories:** Stories 0.0 through 6.9.1; Stories 3.2 through 3.4 retain their recorded validation status
-- **Current story:** Story 6.9.1 — Complete and PR-ready; Android acceptance is infrastructure-blocked and completed-game correction remains deferred
+- **Latest completed story:** Story 6.9.2 — Completed Game Result Presentation
+- **Completed stories:** Stories 0.0 through 6.9.2; Stories 3.2 through 3.4 retain their recorded validation status
+- **Current story:** Story 6.9.2 — Complete and PR-ready
 - **Current phase:** Completed-game presentation and statistics
 - **Foundation status:** Complete
 
@@ -2804,6 +2804,30 @@ Dedicated Double Play/Triple Play presentation, sacrifice results, HR-limit/dead
 #### Intended Commit Message
 
 `Add completed game statistics sorting`
+
+### Story 6.9.2 — Completed Game Result Presentation (Complete — PR-ready)
+
+#### Authoritative Games-List State and Result
+
+- Team Workspace now loads scoring sessions for its scheduled Game IDs through one batched `GameScoringSessionRepository` query. A missing session produces Upcoming, persisted `InProgress` produces In Progress, and persisted `Completed` produces Final; schedule dates, lineup state, scores, and navigation state are not used to infer lifecycle status.
+- The platform-independent `GameScheduleSummary` owns the status projection and completed result. It retains persisted Visitor score first and Home score second, then uses `TeamGameSide` solely to select our Team's score when determining Win, Loss, or Tie. In-progress scores are not presented as final results, and no status/result calculation exists in XAML or code-behind.
+- `GameScheduleItem` exposes resource-backed status, W/L/T, Visitor–Home score text, visibility flags, and stable automation IDs. The chronological month/date/time/ID ordering, date, opponent, time, field, season, item-open command, and Remove Games selection behavior remain intact. NEXT and lineup readiness now apply only to the next Upcoming playing date rather than a Game that already has a scoring session.
+
+#### Compact Result Presentation
+
+- The existing Games-list row remains a single compact schedule row. Its leading area now identifies UPCOMING, In Progress, or FINAL; a Final row adds a concise W/L/T plus Visitor–Home score badge. Win uses shared green surface/stroke resources, Loss uses shared red semantic treatment, and Tie reuses neutral gray resources in both themes. Runtime labels and the score template are centralized in `AppResources`.
+- No status grouping, result sorting/filtering, standings, season record, score editing, completed-game correction, list statistics, live inning summary, or navigation change was introduced.
+
+#### Validation and Remaining Acceptance
+
+- Focused `GameScheduleSummaryTests`, `CompletedGameResultPresentationTests`, and the complete nearby `GameScoringSessionRepositoryTests` group passed 65 of 65 with zero failures or skips. Coverage includes Upcoming/In Progress/Final, all six Home/Away W/L/T cases, preserved Visitor/Home scores, batch session loading and input filtering, resource-backed row bindings, semantic result colors, retained schedule/navigation/removal bindings, and unchanged chronological projection.
+- Android application build passed with zero errors and the 7 existing `CS8602` / `XC0025` warnings. Windows application build passed with zero errors and the 115 existing/current `CS8602`, `MVVMTK0045`, and `XC0025` warnings. No full normal suite was run because the repository addition is narrow and the affected repository class plus both supported application targets were validated.
+- Manual physical Android acceptance passed for Upcoming, In Progress, completed Home wins/losses, completed Visitor wins/losses, and ties. Schedule information remained visible; lifecycle states were clear; FINAL scores retained Visitor–Home orientation; W/L correctly reflected the Team Workspace team's Home or Away perspective; and the green Win, red Loss, and neutral Tie treatments were accepted.
+- Physical acceptance also passed in portrait and landscape with no clipping or unacceptable wrapping and with compact, readable rows. Game opening, in-progress resume, completed-game opening, and Remove Games mode all retained their expected behavior. No Android UI/Appium test was added or executed.
+
+#### Intended Commit Message
+
+`Present completed results in the Games list`
 
 ## Maintenance Rules
 

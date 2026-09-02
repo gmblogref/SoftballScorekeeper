@@ -31,6 +31,21 @@ public sealed class GameScoringSessionRepository
             .FirstOrDefaultAsync();
     }
 
+    public async Task<IReadOnlyDictionary<int, GameScoringSession>> GetForGamesAsync(
+        IEnumerable<int>? gameIds)
+    {
+        var requestedIds = (gameIds ?? []).Where(id => id > 0).Distinct().ToArray();
+        if (requestedIds.Length == 0)
+            return new Dictionary<int, GameScoringSession>();
+
+        var connection = await database.GetConnectionAsync();
+        var placeholders = string.Join(",", requestedIds.Select(_ => "?"));
+        var sessions = await connection.QueryAsync<GameScoringSession>(
+            $"SELECT * FROM GameScoringSession WHERE GameId IN ({placeholders})",
+            requestedIds.Cast<object>().ToArray());
+        return sessions.ToDictionary(session => session.GameId);
+    }
+
     public async Task<bool> ExistsForGameAsync(int gameId) =>
         await GetForGameAsync(gameId) is not null;
 

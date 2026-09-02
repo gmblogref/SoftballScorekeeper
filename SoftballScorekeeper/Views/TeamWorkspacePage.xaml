@@ -166,22 +166,33 @@
                                             <DataTemplate x:DataType="viewModels:GameScheduleItem">
                                                 <Grid
                                                     Padding="12,8"
-                                                    MinimumHeightRequest="56"
+                                                    MinimumHeightRequest="64"
                                                     RowDefinitions="Auto,1"
-                                                    ColumnDefinitions="76,110,100,2*,110,*,*,Auto"
+                                                    ColumnDefinitions="112,124,92,2*,104,*,*,Auto"
                                                     ColumnSpacing="12">
                                                     <Grid.GestureRecognizers>
                                                         <TapGestureRecognizer Command="{Binding OpenCommand}" />
                                                     </Grid.GestureRecognizers>
-                                                    <Label
-                                                        Text="{Binding NextDisplay}"
-                                                        FontAttributes="Bold"
-                                                        FontSize="15"
-                                                        VerticalTextAlignment="Center" />
+                                                    <VerticalStackLayout
+                                                        Spacing="1"
+                                                        VerticalOptions="Center">
+                                                        <Label
+                                                            Text="{Binding NextDisplay}"
+                                                            IsVisible="{Binding IsNextPlayingDate}"
+                                                            FontAttributes="Bold"
+                                                            FontSize="12"
+                                                            LineBreakMode="NoWrap" />
+                                                        <Label
+                                                            AutomationId="{Binding StatusAutomationId}"
+                                                            Text="{Binding StatusText}"
+                                                            FontAttributes="Bold"
+                                                            FontSize="14"
+                                                            LineBreakMode="NoWrap" />
+                                                    </VerticalStackLayout>
                                                     <Label
                                                         Grid.Column="1"
                                                         Text="{Binding LineupStatusText}"
-                                                        IsVisible="{Binding IsNextPlayingDate}"
+                                                        IsVisible="{Binding ShowLineupStatus}"
                                                         SemanticProperties.Description="{Binding LineupStatusSemanticDescription}"
                                                         FontAttributes="Bold"
                                                         FontSize="14"
@@ -196,6 +207,43 @@
                                                             </DataTrigger>
                                                         </Label.Triggers>
                                                     </Label>
+                                                    <Border
+                                                        Grid.Column="1"
+                                                        Padding="8,4"
+                                                        IsVisible="{Binding IsFinal}"
+                                                        StrokeShape="RoundRectangle 6"
+                                                        StrokeThickness="1">
+                                                        <Border.Triggers>
+                                                            <DataTrigger TargetType="Border" Binding="{Binding IsWin}" Value="True">
+                                                                <Setter Property="BackgroundColor" Value="{AppThemeBinding Light={StaticResource WinSurface}, Dark={StaticResource WinSurfaceDark}}" />
+                                                                <Setter Property="Stroke" Value="{AppThemeBinding Light={StaticResource WinText}, Dark={StaticResource WinTextDark}}" />
+                                                            </DataTrigger>
+                                                            <DataTrigger TargetType="Border" Binding="{Binding IsLoss}" Value="True">
+                                                                <Setter Property="BackgroundColor" Value="{AppThemeBinding Light={StaticResource LossSurface}, Dark={StaticResource LossSurfaceDark}}" />
+                                                                <Setter Property="Stroke" Value="{AppThemeBinding Light={StaticResource Error}, Dark={StaticResource ErrorDark}}" />
+                                                            </DataTrigger>
+                                                            <DataTrigger TargetType="Border" Binding="{Binding IsTie}" Value="True">
+                                                                <Setter Property="BackgroundColor" Value="{AppThemeBinding Light={StaticResource Gray200}, Dark={StaticResource Gray600}}" />
+                                                                <Setter Property="Stroke" Value="{AppThemeBinding Light={StaticResource Gray500}, Dark={StaticResource Gray300}}" />
+                                                            </DataTrigger>
+                                                        </Border.Triggers>
+                                                        <HorizontalStackLayout
+                                                            Spacing="8"
+                                                            HorizontalOptions="Center"
+                                                            VerticalOptions="Center">
+                                                            <Label
+                                                                AutomationId="{Binding ResultAutomationId}"
+                                                                Text="{Binding ResultText}"
+                                                                FontAttributes="Bold"
+                                                                FontSize="16" />
+                                                            <Label
+                                                                AutomationId="{Binding ScoreAutomationId}"
+                                                                Text="{Binding FinalScoreDisplay}"
+                                                                FontAttributes="Bold"
+                                                                FontSize="15"
+                                                                LineBreakMode="NoWrap" />
+                                                        </HorizontalStackLayout>
+                                                    </Border>
                                                     <Label
                                                         Grid.Column="2"
                                                         Text="{Binding DateDisplay}"

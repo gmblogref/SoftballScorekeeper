@@ -14,6 +14,7 @@ public partial class TeamWorkspaceViewModel : ObservableObject, IQueryAttributab
     private readonly TeamPlayerRepository teamPlayerRepository;
     private readonly GameRepository gameRepository;
     private readonly GameLineupRepository gameLineupRepository;
+    private readonly GameScoringSessionRepository gameScoringSessionRepository;
     private readonly SeasonRepository seasonRepository;
     private bool hasGames;
     private bool hasInitialSectionSelection;
@@ -89,18 +90,21 @@ public partial class TeamWorkspaceViewModel : ObservableObject, IQueryAttributab
         TeamPlayerRepository teamPlayerRepository,
         GameRepository gameRepository,
         GameLineupRepository gameLineupRepository,
+        GameScoringSessionRepository gameScoringSessionRepository,
         SeasonRepository seasonRepository)
     {
         ArgumentNullException.ThrowIfNull(teamRepository);
         ArgumentNullException.ThrowIfNull(teamPlayerRepository);
         ArgumentNullException.ThrowIfNull(gameRepository);
         ArgumentNullException.ThrowIfNull(gameLineupRepository);
+        ArgumentNullException.ThrowIfNull(gameScoringSessionRepository);
         ArgumentNullException.ThrowIfNull(seasonRepository);
 
         this.teamRepository = teamRepository;
         this.teamPlayerRepository = teamPlayerRepository;
         this.gameRepository = gameRepository;
         this.gameLineupRepository = gameLineupRepository;
+        this.gameScoringSessionRepository = gameScoringSessionRepository;
         this.seasonRepository = seasonRepository;
     }
 
@@ -260,6 +264,8 @@ public partial class TeamWorkspaceViewModel : ObservableObject, IQueryAttributab
             var seasons = await seasonRepository.GetForTeamAsync(TeamId);
             var gameIdsWithLineups = await gameLineupRepository.GetGameIdsWithLineupsAsync(
                 games.Select(game => game.Id));
+            var scoringSessions = await gameScoringSessionRepository.GetForGamesAsync(
+                games.Select(game => game.Id));
 
             loadedTeam = team;
             TeamName = team.Name;
@@ -272,7 +278,7 @@ public partial class TeamWorkspaceViewModel : ObservableObject, IQueryAttributab
 
             HasPlayers = RosterPlayers.Count > 0;
             HasNoPlayers = !HasPlayers;
-            RebuildSchedule(games, seasons, gameIdsWithLineups);
+            RebuildSchedule(games, seasons, gameIdsWithLineups, scoringSessions);
             if (!hasInitialSectionSelection)
             {
                 SelectedSection = HasGames
@@ -828,7 +834,10 @@ public partial class TeamWorkspaceViewModel : ObservableObject, IQueryAttributab
         var seasons = await seasonRepository.GetForTeamAsync(TeamId);
         var gameIdsWithLineups = await gameLineupRepository.GetGameIdsWithLineupsAsync(
             games.Select(game => game.Id));
-        RebuildSchedule(games, seasons, gameIdsWithLineups, idsToReselect);
+        var scoringSessions = await gameScoringSessionRepository.GetForGamesAsync(
+            games.Select(game => game.Id));
+        RebuildSchedule(
+            games, seasons, gameIdsWithLineups, scoringSessions, idsToReselect);
         UpdateGameSelectionState();
     }
 
@@ -859,6 +868,7 @@ public partial class TeamWorkspaceViewModel : ObservableObject, IQueryAttributab
         IReadOnlyList<Game> games,
         IReadOnlyList<Season> seasons,
         IReadOnlySet<int> gameIdsWithLineups,
+        IReadOnlyDictionary<int, GameScoringSession> scoringSessions,
         IReadOnlyCollection<int>? idsToReselect = null)
     {
         var selectedIds = idsToReselect?.ToHashSet();
@@ -877,6 +887,7 @@ public partial class TeamWorkspaceViewModel : ObservableObject, IQueryAttributab
             .ToDictionary(group => group.Key, group => group.First().Name);
         var today = DateTime.Today;
         var nextPlayingDate = orderedGames
+            .Where(game => !scoringSessions.ContainsKey(game.Id))
             .Select(game => game.ScheduledDate.Date)
             .Where(date => date >= today)
             .Cast<DateTime?>()
@@ -903,7 +914,9 @@ public partial class TeamWorkspaceViewModel : ObservableObject, IQueryAttributab
                     game,
                     seasonNames,
                     nextPlayingDate,
-                    gameIdsWithLineups.Contains(game.Id)))
+                    gameIdsWithLineups.Contains(game.Id),
+                    GameScheduleSummary.FromSession(
+                        scoringSessions.GetValueOrDefault(game.Id))))
                 .ToArray();
             foreach (var item in scheduleItems)
             {
@@ -931,7 +944,8 @@ public partial class TeamWorkspaceViewModel : ObservableObject, IQueryAttributab
         Game game,
         IReadOnlyDictionary<int, string> seasonNames,
         DateTime? nextPlayingDate,
-        bool hasLineup)
+        bool hasLineup,
+        GameScheduleSummary scoringSummary)
     {
         var isNextPlayingDate = nextPlayingDate is not null
             && game.ScheduledDate.Date == nextPlayingDate.Value;
@@ -970,9 +984,37 @@ public partial class TeamWorkspaceViewModel : ObservableObject, IQueryAttributab
                     ? AppResources.LineupReadySemanticDescription
                     : AppResources.LineupNotSetSemanticDescription
                 : string.Empty,
+            Status = scoringSummary.Status,
+            StatusText = GetScheduleStatusText(scoringSummary.Status),
+            Result = scoringSummary.Result,
+            ResultText = GetTeamGameResultText(scoringSummary.Result),
+            FinalScoreDisplay = scoringSummary.Status == GameScheduleStatus.Final
+                ? string.Format(
+                    CultureInfo.CurrentCulture,
+                    AppResources.FinalGameScoreFormat,
+                    scoringSummary.VisitorScore,
+                    scoringSummary.HomeScore)
+                : string.Empty,
             IsSelectionVisible = IsRemovingGames,
         };
     }
+
+    private static string GetScheduleStatusText(GameScheduleStatus status) => status switch
+    {
+        GameScheduleStatus.Upcoming => AppResources.UpcomingStatus,
+        GameScheduleStatus.InProgress => AppResources.InProgressStatus,
+        GameScheduleStatus.Final => AppResources.FinalStatus,
+        _ => throw new ArgumentOutOfRangeException(nameof(status)),
+    };
+
+    private static string GetTeamGameResultText(TeamGameResult? result) => result switch
+    {
+        TeamGameResult.Win => AppResources.WinResultLabel,
+        TeamGameResult.Loss => AppResources.LossResultLabel,
+        TeamGameResult.Tie => AppResources.TieResultLabel,
+        null => string.Empty,
+        _ => throw new ArgumentOutOfRangeException(nameof(result)),
+    };
 
     private static bool TryParseTeamId(object? value, out int parsedTeamId)
     {
