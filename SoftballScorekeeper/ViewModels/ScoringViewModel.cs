@@ -60,6 +60,9 @@ public partial class ScoringViewModel : ObservableObject, IQueryAttributable
         PlateAppearanceResultDefinitions.GetSelectableResults(0);
     public IReadOnlyList<RunnerOutcomeViewModel> DecisionParticipants { get; private set; } = [];
 
+    public Task<GameBattingStatisticsProjection?> LoadInGameBattingStatisticsAsync() =>
+        sessionRepository.GetInProgressBattingStatisticsAsync(GameId);
+
     public string HomeHomeRunDisplay
     {
         get => homeHomeRunDisplay;

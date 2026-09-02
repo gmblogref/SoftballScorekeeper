@@ -6,7 +6,7 @@ namespace SoftballScorekeeper.ViewModels;
 public sealed class CompletedBattingStatRowViewModel
 {
     public CompletedBattingStatRowViewModel(
-        CompletedGamePlayerProjection player,
+        GameBattingPlayerProjection player,
         int projectionOrder)
     {
         ArgumentNullException.ThrowIfNull(player);

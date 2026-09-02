@@ -10,10 +10,10 @@ Stable product and architecture decisions belong in the project architecture doc
 
 ## Current Project Status
 
-- **Latest completed story:** Story 6.9.2 — Completed Game Result Presentation
-- **Completed stories:** Stories 0.0 through 6.9.2; Stories 3.2 through 3.4 retain their recorded validation status
-- **Current story:** Story 6.9.2 — Complete and PR-ready
-- **Current phase:** Completed-game presentation and statistics
+- **Latest completed story:** Story 6.9.3 — In-Game Stats Viewer
+- **Completed stories:** Stories 0.0 through 6.9.3; Stories 3.2 through 3.4 retain their recorded validation status
+- **Current story:** Story 6.9.3 — Complete and PR-ready
+- **Current phase:** In-game and completed-game batting statistics
 - **Foundation status:** Complete
 
 The repository contains a five-project .NET 9 solution: the Android- and Windows-targeted .NET MAUI application, platform-independent Core, Infrastructure, the emulator-independent automated test project, and the opt-in Android UI test project. Its implemented foundation includes repository guidance, pragmatic layered dependencies, CommunityToolkit.Mvvm, MAUI dependency injection, device-local SQLite initialization, centralized user-facing resources, strongly typed application settings, and isolated xUnit repository integration tests. Team Workspace contains local Games and Roster sections, supports adding or removing existing active Players, and supports creating a global Player with immediate TeamPlayer membership from the Team-scoped Add Players workflow. Player Workspace shows active Team memberships, and Player Manager retains bulk lifecycle actions; Game schedule management and other later softball workflows remain deferred.
@@ -2828,6 +2828,32 @@ Dedicated Double Play/Triple Play presentation, sacrifice results, HR-limit/dead
 #### Intended Commit Message
 
 `Present completed results in the Games list`
+
+### Story 6.9.3 — In-Game Stats Viewer (Complete — PR-ready)
+
+#### Authoritative Active-Game Statistics
+
+- In Progress scoring now exposes a read-only Stats action in the existing hamburger menu between Game Rules and Exit Game. Each open reloads authoritative persisted committed scoring history and presents a modal page over the existing scoring page; closing it returns to the same scoring session without mutating scoring state or introducing a stats-specific reset or navigation workflow.
+- `GameScoringSessionRepository` now has lifecycle-specific active and completed APIs over one shared batting-player projection helper. The active API requires `InProgress`, while `GetCompletedGameAsync` retains its `Completed` gate and completed-only metadata. Both projections resolve frozen-lineup and historical players consistently and pass only committed `GamePlateAppearance` results to the centralized `BattingStatisticsCalculator`.
+- Pending plays are excluded. Persisted Undo and Redo remove and restore committed contributions through canonical persisted state on the next Stats open. Final reconciled FC/Sac Fly batter results remain authoritative, and runner-only events—including Out Attempting—do not create additional batter PA or AB. Zero-appearance lineup players retain deterministic zero rate formatting.
+
+#### Shared Read-Only Scorebook Grid
+
+- The accepted completed-game scorebook table was extracted into `BattingStatisticsGrid` and is reused by both completed Game Workspace and the in-game modal. The shared `BattingStatisticsTableViewModel` reuses Story 6.9.1 sorting across all 14 columns: OBP descending is the initial order, Player defaults ascending, numeric/stat columns default descending, ties are stable and deterministic, and TEAM TOTAL remains pinned last outside the sortable player rows.
+- Both contexts retain the same aligned Player, PA, AB, H, 1B, 2B, 3B, HR, BB, FC, SF, AVG, OBP, and SLG columns, centered values, separators, compact rows, sortable headers, and emphasized TEAM TOTAL. TEAM TOTAL derives from aggregate raw statistics through the centralized `BattingStatisticsCalculator`, rather than aggregating formatted player rates. Portrait supports horizontal scrolling through AVG, OBP, and SLG; landscape remains compact and aligned. The in-game viewer adds only a resource-backed title and reachable Close action and contains no scoring/stat editing controls.
+- The scoring secondary menu is a sibling overlay above the scoring workspace rather than a layout-consuming header row. Its portrait and landscape positions remain anchored below the hamburger button, and toggling it does not remeasure or move the scoreboard, runner controls, information panels, current batter, or scoring controls. The existing Game Rules, Stats, Exit Game, and Game Over handlers remain unchanged.
+
+#### Validation and Physical Acceptance
+
+- Focused active/completed projection, shared-grid, viewer, and sorting validation passed 46 of 46 with zero failures or skips. Coverage includes lifecycle gates, no-PA and multi-outcome statistics, AVG/OBP/SLG, pending exclusion and observational state preservation, Undo/Redo, true and reconciled FC/SF behavior, Out Attempting, all 14 shared columns, sorting, TEAM TOTAL placement, horizontal scrolling, menu order, close behavior, read-only presentation, and retained completed-game grid use.
+- The full emulator-independent suite passed 698 of 698 with zero failures or skips. Android built with zero errors and the 7 existing `CS8602` / `XC0025` warnings. Windows built with zero errors and 115 existing/current `CS8602`, `MVVMTK0045`, and `XC0025` warnings. The Android UI test project built with zero warnings and zero errors. `git diff --check` passed with line-ending notices only.
+- After the scoring-menu acceptance fix, the focused scoring/viewer regression selection passed 175 of 175 with zero failures or skips. Android rebuilt with zero errors and the same 7 warnings; Windows rebuilt with zero errors and the same 115 warnings. No emulator or Appium run was performed for the fix.
+- Physical Android acceptance passed. It covered zero-state and committed-statistics display; representative batting results; refresh after another committed PA; Undo removal and Redo restoration; scoring-state preservation after viewing Stats; sorting and TEAM TOTAL placement; portrait scrolling through AVG/OBP/SLG; landscape readability and alignment; retained completed-game FINAL statistics behavior; scoring-menu overlay behavior in portrait and landscape; and opening and closing Stats after the overlay correction.
+- No Android/Appium or emulator automation was executed or required for final acceptance. Story 6.9.4 remains deferred, as do active/completed corrections from Stats, season/career/opponent statistics, filtering/export, persistent or multi-column sorting, new results, and Beer Rules.
+
+#### Intended Commit Message
+
+`Add in-game batting statistics viewer`
 
 ## Maintenance Rules
 

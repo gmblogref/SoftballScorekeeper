@@ -14,6 +14,7 @@
             <Setter Property="TextColor" Value="Black" />
         </Style>
     </ContentPage.Resources>
+    <Grid x:Name="ScoringOverlayGrid">
     <Grid x:Name="RootGrid"
           Padding="40" RowDefinitions="Auto,Auto,Auto,Auto,*" RowSpacing="14">
         <VisualStateManager.VisualStateGroups>
@@ -30,6 +31,7 @@
                     <VisualState.Setters>
                         <Setter TargetName="RootGrid" Property="Padding" Value="20,12" />
                         <Setter TargetName="RootGrid" Property="RowSpacing" Value="8" />
+                        <Setter TargetName="ScoringMenu" Property="Margin" Value="20,64,0,0" />
                         <Setter TargetName="ScoreboardBorder" Property="Padding" Value="12,4" />
                         <Setter TargetName="ScoreboardGrid" Property="ColumnDefinitions" Value="*,1,Auto,1,*" />
                         <Setter TargetName="ScoreboardGrid" Property="RowDefinitions" Value="Auto" />
@@ -98,7 +100,7 @@
                 </VisualState>
             </VisualStateGroup>
         </VisualStateManager.VisualStateGroups>
-        <Grid RowDefinitions="Auto,Auto" ColumnDefinitions="Auto,*">
+        <Grid ColumnDefinitions="Auto,*">
             <Button AutomationId="ScoringMenuButton" Text="&#x2630;"
                     Clicked="OnScoringMenuClicked"
                     FontSize="28"
@@ -112,35 +114,6 @@
                    Style="{StaticResource Headline}"
                    VerticalOptions="Center"
                    SemanticProperties.HeadingLevel="Level1" />
-            <Border x:Name="ScoringMenu"
-                    Grid.Row="1"
-                    IsVisible="False"
-                    HorizontalOptions="Start"
-                    BackgroundColor="White"
-                    Stroke="Black"
-                    StrokeShape="RoundRectangle 8"
-                    Padding="0">
-                <VerticalStackLayout Spacing="0">
-                    <Button Text="{x:Static strings:AppResources.GameRulesTitle}"
-                            Clicked="OnGameRulesClicked"
-                            BackgroundColor="Transparent" TextColor="Black"
-                            MinimumHeightRequest="52" MinimumWidthRequest="180" Padding="20,12" />
-                    <BoxView BackgroundColor="Black" HeightRequest="1" />
-                    <Button AutomationId="ExitGameButton" Text="{x:Static strings:AppResources.ExitGameButton}"
-                            Clicked="OnExitGameClicked"
-                            BackgroundColor="Transparent"
-                            TextColor="Black"
-                            MinimumHeightRequest="52"
-                            MinimumWidthRequest="180"
-                            Padding="20,12" />
-                    <BoxView BackgroundColor="Black" HeightRequest="1" />
-                    <Button AutomationId="GameOverButton"
-                            Text="{x:Static strings:AppResources.GameOverButton}"
-                            Clicked="OnGameOverClicked"
-                            BackgroundColor="Transparent" TextColor="Black"
-                            MinimumHeightRequest="52" MinimumWidthRequest="180" Padding="20,12" />
-                </VerticalStackLayout>
-            </Border>
         </Grid>
         <Label Grid.Row="1" Text="{Binding ValidationMessage}" HorizontalTextAlignment="Center" />
         <Border x:Name="ScoreboardBorder"
@@ -495,5 +468,43 @@
                          BackgroundColor="{AppThemeBinding Light={StaticResource Gray300}, Dark={StaticResource Gray600}}" />
             </Grid>
         </ScrollView>
+    </Grid>
+    <Border x:Name="ScoringMenu"
+            IsVisible="False"
+            Margin="40,92,0,0"
+            HorizontalOptions="Start"
+            VerticalOptions="Start"
+            ZIndex="10"
+            BackgroundColor="White"
+            Stroke="Black"
+            StrokeShape="RoundRectangle 8"
+            Padding="0">
+        <VerticalStackLayout Spacing="0">
+            <Button Text="{x:Static strings:AppResources.GameRulesTitle}"
+                    Clicked="OnGameRulesClicked"
+                    BackgroundColor="Transparent" TextColor="Black"
+                    MinimumHeightRequest="52" MinimumWidthRequest="180" Padding="20,12" />
+            <BoxView BackgroundColor="Black" HeightRequest="1" />
+            <Button AutomationId="InGameStatsButton"
+                    Text="{x:Static strings:AppResources.StatsButton}"
+                    Clicked="OnStatsClicked"
+                    BackgroundColor="Transparent" TextColor="Black"
+                    MinimumHeightRequest="52" MinimumWidthRequest="180" Padding="20,12" />
+            <BoxView BackgroundColor="Black" HeightRequest="1" />
+            <Button AutomationId="ExitGameButton" Text="{x:Static strings:AppResources.ExitGameButton}"
+                    Clicked="OnExitGameClicked"
+                    BackgroundColor="Transparent"
+                    TextColor="Black"
+                    MinimumHeightRequest="52"
+                    MinimumWidthRequest="180"
+                    Padding="20,12" />
+            <BoxView BackgroundColor="Black" HeightRequest="1" />
+            <Button AutomationId="GameOverButton"
+                    Text="{x:Static strings:AppResources.GameOverButton}"
+                    Clicked="OnGameOverClicked"
+                    BackgroundColor="Transparent" TextColor="Black"
+                    MinimumHeightRequest="52" MinimumWidthRequest="180" Padding="20,12" />
+        </VerticalStackLayout>
+    </Border>
     </Grid>
 </ContentPage>

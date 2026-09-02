@@ -10,7 +10,8 @@ public sealed class CompletedGameStatGridRefinementTests
     [Fact]
     public void Portrait_and_landscape_share_one_scrollable_scorebook_grid()
     {
-        var page = LoadPage();
+        var page = LoadGrid();
+        var workspace = LoadWorkspace();
         var ns = page.Root!.Name.Namespace;
         var named = NamedElements(page);
         var table = named["CompletedStatsTable"];
@@ -23,16 +24,20 @@ public sealed class CompletedGameStatGridRefinementTests
         Assert.Empty(table.Descendants(ns + "Border"));
         Assert.Single(page.Descendants().Where(element =>
             element.Attribute("BindableLayout.ItemsSource")?.Value
-                == "{Binding CompletedBattingRows}"));
+                == "{Binding Rows}"));
         Assert.DoesNotContain(page.Descendants(ns + "Setter"), setter =>
             setter.Attribute("TargetName")?.Value.Contains("Stats", StringComparison.Ordinal)
                 == true);
+        var sharedGrid = Assert.Single(workspace.Descendants().Where(element =>
+            element.Name.LocalName == "BattingStatisticsGrid"));
+        Assert.Equal("{Binding CompletedBattingStatistics}",
+            sharedGrid.Attribute("BindingContext")?.Value);
     }
 
     [Fact]
     public void Shared_scrollable_table_exposes_rate_columns_after_sacrifice_flies()
     {
-        var page = LoadPage();
+        var page = LoadGrid();
         var ns = page.Root!.Name.Namespace;
         var named = NamedElements(page);
         var header = named["CompletedStatsHeader"];
@@ -56,17 +61,17 @@ public sealed class CompletedGameStatGridRefinementTests
         });
         AssertColumns(teamTotal, "Label", new[]
         {
-            ("{Binding CompletedBattingTeamTotal.SacrificeFlies}", "11"),
-            ("{Binding CompletedBattingTeamTotal.BattingAverage}", "12"),
-            ("{Binding CompletedBattingTeamTotal.OnBasePercentage}", "13"),
-            ("{Binding CompletedBattingTeamTotal.SluggingPercentage}", "14"),
+            ("{Binding TeamTotal.SacrificeFlies}", "11"),
+            ("{Binding TeamTotal.BattingAverage}", "12"),
+            ("{Binding TeamTotal.OnBasePercentage}", "13"),
+            ("{Binding TeamTotal.SluggingPercentage}", "14"),
         });
     }
 
     [Fact]
     public void Header_player_rows_and_team_total_use_the_same_ordered_columns()
     {
-        var page = LoadPage();
+        var page = LoadGrid();
         var ns = page.Root!.Name.Namespace;
         var named = NamedElements(page);
         var header = named["CompletedStatsHeader"];
@@ -101,7 +106,7 @@ public sealed class CompletedGameStatGridRefinementTests
         }, headings);
         Assert.All(header.Elements(ns + "Button"), button =>
         {
-            Assert.Equal("{Binding SortCompletedBattingRowsCommand}",
+            Assert.Equal("{Binding SortRowsCommand}",
                 button.Attribute("Command")?.Value);
             Assert.StartsWith("{x:Static statistics:BattingStatSortColumn.",
                 button.Attribute("CommandParameter")?.Value);
@@ -116,14 +121,14 @@ public sealed class CompletedGameStatGridRefinementTests
                 .Select(button => button.Attribute("CommandParameter")?.Value));
 
         Assert.Contains(teamTotal, playerRows.ElementsAfterSelf());
-        Assert.Equal("{Binding CompletedBattingTeamTotal.PlayerName}",
+        Assert.Equal("{Binding TeamTotal.PlayerName}",
             teamTotal.Elements(ns + "Label").First().Attribute("Text")?.Value);
     }
 
     [Fact]
     public void Plate_appearances_and_all_stats_are_centered_in_explicit_columns()
     {
-        var page = LoadPage();
+        var page = LoadGrid();
         var ns = page.Root!.Name.Namespace;
         var named = NamedElements(page);
         var valueStyle = page.Descendants(ns + "Style").Single(style =>
@@ -146,11 +151,14 @@ public sealed class CompletedGameStatGridRefinementTests
     [Fact]
     public void Grid_separators_team_total_loading_error_and_no_resume_behavior_are_preserved()
     {
-        var page = LoadPage();
+        var page = LoadGrid();
+        var workspace = LoadWorkspace();
         var ns = page.Root!.Name.Namespace;
         var named = NamedElements(page);
-        var viewModel = File.ReadAllText(Path.Combine(RepositoryRoot,
+        var workspaceViewModel = File.ReadAllText(Path.Combine(RepositoryRoot,
             "SoftballScorekeeper", "ViewModels", "GameWorkspaceViewModel.cs"));
+        var tableViewModel = File.ReadAllText(Path.Combine(RepositoryRoot,
+            "SoftballScorekeeper", "ViewModels", "BattingStatisticsTableViewModel.cs"));
         var resources = XDocument.Load(Path.Combine(RepositoryRoot,
             "SoftballScorekeeper", "Resources", "Strings", "AppResources.resx"));
 
@@ -165,24 +173,25 @@ public sealed class CompletedGameStatGridRefinementTests
                 && box.Attribute("Grid.ColumnSpan")?.Value == "15");
         Assert.Equal("2,46", named["CompletedStatsTeamTotal"]
             .Attribute("RowDefinitions")?.Value);
-        Assert.Contains("BattingStatisticsCalculator.CalculateTeam", viewModel);
-        Assert.Contains("AppResources.CompletedGameLoadFailedMessage", viewModel);
-        Assert.Contains("HasScoringSession && !IsScoringCompleted", viewModel);
-        Assert.Contains("BattingStatSortColumn.OnBasePercentage", viewModel);
-        Assert.Contains("BattingStatSortDirection.Descending", viewModel);
-        Assert.Contains("CompletedBattingRows.Move", viewModel);
-        Assert.Contains("BattingStatSortState", viewModel);
-        Assert.Contains(".Select(column)", viewModel);
-        Assert.Contains("AppResources.ActiveStatSortHeaderFormat", viewModel);
-        Assert.Contains("AppResources.SortAscendingIndicator", viewModel);
-        Assert.Contains("AppResources.SortDescendingIndicator", viewModel);
+        Assert.Contains("BattingStatisticsCalculator.CalculateTeam", tableViewModel);
+        Assert.Contains("AppResources.CompletedGameLoadFailedMessage", workspaceViewModel);
+        Assert.Contains("HasScoringSession && !IsScoringCompleted", workspaceViewModel);
+        Assert.Contains("BattingStatSortColumn.OnBasePercentage", tableViewModel);
+        Assert.Contains("BattingStatSortDirection.Descending", tableViewModel);
+        Assert.Contains("Rows.Move", tableViewModel);
+        Assert.Contains("BattingStatSortState", tableViewModel);
+        Assert.Contains(".Select(column)", tableViewModel);
+        Assert.Contains("AppResources.ActiveStatSortHeaderFormat", tableViewModel);
+        Assert.Contains("AppResources.SortAscendingIndicator", tableViewModel);
+        Assert.Contains("AppResources.SortDescendingIndicator", tableViewModel);
         Assert.Contains(resources.Descendants("data"), item =>
             item.Attribute("name")?.Value == "SortAscendingIndicator"
                 && item.Element("value")?.Value == "▲");
         Assert.Contains(resources.Descendants("data"), item =>
             item.Attribute("name")?.Value == "SortDescendingIndicator"
                 && item.Element("value")?.Value == "▼");
-        Assert.DoesNotContain(named["CompletedGameGrid"].Descendants(ns + "Button"), button =>
+        var workspaceNamed = NamedElements(workspace);
+        Assert.DoesNotContain(workspaceNamed["CompletedGameGrid"].Descendants(ns + "Button"), button =>
             button.Attribute("AutomationId")?.Value == "ResumeGameButton");
     }
 
@@ -204,7 +213,11 @@ public sealed class CompletedGameStatGridRefinementTests
         }
     }
 
-    private static XDocument LoadPage() => XDocument.Load(Path.Combine(
+    private static XDocument LoadGrid() => XDocument.Load(Path.Combine(
+        RepositoryRoot, "SoftballScorekeeper", "Views", "Controls",
+        "BattingStatisticsGrid.xaml"));
+
+    private static XDocument LoadWorkspace() => XDocument.Load(Path.Combine(
         RepositoryRoot, "SoftballScorekeeper", "Views", "GameWorkspacePage.xaml"));
 
     private static Dictionary<string, XElement> NamedElements(XDocument page)
