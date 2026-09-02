@@ -10,9 +10,9 @@ Stable product and architecture decisions belong in the project architecture doc
 
 ## Current Project Status
 
-- **Latest completed story:** Story 6.9 — Game Completion & Batting Statistics
-- **Completed stories:** Stories 0.0 through 6.9; Stories 3.2 through 3.4 retain their recorded validation status
-- **Current story:** Story 6.9 — Complete and PR-ready; Story 6.9.1 Manual Overrides is deferred
+- **Latest completed story:** Story 6.9.1 — Completed Game Statistics Sorting
+- **Completed stories:** Stories 0.0 through 6.9.1; Stories 3.2 through 3.4 retain their recorded validation status
+- **Current story:** Story 6.9.1 — Complete and PR-ready; Android acceptance is infrastructure-blocked and completed-game correction remains deferred
 - **Current phase:** Completed-game presentation and statistics
 - **Foundation status:** Complete
 
@@ -2784,6 +2784,26 @@ Dedicated Double Play/Triple Play presentation, sacrifice results, HR-limit/dead
 #### Intended Commit Message
 
 `Add game completion and batting statistics`
+
+### Story 6.9.1 — Completed Game Statistics Sorting (Complete — Android acceptance infrastructure-blocked)
+
+#### Completed-Game Sorting
+
+- Completed batting player rows now open in OBP-descending order. Every displayed header—Player, PA, AB, H, 1B, 2B, 3B, HR, BB, FC, SF, AVG, OBP, and SLG—is an interactive sort control. Selecting the active header reverses direction; selecting Player starts ascending, while selecting a counting or rate statistic starts descending.
+- The active header includes a compact ascending or descending indicator without changing the accepted shared portrait/landscape grid geometry. Portrait retains its full-width horizontal scrolling through AVG, OBP, and SLG, and landscape retains the same aligned column set.
+- `GameWorkspaceViewModel` owns transient sort state and reorders only `CompletedBattingRows`. The platform-independent `BattingStatisticsSorter` compares authoritative integer and decimal values from `PlayerBattingStatLine`, never formatted rate strings. Projection order is the stable secondary key and Player ID is the final deterministic fallback. Sort state is not persisted and resets to OBP descending when the completed Game is reopened.
+- TEAM TOTAL remains outside the sortable player collection and pinned beneath every ordering. Its aggregate calculation and emphasized presentation are unchanged.
+
+#### Validation and Boundaries
+
+- Focused sorting/layout validation passed 25 of 25 with zero failures or skips. Coverage includes the default order, stable ties, case-insensitive Player sorting, ascending/descending transitions, every counting/rate column, unformatted rate comparisons, all 14 header command bindings, active indicator state, TEAM TOTAL separation, and retained shared-grid scrolling.
+- The full normal suite passed 674 of 674 with zero failures or skips. Android built with zero errors and 7 existing `CS8602` / `XC0025` warnings. Windows built with zero errors and 115 existing/current Story 6.9 `CS8602`, `MVVMTK0045`, and `XC0025` warnings.
+- Added one pinpoint `CompletedGameWorkspaceTests` scenario with a dedicated Debug-only completed-game seed. It covers initial OBP-descending order and indicator, Player and PA toggles, representative H/HR/BB and AVG/OBP/SLG sorting, TEAM TOTAL remaining last, landscape column alignment, portrait access to the rate columns through horizontal scrolling, and sorting after that scroll. The Android UI test project built with zero warnings or errors, and the embedded Android app build passed with the same 7 existing warnings.
+- Exactly one authorized filtered Appium attempt selected `emulator-5554`, built and installed the APK, and VSTest executed only the pinpoint method, but it failed during Appium session creation before the application test flow or either orientation assertion began: runner-owned Appium's UiAutomator2 process repeatedly received Windows `spawn EPERM` while launching the configured `adb.exe`, then timed out finding a connected device. Direct `adb devices -l` continued to show the emulator healthy. No Story 6.9.1 product or UI failure was observed. Portrait and landscape Android acceptance therefore remain not executed and infrastructure-blocked—not passed or emulator/physical-device validated. No rerun or other Appium test was attempted. Completed-game corrections, score/stat editing, persistent sort preferences, multi-column sorting, Games-list results, in-game/season/career statistics, Beer Rules, export, filtering, and drag/drop ordering remain out of scope.
+
+#### Intended Commit Message
+
+`Add completed game statistics sorting`
 
 ## Maintenance Rules
 

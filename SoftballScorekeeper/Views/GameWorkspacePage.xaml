@@ -2,22 +2,29 @@
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              xmlns:controls="clr-namespace:SoftballScorekeeper.Views.Controls"
+             xmlns:statistics="clr-namespace:SoftballScorekeeper.Core.Statistics;assembly=SoftballScorekeeper.Core"
              xmlns:strings="clr-namespace:SoftballScorekeeper.Resources.Strings"
              xmlns:viewModels="clr-namespace:SoftballScorekeeper.ViewModels"
              x:Class="SoftballScorekeeper.Views.GameWorkspacePage"
              x:DataType="viewModels:GameWorkspaceViewModel"
              Title="{x:Static strings:AppResources.GameWorkspaceTitle}">
     <ContentPage.Resources>
-        <Style x:Key="CompletedStatHeading" TargetType="Label">
-            <Setter Property="FontSize" Value="13" />
-            <Setter Property="FontAttributes" Value="Bold" />
-            <Setter Property="HorizontalTextAlignment" Value="Center" />
-            <Setter Property="VerticalTextAlignment" Value="Center" />
-        </Style>
         <Style x:Key="CompletedStatValue" TargetType="Label">
             <Setter Property="FontSize" Value="16" />
             <Setter Property="HorizontalTextAlignment" Value="Center" />
             <Setter Property="VerticalTextAlignment" Value="Center" />
+        </Style>
+        <Style x:Key="CompletedStatHeaderButton" TargetType="Button">
+            <Setter Property="FontSize" Value="12" />
+            <Setter Property="FontAttributes" Value="Bold" />
+            <Setter Property="HeightRequest" Value="36" />
+            <Setter Property="MinimumHeightRequest" Value="36" />
+            <Setter Property="Padding" Value="0" />
+            <Setter Property="Margin" Value="0" />
+            <Setter Property="CornerRadius" Value="0" />
+            <Setter Property="BorderWidth" Value="0" />
+            <Setter Property="BackgroundColor" Value="Transparent" />
+            <Setter Property="TextColor" Value="{AppThemeBinding Light={StaticResource Gray900}, Dark={StaticResource White}}" />
         </Style>
     </ContentPage.Resources>
 
@@ -175,23 +182,26 @@
                               Padding="10,6,10,0"
                               RowDefinitions="Auto,2"
                               ColumnDefinitions="180,2,52,52,52,52,52,52,52,52,52,52,68,68,68">
-                            <Label Text="{x:Static strings:AppResources.PlayerStatHeading}"
-                                   FontAttributes="Bold" VerticalTextAlignment="Center" />
+                            <Button AutomationId="CompletedStatsSortPlayer"
+                                    Text="{Binding PlayerStatSortHeader}"
+                                    Command="{Binding SortCompletedBattingRowsCommand}"
+                                    CommandParameter="{x:Static statistics:BattingStatSortColumn.Player}"
+                                    Style="{StaticResource CompletedStatHeaderButton}" />
                             <BoxView Grid.Column="1" Grid.RowSpan="2"
                                      BackgroundColor="{AppThemeBinding Light={StaticResource Gray500}, Dark={StaticResource Gray400}}" />
-                            <Label Grid.Column="2" Text="{x:Static strings:AppResources.PlateAppearancesStatHeading}" Style="{StaticResource CompletedStatHeading}" />
-                            <Label Grid.Column="3" Text="{x:Static strings:AppResources.AtBatsStatHeading}" Style="{StaticResource CompletedStatHeading}" />
-                            <Label Grid.Column="4" Text="{x:Static strings:AppResources.HitsStatHeading}" Style="{StaticResource CompletedStatHeading}" />
-                            <Label Grid.Column="5" Text="{x:Static strings:AppResources.SinglesStatHeading}" Style="{StaticResource CompletedStatHeading}" />
-                            <Label Grid.Column="6" Text="{x:Static strings:AppResources.DoublesStatHeading}" Style="{StaticResource CompletedStatHeading}" />
-                            <Label Grid.Column="7" Text="{x:Static strings:AppResources.TriplesStatHeading}" Style="{StaticResource CompletedStatHeading}" />
-                            <Label Grid.Column="8" Text="{x:Static strings:AppResources.HomeRunsStatHeading}" Style="{StaticResource CompletedStatHeading}" />
-                            <Label Grid.Column="9" Text="{x:Static strings:AppResources.WalksStatHeading}" Style="{StaticResource CompletedStatHeading}" />
-                            <Label Grid.Column="10" Text="{x:Static strings:AppResources.FielderChoicesStatHeading}" Style="{StaticResource CompletedStatHeading}" />
-                            <Label Grid.Column="11" Text="{x:Static strings:AppResources.SacrificeFliesStatHeading}" Style="{StaticResource CompletedStatHeading}" />
-                            <Label Grid.Column="12" Text="{x:Static strings:AppResources.BattingAverageStatHeading}" Style="{StaticResource CompletedStatHeading}" />
-                            <Label Grid.Column="13" Text="{x:Static strings:AppResources.OnBasePercentageStatHeading}" Style="{StaticResource CompletedStatHeading}" />
-                            <Label Grid.Column="14" Text="{x:Static strings:AppResources.SluggingPercentageStatHeading}" Style="{StaticResource CompletedStatHeading}" />
+                            <Button AutomationId="CompletedStatsSortPlateAppearances" Grid.Column="2" Text="{Binding PlateAppearancesStatSortHeader}" Command="{Binding SortCompletedBattingRowsCommand}" CommandParameter="{x:Static statistics:BattingStatSortColumn.PlateAppearances}" Style="{StaticResource CompletedStatHeaderButton}" />
+                            <Button AutomationId="CompletedStatsSortAtBats" Grid.Column="3" Text="{Binding AtBatsStatSortHeader}" Command="{Binding SortCompletedBattingRowsCommand}" CommandParameter="{x:Static statistics:BattingStatSortColumn.AtBats}" Style="{StaticResource CompletedStatHeaderButton}" />
+                            <Button AutomationId="CompletedStatsSortHits" Grid.Column="4" Text="{Binding HitsStatSortHeader}" Command="{Binding SortCompletedBattingRowsCommand}" CommandParameter="{x:Static statistics:BattingStatSortColumn.Hits}" Style="{StaticResource CompletedStatHeaderButton}" />
+                            <Button AutomationId="CompletedStatsSortSingles" Grid.Column="5" Text="{Binding SinglesStatSortHeader}" Command="{Binding SortCompletedBattingRowsCommand}" CommandParameter="{x:Static statistics:BattingStatSortColumn.Singles}" Style="{StaticResource CompletedStatHeaderButton}" />
+                            <Button AutomationId="CompletedStatsSortDoubles" Grid.Column="6" Text="{Binding DoublesStatSortHeader}" Command="{Binding SortCompletedBattingRowsCommand}" CommandParameter="{x:Static statistics:BattingStatSortColumn.Doubles}" Style="{StaticResource CompletedStatHeaderButton}" />
+                            <Button AutomationId="CompletedStatsSortTriples" Grid.Column="7" Text="{Binding TriplesStatSortHeader}" Command="{Binding SortCompletedBattingRowsCommand}" CommandParameter="{x:Static statistics:BattingStatSortColumn.Triples}" Style="{StaticResource CompletedStatHeaderButton}" />
+                            <Button AutomationId="CompletedStatsSortHomeRuns" Grid.Column="8" Text="{Binding HomeRunsStatSortHeader}" Command="{Binding SortCompletedBattingRowsCommand}" CommandParameter="{x:Static statistics:BattingStatSortColumn.HomeRuns}" Style="{StaticResource CompletedStatHeaderButton}" />
+                            <Button AutomationId="CompletedStatsSortWalks" Grid.Column="9" Text="{Binding WalksStatSortHeader}" Command="{Binding SortCompletedBattingRowsCommand}" CommandParameter="{x:Static statistics:BattingStatSortColumn.Walks}" Style="{StaticResource CompletedStatHeaderButton}" />
+                            <Button AutomationId="CompletedStatsSortFielderChoices" Grid.Column="10" Text="{Binding FielderChoicesStatSortHeader}" Command="{Binding SortCompletedBattingRowsCommand}" CommandParameter="{x:Static statistics:BattingStatSortColumn.FielderChoices}" Style="{StaticResource CompletedStatHeaderButton}" />
+                            <Button AutomationId="CompletedStatsSortSacrificeFlies" Grid.Column="11" Text="{Binding SacrificeFliesStatSortHeader}" Command="{Binding SortCompletedBattingRowsCommand}" CommandParameter="{x:Static statistics:BattingStatSortColumn.SacrificeFlies}" Style="{StaticResource CompletedStatHeaderButton}" />
+                            <Button AutomationId="CompletedStatsSortBattingAverage" Grid.Column="12" Text="{Binding BattingAverageStatSortHeader}" Command="{Binding SortCompletedBattingRowsCommand}" CommandParameter="{x:Static statistics:BattingStatSortColumn.BattingAverage}" Style="{StaticResource CompletedStatHeaderButton}" />
+                            <Button AutomationId="CompletedStatsSortOnBasePercentage" Grid.Column="13" Text="{Binding OnBasePercentageStatSortHeader}" Command="{Binding SortCompletedBattingRowsCommand}" CommandParameter="{x:Static statistics:BattingStatSortColumn.OnBasePercentage}" Style="{StaticResource CompletedStatHeaderButton}" />
+                            <Button AutomationId="CompletedStatsSortSluggingPercentage" Grid.Column="14" Text="{Binding SluggingPercentageStatSortHeader}" Command="{Binding SortCompletedBattingRowsCommand}" CommandParameter="{x:Static statistics:BattingStatSortColumn.SluggingPercentage}" Style="{StaticResource CompletedStatHeaderButton}" />
                             <BoxView Grid.Row="1" Grid.ColumnSpan="15"
                                      BackgroundColor="{AppThemeBinding Light={StaticResource Gray500}, Dark={StaticResource Gray400}}" />
                         </Grid>

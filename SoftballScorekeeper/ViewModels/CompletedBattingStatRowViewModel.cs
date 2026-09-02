@@ -5,13 +5,19 @@ namespace SoftballScorekeeper.ViewModels;
 
 public sealed class CompletedBattingStatRowViewModel
 {
-    public CompletedBattingStatRowViewModel(CompletedGamePlayerProjection player)
+    public CompletedBattingStatRowViewModel(
+        CompletedGamePlayerProjection player,
+        int projectionOrder)
     {
         ArgumentNullException.ThrowIfNull(player);
+        if (projectionOrder < 0)
+            throw new ArgumentOutOfRangeException(nameof(projectionOrder));
 
         PlayerId = player.PlayerId;
         PlayerName = player.DisplayName;
         BattingPosition = player.BattingPosition;
+        ProjectionOrder = projectionOrder;
+        PlayerStatistics = player.BattingStatistics;
         AutomationKey = $"Position{BattingPosition}";
         Apply(player.BattingStatistics);
     }
@@ -67,6 +73,8 @@ public sealed class CompletedBattingStatRowViewModel
     public int PlayerId { get; }
     public string PlayerName { get; }
     public int BattingPosition { get; }
+    public int ProjectionOrder { get; }
+    public PlayerBattingStatLine? PlayerStatistics { get; }
     private string AutomationKey { get; }
     public string AutomationId => GetAutomationId("Row");
     public string PlateAppearancesAutomationId => GetAutomationId("PlateAppearances");

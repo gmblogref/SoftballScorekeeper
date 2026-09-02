@@ -530,6 +530,9 @@
   <data name="BattingStatisticsHeading" xml:space="preserve"><value>Batting Statistics</value></data>
   <data name="PlayerStatHeading" xml:space="preserve"><value>Player</value></data>
   <data name="TeamTotalStatLabel" xml:space="preserve"><value>TEAM TOTAL</value></data>
+  <data name="ActiveStatSortHeaderFormat" xml:space="preserve"><value>{0} {1}</value></data>
+  <data name="SortAscendingIndicator" xml:space="preserve"><value>▲</value></data>
+  <data name="SortDescendingIndicator" xml:space="preserve"><value>▼</value></data>
   <data name="PlateAppearancesStatHeading" xml:space="preserve"><value>PA</value></data>
   <data name="AtBatsStatHeading" xml:space="preserve"><value>AB</value></data>
   <data name="HitsStatHeading" xml:space="preserve"><value>H</value></data>

@@ -1,5 +1,6 @@
 using OpenQA.Selenium;
 using OpenQA.Selenium.Appium.Android;
+using OpenQA.Selenium.Support.UI;
 
 namespace SoftballScorekeeper.AndroidUiTests;
 
@@ -11,6 +12,66 @@ public sealed class CompletedGameWorkspaceTests
     public CompletedGameWorkspaceTests(AndroidAppiumFixture fixture)
     {
         this.fixture = fixture;
+    }
+
+    [AndroidUiFact]
+    public void Completed_statistics_sorting_remains_correct_across_landscape_and_portrait()
+    {
+        fixture.ResetApplication(
+            AndroidAutomationConstants.CompletedStatisticsSortingTestSeedRequestFileName);
+        var driver = fixture.Driver;
+        try
+        {
+            AndroidElementWait.UntilAutomationIdText(driver, "CompletedGameStatus", "FINAL");
+
+            AssertHeaderAndOrder(driver, "CompletedStatsSortOnBasePercentage",
+                "OBP ▼", 1, 3, 2);
+            AssertLandscapeColumnAlignment(driver);
+
+            ClickHeaderAndAssertOrder(driver, "CompletedStatsSortPlayer",
+                "Player ▲", 1, 2, 3);
+            ClickHeaderAndAssertOrder(driver, "CompletedStatsSortPlayer",
+                "Player ▼", 3, 2, 1);
+            ClickHeaderAndAssertOrder(driver, "CompletedStatsSortPlateAppearances",
+                "PA ▼", 2, 1, 3);
+            ClickHeaderAndAssertOrder(driver, "CompletedStatsSortPlateAppearances",
+                "PA ▲", 3, 1, 2);
+            ClickHeaderAndAssertOrder(driver, "CompletedStatsSortHits",
+                "H ▼", 1, 2, 3);
+            ClickHeaderAndAssertOrder(driver, "CompletedStatsSortHomeRuns",
+                "HR ▼", 1, 2, 3);
+            ClickHeaderAndAssertOrder(driver, "CompletedStatsSortWalks",
+                "BB ▼", 3, 1, 2);
+            ClickHeaderAndAssertOrder(driver, "CompletedStatsSortBattingAverage",
+                "AVG ▼", 1, 3, 2);
+            ClickHeaderAndAssertOrder(driver, "CompletedStatsSortOnBasePercentage",
+                "OBP ▼", 1, 3, 2);
+            ClickHeaderAndAssertOrder(driver, "CompletedStatsSortSluggingPercentage",
+                "SLG ▼", 1, 3, 2);
+
+            fixture.SetOrientation(ScreenOrientation.Portrait);
+            AndroidElementWait.UntilAutomationIdText(driver, "CompletedGameStatus", "FINAL");
+            ScrollStatisticsToRateColumns(driver);
+            AndroidElementWait.UntilAutomationId(driver,
+                "CompletedStatsSortBattingAverage");
+            AndroidElementWait.UntilAutomationId(driver,
+                "CompletedStatsSortOnBasePercentage");
+            AndroidElementWait.UntilAutomationId(driver,
+                "CompletedStatsSortSluggingPercentage");
+            ClickHeaderAndAssertOrder(driver, "CompletedStatsSortOnBasePercentage",
+                "OBP ▼", 1, 3, 2);
+            ClickHeaderAndAssertOrder(driver, "CompletedStatsSortOnBasePercentage",
+                "OBP ▲", 2, 3, 1);
+        }
+        catch (Exception exception)
+        {
+            var artifacts = fixture.CaptureFailureArtifacts(nameof(
+                Completed_statistics_sorting_remains_correct_across_landscape_and_portrait),
+                exception);
+            throw new Xunit.Sdk.XunitException(
+                $"Android completed-statistics sorting workflow failed. Diagnostics: {artifacts}"
+                + $"{Environment.NewLine}{exception}");
+        }
     }
 
     [AndroidUiFact]
@@ -113,6 +174,89 @@ public sealed class CompletedGameWorkspaceTests
             driver, "CompletedBattingSluggingPercentagePosition1", "4.000");
         AssertNotDisplayed(driver, "ResumeGameButton");
     }
+
+    private static void ClickHeaderAndAssertOrder(
+        AndroidDriver driver,
+        string headerAutomationId,
+        string expectedHeaderText,
+        params int[] expectedBattingPositions)
+    {
+        AndroidElementWait.UntilAutomationId(driver, headerAutomationId).Click();
+        AssertHeaderAndOrder(
+            driver, headerAutomationId, expectedHeaderText, expectedBattingPositions);
+    }
+
+    private static void AssertHeaderAndOrder(
+        AndroidDriver driver,
+        string headerAutomationId,
+        string expectedHeaderText,
+        params int[] expectedBattingPositions)
+    {
+        AndroidElementWait.UntilAutomationIdText(
+            driver, headerAutomationId, expectedHeaderText);
+        var wait = new WebDriverWait(driver, TimeSpan.FromSeconds(15));
+        wait.IgnoreExceptionTypes(typeof(StaleElementReferenceException));
+        Assert.True(wait.Until(_ =>
+        {
+            var rows = expectedBattingPositions
+                .Select(position => FindDisplayed(
+                    driver, $"CompletedBattingRowPosition{position}"))
+                .ToArray();
+            var total = FindDisplayed(driver, "CompletedBattingTeamTotal");
+            return rows.All(row => row is not null)
+                && total is not null
+                && rows.Select(row => row!.Location.Y).SequenceEqual(
+                    rows.Select(row => row!.Location.Y).OrderBy(y => y))
+                && total.Location.Y > rows.Max(row => row!.Location.Y);
+        }));
+    }
+
+    private static void AssertLandscapeColumnAlignment(AndroidDriver driver)
+    {
+        foreach (var (headerId, valueId) in new[]
+        {
+            ("CompletedStatsSortPlateAppearances",
+                "CompletedBattingPlateAppearancesPosition1"),
+            ("CompletedStatsSortHits", "CompletedBattingHitsPosition1"),
+            ("CompletedStatsSortBattingAverage",
+                "CompletedBattingBattingAveragePosition1"),
+            ("CompletedStatsSortSluggingPercentage",
+                "CompletedBattingSluggingPercentagePosition1"),
+        })
+        {
+            var header = AndroidElementWait.UntilAutomationId(driver, headerId);
+            var value = AndroidElementWait.UntilAutomationId(driver, valueId);
+            Assert.InRange(Math.Abs(CenterX(header) - CenterX(value)), 0, 2);
+        }
+    }
+
+    private static void ScrollStatisticsToRateColumns(AndroidDriver driver)
+    {
+        var statistics = AndroidElementWait.UntilAutomationId(driver, "CompletedBattingStats");
+        var location = statistics.Location;
+        var size = statistics.Size;
+        driver.ExecuteScript(
+            "mobile: swipeGesture",
+            new Dictionary<string, object>
+            {
+                ["left"] = location.X + 10,
+                ["top"] = location.Y + 10,
+                ["width"] = size.Width - 20,
+                ["height"] = Math.Min(size.Height - 20, 180),
+                ["direction"] = "left",
+                ["percent"] = 0.85,
+            });
+    }
+
+    private static IWebElement? FindDisplayed(AndroidDriver driver, string automationId)
+    {
+        var resourceId = $"{AndroidAutomationConstants.AppPackage}:id/{automationId}";
+        return driver.FindElements(By.Id(resourceId))
+            .FirstOrDefault(element => element.Displayed);
+    }
+
+    private static int CenterX(IWebElement element) =>
+        element.Location.X + (element.Size.Width / 2);
 
     private static void AssertNotDisplayed(AndroidDriver driver, string automationId)
     {

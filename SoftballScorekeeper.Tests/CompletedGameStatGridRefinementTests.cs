@@ -40,21 +40,21 @@ public sealed class CompletedGameStatGridRefinementTests
             .Descendants(ns + "DataTemplate").Single().Elements().Single();
         var teamTotal = named["CompletedStatsTeamTotal"];
 
-        AssertColumns(header, new[]
+        AssertColumns(header, "Button", new[]
         {
-            ("{x:Static strings:AppResources.SacrificeFliesStatHeading}", "11"),
-            ("{x:Static strings:AppResources.BattingAverageStatHeading}", "12"),
-            ("{x:Static strings:AppResources.OnBasePercentageStatHeading}", "13"),
-            ("{x:Static strings:AppResources.SluggingPercentageStatHeading}", "14"),
+            ("{Binding SacrificeFliesStatSortHeader}", "11"),
+            ("{Binding BattingAverageStatSortHeader}", "12"),
+            ("{Binding OnBasePercentageStatSortHeader}", "13"),
+            ("{Binding SluggingPercentageStatSortHeader}", "14"),
         });
-        AssertColumns(playerGrid, new[]
+        AssertColumns(playerGrid, "Label", new[]
         {
             ("{Binding SacrificeFlies}", "11"),
             ("{Binding BattingAverage}", "12"),
             ("{Binding OnBasePercentage}", "13"),
             ("{Binding SluggingPercentage}", "14"),
         });
-        AssertColumns(teamTotal, new[]
+        AssertColumns(teamTotal, "Label", new[]
         {
             ("{Binding CompletedBattingTeamTotal.SacrificeFlies}", "11"),
             ("{Binding CompletedBattingTeamTotal.BattingAverage}", "12"),
@@ -79,26 +79,41 @@ public sealed class CompletedGameStatGridRefinementTests
         Assert.Equal(ExpectedColumns, playerGrid.Attribute("ColumnDefinitions")?.Value);
         Assert.Equal(ExpectedColumns, teamTotal.Attribute("ColumnDefinitions")?.Value);
 
-        var headings = header.Elements(ns + "Label")
-            .Select(label => label.Attribute("Text")?.Value)
+        var headings = header.Elements(ns + "Button")
+            .Select(button => button.Attribute("Text")?.Value)
             .ToArray();
         Assert.Equal(new[]
         {
-            "{x:Static strings:AppResources.PlayerStatHeading}",
-            "{x:Static strings:AppResources.PlateAppearancesStatHeading}",
-            "{x:Static strings:AppResources.AtBatsStatHeading}",
-            "{x:Static strings:AppResources.HitsStatHeading}",
-            "{x:Static strings:AppResources.SinglesStatHeading}",
-            "{x:Static strings:AppResources.DoublesStatHeading}",
-            "{x:Static strings:AppResources.TriplesStatHeading}",
-            "{x:Static strings:AppResources.HomeRunsStatHeading}",
-            "{x:Static strings:AppResources.WalksStatHeading}",
-            "{x:Static strings:AppResources.FielderChoicesStatHeading}",
-            "{x:Static strings:AppResources.SacrificeFliesStatHeading}",
-            "{x:Static strings:AppResources.BattingAverageStatHeading}",
-            "{x:Static strings:AppResources.OnBasePercentageStatHeading}",
-            "{x:Static strings:AppResources.SluggingPercentageStatHeading}",
+            "{Binding PlayerStatSortHeader}",
+            "{Binding PlateAppearancesStatSortHeader}",
+            "{Binding AtBatsStatSortHeader}",
+            "{Binding HitsStatSortHeader}",
+            "{Binding SinglesStatSortHeader}",
+            "{Binding DoublesStatSortHeader}",
+            "{Binding TriplesStatSortHeader}",
+            "{Binding HomeRunsStatSortHeader}",
+            "{Binding WalksStatSortHeader}",
+            "{Binding FielderChoicesStatSortHeader}",
+            "{Binding SacrificeFliesStatSortHeader}",
+            "{Binding BattingAverageStatSortHeader}",
+            "{Binding OnBasePercentageStatSortHeader}",
+            "{Binding SluggingPercentageStatSortHeader}",
         }, headings);
+        Assert.All(header.Elements(ns + "Button"), button =>
+        {
+            Assert.Equal("{Binding SortCompletedBattingRowsCommand}",
+                button.Attribute("Command")?.Value);
+            Assert.StartsWith("{x:Static statistics:BattingStatSortColumn.",
+                button.Attribute("CommandParameter")?.Value);
+            Assert.Equal("{StaticResource CompletedStatHeaderButton}",
+                button.Attribute("Style")?.Value);
+        });
+        Assert.Equal(
+            Enum.GetNames<SoftballScorekeeper.Core.Statistics.BattingStatSortColumn>()
+                .Select(name =>
+                    $"{{x:Static statistics:BattingStatSortColumn.{name}}}"),
+            header.Elements(ns + "Button")
+                .Select(button => button.Attribute("CommandParameter")?.Value));
 
         Assert.Contains(teamTotal, playerRows.ElementsAfterSelf());
         Assert.Equal("{Binding CompletedBattingTeamTotal.PlayerName}",
@@ -111,9 +126,6 @@ public sealed class CompletedGameStatGridRefinementTests
         var page = LoadPage();
         var ns = page.Root!.Name.Namespace;
         var named = NamedElements(page);
-        var headingStyle = page.Descendants(ns + "Style").Single(style =>
-            style.Attribute(XName.Get("Key", "http://schemas.microsoft.com/winfx/2009/xaml"))?.Value
-                == "CompletedStatHeading");
         var valueStyle = page.Descendants(ns + "Style").Single(style =>
             style.Attribute(XName.Get("Key", "http://schemas.microsoft.com/winfx/2009/xaml"))?.Value
                 == "CompletedStatValue");
@@ -126,7 +138,6 @@ public sealed class CompletedGameStatGridRefinementTests
         Assert.Equal("{Binding PlateAppearancesAutomationId}",
             pa.Attribute("AutomationId")?.Value);
         Assert.Equal("{StaticResource CompletedStatValue}", pa.Attribute("Style")?.Value);
-        Assert.Contains(headingStyle.Elements(ns + "Setter"), IsCenteredSetter);
         Assert.Contains(valueStyle.Elements(ns + "Setter"), IsCenteredSetter);
         Assert.All(playerGrid.Elements(ns + "Label").Skip(1), label =>
             Assert.Equal("{StaticResource CompletedStatValue}", label.Attribute("Style")?.Value));
@@ -140,6 +151,8 @@ public sealed class CompletedGameStatGridRefinementTests
         var named = NamedElements(page);
         var viewModel = File.ReadAllText(Path.Combine(RepositoryRoot,
             "SoftballScorekeeper", "ViewModels", "GameWorkspaceViewModel.cs"));
+        var resources = XDocument.Load(Path.Combine(RepositoryRoot,
+            "SoftballScorekeeper", "Resources", "Strings", "AppResources.resx"));
 
         Assert.Contains(named["CompletedStatsHeader"].Elements(ns + "BoxView"), box =>
             box.Attribute("Grid.Column")?.Value == "1"
@@ -155,6 +168,20 @@ public sealed class CompletedGameStatGridRefinementTests
         Assert.Contains("BattingStatisticsCalculator.CalculateTeam", viewModel);
         Assert.Contains("AppResources.CompletedGameLoadFailedMessage", viewModel);
         Assert.Contains("HasScoringSession && !IsScoringCompleted", viewModel);
+        Assert.Contains("BattingStatSortColumn.OnBasePercentage", viewModel);
+        Assert.Contains("BattingStatSortDirection.Descending", viewModel);
+        Assert.Contains("CompletedBattingRows.Move", viewModel);
+        Assert.Contains("BattingStatSortState", viewModel);
+        Assert.Contains(".Select(column)", viewModel);
+        Assert.Contains("AppResources.ActiveStatSortHeaderFormat", viewModel);
+        Assert.Contains("AppResources.SortAscendingIndicator", viewModel);
+        Assert.Contains("AppResources.SortDescendingIndicator", viewModel);
+        Assert.Contains(resources.Descendants("data"), item =>
+            item.Attribute("name")?.Value == "SortAscendingIndicator"
+                && item.Element("value")?.Value == "▲");
+        Assert.Contains(resources.Descendants("data"), item =>
+            item.Attribute("name")?.Value == "SortDescendingIndicator"
+                && item.Element("value")?.Value == "▼");
         Assert.DoesNotContain(named["CompletedGameGrid"].Descendants(ns + "Button"), button =>
             button.Attribute("AutomationId")?.Value == "ResumeGameButton");
     }
@@ -165,12 +192,13 @@ public sealed class CompletedGameStatGridRefinementTests
 
     private static void AssertColumns(
         XElement grid,
+        string elementName,
         IEnumerable<(string Binding, string Column)> expected)
     {
         var ns = grid.Name.Namespace;
         foreach (var (binding, column) in expected)
         {
-            var label = grid.Elements(ns + "Label").Single(item =>
+            var label = grid.Elements(ns + elementName).Single(item =>
                 item.Attribute("Text")?.Value == binding);
             Assert.Equal(column, label.Attribute("Grid.Column")?.Value);
         }
