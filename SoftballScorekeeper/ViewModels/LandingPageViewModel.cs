@@ -9,6 +9,7 @@ namespace SoftballScorekeeper.ViewModels;
 public partial class LandingPageViewModel : ObservableObject
 {
     private readonly TeamRepository teamRepository;
+    private readonly TeamRecordRepository teamRecordRepository;
 
     [ObservableProperty]
     private bool hasTeams;
@@ -20,14 +21,19 @@ public partial class LandingPageViewModel : ObservableObject
     [NotifyCanExecuteChangedFor(nameof(OpenTeamCommand))]
     private bool isLoading;
 
-    public LandingPageViewModel(TeamRepository teamRepository)
+    public LandingPageViewModel(
+        TeamRepository teamRepository,
+        TeamRecordRepository teamRecordRepository
+    )
     {
         ArgumentNullException.ThrowIfNull(teamRepository);
+        ArgumentNullException.ThrowIfNull(teamRecordRepository);
 
         this.teamRepository = teamRepository;
+        this.teamRecordRepository = teamRecordRepository;
     }
 
-    public ObservableCollection<Team> Teams { get; } = new();
+    public ObservableCollection<TeamManagerItem> Teams { get; } = new();
 
     public async Task LoadTeamsAsync()
     {
@@ -40,11 +46,15 @@ public partial class LandingPageViewModel : ObservableObject
         try
         {
             var teams = await teamRepository.GetActiveAsync();
+            var records = await teamRecordRepository.GetForTeamsAsync(
+                teams.Select(team => team.Id)
+            );
 
             Teams.Clear();
             foreach (var team in teams)
             {
-                Teams.Add(team);
+                var record = records.GetValueOrDefault(team.Id) ?? new TeamYearRecord(null, 0, 0);
+                Teams.Add(new TeamManagerItem(team, record));
             }
 
             HasTeams = Teams.Count > 0;
@@ -63,7 +73,7 @@ public partial class LandingPageViewModel : ObservableObject
     }
 
     [RelayCommand(CanExecute = nameof(CanOpenTeam))]
-    private async Task OpenTeamAsync(Team? team)
+    private async Task OpenTeamAsync(TeamManagerItem? team)
     {
         if (team is null || team.Id <= 0)
         {
@@ -72,15 +82,14 @@ public partial class LandingPageViewModel : ObservableObject
 
         var parameters = new ShellNavigationQueryParameters
         {
-            [AppShell.TeamIdQueryParameter] = team.Id
+            [AppShell.TeamIdQueryParameter] = team.Id,
         };
 
         await Shell.Current.GoToAsync(AppShell.TeamWorkspaceRoute, parameters);
     }
 
-    private bool CanOpenTeam(Team? team)
+    private bool CanOpenTeam(TeamManagerItem? team)
     {
         return !IsLoading && team is { Id: > 0 };
     }
-
 }

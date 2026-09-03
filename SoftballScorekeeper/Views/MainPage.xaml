@@ -1,7 +1,6 @@
 <?xml version="1.0" encoding="utf-8" ?>
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
-             xmlns:models="clr-namespace:SoftballScorekeeper.Core.Models;assembly=SoftballScorekeeper.Core"
              xmlns:controls="clr-namespace:SoftballScorekeeper.Views.Controls"
              xmlns:strings="clr-namespace:SoftballScorekeeper.Resources.Strings"
              xmlns:viewModels="clr-namespace:SoftballScorekeeper.ViewModels"
@@ -39,7 +38,7 @@
                 IsVisible="{Binding HasTeams}"
                 SelectionMode="None">
                 <CollectionView.ItemTemplate>
-                    <DataTemplate x:DataType="models:Team">
+                    <DataTemplate x:DataType="viewModels:TeamManagerItem">
                         <Border
                             Margin="0,0,0,12"
                             Padding="28,16"
@@ -48,6 +47,7 @@
                             BackgroundColor="{AppThemeBinding Light={StaticResource White}, Dark={StaticResource Gray900}}"
                             Stroke="{AppThemeBinding Light={StaticResource Gray300}, Dark={StaticResource Gray500}}"
                             StrokeThickness="2"
+                            AutomationId="{Binding CardAutomationId}"
                             SemanticProperties.Description="{Binding Name}">
                             <Border.GestureRecognizers>
                                 <TapGestureRecognizer
@@ -60,15 +60,25 @@
                                 <RoundRectangle CornerRadius="14" />
                             </Border.StrokeShape>
 
-                            <Label
-                                Text="{Binding Name}"
-                                FontFamily="OpenSansSemibold"
-                                FontSize="24"
-                                LineBreakMode="WordWrap"
-                                HorizontalOptions="Start"
-                                HorizontalTextAlignment="Start"
-                                VerticalOptions="Center"
-                                VerticalTextAlignment="Center" />
+                            <VerticalStackLayout Spacing="2">
+                                <Label
+                                    Text="{Binding Name}"
+                                    AutomationId="{Binding NameAutomationId}"
+                                    FontFamily="OpenSansSemibold"
+                                    FontSize="24"
+                                    LineBreakMode="WordWrap"
+                                    HorizontalOptions="Start"
+                                    HorizontalTextAlignment="Start" />
+                                <Label
+                                    Text="{Binding Year}"
+                                    AutomationId="{Binding YearAutomationId}"
+                                    IsVisible="{Binding HasYear}"
+                                    FontSize="16" />
+                                <Label
+                                    Text="{Binding RecordDisplay}"
+                                    AutomationId="{Binding RecordAutomationId}"
+                                    FontSize="16" />
+                            </VerticalStackLayout>
                         </Border>
                     </DataTemplate>
                 </CollectionView.ItemTemplate>

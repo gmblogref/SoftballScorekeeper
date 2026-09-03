@@ -90,6 +90,12 @@ namespace SoftballScorekeeper.Resources.Strings {
             }
         }
 
+        public static string TeamRecordFormat {
+            get {
+                return ResourceManager.GetString("TeamRecordFormat", resourceCulture);
+            }
+        }
+
         public static string CreateTeamButton {
             get {
                 return ResourceManager.GetString("CreateTeamButton", resourceCulture);

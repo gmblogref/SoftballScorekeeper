@@ -33,7 +33,24 @@ namespace SoftballScorekeeper
             builder.Services.AddSingleton(serviceProvider =>
             {
                 var settings = serviceProvider.GetRequiredService<ApplicationSettings>();
-                var databasePath = Path.Combine(FileSystem.AppDataDirectory, settings.DatabaseFileName);
+                var useAndroidUiTestDatabase = false;
+#if DEBUG && ANDROID
+                useAndroidUiTestDatabase = AndroidUiTestDataInitializer.IsInitializationRequested(
+                    FileSystem.AppDataDirectory);
+#endif
+                var normalDatabasePath = AppDatabaseFileIsolation.ResolveDatabasePath(
+                    FileSystem.AppDataDirectory,
+                    settings.DatabaseFileName,
+                    settings.AndroidUiTestDatabaseFileName,
+                    useAndroidUiTestDatabase: false);
+                var databasePath = AppDatabaseFileIsolation.ResolveDatabasePath(
+                    FileSystem.AppDataDirectory,
+                    settings.DatabaseFileName,
+                    settings.AndroidUiTestDatabaseFileName,
+                    useAndroidUiTestDatabase);
+                if (useAndroidUiTestDatabase)
+                    AppDatabaseFileIsolation.ResetAndroidUiTestDatabase(
+                        normalDatabasePath, databasePath);
                 return new AppDatabase(databasePath);
             });
             builder.Services.AddSingleton<TeamRepository>();
@@ -44,6 +61,7 @@ namespace SoftballScorekeeper
             builder.Services.AddSingleton<GameLineupRepository>();
             builder.Services.AddSingleton<Core.Models.PlayResolutionCoordinator>();
             builder.Services.AddSingleton<GameScoringSessionRepository>();
+            builder.Services.AddSingleton<TeamRecordRepository>();
 #if DEBUG
             builder.Services.AddSingleton<AndroidUiTestDataInitializer>();
 #endif

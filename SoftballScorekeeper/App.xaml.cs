@@ -44,13 +44,21 @@ public partial class App : Application
 		var context = await androidUiTestDataInitializer.InitializeIfRequestedAsync();
 		if (context is not null)
 		{
-			await Shell.Current.GoToAsync(
-				AppShell.GameWorkspaceRoute,
-				new ShellNavigationQueryParameters
-				{
-					[AppShell.TeamIdQueryParameter] = context.TeamId,
-					[AppShell.GameIdQueryParameter] = context.GameId,
-				});
+			if (context.OpenTeamManager)
+			{
+				await Shell.Current.GoToAsync(AppShell.PlayersSectionRoute);
+				await Shell.Current.GoToAsync(AppShell.TeamsSectionRoute);
+			}
+			else
+			{
+				await Shell.Current.GoToAsync(
+					AppShell.GameWorkspaceRoute,
+					new ShellNavigationQueryParameters
+					{
+						[AppShell.TeamIdQueryParameter] = context.TeamId,
+						[AppShell.GameIdQueryParameter] = context.GameId,
+					});
+			}
 		}
 #endif
 	}

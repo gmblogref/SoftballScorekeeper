@@ -77,6 +77,11 @@ internal sealed class TemporaryTestDatabase : IAsyncDisposable
 
     public GameScoringSessionRepository CreateGameScoringSessionRepository() => new(Database);
 
+    public TeamRecordRepository CreateTeamRecordRepository()
+    {
+        return new TeamRecordRepository(Database, CreateGameScoringSessionRepository());
+    }
+
     public Task<List<GameScoringSession>> GetGameScoringSessionsAsync() =>
         UseSeedingConnectionAsync(connection => connection.Table<GameScoringSession>().OrderBy(item => item.Id).ToListAsync());
 
