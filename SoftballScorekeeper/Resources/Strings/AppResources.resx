@@ -73,6 +73,9 @@
   <data name="NoTeamsMessage" xml:space="preserve">
     <value>No teams have been created.</value>
   </data>
+  <data name="TeamRecordFormat" xml:space="preserve">
+    <value>Record: {0}-{1}</value>
+  </data>
   <data name="CreateTeamButton" xml:space="preserve">
     <value>Create Team</value>
   </data>

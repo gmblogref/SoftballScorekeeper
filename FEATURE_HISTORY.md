@@ -12,7 +12,7 @@ Stable product and architecture decisions belong in the project architecture doc
 
 - **Latest completed story:** Story 6.9.3 — In-Game Stats Viewer
 - **Completed stories:** Stories 0.0 through 6.9.3; Stories 3.2 through 3.4 retain their recorded validation status
-- **Current story:** Story 6.9.3 — Complete and PR-ready
+- **Current story:** Story 6.9.4 — Team Record on Team Manager; implementation and automated validation complete, physical Android acceptance pending
 - **Current phase:** In-game and completed-game batting statistics
 - **Foundation status:** Complete
 
@@ -2854,6 +2854,32 @@ Dedicated Double Play/Triple Play presentation, sacrifice results, HR-limit/dead
 #### Intended Commit Message
 
 `Add in-game batting statistics viewer`
+
+### Story 6.9.4 — Team Record on Team Manager (Implementation complete — physical Android acceptance pending)
+
+#### Team-Card Year and Record Projection
+
+- Every active Team Manager card now presents the Team name, the latest persisted Season year when one exists, and a resource-backed compact `Record: W-L` line. A Team without a Season remains visible, omits the year, and displays `Record: 0-0`. Existing alphabetical Team ordering, card tap behavior, Team Workspace navigation, inactive-Team behavior, and manager reload-on-appearance behavior remain unchanged.
+- Added the derived `TeamYearRecord` read model and focused `TeamRecordRepository`. For each requested Team, the repository resolves `max(Season.Year)`, combines all Seasons in that year, loads their Games and scoring sessions in batched reads, and returns wins and losses without changing `Team` or persisting duplicate counters. Older Season years do not contribute. Returning to Team Manager regenerates the projection from persisted history.
+- Lifecycle and Team-perspective outcomes reuse Story 6.9.2's `GameScheduleSummary.FromSession`: missing sessions are Upcoming, `InProgress` sessions are excluded, and only `Completed` sessions are Final. Persisted `TeamSide` selects the Team score from authoritative Home/Visitor scores before Win/Loss/Tie interpretation. A completed Tie remains a Tie in the Games schedule and intentionally increments neither side of the Team Manager W-L summary.
+- The read path avoids per-Team and per-Game querying: active Teams load once, Seasons load for all requested Team IDs, Games load for every latest-year Season in one joined query, and the established scoring-session API loads all relevant Game IDs in one batch. Presentation receives a typed Team Manager item and performs only resource-backed record formatting and optional-year visibility.
+
+#### Validation and Remaining Acceptance
+
+- Focused Team-record repository, Team Manager presentation, Story 6.9 completed projection/lifecycle, Story 6.9.2 summary, and completed-result presentation validation passed 60 of 60 with zero failures or skips. Coverage includes no Seasons/no completed Games, all Home/Away Win/Loss perspectives, Upcoming and In Progress exclusion, completed Tie exclusion from both totals, multiple Seasons in the latest year, a newer empty Season changing the card year, older-year exclusion, Team isolation, mixed multi-Season history, database close/reopen derivation, resource use, year/record bindings, and retained card navigation.
+- The full emulator-independent suite passed 713 of 713 with zero failures or skips. Android built with zero errors and the 7 existing `CS8602` / `XC0025` warnings. Windows built with zero errors and the 115 existing `CS8602`, `MVVMTK0045`, and `XC0025` warnings. `git diff --check` passed with line-ending notices only.
+- Added one opt-in pinpoint Android UI scenario backed by a dedicated deterministic Team Manager seed, bringing the representative suite to 16 tests. The seed includes an excluded 2025 completed Win plus two 2026 Seasons containing a Win, Loss, and Tie; the test verifies the `Automation Record Team`, `2026`, and `Record: 1-1` card values, taps that card, and verifies the correct Team Workspace opens. The Android UI test project built with zero warnings and zero errors. Its exact fully qualified scenario passed 1 of 1 with zero failures or skips on the Android 15 / API 35 emulator; no other Android UI test ran. The supported runner started and stopped its own Appium process and fully shut down its own emulator cleanly. Physical Android portrait/landscape presentation and interaction acceptance remain pending. No mutable record fields, season-specific records, standings, winning percentage, streaks, run differential, correction workflow, statistics dashboard, or Beer Rules were introduced. Beer Rules remain the next planned feature if no acceptance correction is required.
+
+#### Android UI Database-Isolation Correction
+
+- The first Story 6.9.4 pinpoint run exposed that the established fixture's `pm clear` reset erased the entire Android package data directory, including the normal configured `SoftballScorekeeper.db3`. The fixture now preserves package data, removes only stale seed-request markers, and writes the selected marker after force-stopping the app. APK replacement continues to use the existing data-preserving install behavior.
+- Debug Android startup detects the existing seed-request markers before constructing `AppDatabase`. Normal launches continue to resolve `SoftballScorekeeper.db3`; seeded Android UI launches resolve the separately configured `SoftballScorekeeper.AndroidUiTests.db3` and delete only that test database plus its exact SQLite sidecar files before initialization. The deterministic initializer and every existing Android UI workflow therefore operate on fresh isolated test state without touching normal Teams, Games, Rosters, or scoring history.
+- The reported `Scoring session 1 has incomplete live scoring state` exception was caused by the Team-record fixture writing direct Completed sessions without frozen scoring-lineup rows into the then-shared normal database. The isolated Team-record seed now includes a valid one-player Game lineup and matching frozen scoring lineup for every seeded session. No scoring lifecycle or compatibility behavior changed.
+- Focused path-selection, reset-safety, persisted-data isolation, and harness-wiring validation passed 6 of 6 with zero failures or skips. The full emulator-independent suite passed 719 of 719. The Android UI test project built with zero warnings and errors; Android built with zero errors and the 7 existing warnings; Windows built with zero errors and the 115 existing warnings. The explicitly authorized, filtered `TeamManagerRecordTests` Android/Appium verification passed 1 of 1 with no other UI tests executed; the runner-owned Appium and emulator processes shut down cleanly. The normal `SoftballScorekeeper.db3` retained its active `Save Me - Good Data` Team and remained byte-for-byte unchanged at 126,976 bytes with SHA256 `c50ded9e9c8bd67d9eecd589dcb4be8c66db0c6e51597305e8d35f2d3d8bd6de`, while only `SoftballScorekeeper.AndroidUiTests.db3` contained the deterministic Automation seed.
+
+#### Intended Commit Message
+
+`Add Team Manager records`
 
 ## Maintenance Rules
 

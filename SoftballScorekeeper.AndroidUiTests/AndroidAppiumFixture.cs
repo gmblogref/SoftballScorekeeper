@@ -52,7 +52,7 @@ public sealed class AndroidAppiumFixture : IDisposable
         AndroidUiTestConfiguration configuration,
         string seedRequestFileName = AndroidAutomationConstants.TestSeedRequestFileName)
     {
-        ResetAppDataAndRequestSeed(configuration, seedRequestFileName);
+        RequestDeterministicSeed(configuration, seedRequestFileName);
         var driver = CreateDriver(configuration);
 
         try
@@ -132,17 +132,16 @@ public sealed class AndroidAppiumFixture : IDisposable
             TimeSpan.FromMinutes(2));
     }
 
-    private static void ResetAppDataAndRequestSeed(
+    private static void RequestDeterministicSeed(
         AndroidUiTestConfiguration configuration,
         string seedRequestFileName)
     {
         RunAdb(configuration, "shell", "am", "force-stop", AndroidAutomationConstants.AppPackage);
-        var clearOutput = RunAdb(configuration, "shell", "pm", "clear", AndroidAutomationConstants.AppPackage);
-        if (!clearOutput.Contains("Success", StringComparison.OrdinalIgnoreCase))
-            throw new InvalidOperationException($"adb could not clear application data: {clearOutput}");
-
         RunAdb(configuration, "shell", "run-as", AndroidAutomationConstants.AppPackage,
             "mkdir", "-p", "files");
+        foreach (var requestFileName in AndroidAutomationConstants.TestSeedRequestFileNames)
+            RunAdb(configuration, "shell", "run-as", AndroidAutomationConstants.AppPackage,
+                "rm", "-f", $"files/{requestFileName}");
         RunAdb(configuration, "shell", "run-as", AndroidAutomationConstants.AppPackage,
             "touch", $"files/{seedRequestFileName}");
         RunAdb(configuration, "logcat", "-c");
