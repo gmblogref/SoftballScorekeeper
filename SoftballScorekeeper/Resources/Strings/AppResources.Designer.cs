@@ -909,6 +909,7 @@ namespace SoftballScorekeeper.Resources.Strings {
         }
 
         public static string EditButton { get { return ResourceManager.GetString("EditButton", resourceCulture); } }
+        public static string EditIconGlyph { get { return ResourceManager.GetString("EditIconGlyph", resourceCulture); } }
         public static string EditGameTitle { get { return ResourceManager.GetString("EditGameTitle", resourceCulture); } }
         public static string GameWorkspaceTitle { get { return ResourceManager.GetString("GameWorkspaceTitle", resourceCulture); } }
         public static string GameDetailsHeading { get { return ResourceManager.GetString("GameDetailsHeading", resourceCulture); } }
@@ -1101,5 +1102,8 @@ namespace SoftballScorekeeper.Resources.Strings {
         public static string ResetGameFailedMessage { get { return ResourceManager.GetString("ResetGameFailedMessage", resourceCulture); } }
         public static string DecreaseValueButtonLabel { get { return ResourceManager.GetString("DecreaseValueButtonLabel", resourceCulture); } }
         public static string IncreaseValueButtonLabel { get { return ResourceManager.GetString("IncreaseValueButtonLabel", resourceCulture); } }
+        public static string JerseyNumberLabel { get { return ResourceManager.GetString("JerseyNumberLabel", resourceCulture); } }
+        public static string JerseyNumberDisplayFormat { get { return ResourceManager.GetString("JerseyNumberDisplayFormat", resourceCulture); } }
+        public static string JerseyNumberUpdateFailed { get { return ResourceManager.GetString("JerseyNumberUpdateFailed", resourceCulture); } }
     }
 }

@@ -2881,6 +2881,29 @@ Dedicated Double Play/Triple Play presentation, sacrifice results, HR-limit/dead
 
 `Add Team Manager records`
 
+### Story 3.8 — Edit Player Information (Complete — PR-ready)
+
+#### Player and Team-Roster Editing
+
+- Player Workspace retains the existing inline First Name/optional Last Name editor, validation, Cancel behavior, navigation, and repository-backed save. Discoverability is improved without changing behavior: the centered Player-name header remains tappable and now includes a subtle inline resource-backed pencil affordance with an accessible tablet touch target; both invoke the same existing edit command.
+- Player name updates preserve the existing persisted Player ID and activity state. Player deactivate/reactivate behavior remains unchanged.
+- Added an optional non-negative whole-number jersey value to `TeamPlayer`, because a Player may wear different numbers for different Teams. Existing databases gain the nullable column during normal initialization; no value is required, add/change persist the entered number, and clearing the field persists `null`.
+- Team Workspace roster rows now display a resource-backed `No. {number}` value when present and expose inline Edit, Save, and Cancel actions. Invalid text remains in the editor with the shared non-negative-number validation message, persistence failure preserves the previously committed value, and entering Remove Players mode discards any uncommitted jersey edit.
+- Added the `TeamRosterMember` repository projection and `TeamRosterItem` presentation wrapper so roster loading retains the exact active membership identity needed for a scoped update without putting selection or edit state into the Core model. The existing Player-only roster query remains available for other workflows.
+- Jersey updates require an active Team, active TeamPlayer relationship, and active Player; they update only the requested Team membership. The existing TeamPlayer identity and soft lifecycle are preserved, including roster soft remove/re-add. Jersey numbers are intentionally not global Player data, are not required to be unique, and do not alter historical lineups, scoring, or statistics.
+
+#### Automated Tests and Validation
+
+- Added focused repository coverage for membership identity and team-specific projection, set/change/clear behavior with Team isolation, rejected invalid and inactive targets, and nullable-column upgrade of an existing TeamPlayer table. Added source-level presentation checks for the explicit Player edit action, Team roster editor bindings/commands, and centralized resources.
+- Focused Story 3.8 implementation validation passed 42 of 42 tests. The complete emulator-independent suite passed 725 of 725 tests with zero failures and zero skips. Later focused Player Workspace presentation-refinement validation passed 2 of 2 tests.
+- The Windows target built with zero errors and warnings only in the existing `CS8602`, `MVVMTK0045`, and `XC0025` categories. The Android compile-only build succeeded with zero errors. `git diff --check` passed with line-ending notices only. No Appium or emulator tests were run.
+- Physical Android tablet acceptance passed. The centered Player name and subtle pencil were readable with acceptable spacing, both name and pencil taps opened the existing editor, and no clipping was observed. Jersey add, change, clear, persistence, per-Team values for the same Player, invalid-input preservation, Cancel preservation, Team Workspace layout, and touch-target usability were all accepted.
+- Player merging, duplicate-name warnings, duplicate-jersey restrictions, roster-wide bulk editing, jersey display in lineups/scoring/statistics, and inactive-Player editing remain deferred.
+
+#### Intended Commit Message
+
+`Add Player and roster information editing`
+
 ## Maintenance Rules
 
 Every future story must update this file before the story is committed. A story is not complete until its accurate feature-history entry is included in the same story-focused commit as its implementation.
