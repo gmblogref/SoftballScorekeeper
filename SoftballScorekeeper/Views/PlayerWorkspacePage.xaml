@@ -12,22 +12,41 @@
     <Grid Padding="40" RowDefinitions="Auto,Auto,Auto,Auto,*,Auto" RowSpacing="24">
         <controls:PrimarySectionNavigation Grid.Row="0" CurrentSection="Players" />
         <Grid Grid.Row="1" IsVisible="{Binding IsPlayerLoaded}">
-            <Label
-                Text="{Binding PlayerDisplayName}"
-                Style="{StaticResource Headline}"
-                MinimumHeightRequest="52"
-                VerticalTextAlignment="Center"
-                SemanticProperties.HeadingLevel="Level1"
-                SemanticProperties.Hint="{x:Static strings:AppResources.PlayerNameEditHint}">
-                <Label.GestureRecognizers>
-                    <TapGestureRecognizer Command="{Binding BeginPlayerNameEditCommand}" />
-                </Label.GestureRecognizers>
-                <Label.Triggers>
-                    <DataTrigger TargetType="Label" Binding="{Binding IsEditingPlayerName}" Value="True">
+            <Grid ColumnDefinitions="Auto,Auto" ColumnSpacing="6" HorizontalOptions="Center">
+                <Grid.Triggers>
+                    <DataTrigger TargetType="Grid" Binding="{Binding IsEditingPlayerName}" Value="True">
                         <Setter Property="IsVisible" Value="False" />
                     </DataTrigger>
-                </Label.Triggers>
-            </Label>
+                </Grid.Triggers>
+                <Label
+                    Text="{Binding PlayerDisplayName}"
+                    Style="{StaticResource Headline}"
+                    MinimumHeightRequest="52"
+                    VerticalTextAlignment="Center"
+                    SemanticProperties.HeadingLevel="Level1"
+                    SemanticProperties.Hint="{x:Static strings:AppResources.PlayerNameEditHint}">
+                    <Label.GestureRecognizers>
+                        <TapGestureRecognizer Command="{Binding BeginPlayerNameEditCommand}" />
+                    </Label.GestureRecognizers>
+                </Label>
+                <Grid
+                    Grid.Column="1"
+                    SemanticProperties.Description="{x:Static strings:AppResources.PlayerNameEditHint}"
+                    BackgroundColor="Transparent"
+                    WidthRequest="44"
+                    MinimumHeightRequest="44"
+                    VerticalOptions="Center">
+                    <Grid.GestureRecognizers>
+                        <TapGestureRecognizer Command="{Binding BeginPlayerNameEditCommand}" />
+                    </Grid.GestureRecognizers>
+                    <Label
+                        Text="{x:Static strings:AppResources.EditIconGlyph}"
+                        FontSize="20"
+                        InputTransparent="True"
+                        HorizontalOptions="Start"
+                        VerticalOptions="Center" />
+                </Grid>
+            </Grid>
 
             <Grid RowDefinitions="Auto,Auto" ColumnDefinitions="*,*,Auto,Auto" RowSpacing="8" ColumnSpacing="16" IsVisible="False">
                 <Grid.Triggers>

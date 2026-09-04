@@ -12,5 +12,7 @@ public sealed class TeamPlayer
 
     public int PlayerId { get; set; }
 
+    public int? JerseyNumber { get; set; }
+
     public bool IsActive { get; set; } = true;
 }

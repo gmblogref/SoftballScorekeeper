@@ -108,7 +108,7 @@ public partial class TeamWorkspaceViewModel : ObservableObject, IQueryAttributab
         this.seasonRepository = seasonRepository;
     }
 
-    public ObservableCollection<PlayerSelectionItem> RosterPlayers { get; } = new();
+    public ObservableCollection<TeamRosterItem> RosterPlayers { get; } = new();
 
     public ObservableCollection<GameScheduleMonthGroup> ScheduleMonthGroups { get; } = new();
 
@@ -259,7 +259,7 @@ public partial class TeamWorkspaceViewModel : ObservableObject, IQueryAttributab
                 return;
             }
 
-            var players = await teamPlayerRepository.GetActivePlayersForTeamAsync(TeamId);
+            var players = await teamPlayerRepository.GetActiveRosterForTeamAsync(TeamId);
             var games = await gameRepository.GetForTeamAsync(TeamId);
             var seasons = await seasonRepository.GetForTeamAsync(TeamId);
             var gameIdsWithLineups = await gameLineupRepository.GetGameIdsWithLineupsAsync(
@@ -273,7 +273,7 @@ public partial class TeamWorkspaceViewModel : ObservableObject, IQueryAttributab
             RosterPlayers.Clear();
             foreach (var player in players)
             {
-                RosterPlayers.Add(new PlayerSelectionItem(player, OnPlayerSelectionChanged));
+                RosterPlayers.Add(new TeamRosterItem(player, OnPlayerSelectionChanged));
             }
 
             HasPlayers = RosterPlayers.Count > 0;
@@ -448,6 +448,82 @@ public partial class TeamWorkspaceViewModel : ObservableObject, IQueryAttributab
         await Shell.Current.GoToAsync(AppShell.AddPlayersToTeamRoute, parameters);
     }
 
+    [RelayCommand(CanExecute = nameof(CanEditRosterItem))]
+    private void BeginJerseyNumberEdit(TeamRosterItem? item)
+    {
+        foreach (var rosterItem in RosterPlayers.Where(rosterItem => rosterItem != item))
+        {
+            rosterItem.CancelJerseyNumberEdit();
+        }
+
+        ValidationMessage = string.Empty;
+        item!.BeginJerseyNumberEdit();
+    }
+
+    [RelayCommand(CanExecute = nameof(CanEditRosterItem))]
+    private async Task SaveJerseyNumberAsync(TeamRosterItem? item)
+    {
+        var text = item!.EditableJerseyNumber?.Trim() ?? string.Empty;
+        int? jerseyNumber = null;
+        if (text.Length > 0)
+        {
+            if (!int.TryParse(
+                    text,
+                    NumberStyles.None,
+                    CultureInfo.CurrentCulture,
+                    out var parsedNumber)
+                || parsedNumber < 0)
+            {
+                ValidationMessage = AppResources.NonNegativeWholeNumberRequiredMessage;
+                return;
+            }
+
+            jerseyNumber = parsedNumber;
+        }
+
+        if (jerseyNumber == item.JerseyNumber)
+        {
+            ValidationMessage = string.Empty;
+            item.CommitJerseyNumber(jerseyNumber);
+            return;
+        }
+
+        IsBusy = true;
+        try
+        {
+            try
+            {
+                if (await teamPlayerRepository.UpdateJerseyNumberAsync(
+                        TeamId,
+                        item.TeamPlayerId,
+                        jerseyNumber) != 1)
+                {
+                    ValidationMessage = AppResources.JerseyNumberUpdateFailed;
+                    return;
+                }
+            }
+            catch
+            {
+                ValidationMessage = AppResources.JerseyNumberUpdateFailed;
+                return;
+            }
+
+            item.CommitJerseyNumber(jerseyNumber);
+            ValidationMessage = string.Empty;
+        }
+        finally
+        {
+            IsBusy = false;
+        }
+    }
+
+    [RelayCommand(CanExecute = nameof(CanEditRosterItem))]
+    private void CancelJerseyNumberEdit(TeamRosterItem? item)
+    {
+        item!.CancelJerseyNumberEdit();
+        ValidationMessage = string.Empty;
+    }
+
     [RelayCommand(CanExecute = nameof(CanAddGame))]
     private async Task AddGameAsync()
     {
@@ -495,6 +571,7 @@ public partial class TeamWorkspaceViewModel : ObservableObject, IQueryAttributab
     [RelayCommand(CanExecute = nameof(CanBeginRemovePlayers))]
     private void RemovePlayers()
     {
+        CancelRosterEdits();
         ClearRosterSelection();
         IsRemovingPlayers = true;
         NotifyCommandStates();
@@ -692,6 +769,9 @@ public partial class TeamWorkspaceViewModel : ObservableObject, IQueryAttributab
             && !IsRemovingGames && !isConfirmationPending;
     }
 
+    private bool CanEditRosterItem(TeamRosterItem? item) =>
+        CanManageRoster() && item is not null && RosterPlayers.Contains(item);
+
     private bool CanBeginRemovePlayers() => CanManageRoster() && HasPlayers;
 
     private bool CanAddGame() =>
@@ -744,6 +824,9 @@ public partial class TeamWorkspaceViewModel : ObservableObject, IQueryAttributab
         RequestDeactivateTeamCommand.NotifyCanExecuteChanged();
         ConfirmDeactivateTeamCommand.NotifyCanExecuteChanged();
         AddPlayersCommand.NotifyCanExecuteChanged();
+        BeginJerseyNumberEditCommand.NotifyCanExecuteChanged();
+        SaveJerseyNumberCommand.NotifyCanExecuteChanged();
+        CancelJerseyNumberEditCommand.NotifyCanExecuteChanged();
         RemovePlayersCommand.NotifyCanExecuteChanged();
         AddGameCommand.NotifyCanExecuteChanged();
         CancelRemovePlayersCommand.NotifyCanExecuteChanged();
@@ -787,14 +870,14 @@ public partial class TeamWorkspaceViewModel : ObservableObject, IQueryAttributab
 
     private async Task ReloadRosterAsync(IReadOnlyCollection<int>? idsToReselect = null)
     {
-        var players = await teamPlayerRepository.GetActivePlayersForTeamAsync(TeamId);
+        var players = await teamPlayerRepository.GetActiveRosterForTeamAsync(TeamId);
         var selectedIds = idsToReselect?.ToHashSet();
 
         RosterPlayers.Clear();
         foreach (var player in players)
         {
-            var item = new PlayerSelectionItem(player, OnPlayerSelectionChanged);
-            if (selectedIds?.Contains(player.Id) == true)
+            var item = new TeamRosterItem(player, OnPlayerSelectionChanged);
+            if (selectedIds?.Contains(player.Player.Id) == true)
             {
                 item.IsSelected = true;
             }
@@ -807,7 +890,7 @@ public partial class TeamWorkspaceViewModel : ObservableObject, IQueryAttributab
         UpdateSelectionState();
     }
 
-    private void OnPlayerSelectionChanged(PlayerSelectionItem item) => UpdateSelectionState();
+    private void OnPlayerSelectionChanged(TeamRosterItem item) => UpdateSelectionState();
 
     private void UpdateSelectionState() =>
         SelectedPlayerCount = RosterPlayers.Count(item => item.IsSelected);
@@ -820,6 +903,14 @@ public partial class TeamWorkspaceViewModel : ObservableObject, IQueryAttributab
         }
 
         UpdateSelectionState();
+    }
+
+    private void CancelRosterEdits()
+    {
+        foreach (var item in RosterPlayers)
+        {
+            item.CancelJerseyNumberEdit();
+        }
     }
 
     private void ExitRemovePlayersMode()

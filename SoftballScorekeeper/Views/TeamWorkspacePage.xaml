@@ -329,12 +329,68 @@
                             </DataTrigger>
                         </CollectionView.Triggers>
                         <CollectionView.ItemTemplate>
-                            <DataTemplate x:DataType="viewModels:PlayerSelectionItem">
+                            <DataTemplate x:DataType="viewModels:TeamRosterItem">
                                 <Grid Padding="20,12" RowDefinitions="Auto,1" MinimumHeightRequest="72">
-                                    <HorizontalStackLayout Spacing="6" VerticalOptions="Center">
-                                        <Label Text="{Binding Player.FirstName}" FontSize="20" LineBreakMode="TailTruncation" />
-                                        <Label Text="{Binding Player.LastName}" FontSize="20" LineBreakMode="TailTruncation" />
-                                    </HorizontalStackLayout>
+                                    <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="16">
+                                        <Grid.Triggers>
+                                            <DataTrigger TargetType="Grid" Binding="{Binding IsEditingJerseyNumber}" Value="True">
+                                                <Setter Property="IsVisible" Value="False" />
+                                            </DataTrigger>
+                                        </Grid.Triggers>
+                                        <Label
+                                            Text="{Binding DisplayName}"
+                                            FontSize="20"
+                                            LineBreakMode="TailTruncation"
+                                            VerticalTextAlignment="Center" />
+                                        <Label
+                                            Grid.Column="1"
+                                            Text="{Binding JerseyNumberDisplay}"
+                                            IsVisible="{Binding HasJerseyNumber}"
+                                            FontSize="18"
+                                            FontAttributes="Bold"
+                                            VerticalTextAlignment="Center" />
+                                        <Button
+                                            Grid.Column="2"
+                                            Text="{x:Static strings:AppResources.EditButton}"
+                                            Command="{Binding Source={x:Reference PageRoot}, Path=BindingContext.BeginJerseyNumberEditCommand}"
+                                            CommandParameter="{Binding .}"
+                                            MinimumHeightRequest="48"
+                                            Padding="20,10" />
+                                    </Grid>
+                                    <Grid
+                                        ColumnDefinitions="*,140,Auto,Auto"
+                                        ColumnSpacing="12"
+                                        IsVisible="{Binding IsEditingJerseyNumber}">
+                                        <Label
+                                            Text="{Binding DisplayName}"
+                                            FontSize="20"
+                                            LineBreakMode="TailTruncation"
+                                            VerticalTextAlignment="Center" />
+                                        <VerticalStackLayout Grid.Column="1" Spacing="4">
+                                            <Label Text="{x:Static strings:AppResources.JerseyNumberLabel}" />
+                                            <Entry
+                                                Text="{Binding EditableJerseyNumber, Mode=TwoWay}"
+                                                Placeholder="{x:Static strings:AppResources.OptionalNumberPlaceholder}"
+                                                Keyboard="Numeric"
+                                                MinimumHeightRequest="48" />
+                                        </VerticalStackLayout>
+                                        <Button
+                                            Grid.Column="2"
+                                            Text="{x:Static strings:AppResources.SaveButton}"
+                                            Command="{Binding Source={x:Reference PageRoot}, Path=BindingContext.SaveJerseyNumberCommand}"
+                                            CommandParameter="{Binding .}"
+                                            MinimumHeightRequest="48"
+                                            Padding="20,10"
+                                            VerticalOptions="End" />
+                                        <Button
+                                            Grid.Column="3"
+                                            Text="{x:Static strings:AppResources.CancelButton}"
+                                            Command="{Binding Source={x:Reference PageRoot}, Path=BindingContext.CancelJerseyNumberEditCommand}"
+                                            CommandParameter="{Binding .}"
+                                            MinimumHeightRequest="48"
+                                            Padding="20,10"
+                                            VerticalOptions="End" />
+                                    </Grid>
                                     <BoxView
                                         Grid.Row="1"
                                         Margin="0,11,0,0"
@@ -350,7 +406,7 @@
                         IsVisible="{Binding IsRemovingPlayers}"
                         SelectionMode="None">
                         <CollectionView.ItemTemplate>
-                            <DataTemplate x:DataType="viewModels:PlayerSelectionItem">
+                            <DataTemplate x:DataType="viewModels:TeamRosterItem">
                                 <Grid Padding="20,12" RowDefinitions="Auto,1" ColumnDefinitions="*,Auto" MinimumHeightRequest="72">
                                     <HorizontalStackLayout Spacing="6" VerticalOptions="Center">
                                         <Label Text="{Binding Player.FirstName}" FontSize="20" LineBreakMode="TailTruncation" />

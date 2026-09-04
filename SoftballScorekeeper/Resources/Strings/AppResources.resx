@@ -369,6 +369,15 @@
   <data name="RemovePlayersButton" xml:space="preserve">
     <value>Remove Players</value>
   </data>
+  <data name="JerseyNumberLabel" xml:space="preserve">
+    <value>Jersey Number</value>
+  </data>
+  <data name="JerseyNumberDisplayFormat" xml:space="preserve">
+    <value>No. {0}</value>
+  </data>
+  <data name="JerseyNumberUpdateFailed" xml:space="preserve">
+    <value>The jersey number could not be saved. The previous number was preserved.</value>
+  </data>
   <data name="TeamNameEditHint" xml:space="preserve">
     <value>Tap to edit the Team name.</value>
   </data>
@@ -484,6 +493,7 @@
     <value>No selected Games were removed. The schedule has been refreshed.</value>
   </data>
   <data name="EditButton" xml:space="preserve"><value>Edit</value></data>
+  <data name="EditIconGlyph" xml:space="preserve"><value>✎</value></data>
   <data name="EditGameTitle" xml:space="preserve"><value>Edit Game</value></data>
   <data name="GameWorkspaceTitle" xml:space="preserve"><value>Game</value></data>
   <data name="GameDetailsHeading" xml:space="preserve"><value>Game Details</value></data>

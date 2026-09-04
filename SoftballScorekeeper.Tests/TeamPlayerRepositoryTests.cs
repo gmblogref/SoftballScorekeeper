@@ -632,6 +632,112 @@ public sealed class TeamPlayerRepositoryTests
         Assert.Single(await repository.GetActivePlayersForTeamAsync(team.Id));
     }
 
+    [Fact]
+    public async Task GetActiveRosterForTeamAsync_ReturnsMembershipIdentityAndTeamSpecificJerseyNumber()
+    {
+        await using var db = await TemporaryTestDatabase.CreateAsync();
+        var alpha = await CreateTeamAsync(db, "Alpha");
+        var beta = await CreateTeamAsync(db, "Beta");
+        var amy = await CreatePlayerAsync(db, "Amy", "Able");
+        var bob = await CreatePlayerAsync(db, "Bob", "Baker");
+        var alphaAmy = await AddTeamPlayerAsync(db, alpha, amy, jerseyNumber: 7);
+        await AddTeamPlayerAsync(db, alpha, bob);
+        await AddTeamPlayerAsync(db, beta, amy, jerseyNumber: 22);
+
+        var roster = await db.CreateTeamPlayerRepository().GetActiveRosterForTeamAsync(alpha.Id);
+
+        Assert.Collection(
+            roster,
+            item =>
+            {
+                Assert.Equal((alphaAmy.Id, alpha.Id, amy.Id),
+                    (item.TeamPlayerId, item.TeamId, item.Player.Id));
+                Assert.Equal(7, item.JerseyNumber);
+            },
+            item =>
+            {
+                Assert.Equal(bob.Id, item.Player.Id);
+                Assert.Null(item.JerseyNumber);
+            });
+    }
+
+    [Fact]
+    public async Task UpdateJerseyNumberAsync_SetsChangesAndClearsOnlyRequestedMembership()
+    {
+        await using var db = await TemporaryTestDatabase.CreateAsync();
+        var alpha = await CreateTeamAsync(db, "Alpha");
+        var beta = await CreateTeamAsync(db, "Beta");
+        var player = await CreatePlayerAsync(db, "Amy", "Able");
+        var alphaMembership = await AddTeamPlayerAsync(db, alpha, player);
+        var betaMembership = await AddTeamPlayerAsync(db, beta, player, jerseyNumber: 22);
+        var repository = db.CreateTeamPlayerRepository();
+
+        Assert.Equal(1, await repository.UpdateJerseyNumberAsync(alpha.Id, alphaMembership.Id, 7));
+        Assert.Equal(1, await repository.UpdateJerseyNumberAsync(alpha.Id, alphaMembership.Id, 11));
+        Assert.Equal(1, await repository.UpdateJerseyNumberAsync(alpha.Id, alphaMembership.Id, null));
+
+        var relationships = await db.GetTeamPlayersAsync();
+        Assert.Null(relationships.Single(item => item.Id == alphaMembership.Id).JerseyNumber);
+        Assert.Equal(22, relationships.Single(item => item.Id == betaMembership.Id).JerseyNumber);
+    }
+
+    [Fact]
+    public async Task UpdateJerseyNumberAsync_InvalidOrInactiveTargets_PerformNoWrites()
+    {
+        await using var db = await TemporaryTestDatabase.CreateAsync();
+        var activeTeam = await CreateTeamAsync(db, "Active");
+        var inactiveTeam = await CreateTeamAsync(db, "Inactive");
+        var activePlayer = await CreatePlayerAsync(db, "Amy", "Able");
+        var inactivePlayer = await CreatePlayerAsync(db, "Bob", "Baker");
+        var activeMembership = await AddTeamPlayerAsync(db, activeTeam, activePlayer, jerseyNumber: 7);
+        var inactiveMembership = await AddTeamPlayerAsync(db, activeTeam, activePlayer, isActive: false, jerseyNumber: 8);
+        var inactiveTeamMembership = await AddTeamPlayerAsync(db, inactiveTeam, activePlayer, jerseyNumber: 9);
+        var inactivePlayerMembership = await AddTeamPlayerAsync(db, activeTeam, inactivePlayer, jerseyNumber: 10);
+        Assert.Equal(1, await db.CreateTeamRepository().DeactivateAsync(inactiveTeam.Id));
+        Assert.Equal(1, await db.CreatePlayerRepository().DeactivateAsync([inactivePlayer.Id]));
+        var repository = db.CreateTeamPlayerRepository();
+
+        Assert.Equal(0, await repository.UpdateJerseyNumberAsync(activeTeam.Id, activeMembership.Id, -1));
+        Assert.Equal(0, await repository.UpdateJerseyNumberAsync(activeTeam.Id, int.MaxValue, 12));
+        Assert.Equal(0, await repository.UpdateJerseyNumberAsync(activeTeam.Id, inactiveMembership.Id, 12));
+        Assert.Equal(0, await repository.UpdateJerseyNumberAsync(inactiveTeam.Id, inactiveTeamMembership.Id, 12));
+        Assert.Equal(0, await repository.UpdateJerseyNumberAsync(activeTeam.Id, inactivePlayerMembership.Id, 12));
+        Assert.Equal(0, await repository.UpdateJerseyNumberAsync(inactiveTeam.Id, activeMembership.Id, 12));
+
+        var relationships = await db.GetTeamPlayersAsync();
+        Assert.Equal(7, relationships.Single(item => item.Id == activeMembership.Id).JerseyNumber);
+        Assert.Equal(8, relationships.Single(item => item.Id == inactiveMembership.Id).JerseyNumber);
+        Assert.Equal(9, relationships.Single(item => item.Id == inactiveTeamMembership.Id).JerseyNumber);
+        Assert.Equal(10, relationships.Single(item => item.Id == inactivePlayerMembership.Id).JerseyNumber);
+    }
+
+    [Fact]
+    public async Task InitializeAsync_ExistingTeamPlayerTable_AddsNullableJerseyNumberColumn()
+    {
+        await using var db = await TemporaryTestDatabase.CreateUninitializedAsync();
+        await db.ExecuteAsync(
+            """
+            CREATE TABLE TeamPlayer (
+                Id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                TeamId INTEGER NOT NULL,
+                PlayerId INTEGER NOT NULL,
+                IsActive INTEGER NOT NULL)
+            """);
+
+        await db.Database.InitializeAsync();
+
+        var columns = await db.UseConnectionAsync(
+            connection => connection.GetTableInfoAsync(nameof(TeamPlayer)));
+        Assert.Contains(columns, column => column.Name == nameof(TeamPlayer.JerseyNumber));
+
+        var team = await CreateTeamAsync(db);
+        var player = await CreatePlayerAsync(db, "Amy", "Able");
+        var membership = await AddTeamPlayerAsync(db, team, player);
+        Assert.Equal(1, await db.CreateTeamPlayerRepository()
+            .UpdateJerseyNumberAsync(team.Id, membership.Id, 7));
+        Assert.Equal(7, Assert.Single(await db.GetTeamPlayersAsync()).JerseyNumber);
+    }
+
     private static async Task<Team> CreateTeamAsync(
         TemporaryTestDatabase testDatabase,
         string name = "Falcons")
@@ -655,12 +761,14 @@ public sealed class TeamPlayerRepositoryTests
         TemporaryTestDatabase testDatabase,
         Team team,
         Player player,
-        bool isActive = true)
+        bool isActive = true,
+        int? jerseyNumber = null)
     {
         var teamPlayer = new TeamPlayer
         {
             TeamId = team.Id,
             PlayerId = player.Id,
+            JerseyNumber = jerseyNumber,
             IsActive = isActive,
         };
 

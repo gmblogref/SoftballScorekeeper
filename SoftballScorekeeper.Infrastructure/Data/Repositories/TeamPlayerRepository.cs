@@ -15,9 +15,16 @@ public sealed class TeamPlayerRepository
 
     public async Task<IReadOnlyList<Player>> GetActivePlayersForTeamAsync(int teamId)
     {
+        return (await GetActiveRosterForTeamAsync(teamId))
+            .Select(item => item.Player)
+            .ToList();
+    }
+
+    public async Task<IReadOnlyList<TeamRosterMember>> GetActiveRosterForTeamAsync(int teamId)
+    {
         if (teamId <= 0)
         {
-            return Array.Empty<Player>();
+            return Array.Empty<TeamRosterMember>();
         }
 
         var connection = await database.GetConnectionAsync();
@@ -27,27 +34,74 @@ public sealed class TeamPlayerRepository
 
         if (activeTeam is null)
         {
-            return Array.Empty<Player>();
+            return Array.Empty<TeamRosterMember>();
         }
 
-        var players = await connection.QueryAsync<Player>(
-            """
-            SELECT Player.*
-            FROM Player
-            INNER JOIN TeamPlayer ON TeamPlayer.PlayerId = Player.Id
-            WHERE TeamPlayer.TeamId = ?
-                AND TeamPlayer.IsActive = ?
-                AND Player.IsActive = ?
-            """,
-            teamId,
-            true,
-            true);
+        var relationships = await connection.Table<TeamPlayer>()
+            .Where(item => item.TeamId == teamId && item.IsActive)
+            .ToListAsync();
+        var players = await connection.Table<Player>()
+            .Where(player => player.IsActive)
+            .ToListAsync();
+        var playersById = players.ToDictionary(player => player.Id);
 
-        return players
-            .DistinctBy(player => player.Id)
-            .OrderBy(player => player.FirstName, StringComparer.OrdinalIgnoreCase)
-            .ThenBy(player => player.LastName ?? string.Empty, StringComparer.OrdinalIgnoreCase)
+        return relationships
+            .OrderBy(item => item.Id)
+            .Where(item => playersById.ContainsKey(item.PlayerId))
+            .DistinctBy(item => item.PlayerId)
+            .Select(item => new TeamRosterMember(
+                item.Id,
+                item.TeamId,
+                playersById[item.PlayerId],
+                item.JerseyNumber))
+            .OrderBy(item => item.Player.FirstName, StringComparer.OrdinalIgnoreCase)
+            .ThenBy(item => item.Player.LastName ?? string.Empty, StringComparer.OrdinalIgnoreCase)
             .ToList();
+    }
+
+    public async Task<int> UpdateJerseyNumberAsync(
+        int teamId,
+        int teamPlayerId,
+        int? jerseyNumber)
+    {
+        if (teamId <= 0 || teamPlayerId <= 0 || jerseyNumber < 0)
+        {
+            return 0;
+        }
+
+        var connection = await database.GetConnectionAsync();
+        var activeTeam = await connection.Table<Team>()
+            .Where(team => team.Id == teamId && team.IsActive)
+            .FirstOrDefaultAsync();
+        if (activeTeam is null)
+        {
+            return 0;
+        }
+
+        var relationship = await connection.Table<TeamPlayer>()
+            .Where(item => item.Id == teamPlayerId
+                && item.TeamId == teamId
+                && item.IsActive)
+            .FirstOrDefaultAsync();
+        if (relationship is null)
+        {
+            return 0;
+        }
+
+        var activePlayer = await connection.Table<Player>()
+            .Where(player => player.Id == relationship.PlayerId && player.IsActive)
+            .FirstOrDefaultAsync();
+        if (activePlayer is null)
+        {
+            return 0;
+        }
+
+        return await connection.ExecuteAsync(
+            "UPDATE TeamPlayer SET JerseyNumber = ? WHERE Id = ? AND TeamId = ? AND IsActive = ?",
+            jerseyNumber,
+            teamPlayerId,
+            teamId,
+            true);
     }
 
     public async Task<IReadOnlyList<Player>> GetEligiblePlayersForTeamAsync(int teamId)
