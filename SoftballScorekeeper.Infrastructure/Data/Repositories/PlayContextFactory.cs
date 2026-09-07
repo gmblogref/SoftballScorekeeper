@@ -87,7 +87,8 @@ public static class PlayContextFactory
             {
                 if (participant.PlayerId != pendingPlay.BatterPlayerId
                     || participant.StartingLocation != RunnerStartingLocation.Home
-                    || pendingPlay.Result != BatterResult.Out)
+                    || !BatterRetirementEvaluator.AddsImplicitBatterOut(
+                        pendingPlay.Result))
                     return false;
                 participants.Add(new(
                     participant.PlayerId,

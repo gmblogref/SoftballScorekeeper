@@ -30,7 +30,7 @@ public static class PendingBaseRunnerResolutionAdapter
 
         var batterMovements = participants.Count(item =>
             item.PlayerId == play.BatterPlayerId);
-        if (play.Result == BatterResult.Out)
+        if (BatterRetirementEvaluator.AddsImplicitBatterOut(play.Result))
         {
             if (batterMovements == 0)
                 participants.Add(new(play.BatterPlayerId,

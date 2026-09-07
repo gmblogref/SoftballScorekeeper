@@ -10,9 +10,9 @@ Stable product and architecture decisions belong in the project architecture doc
 
 ## Current Project Status
 
-- **Latest completed story:** Story 7.1 — Core Beer Rule Detection
-- **Completed stories:** Stories 0.0 through 6.9.3 and Stories 7.0 through 7.1; Story 6.9.4 retains its recorded physical Android acceptance status, and Stories 3.2 through 3.4 retain their recorded validation status
-- **Current story:** Story 7.1 — Core Beer Rule Detection; implementation and automated validation complete under the approved revised scope
+- **Latest completed story:** Story 7.1.1 — Authoritative Strikeout + Dead Ball Out PA Outcomes
+- **Completed stories:** Stories 0.0 through 6.9.3 and Stories 7.0 through 7.1.1; Story 6.9.4 retains its recorded physical Android acceptance status, and Stories 3.2 through 3.4 retain their recorded validation status
+- **Current story:** Story 7.1.1 — Authoritative Strikeout + Dead Ball Out PA Outcomes; implementation and normal automated validation complete, with physical Android acceptance pending
 - **Current phase:** Beer Rules
 - **Foundation status:** Complete
 
@@ -2952,6 +2952,27 @@ Dedicated Double Play/Triple Play presentation, sacrifice results, HR-limit/dead
 #### Intended Commit Message
 
 `Add core Beer rule detection`
+
+### Story 7.1.1 — Authoritative Strikeout + Dead Ball Out PA Outcomes (Complete — physical Android acceptance pending)
+
+#### Authoritative Scoring and HR Availability
+
+- Appended persisted `BatterResult.Strikeout` and `BatterResult.DeadBallOut` values without changing prior enum meanings. Both use the standard committed-PA pipeline as fixed batter retirements: exactly one Out, normal batter progression and third-Out transition, existing runners holding, no scoring, and exact result persistence through Undo/Redo, reset/restart, resume/database reopen, and Game completion. DBO is therefore an authoritative normal-scoring classification rather than a Beer-rule inference or generic Out plus metadata.
+- Added one platform-independent `HomeRunAvailabilityEvaluator`. A Home Run is legal below the base limit. At or above the limit it is illegal when 1-Up is Off or the opponent has not reached the limit; once both teams have reached the limit and 1-Up is On, a tied or trailing batting team may hit a legal HR, while a team already ahead may not extend its lead. Limit zero uses the same predicate: no legal HR with 1-Up Off; at 0-0 with 1-Up On, one HR is legal.
+- Available results now expose exactly one of `HomeRun` or `DeadBallOut`, using the scoring state's authoritative committed Team HR count, completed opponent-half-inning HR total, current Team side, persisted HR limit, and persisted 1-Up setting. The repository repeats the same decision inside scoring transactions for direct selection, dedicated HR completion, and pending-play completion, rejecting stale or mismatched classifications.
+- The Home and Visitor scoreboard HR labels retain `HR current/limit` while 1-Up is Off. While 1-Up is On, both labels show only `HR current`, allowing the side-by-side authoritative totals to communicate tied, trailing, or one-ahead state without presenting the unchanged base limit as a current maximum or inventing a synthetic limit.
+- Rule edits affect current and future availability only. They never rewrite committed HR or DBO PAs. Scoring Undo deliberately does not roll back later rule edits, enabling the accepted DBO → enable 1-Up → Undo → legal HR correction workflow; committing the replacement HR invalidates the abandoned DBO Redo branch through existing scoring-history behavior.
+
+#### Statistics, Beer Compatibility, and Validation
+
+- Centralized batting-stat contributions define Strikeout and DBO as PA +1 and AB +1 with no hit, HR, walk, FC, SF, total-base, OBP-numerator, or SLG credit. In-progress and completed projections consume those shared definitions; exhaustive outcome counts include both new results. No new visible statistics columns were added.
+- Shared finalized-batter-retirement semantics now recognize ordinary Out, Strikeout, DBO, Sac Fly, and batter-retired DP/TP consistently. Strikeout and DBO therefore naturally participate in Story 7.1's existing 2 Outs in 1 Inning rule. No standalone Strikeout or DBO Beer consequence, amount, or result-specific Beer branch was added; those consequences remain deferred to the next Beer-detection story.
+- Focused evaluator, scoring, statistics, history, lifecycle, and Beer-compatibility validation passed 67 of 67 tests. The final emulator-independent suite passed 814 of 814 with zero failures or skips. Android built with zero errors and retained the existing `CS8602`/`XC0025` warning categories on the full compile; Windows built with zero errors and retained the existing `CS8602`/`MVVMTK0045`/`XC0025` warning categories. No Android emulator, Appium, runtime, or physical-device test was run under the story policy; physical portrait/landscape action-sheet and touch-workflow acceptance remains pending.
+- The post-acceptance HR-label refinement passed 5 of 5 focused presentation, third-Out transition Undo/Redo, and rule-preservation tests. The Windows presentation target rebuilt with zero errors and the same 118 existing warnings. Android/Appium was not run for the refinement.
+
+#### Intended Commit Message
+
+`Add authoritative strikeout and dead ball out scoring`
 
 ## Maintenance Rules
 

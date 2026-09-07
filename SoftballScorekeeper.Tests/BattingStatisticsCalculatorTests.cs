@@ -29,6 +29,10 @@ public sealed class BattingStatisticsCalculatorTests
                 onBaseDenominator: 1)];
             yield return [Contribution(BatterResult.SacrificeFly, sacrificeFlies: 1,
                 onBaseDenominator: 1)];
+            yield return [Contribution(BatterResult.Strikeout, atBats: 1,
+                onBaseDenominator: 1)];
+            yield return [Contribution(BatterResult.DeadBallOut, atBats: 1,
+                onBaseDenominator: 1)];
         }
     }
 

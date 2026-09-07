@@ -107,6 +107,10 @@ public static class PlateAppearanceResultDefinitions
         new(BatterResult.HomeRun, RunnerDestination.Scores,
             ExistingRunnerMovementBehavior.Advance, 4,
             PlateAppearanceCompletionBehavior.Immediate),
+        new(BatterResult.DeadBallOut, RunnerDestination.Out,
+            ExistingRunnerMovementBehavior.Hold, 0,
+            PlateAppearanceCompletionBehavior.Immediate,
+            IncludesBatterMovement: false),
         new(BatterResult.Walk, RunnerDestination.First,
             ExistingRunnerMovementBehavior.ForcedOnly, 0,
             PlateAppearanceCompletionBehavior.Immediate),
@@ -148,6 +152,10 @@ public static class PlateAppearanceResultDefinitions
             ExistingRunnerMovementBehavior.Hold, 0,
             PlateAppearanceCompletionBehavior.ContextualOut,
             IncludesBatterMovement: false),
+        new(BatterResult.Strikeout, RunnerDestination.Out,
+            ExistingRunnerMovementBehavior.Hold, 0,
+            PlateAppearanceCompletionBehavior.Immediate,
+            IncludesBatterMovement: false),
     ];
 
     public static PlateAppearanceResultDefinition Get(BatterResult result) =>
@@ -164,19 +172,24 @@ public static class PlateAppearanceResultDefinitions
 
     public static IReadOnlyList<BatterResult> GetSelectableResults(
         int existingRunnerCount,
-        int currentOuts = 0) => Definitions
+        int currentOuts = 0,
+        bool isHomeRunLegal = true) => Definitions
         .Where(item => !item.RequiresExistingRunner || existingRunnerCount > 0)
         .Where(item => existingRunnerCount + 1 >= item.MinimumParticipants)
         .Where(item => item.RequiredOccupiedStartingLocation is null)
         .Where(item => currentOuts <= item.MaximumCurrentOuts)
         .Where(item => item.RequiredPlayOuts == 0
             || item.RequiredPlayOuts <= 3 - currentOuts)
+        .Where(item => isHomeRunLegal
+            ? item.Result != BatterResult.DeadBallOut
+            : item.Result != BatterResult.HomeRun)
         .Select(item => item.Result)
         .ToArray();
 
     public static IReadOnlyList<BatterResult> GetSelectableResults(
         IReadOnlySet<RunnerStartingLocation> occupiedStartingLocations,
-        int currentOuts = 0) => Definitions
+        int currentOuts = 0,
+        bool isHomeRunLegal = true) => Definitions
         .Where(item => !item.RequiresExistingRunner
             || occupiedStartingLocations.Count > 0)
         .Where(item => occupiedStartingLocations.Count + 1
@@ -187,6 +200,9 @@ public static class PlateAppearanceResultDefinitions
         .Where(item => currentOuts <= item.MaximumCurrentOuts)
         .Where(item => item.RequiredPlayOuts == 0
             || item.RequiredPlayOuts <= 3 - currentOuts)
+        .Where(item => isHomeRunLegal
+            ? item.Result != BatterResult.DeadBallOut
+            : item.Result != BatterResult.HomeRun)
         .Select(item => item.Result)
         .ToArray();
 

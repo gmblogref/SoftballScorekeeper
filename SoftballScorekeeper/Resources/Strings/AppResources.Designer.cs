@@ -966,11 +966,13 @@ namespace SoftballScorekeeper.Resources.Strings {
         public static string DoubleResultLabel { get { return ResourceManager.GetString("DoubleResultLabel", resourceCulture); } }
         public static string TripleResultLabel { get { return ResourceManager.GetString("TripleResultLabel", resourceCulture); } }
         public static string HomeRunResultLabel { get { return ResourceManager.GetString("HomeRunResultLabel", resourceCulture); } }
+        public static string DeadBallOutResultLabel { get { return ResourceManager.GetString("DeadBallOutResultLabel", resourceCulture); } }
         public static string WalkResultLabel { get { return ResourceManager.GetString("WalkResultLabel", resourceCulture); } }
         public static string FielderChoiceResultLabel { get { return ResourceManager.GetString("FielderChoiceResultLabel", resourceCulture); } }
         public static string DoublePlayResultLabel { get { return ResourceManager.GetString("DoublePlayResultLabel", resourceCulture); } }
         public static string TriplePlayResultLabel { get { return ResourceManager.GetString("TriplePlayResultLabel", resourceCulture); } }
         public static string SacrificeFlyResultLabel { get { return ResourceManager.GetString("SacrificeFlyResultLabel", resourceCulture); } }
+        public static string StrikeoutResultLabel { get { return ResourceManager.GetString("StrikeoutResultLabel", resourceCulture); } }
         public static string MultiOutSelectionTitleFormat { get { return ResourceManager.GetString("MultiOutSelectionTitleFormat", resourceCulture); } }
         public static string MultiOutSelectionSingleTitleFormat { get { return ResourceManager.GetString("MultiOutSelectionSingleTitleFormat", resourceCulture); } }
         public static string MultiOutSelectionInstruction { get { return ResourceManager.GetString("MultiOutSelectionInstruction", resourceCulture); } }
@@ -1081,6 +1083,7 @@ namespace SoftballScorekeeper.Resources.Strings {
         public static string NonNegativeWholeNumberRequiredMessage { get { return ResourceManager.GetString("NonNegativeWholeNumberRequiredMessage", resourceCulture); } }
         public static string GameRulesSaveFailed { get { return ResourceManager.GetString("GameRulesSaveFailed", resourceCulture); } }
         public static string HomeRunScoreboardFormat { get { return ResourceManager.GetString("HomeRunScoreboardFormat", resourceCulture); } }
+        public static string HomeRunScoreboardCurrentFormat { get { return ResourceManager.GetString("HomeRunScoreboardCurrentFormat", resourceCulture); } }
         public static string OneUpOnLabel { get { return ResourceManager.GetString("OneUpOnLabel", resourceCulture); } }
         public static string OnDeckLabel { get { return ResourceManager.GetString("OnDeckLabel", resourceCulture); } }
         public static string InTheHoleLabel { get { return ResourceManager.GetString("InTheHoleLabel", resourceCulture); } }
