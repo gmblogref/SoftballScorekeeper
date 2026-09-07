@@ -7,7 +7,33 @@ public interface IBeerRuleEvaluator
 
 public sealed class BeerRuleEvaluator : IBeerRuleEvaluator
 {
-    public IReadOnlyList<BeerConsequence> Evaluate(BeerEvaluationContext context) => [];
+    public IReadOnlyList<BeerConsequence> Evaluate(BeerEvaluationContext context)
+    {
+        var appearance = context.PlateAppearance;
+        var consequences = new List<BeerConsequence>();
+        if (
+            appearance.Result == BatterResult.HomeRun
+            && appearance.RunnerMovements.All(item =>
+                item.StartingLocation == RunnerStartingLocation.Home
+            )
+        )
+            consequences.Add(new(appearance.PlayerId, BeerRuleType.SoloHomeRun, 1));
+
+        if (appearance.Result == BatterResult.DoublePlay)
+            consequences.Add(new(appearance.PlayerId, BeerRuleType.DoublePlay, 1));
+
+        if (
+            appearance.BatterWasRetired
+            && context.CommittedPlateAppearances.Count(item =>
+                item.PlayerId == appearance.PlayerId
+                && item.Inning == appearance.Inning
+                && item.BatterWasRetired
+            ) == 2
+        )
+            consequences.Add(new(appearance.PlayerId, BeerRuleType.TwoOutsInOneInning, 1));
+
+        return consequences;
+    }
 }
 
 public sealed record BeerConsequence(int PlayerId, BeerRuleType RuleType, int Amount);
@@ -32,7 +58,19 @@ public sealed record BeerCommittedPlateAppearance(
     int Inning,
     BatterResult Result,
     IReadOnlyList<BeerRunnerMovement> RunnerMovements
-);
+)
+{
+    public bool BatterWasRetired =>
+        Result is BatterResult.Out or BatterResult.SacrificeFly
+        || (
+            Result is BatterResult.DoublePlay or BatterResult.TriplePlay
+            && RunnerMovements.Any(item =>
+                item.PlayerId == PlayerId
+                && item.StartingLocation == RunnerStartingLocation.Home
+                && item.Destination == RunnerDestination.Out
+            )
+        );
+}
 
 public sealed record BeerRunnerMovement(
     int PlayerId,
