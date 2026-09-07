@@ -10,10 +10,10 @@ Stable product and architecture decisions belong in the project architecture doc
 
 ## Current Project Status
 
-- **Latest completed story:** Story 6.9.3 — In-Game Stats Viewer
-- **Completed stories:** Stories 0.0 through 6.9.3; Stories 3.2 through 3.4 retain their recorded validation status
-- **Current story:** Story 6.9.4 — Team Record on Team Manager; implementation and automated validation complete, physical Android acceptance pending
-- **Current phase:** In-game and completed-game batting statistics
+- **Latest completed story:** Story 7.0 — Beer Rules Foundation
+- **Completed stories:** Stories 0.0 through 6.9.3 and Story 7.0; Story 6.9.4 retains its recorded physical Android acceptance status, and Stories 3.2 through 3.4 retain their recorded validation status
+- **Current story:** Story 7.0 — Beer Rules Foundation; implementation and automated validation complete
+- **Current phase:** Beer Rules
 - **Foundation status:** Complete
 
 The repository contains a five-project .NET 9 solution: the Android- and Windows-targeted .NET MAUI application, platform-independent Core, Infrastructure, the emulator-independent automated test project, and the opt-in Android UI test project. Its implemented foundation includes repository guidance, pragmatic layered dependencies, CommunityToolkit.Mvvm, MAUI dependency injection, device-local SQLite initialization, centralized user-facing resources, strongly typed application settings, and isolated xUnit repository integration tests. Team Workspace contains local Games and Roster sections, supports adding or removing existing active Players, and supports creating a global Player with immediate TeamPlayer membership from the Team-scoped Add Players workflow. Player Workspace shows active Team memberships, and Player Manager retains bulk lifecycle actions; Game schedule management and other later softball workflows remain deferred.
@@ -2903,6 +2903,28 @@ Dedicated Double Play/Triple Play presentation, sacrifice results, HR-limit/dead
 #### Intended Commit Message
 
 `Add Player and roster information editing`
+
+### Story 7.0 — Beer Rules Foundation (Complete)
+
+#### Beer Domain and Persistence Foundation
+
+- Added a separate Beer ledger that observes authoritative committed scoring without changing plate-appearance classification, runner movement, outs, innings, score, batting order, or batting statistics. `BeerRuleType` represents the future DBO, Solo HR, Double Play, 2 Outs in 1 Inning, Strikeout, and Low Man identifiers without implementing their semantics.
+- `BeerLedgerEntry` records stable `PlayerId`, owning `TeamId`, optional `GameId` and `GameScoringSessionId`, optional source `GamePlateAppearanceId`, optional rule, signed integer amount, and an origin distinguishing automatic scoring consequences, future manual adjustments, and future BROUGHT credits. Optional Game/session ownership leaves Team-level historical credits possible while automatic consequences are fully Game/session/PA scoped.
+- Added the independently testable `IBeerRuleEvaluator` hook and immutable committed-action context. The production `BeerRuleEvaluator` intentionally returns no consequences until later rule stories define semantics. `GameScoringSessionRepository` invokes evaluation only after normal scoring has persisted the authoritative PA, movements, scores, outs, inning, bases, and batter progression, and before advancing the committed history snapshot, all in the same transaction. No Beer branching was added to presentation code.
+- `AppDatabase` now creates the Beer ledger table, and `BeerLedgerRepository` provides Game- and Team-scoped reads for future reporting. Records resolve through stable Player identity and survive Player rename/deactivation and TeamPlayer membership changes.
+- Persisted scoring snapshots capture and restore only automatic entries owned by that scoring session. Committed Undo removes them, Redo restores the same row exactly once, and divergent scoring abandons stale Redo Beer state. Pending semantic checkpoints produce no consequences. Manual adjustment and BROUGHT-credit origins remain outside snapshot replacement so they can coexist without rewriting softball scoring truth.
+- Reset transactionally removes entries owned by the reset scoring session while preserving unrelated Game/Team history and entries without that session ownership. Exit/Resume and database reopen only reload persisted entries and do not reevaluate plays. Game completion preserves the ledger and its source PAs.
+- Team Beer-rule defaults and Game-level configuration snapshots remain deferred to Story 7.2; the ledger's Team/Game/session ownership does not couple historical consequences to future mutable defaults. All actual rule detection, Beer totals and dashboard UI, editing, BROUGHT behavior, OWED calculations, carry-forward behavior, and completed-game Beer UI remain deferred to Stories 7.1–7.4.
+
+#### Tests and Validation
+
+- Added 9 focused tests covering persistence and database reopen, stable Player identity after rename/deactivation/membership removal, Game and Team isolation, Exit/Resume non-duplication, completion preservation, session-scoped reset with unrelated-credit preservation, atomic committed Undo/Redo and divergent history, pending-checkpoint behavior, normal scoring/statistics independence, manual-entry coexistence, and the production evaluator's intentionally neutral behavior. Focused Beer tests passed 9 of 9.
+- The final full emulator-independent suite passed 734 of 734 with zero failures or skips. Interim full runs exposed legacy-schema fixtures without scheduled Game rows and with a retained resultless PA; the neutral evaluator hook now tolerates those pre-foundation shapes while persistence of an actual consequence still requires valid Game/Team ownership and evaluation history includes only final PA results.
+- Android and Windows builds succeeded with zero errors. Android retained 10 existing `CS8602`/`XC0025` warnings; Windows retained 118 existing `CS8602`/`MVVMTK0045`/`XC0025` warnings. No Android emulator, Appium, runtime, or physical-device tests were run because this story changes no UI.
+
+#### Intended Commit Message
+
+`Add Beer Rules foundation`
 
 ## Maintenance Rules
 

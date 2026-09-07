@@ -65,6 +65,7 @@ public sealed class AppDatabase
             await connection.CreateTableAsync<GameScoringPendingRunnerMovement>();
             await connection.CreateTableAsync<GameScoringHistory>();
             await connection.CreateTableAsync<GameScoringHistorySnapshot>();
+            await connection.CreateTableAsync<BeerLedgerEntry>();
             await AddColumnIfMissingAsync<TeamPlayer>(
                 nameof(TeamPlayer.JerseyNumber), "INTEGER");
             await AddColumnIfMissingAsync<GameScoringSession>(
