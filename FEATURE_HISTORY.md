@@ -10,9 +10,9 @@ Stable product and architecture decisions belong in the project architecture doc
 
 ## Current Project Status
 
-- **Latest completed story:** Story 7.1.1 — Authoritative Strikeout + Dead Ball Out PA Outcomes
-- **Completed stories:** Stories 0.0 through 6.9.3 and Stories 7.0 through 7.1.1; Story 6.9.4 retains its recorded physical Android acceptance status, and Stories 3.2 through 3.4 retain their recorded validation status
-- **Current story:** Story 7.1.1 — Authoritative Strikeout + Dead Ball Out PA Outcomes; implementation and normal automated validation complete, with physical Android acceptance pending
+- **Latest completed story:** Story 7.1.2 — DBO + Strikeout Beer Detection
+- **Completed stories:** Stories 0.0 through 6.9.3 and Stories 7.0 through 7.1.2; Story 6.9.4 retains its recorded physical Android acceptance status, and Stories 3.2 through 3.4 retain their recorded validation status
+- **Current story:** Story 7.1.2 — DBO + Strikeout Beer Detection; implementation and normal automated validation complete
 - **Current phase:** Beer Rules
 - **Foundation status:** Complete
 
@@ -2973,6 +2973,26 @@ Dedicated Double Play/Triple Play presentation, sacrifice results, HR-limit/dead
 #### Intended Commit Message
 
 `Add authoritative strikeout and dead ball out scoring`
+
+### Story 7.1.2 — DBO + Strikeout Beer Detection (Complete)
+
+#### Authoritative Automatic Detection
+
+- Extended the existing collection-based `BeerRuleEvaluator` with two direct committed-result rules. An authoritative `BatterResult.DeadBallOut` produces `BeerRuleType.Dbo` with `Amount = 1`; an authoritative `BatterResult.Strikeout` produces `BeerRuleType.Strikeout` with `Amount = 2`. Both consequences use the committed batter's stable `PlayerId`. Beer evaluation does not inspect HR Limit, 1-Up, HR totals, runner state, or UI interaction and does not reinterpret or modify scoring.
+- DBO is independent from Solo HR: an empty-base DBO produces only its DBO consequence because the Solo HR rule still requires an authoritative `HomeRun`. Ordinary Out and other committed outcomes do not masquerade as DBO or Strikeout.
+- Reused the shared Story 7.1.1 batter-retirement semantic without adding result-specific 2-Outs logic. When DBO or Strikeout is the same batter's second finalized retirement in one inning, its direct consequence and `TwoOutsInOneInning` consequence persist as independent rows from the same source PA. The represented totals are 2 for stacked DBO and 3 for stacked Strikeout.
+- Reused Story 7.1's automatic identity of scoring session + source PA + Player + rule + automatic origin. Duplicate evaluator output is ignored per rule identity, while distinct stacked rules remain independent. Persisted scoring snapshots remove and restore all automatic rows atomically for Undo/Redo, divergent scoring abandons the old branch, Reset removes only the discarded session's automatic rows, resume/database reopen does not reevaluate or duplicate entries, and Game completion preserves exact rows. Manual/BROUGHT entries remain independent.
+- Beer consequences remain observational. Strikeout and DBO retain Story 7.1.1's exact one-Out, runners-hold, scoring, HR, and centralized PA/AB/statistical semantics in both in-progress and completed projections.
+
+#### Tests, Validation, and Deferred Work
+
+- Added 23 focused evaluator and repository cases covering exact direct triggers and representative non-triggers, DBO/Solo-HR non-overlap, stable source/Player attribution, amounts, stacked rule identities and totals, duplicate-output idempotence, standalone and stacked Undo/Redo, divergent Redo invalidation, Reset isolation with unrelated Game/manual history preservation, repository resume, database reopen, completion preservation, and in-progress/completed statistics neutrality. The focused selections passed 49 of 49 and 2 of 2 with zero failures or skips; affected Story 7.1.1 expectations and cross-platform source validation passed 3 of 3 after being updated for the new rules and CRLF/LF independence.
+- The final emulator-independent suite passed 838 of 838 with zero failures or skips. Android and Windows builds succeeded with zero errors and retained their existing warning categories. No Android emulator, Appium, runtime, or physical-device test was run because this story changes domain detection and repository-observable behavior only.
+- Beer UI, Team totals, editable Beer grids, BROUGHT/OWED/STILL OWED workflows, configurable rule enablement or values, manual correction UI, and Low Man remain deferred. Story 7.2 should layer configuration around these authoritative detections without reclassifying scoring outcomes or weakening automatic-source idempotence.
+
+#### Intended Commit Message
+
+`Add DBO and strikeout Beer detection`
 
 ## Maintenance Rules
 

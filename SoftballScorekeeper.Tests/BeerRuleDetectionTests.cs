@@ -74,6 +74,64 @@ public sealed class BeerRuleEvaluatorTests
         );
     }
 
+    [Theory]
+    [InlineData(BatterResult.DeadBallOut, BeerRuleType.Dbo, 1)]
+    [InlineData(BatterResult.Strikeout, BeerRuleType.Strikeout, 2)]
+    public void Authoritative_result_creates_direct_batter_consequence(
+        BatterResult result, BeerRuleType expectedRule, int expectedAmount)
+    {
+        var consequence = Assert.Single(evaluator.Evaluate(Context(result, [])));
+
+        Assert.Equal((7, expectedRule, expectedAmount),
+            (consequence.PlayerId, consequence.RuleType, consequence.Amount));
+    }
+
+    [Theory]
+    [InlineData(BeerRuleType.Dbo, BatterResult.Out)]
+    [InlineData(BeerRuleType.Dbo, BatterResult.Strikeout)]
+    [InlineData(BeerRuleType.Dbo, BatterResult.HomeRun)]
+    [InlineData(BeerRuleType.Strikeout, BatterResult.Out)]
+    [InlineData(BeerRuleType.Strikeout, BatterResult.DeadBallOut)]
+    [InlineData(BeerRuleType.Strikeout, BatterResult.SacrificeFly)]
+    public void Direct_rules_do_not_infer_other_results(
+        BeerRuleType rule, BatterResult result)
+    {
+        Assert.DoesNotContain(evaluator.Evaluate(Context(result, [])),
+            item => item.RuleType == rule);
+    }
+
+    [Fact]
+    public void Dead_ball_out_on_empty_bases_does_not_create_solo_home_run()
+    {
+        var consequences = evaluator.Evaluate(Context(BatterResult.DeadBallOut, []));
+
+        Assert.Single(consequences);
+        Assert.Contains(consequences, item => item.RuleType == BeerRuleType.Dbo);
+        Assert.DoesNotContain(consequences,
+            item => item.RuleType == BeerRuleType.SoloHomeRun);
+    }
+
+    [Theory]
+    [InlineData(BatterResult.DeadBallOut, BeerRuleType.Dbo, 1, 2)]
+    [InlineData(BatterResult.Strikeout, BeerRuleType.Strikeout, 2, 3)]
+    public void Direct_rule_stacks_with_second_batter_out_rule(
+        BatterResult result, BeerRuleType directRule,
+        int directAmount, int expectedTotalAmount)
+    {
+        var firstOut = Appearance(10, 7, 2, BatterResult.Out);
+        var secondOut = Appearance(11, 7, 2, result);
+
+        var consequences = evaluator.Evaluate(Context(secondOut, firstOut));
+
+        Assert.Equal(2, consequences.Count);
+        Assert.Contains(consequences, item => item.RuleType == directRule
+            && item.Amount == directAmount && item.PlayerId == 7);
+        Assert.Contains(consequences,
+            item => item.RuleType == BeerRuleType.TwoOutsInOneInning
+                && item.Amount == 1 && item.PlayerId == 7);
+        Assert.Equal(expectedTotalAmount, consequences.Sum(item => item.Amount));
+    }
+
     [Fact]
     public void Authoritative_double_play_charges_batter_even_when_batter_is_safe()
     {
