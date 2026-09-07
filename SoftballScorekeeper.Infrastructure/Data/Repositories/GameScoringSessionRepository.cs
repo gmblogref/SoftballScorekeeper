@@ -1759,6 +1759,13 @@ public sealed class GameScoringSessionRepository
                 || transaction.Find<Player>(consequence.PlayerId) is null)
                 throw new InvalidOperationException(
                     "Beer evaluation returned an invalid consequence.");
+            if (transaction.Table<BeerLedgerEntry>().Any(item =>
+                    item.GameScoringSessionId == session.Id
+                    && item.GamePlateAppearanceId == appearance.Id
+                    && item.PlayerId == consequence.PlayerId
+                    && item.RuleType == consequence.RuleType
+                    && item.Origin == BeerLedgerEntryOrigin.AutomaticScoring))
+                continue;
             if (transaction.Insert(new BeerLedgerEntry
             {
                 TeamId = game.TeamId,

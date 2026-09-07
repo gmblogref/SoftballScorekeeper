@@ -10,9 +10,9 @@ Stable product and architecture decisions belong in the project architecture doc
 
 ## Current Project Status
 
-- **Latest completed story:** Story 7.0 — Beer Rules Foundation
-- **Completed stories:** Stories 0.0 through 6.9.3 and Story 7.0; Story 6.9.4 retains its recorded physical Android acceptance status, and Stories 3.2 through 3.4 retain their recorded validation status
-- **Current story:** Story 7.0 — Beer Rules Foundation; implementation and automated validation complete
+- **Latest completed story:** Story 7.1 — Core Beer Rule Detection
+- **Completed stories:** Stories 0.0 through 6.9.3 and Stories 7.0 through 7.1; Story 6.9.4 retains its recorded physical Android acceptance status, and Stories 3.2 through 3.4 retain their recorded validation status
+- **Current story:** Story 7.1 — Core Beer Rule Detection; implementation and automated validation complete under the approved revised scope
 - **Current phase:** Beer Rules
 - **Foundation status:** Complete
 
@@ -2925,6 +2925,33 @@ Dedicated Double Play/Triple Play presentation, sacrifice results, HR-limit/dead
 #### Intended Commit Message
 
 `Add Beer Rules foundation`
+
+### Story 7.1 — Core Beer Rule Detection (Complete — Revised Scope)
+
+#### Automatic Rule Detection and Persistence
+
+- Implemented the automatic rules supported by current authoritative scoring. A committed `HomeRun` produces one `SoloHomeRun` consequence for the batter only when every committed runner movement began at Home, meaning no runner occupied first, second, or third at the start of the PA. A committed `DoublePlay` produces one `DoublePlay` consequence for the batter based on the explicit PA classification, including when two runners are retired and the batter reaches safely; merely recording two outs does not qualify.
+- Added `TwoOutsInOneInning`: the same Player receives one consequence on the second finalized PA in the same offensive half-inning where that batter was authoritatively recorded as retired. Scope is scoring session/team side plus inning, and the second qualifying PA is the ledger source, so outs do not combine across Players, Games, sessions, team sides, or innings and a theoretical third qualifying PA does not add another penalty. Total play outs are not batter outs: runner retirements during a finalized Walk, Single, Double, Triple, Home Run, or batter-safe Fielder's Choice do not count.
+- Current batter-retirement evidence is a finalized ordinary `Out` (including a Fielder's Choice reconciled to the canonical `Out` result), a finalized `SacrificeFly`, or a finalized `DoublePlay`/`TriplePlay` whose committed Home-start participant movement records the batter as Out. A batter-safe DP/TP does not count, while a batter-retired DP/TP counts as one qualifying PA regardless of the play's total outs. The explicit Double Play Beer consequence remains batter-attributed even when the batter survives, so a batter-retired DP can naturally overlap with `TwoOutsInOneInning` when it is that Player's second qualifying PA.
+- Each implemented consequence has `Amount = 1`, representing one Beer unit / one 12-pack. Detection reads immutable committed PA and runner-movement facts and remains an additive observer: it does not change runner resolution, outs, innings, score, batting order, or batting-statistics calculations. The evaluator and persistence loop return and store a collection, preserving multiple legitimate consequences from one PA.
+- Added automatic-source idempotence keyed by scoring session, source PA, Player, rule, and automatic origin. Repository persistence reconciles repeated evaluator output by skipping an already-present automatic identity; for `TwoOutsInOneInning`, the source is the second qualifying PA. The check applies only to automatic scoring persistence, so future `ManualAdjustment` and `BroughtCredit` rows remain unrestricted and do not collide with automatic consequences.
+- Reused the Story 7.0 lifecycle architecture. Committed Undo removes the automatic consequence, Redo restores the original row exactly once, and divergent scoring discards the abandoned Redo consequence. Reset removes only entries owned by the reset scoring session, Exit/Resume and repository recreation retain exactly one persisted entry without reevaluation, and Game completion preserves the entry without regenerating it. Separate source PAs, Players, Games, and Teams remain independently attributable and isolated.
+
+#### Tests and Validation
+
+- Added 44 focused evaluator and repository test cases covering Solo HR and Double Play regression behavior plus same/different Player and inning cases, successful PAs with runner outs, batter-safe and batter-retired FC/DP/TP distinctions, Sac Fly, one consequence on the second qualifying PA, exact Player/rule/amount/source identity, repeated evaluation, Game/session isolation, Undo/Redo and divergence, Reset, Exit/Resume, completion, and batting-statistics independence. Focused Story 7.1 validation passed 44 of 44 tests with zero failures or skips.
+- The full emulator-independent suite passed 778 of 778 tests with zero failures or skips. Android and Windows builds succeeded with zero errors. Android retained 10 existing `CS8602`/`XC0025` warnings; Windows retained 118 existing `CS8602`/`MVVMTK0045`/`XC0025` warnings. No Android emulator, Appium, runtime, or physical-device tests were run because this story changes domain and repository behavior only and the story explicitly prohibited Android/Appium execution.
+
+#### Explicitly Deferred Rules and Follow-up
+
+- DBO remains deferred until normal scoring supplies authoritative over-limit-HR handling and a committed Dead Ball Out classification with defined scoring and statistical behavior. Beer evaluation must not infer it from HR-limit settings.
+- Strikeout remains deferred until normal scoring supplies an authoritative committed Strikeout classification; ordinary `Out` is not a substitute. Its accepted future consequence is `Amount = 2`, meaning two Beer units / two 12-packs.
+- Low Man moved to a separate future Game Night/date-level story. A night is all Team games on the same calendar date and may contain two games or three or more tournament games. It is finalized intentionally only after the scorer considers the night complete, never provisionally after each Game. Combined authoritative OBP across the included Games determines the result; every Player with at least one PA is eligible whether or not they played every Game, Players with zero PAs are excluded, and every Player tied for the lowest combined OBP owes one Beer unit / one 12-pack. A one-PA Player remains fully eligible. The future story should investigate date/night grouping in Team Schedule, explicit finalization, games added to or removed from a date, variable tournament Game counts, and recalculation after correction without speculatively adding a `GameNight` entity now.
+- Story 7.2 configuration must apply enable/disable behavior without weakening authoritative detection or automatic-source idempotence. No temporary configuration controls, Beer totals/editing UI, BROUGHT/OWED workflow, Low Man action, or Game Night UI was added here. `AGENTS.md` was reviewed and did not require a durable repository-wide rule change.
+
+#### Intended Commit Message
+
+`Add core Beer rule detection`
 
 ## Maintenance Rules
 
