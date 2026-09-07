@@ -39,6 +39,8 @@ public static class BatterResultStatContributions
         Define(BatterResult.TriplePlay, atBats: 1, onBaseDenominator: 1),
         Define(BatterResult.SacrificeFly, sacrificeFlies: 1,
             onBaseDenominator: 1),
+        Define(BatterResult.Strikeout, atBats: 1, onBaseDenominator: 1),
+        Define(BatterResult.DeadBallOut, atBats: 1, onBaseDenominator: 1),
     ];
 
     public static IReadOnlyList<BatterResultStatContribution> All => Definitions;

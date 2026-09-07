@@ -34,4 +34,6 @@ public enum BatterResult
     DoublePlay = 8,
     TriplePlay = 9,
     SacrificeFly = 10,
+    Strikeout = 11,
+    DeadBallOut = 12,
 }

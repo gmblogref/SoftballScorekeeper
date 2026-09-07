@@ -251,10 +251,10 @@ public partial class ScoringViewModel : ObservableObject, IQueryAttributable
         VisitorScore = state.Session.VisitorScore;
         HomeRunLimit = state.Session.HomeRunLimit;
         IsOneUpEnabled = state.Session.IsOneUpEnabled;
-        HomeHomeRunDisplay = string.Format(AppResources.HomeRunScoreboardFormat,
-            state.HomeHomeRuns, HomeRunLimit);
-        VisitorHomeRunDisplay = string.Format(AppResources.HomeRunScoreboardFormat,
-            state.VisitorHomeRuns, HomeRunLimit);
+        HomeHomeRunDisplay = FormatHomeRunScoreboard(
+            state.HomeHomeRuns, HomeRunLimit, IsOneUpEnabled);
+        VisitorHomeRunDisplay = FormatHomeRunScoreboard(
+            state.VisitorHomeRuns, HomeRunLimit, IsOneUpEnabled);
         currentTeamSide = state.Session.TeamSide;
         InningDisplay = FormatInning(state.Session);
         OutsDisplay = FormatOuts(state.Session);
@@ -267,7 +267,8 @@ public partial class ScoringViewModel : ObservableObject, IQueryAttributable
             .GetSelectableResults(
                 state.BaseRunners.Select(item =>
                     (RunnerStartingLocation)item.Base).ToHashSet(),
-                state.Session.CurrentOuts);
+                state.Session.CurrentOuts,
+                state.IsHomeRunLegal());
         OnPropertyChanged(nameof(AvailableBatterResults));
         RestoreBaseRunners(state);
         RestorePendingPlay(state);
@@ -722,14 +723,24 @@ public partial class ScoringViewModel : ObservableObject, IQueryAttributable
         BatterResult.Double => AppResources.DoubleResultLabel,
         BatterResult.Triple => AppResources.TripleResultLabel,
         BatterResult.HomeRun => AppResources.HomeRunResultLabel,
+        BatterResult.DeadBallOut => AppResources.DeadBallOutResultLabel,
         BatterResult.Walk => AppResources.WalkResultLabel,
         BatterResult.FielderChoice => AppResources.FielderChoiceResultLabel,
         BatterResult.DoublePlay => AppResources.DoublePlayResultLabel,
         BatterResult.TriplePlay => AppResources.TriplePlayResultLabel,
         BatterResult.SacrificeFly => AppResources.SacrificeFlyResultLabel,
+        BatterResult.Strikeout => AppResources.StrikeoutResultLabel,
         BatterResult.Out => AppResources.OutResultLabel,
         _ => string.Empty,
     };
+
+    private static string FormatHomeRunScoreboard(
+        int currentHomeRuns,
+        int homeRunLimit,
+        bool isOneUpEnabled) => isOneUpEnabled
+        ? string.Format(AppResources.HomeRunScoreboardCurrentFormat, currentHomeRuns)
+        : string.Format(AppResources.HomeRunScoreboardFormat,
+            currentHomeRuns, homeRunLimit);
 
     private static string FormatInningOut(GameScoringSession session)
     {

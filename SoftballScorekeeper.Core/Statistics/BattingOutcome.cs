@@ -15,7 +15,9 @@ public sealed record BattingOutcomeCounts(
     int FielderChoices = 0,
     int SacrificeFlies = 0,
     int DoublePlays = 0,
-    int TriplePlays = 0)
+    int TriplePlays = 0,
+    int Strikeouts = 0,
+    int DeadBallOuts = 0)
 {
     internal IEnumerable<(BatterResult Result, int Count)> GetResultCounts()
     {
@@ -29,5 +31,7 @@ public sealed record BattingOutcomeCounts(
         yield return (BatterResult.SacrificeFly, SacrificeFlies);
         yield return (BatterResult.DoublePlay, DoublePlays);
         yield return (BatterResult.TriplePlay, TriplePlays);
+        yield return (BatterResult.Strikeout, Strikeouts);
+        yield return (BatterResult.DeadBallOut, DeadBallOuts);
     }
 }

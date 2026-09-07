@@ -41,12 +41,15 @@ public sealed record GameScoringState(
 
         foreach (var appearance in currentAppearances)
         {
-            if (appearance.Result == BatterResult.Out)
+            var hasImplicitBatterOut = appearance.Result is not null
+                && BatterRetirementEvaluator.AddsImplicitBatterOut(
+                    appearance.Result.Value);
+            if (hasImplicitBatterOut)
                 playerIds.Add(appearance.PlayerId);
 
             if (!outMovements.TryGetValue(appearance.Id, out var movements)) continue;
             playerIds.AddRange(movements
-                .Where(item => appearance.Result != BatterResult.Out
+                .Where(item => !hasImplicitBatterOut
                     || item.PlayerId != appearance.PlayerId)
                 .Select(item => item.PlayerId));
         }
@@ -62,6 +65,19 @@ public sealed record GameScoringState(
         return PendingPlay.Movements.Any(item =>
             item.PlayerId == PendingPlay.Play.BatterPlayerId
             && !item.RequiresOutcomeConfirmation);
+    }
+
+    public bool IsHomeRunLegal()
+    {
+        var battingTeamHomeRuns = Session.TeamSide == TeamGameSide.Home
+            ? HomeHomeRuns : VisitorHomeRuns;
+        var opponentHomeRuns = Session.TeamSide == TeamGameSide.Home
+            ? VisitorHomeRuns : HomeHomeRuns;
+        return HomeRunAvailabilityEvaluator.IsHomeRunLegal(
+            Session.HomeRunLimit,
+            Session.IsOneUpEnabled,
+            battingTeamHomeRuns,
+            opponentHomeRuns);
     }
 }
 

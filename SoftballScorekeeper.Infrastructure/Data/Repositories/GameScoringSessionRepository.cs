@@ -699,6 +699,13 @@ public sealed class GameScoringSessionRepository
                     response = PendingFailure(MapPendingFailure(context.Failure));
                     return;
                 }
+                if ((result is BatterResult.HomeRun or BatterResult.DeadBallOut)
+                    && IsHomeRunLegal(transaction, context.Session!)
+                        != (result == BatterResult.HomeRun))
+                {
+                    response = PendingFailure(PendingPlayFailure.InvalidRequest);
+                    return;
+                }
                 if (definition.RequiresExistingRunner && context.BaseRunners!.Count == 0)
                 {
                     response = PendingFailure(PendingPlayFailure.InvalidRequest);
@@ -783,7 +790,7 @@ public sealed class GameScoringSessionRepository
                     response = new(null, PendingPlayFailure.None);
                     return;
                 }
-                if (result == BatterResult.Walk
+                if (result != BatterResult.HomeRun
                     && resolution.Status == PlayResolutionStatus.CommitImmediately)
                 {
                     var completed = CompletePendingPlay(transaction, gameId, result);
@@ -1210,6 +1217,12 @@ public sealed class GameScoringSessionRepository
                     result = CompleteFailure(context.Failure);
                     return;
                 }
+                if (!IsHomeRunLegal(transaction, context.Session!))
+                {
+                    result = CompleteFailure(
+                        CompletePlateAppearanceFailure.InvalidScoringState);
+                    return;
+                }
                 EnsureHistoryInitialized(transaction, context.Session!.Id);
                 ClearPending(transaction, context.Session!.Id);
                 InsertPendingPlay(transaction, context, BatterResult.HomeRun);
@@ -1427,7 +1440,10 @@ public sealed class GameScoringSessionRepository
             return CompleteFailure(CompletePlateAppearanceFailure.PendingPlayNotFound);
         var movements = transaction.Table<GameScoringPendingRunnerMovement>()
             .Where(item => item.GameScoringPendingPlayId == pending.Id).ToList();
-        if (requiredResult is not null && pending.Result != requiredResult
+        if ((pending.Result is BatterResult.HomeRun or BatterResult.DeadBallOut)
+                && IsHomeRunLegal(transaction, session)
+                    != (pending.Result == BatterResult.HomeRun)
+            || requiredResult is not null && pending.Result != requiredResult
             || pending.Result == BatterResult.Out && session.CurrentOuts >= 2
             || !IsValidPendingPlay(pending, movements, currentBatter,
                 context.BaseRunners!, session.CurrentOuts))
@@ -1546,8 +1562,26 @@ public sealed class GameScoringSessionRepository
     private static int CountOutsAdded(
         GameScoringPendingPlay pending,
         IReadOnlyList<GameScoringPendingRunnerMovement> movements) =>
-        (pending.Result == BatterResult.Out ? 1 : 0)
+        (BatterRetirementEvaluator.AddsImplicitBatterOut(pending.Result) ? 1 : 0)
         + movements.Count(item => item.Destination == RunnerDestination.Out);
+
+    private static bool IsHomeRunLegal(
+        SQLite.SQLiteConnection transaction,
+        GameScoringSession session)
+    {
+        var battingTeamHomeRuns = transaction.Table<GamePlateAppearance>()
+            .Count(item => item.GameScoringSessionId == session.Id
+                && item.Result == BatterResult.HomeRun);
+        var opponentHomeRuns = transaction.Table<GameScoringHalfInning>()
+            .Where(item => item.GameScoringSessionId == session.Id
+                && item.OpponentEntryCompleted)
+            .Sum(item => item.OpponentHomeRuns ?? 0);
+        return HomeRunAvailabilityEvaluator.IsHomeRunLegal(
+            session.HomeRunLimit,
+            session.IsOneUpEnabled,
+            battingTeamHomeRuns,
+            opponentHomeRuns);
+    }
 
     private static bool TryResolveRunRulings(
         IReadOnlyList<GameScoringPendingRunnerMovement> movements,

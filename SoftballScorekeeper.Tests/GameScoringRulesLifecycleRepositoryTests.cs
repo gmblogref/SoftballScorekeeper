@@ -82,7 +82,7 @@ public sealed class GameScoringRulesLifecycleRepositoryTests
         var context = await CreateReadyGameAsync(db, 3);
         var repository = db.CreateGameScoringSessionRepository();
         var initialized = await repository.InitializeAsync(
-            context.Team.Id, context.Game.Id, side, 1, false);
+            context.Team.Id, context.Game.Id, side, 2, false);
         Assert.True((await repository.CompleteHomeRunAsync(context.Game.Id)).IsSuccess);
         Assert.True((await repository.CompleteHomeRunAsync(context.Game.Id)).IsSuccess);
         Assert.True((await repository.SelectBatterResultAsync(
@@ -100,6 +100,7 @@ public sealed class GameScoringRulesLifecycleRepositoryTests
 
         Assert.Equal((expectedHome, expectedVisitor),
             (state!.HomeHomeRuns, state.VisitorHomeRuns));
+        Assert.False(state.IsHomeRunLegal());
         Assert.Equal(2, state.PlateAppearances.Count(item => item.Result == BatterResult.HomeRun));
         Assert.DoesNotContain(state.PlateAppearances, item => item.Result == BatterResult.Single);
     }

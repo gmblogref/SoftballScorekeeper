@@ -60,16 +60,13 @@ public sealed record BeerCommittedPlateAppearance(
     IReadOnlyList<BeerRunnerMovement> RunnerMovements
 )
 {
-    public bool BatterWasRetired =>
-        Result is BatterResult.Out or BatterResult.SacrificeFly
-        || (
-            Result is BatterResult.DoublePlay or BatterResult.TriplePlay
-            && RunnerMovements.Any(item =>
+    public bool BatterWasRetired => BatterRetirementEvaluator.WasBatterRetired(
+        Result,
+        RunnerMovements.Any(item =>
                 item.PlayerId == PlayerId
                 && item.StartingLocation == RunnerStartingLocation.Home
                 && item.Destination == RunnerDestination.Out
-            )
-        );
+            ));
 }
 
 public sealed record BeerRunnerMovement(
