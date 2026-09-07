@@ -8,18 +8,28 @@ public sealed class GameScoringSessionRepository
 {
     private readonly AppDatabase database;
     private readonly PlayResolutionCoordinator playResolutionCoordinator;
+    private readonly IBeerRuleEvaluator beerRuleEvaluator;
 
     public GameScoringSessionRepository(AppDatabase database)
-        : this(database, new PlayResolutionCoordinator())
+        : this(database, new PlayResolutionCoordinator(), new BeerRuleEvaluator())
     {
     }
 
     public GameScoringSessionRepository(
         AppDatabase database,
         PlayResolutionCoordinator playResolutionCoordinator)
+        : this(database, playResolutionCoordinator, new BeerRuleEvaluator())
+    {
+    }
+
+    public GameScoringSessionRepository(
+        AppDatabase database,
+        PlayResolutionCoordinator playResolutionCoordinator,
+        IBeerRuleEvaluator beerRuleEvaluator)
     {
         this.database = database;
         this.playResolutionCoordinator = playResolutionCoordinator;
+        this.beerRuleEvaluator = beerRuleEvaluator;
     }
 
     public async Task<GameScoringSession?> GetForGameAsync(int gameId)
@@ -377,6 +387,9 @@ public sealed class GameScoringSessionRepository
                     session.Id);
                 transaction.Execute(
                     "DELETE FROM GameScoringHistory WHERE GameScoringSessionId = ?",
+                    session.Id);
+                transaction.Execute(
+                    "DELETE FROM BeerLedgerEntry WHERE GameScoringSessionId = ?",
                     session.Id);
                 transaction.Execute(
                     "DELETE FROM GameScoringLineupPlayer WHERE GameScoringSessionId = ?",
@@ -1522,6 +1535,9 @@ public sealed class GameScoringSessionRepository
             throw new InvalidOperationException(
                 "Current-batter advancement did not affect one row.");
         ClearPending(transaction, session.Id);
+        EvaluateAndPersistBeerConsequences(
+            transaction, session, appearance,
+            outsAfterPlay - outsAdded, outsAfterPlay, runs);
         AdvanceHistory(transaction, session.Id);
         return new(appearance, session.CurrentBatterPosition, runs,
             CompletePlateAppearanceFailure.None);
@@ -1586,7 +1602,7 @@ public sealed class GameScoringSessionRepository
         return true;
     }
 
-    private static CompletePlateAppearanceResult CompleteInningEndingMultiOut(
+    private CompletePlateAppearanceResult CompleteInningEndingMultiOut(
         SQLite.SQLiteConnection transaction,
         CompletionContext context,
         BatterResult result,
@@ -1628,13 +1644,16 @@ public sealed class GameScoringSessionRepository
             throw new InvalidOperationException(
                 "Scoring-session multi-out update did not affect one row.");
 
+        EvaluateAndPersistBeerConsequences(
+            transaction, session, appearance,
+            3 - outsAdded, 3, 0);
         AdvanceHistory(transaction, session.Id);
 
         return new(appearance, session.CurrentBatterPosition, 0,
             CompletePlateAppearanceFailure.None);
     }
 
-    private static CompletePlateAppearanceResult CompleteImmediateOut(
+    private CompletePlateAppearanceResult CompleteImmediateOut(
         SQLite.SQLiteConnection transaction, CompletionContext context)
     {
         var session = context.Session!;
@@ -1679,10 +1698,101 @@ public sealed class GameScoringSessionRepository
         if (transaction.Update(session) != 1)
             throw new InvalidOperationException(
                 "Scoring-session OUT update did not affect one row.");
+        EvaluateAndPersistBeerConsequences(
+            transaction, session, appearance,
+            session.CurrentInning == appearance.Inning ? session.CurrentOuts - 1 : 2,
+            session.CurrentInning == appearance.Inning ? session.CurrentOuts : 3,
+            0);
         AdvanceHistory(transaction, session.Id);
         return new(appearance, session.CurrentBatterPosition, 0,
             CompletePlateAppearanceFailure.None);
     }
+
+    private void EvaluateAndPersistBeerConsequences(
+        SQLite.SQLiteConnection transaction,
+        GameScoringSession session,
+        GamePlateAppearance appearance,
+        int outsBeforePlay,
+        int outsAfterPlay,
+        int runsScored)
+    {
+        var game = transaction.Find<Game>(session.GameId);
+        var committedAppearances = transaction.Table<GamePlateAppearance>()
+            .Where(item => item.GameScoringSessionId == session.Id
+                && item.Result != null)
+            .OrderBy(item => item.PlateAppearanceNumber)
+            .ToList();
+        var committedAppearanceIds = committedAppearances.Select(item => item.Id).ToHashSet();
+        var committedMovements = transaction.Table<GamePlateAppearanceRunnerMovement>()
+            .ToList()
+            .Where(item => committedAppearanceIds.Contains(item.GamePlateAppearanceId))
+            .GroupBy(item => item.GamePlateAppearanceId)
+            .ToDictionary(group => group.Key, group => group.OrderBy(item => item.Id).ToArray());
+        var beerAppearances = committedAppearances.Select(item =>
+            CreateBeerPlateAppearance(item,
+                committedMovements.GetValueOrDefault(item.Id, []))).ToArray();
+        var beerAppearance = beerAppearances.Single(item => item.Id == appearance.Id);
+        var battingSequence = transaction.Table<GameScoringLineupPlayer>()
+            .Where(item => item.GameScoringSessionId == session.Id)
+            .OrderBy(item => item.BattingPosition)
+            .Select(item => item.PlayerId)
+            .ToArray();
+        var consequences = beerRuleEvaluator.Evaluate(new BeerEvaluationContext(
+            session.GameId,
+            game?.TeamId,
+            session.Id,
+            session.TeamSide,
+            beerAppearance,
+            beerAppearances,
+            battingSequence,
+            outsBeforePlay,
+            outsAfterPlay,
+            runsScored)) ?? throw new InvalidOperationException(
+                "Beer evaluation returned no consequence collection.");
+
+        foreach (var consequence in consequences)
+        {
+            if (game is null
+                || consequence.PlayerId <= 0
+                || !Enum.IsDefined(consequence.RuleType)
+                || consequence.Amount == 0
+                || transaction.Find<Player>(consequence.PlayerId) is null)
+                throw new InvalidOperationException(
+                    "Beer evaluation returned an invalid consequence.");
+            if (transaction.Insert(new BeerLedgerEntry
+            {
+                TeamId = game.TeamId,
+                GameId = session.GameId,
+                GameScoringSessionId = session.Id,
+                PlayerId = consequence.PlayerId,
+                RuleType = consequence.RuleType,
+                Origin = BeerLedgerEntryOrigin.AutomaticScoring,
+                GamePlateAppearanceId = appearance.Id,
+                Amount = consequence.Amount,
+            }) != 1)
+                throw new InvalidOperationException(
+                    "Beer consequence insertion did not affect one row.");
+        }
+    }
+
+    private static BeerCommittedPlateAppearance CreateBeerPlateAppearance(
+        GamePlateAppearance appearance,
+        IReadOnlyList<GamePlateAppearanceRunnerMovement> movements) =>
+        new(
+            appearance.Id,
+            appearance.PlayerId,
+            appearance.PlateAppearanceNumber,
+            appearance.Inning,
+            appearance.Result ?? throw new InvalidOperationException(
+                "Beer evaluation requires final plate-appearance results."),
+            movements.Select(item => new BeerRunnerMovement(
+                item.PlayerId,
+                item.StartingLocation,
+                item.Destination,
+                item.SafeDestination,
+                item.AttemptedDestination,
+                item.OutOrder,
+                item.RunCounts)).ToArray());
 
     private static void InsertCompletedHalfInning(
         SQLite.SQLiteConnection transaction, GameScoringSession session)
@@ -2088,6 +2198,10 @@ public sealed class GameScoringSessionRepository
                 .OrderBy(item => item.Inning).ToList(),
             PendingPlay = transaction.Table<GameScoringPendingPlay>()
                 .FirstOrDefault(item => item.GameScoringSessionId == sessionId),
+            AutomaticBeerEntries = transaction.Table<BeerLedgerEntry>()
+                .Where(item => item.GameScoringSessionId == sessionId
+                    && item.Origin == BeerLedgerEntryOrigin.AutomaticScoring)
+                .OrderBy(item => item.Id).ToList(),
         };
         if (state.PendingPlay is not null)
             state.PendingMovements = transaction.Table<GameScoringPendingRunnerMovement>()
@@ -2103,6 +2217,7 @@ public sealed class GameScoringSessionRepository
     {
         var state = JsonSerializer.Deserialize<PersistedScoringState>(snapshot.StateJson)
             ?? throw new InvalidOperationException("Scoring-history snapshot is invalid.");
+        var game = transaction.Find<Game>(session.GameId);
         if (state.Session is null
             || state.PlateAppearances.Any(item => item.GameScoringSessionId != session.Id)
             || state.BaseRunners.Any(item => item.GameScoringSessionId != session.Id)
@@ -2111,7 +2226,13 @@ public sealed class GameScoringSessionRepository
                 && state.PendingPlay.GameScoringSessionId != session.Id
             || state.PendingPlay is null && state.PendingMovements.Count > 0
             || state.PendingPlay is not null && state.PendingMovements.Any(item =>
-                item.GameScoringPendingPlayId != state.PendingPlay.Id))
+                item.GameScoringPendingPlayId != state.PendingPlay.Id)
+            || state.AutomaticBeerEntries.Any(item =>
+                game is null
+                || item.GameScoringSessionId != session.Id
+                || item.GameId != session.GameId
+                || item.TeamId != game.TeamId
+                || item.Origin != BeerLedgerEntryOrigin.AutomaticScoring))
             throw new InvalidOperationException("Scoring-history snapshot has invalid ownership.");
 
         transaction.Execute(
@@ -2128,6 +2249,9 @@ public sealed class GameScoringSessionRepository
             "DELETE FROM GameScoringHalfInning WHERE GameScoringSessionId = ?", session.Id);
         transaction.Execute(
             "DELETE FROM GamePlateAppearance WHERE GameScoringSessionId = ?", session.Id);
+        transaction.Execute(
+            "DELETE FROM BeerLedgerEntry WHERE GameScoringSessionId = ? AND Origin = ?",
+            session.Id, BeerLedgerEntryOrigin.AutomaticScoring);
 
         foreach (var appearance in state.PlateAppearances)
             InsertRestoredRow(transaction, appearance, "plate appearance");
@@ -2138,6 +2262,13 @@ public sealed class GameScoringSessionRepository
                 "Scoring-history runner movement has invalid ownership.");
         foreach (var movement in state.RunnerMovements)
             InsertRestoredRow(transaction, movement, "runner movement");
+        if (state.AutomaticBeerEntries.Any(item =>
+                item.GamePlateAppearanceId is null
+                || !appearanceIds.Contains(item.GamePlateAppearanceId.Value)))
+            throw new InvalidOperationException(
+                "Scoring-history Beer entry has invalid source ownership.");
+        foreach (var entry in state.AutomaticBeerEntries)
+            InsertRestoredRow(transaction, entry, "Beer entry");
         foreach (var runner in state.BaseRunners)
             InsertRestoredRow(transaction, runner, "base runner");
         foreach (var halfInning in state.HalfInnings)
@@ -2195,6 +2326,11 @@ public sealed class GameScoringSessionRepository
                 pendingMovement.Destination, pendingMovement.SafeDestination,
                 pendingMovement.AttemptedDestination, pendingMovement.OutOrder,
                 pendingMovement.RequiresOutcomeConfirmation),
+            BeerLedgerEntry entry => transaction.Execute(
+                "INSERT INTO BeerLedgerEntry (Id, TeamId, GameId, GameScoringSessionId, PlayerId, RuleType, Origin, GamePlateAppearanceId, Amount) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                entry.Id, entry.TeamId, entry.GameId, entry.GameScoringSessionId,
+                entry.PlayerId, entry.RuleType, entry.Origin,
+                entry.GamePlateAppearanceId, entry.Amount),
             _ => throw new InvalidOperationException(
                 $"Unsupported scoring-history row type {typeof(T).Name}."),
         };
@@ -2218,6 +2354,8 @@ public sealed class GameScoringSessionRepository
         public GameScoringPendingPlay? PendingPlay { get; set; }
 
         public List<GameScoringPendingRunnerMovement> PendingMovements { get; set; } = [];
+
+        public List<BeerLedgerEntry> AutomaticBeerEntries { get; set; } = [];
     }
 
     private sealed class PersistedSessionState

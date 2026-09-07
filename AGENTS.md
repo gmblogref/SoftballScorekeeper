@@ -84,6 +84,11 @@ Infrastructure
     ↑ implements persistence and platform abstractions
 ```
 
+Normal softball scoring is authoritative. Beer Rules observe committed scoring
+semantics and derive separate consequences; Beer evaluation must not redefine
+scoring, runner movement, outs, innings, score, batting order, plate-appearance
+classification, or statistics.
+
 ## Presentation Layer
 
 The Presentation layer is responsible for:
