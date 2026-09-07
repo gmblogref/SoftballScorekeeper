@@ -11,6 +11,13 @@ public sealed class BeerRuleEvaluator : IBeerRuleEvaluator
     {
         var appearance = context.PlateAppearance;
         var consequences = new List<BeerConsequence>();
+
+        if (appearance.Result == BatterResult.DeadBallOut)
+            consequences.Add(new(appearance.PlayerId, BeerRuleType.Dbo, 1));
+
+        if (appearance.Result == BatterResult.Strikeout)
+            consequences.Add(new(appearance.PlayerId, BeerRuleType.Strikeout, 2));
+
         if (
             appearance.Result == BatterResult.HomeRun
             && appearance.RunnerMovements.All(item =>

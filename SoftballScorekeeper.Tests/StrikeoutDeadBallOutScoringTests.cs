@@ -297,7 +297,7 @@ public sealed class StrikeoutDeadBallOutScoringTests
     [Theory]
     [InlineData(BatterResult.Strikeout, 5)]
     [InlineData(BatterResult.DeadBallOut, 0)]
-    public async Task New_fixed_out_only_feeds_existing_two_outs_beer_rule(
+    public async Task New_fixed_out_feeds_direct_and_existing_two_outs_beer_rules(
         BatterResult result, int homeRunLimit)
     {
         await using var db = await TemporaryTestDatabase.CreateAsync();
@@ -311,9 +311,16 @@ public sealed class StrikeoutDeadBallOutScoringTests
         Assert.True((await repository.SelectBatterResultAsync(
             context.Game.Id, result)).IsSuccess);
 
-        var entry = Assert.Single(await db.GetBeerLedgerEntriesAsync());
-        Assert.Equal(BeerRuleType.TwoOutsInOneInning, entry.RuleType);
-        Assert.Equal(1, entry.Amount);
+        var entries = await db.GetBeerLedgerEntriesAsync();
+        var directRule = result == BatterResult.Strikeout
+            ? BeerRuleType.Strikeout : BeerRuleType.Dbo;
+        var expectedDirectAmount = result == BatterResult.Strikeout ? 2 : 1;
+        Assert.Equal(2, entries.Count(item => item.RuleType == directRule));
+        Assert.All(entries.Where(item => item.RuleType == directRule),
+            item => Assert.Equal(expectedDirectAmount, item.Amount));
+        var twoOuts = Assert.Single(entries.Where(item =>
+            item.RuleType == BeerRuleType.TwoOutsInOneInning));
+        Assert.Equal(1, twoOuts.Amount);
     }
 
     private static async Task<(Team Team, Game Game, IReadOnlyList<Player> Players)>

@@ -10,7 +10,8 @@ public sealed class ScoringHomeRunDisplayTests
         var repositoryRoot = Path.GetFullPath(Path.Combine(
             AppContext.BaseDirectory, "..", "..", "..", ".."));
         var viewModel = File.ReadAllText(Path.Combine(repositoryRoot,
-            "SoftballScorekeeper", "ViewModels", "ScoringViewModel.cs"));
+            "SoftballScorekeeper", "ViewModels", "ScoringViewModel.cs"))
+            .ReplaceLineEndings("\n");
         var resources = XDocument.Load(Path.Combine(repositoryRoot,
             "SoftballScorekeeper", "Resources", "Strings", "AppResources.resx"));
 
