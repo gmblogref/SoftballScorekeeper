@@ -78,6 +78,8 @@ public sealed class AppDatabase
                 nameof(GamePlateAppearanceRunnerMovement.OutOrder), "INTEGER");
             await AddColumnIfMissingAsync<GameScoringPendingRunnerMovement>(
                 nameof(GameScoringPendingRunnerMovement.OutOrder), "INTEGER");
+            await AddColumnIfMissingAsync<BeerLedgerEntry>(
+                nameof(BeerLedgerEntry.RuleCountAdjustment), "INTEGER");
             await connection.RunInTransactionAsync(transaction =>
             {
                 if (legacyScoringRules)

@@ -3041,6 +3041,27 @@ Dedicated Double Play/Triple Play presentation, sacrifice results, HR-limit/dead
 
 `Add Beer Rules configuration`
 
+### Story 7.3 — Beer Totals Management (Complete)
+
+#### Team-Lifetime Beer Accounting
+
+- Added `BeerAccountingRepository` and an explicit `TeamBeerPlayerSummary` read model for authoritative Team-lifetime Beer accounting. Summaries expose stable `PlayerId`, current display name, effective counts for all seven rules, BROUGHT, and OWED without filtering by Season, Game, or recent lineup. Current and inactive Team members plus Players with Team Beer history remain retrievable after roster removal or rename, and all reads and edits are isolated by Team even when the same global Player belongs to multiple Teams.
+- Automatic scoring entries remain immutable historical occurrences with their original stored Beer amounts. `SetEffectiveRuleCountAsync` layers a Team+Player+Rule `ManualAdjustment` over that history; the new signed `RuleCountAdjustment` distinguishes occurrence correction from the signed Beer-value adjustment in `Amount`. Negative requested effective counts and invalid Team/Player/rule contexts return structured failures without changing persisted accounting.
+- Manual count reductions deterministically retain the oldest applicable automatic occurrences and their historical values. Added occurrences use the current Team rule amount when the edit is made, then preserve that value in the manual row; later configuration edits never reinterpret either automatic history or an existing manual adjustment. Low Man participates through the same manual API but still has no automatic Game/PA evaluation.
+- `SetBroughtAsync` persists a nonnegative Team+Player `BroughtCredit` with no Game, scoring-session, or PA ownership. It supports set/change/clear, permits credit above obligations, and rejects negative input without mutation. OWED is calculated on every read as total effective rule obligation minus BROUGHT, may be positive, zero, or negative, and is not persisted as independently mutable truth. No `StillOwed` property or calculation was added.
+- Scoring Undo/Redo continues removing/restoring only session-owned automatic consequences exactly once. Persisted signed manual corrections remain and recompute against the changed automatic baseline; BROUGHT remains unchanged. Reset removes the discarded session's automatic rows while Team-level corrections and BROUGHT survive. Repository recreation, database reopen, and Game completion preserve both accounting layers without duplication, and Beer edits do not change PAs, scoring state, or batting statistics.
+- Added an additive database upgrade for `BeerLedgerEntry.RuleCountAdjustment` and reused the Story 7.2 Team configuration resolver rather than duplicating rule defaults. The Story 7.4 grid remains out of scope; it should consume the numeric summary and effective-set APIs directly and must not reconstruct ledger math or persist OWED in presentation code.
+
+#### Tests, Validation, and Deferred Work
+
+- Added 21 focused accounting and scoring-lifecycle tests covering schema upgrade, automatic/manual aggregation, DBO/Triple Play/Strikeout independence, missed Triple Play and Low Man corrections, a scored Solo HR override with unchanged PA/statistics, differing historical/configured amounts, negative validation with state preservation, BROUGHT add/change/clear and positive/zero/negative OWED, reopen persistence, rename/inactive/removed Player retrieval, Team isolation, invalid contexts, Undo/Redo, Reset, completion, and the absence of `StillOwed`. The focused selection passed 21 of 21 with zero failures or skips.
+- The full emulator-independent suite passed 902 of 902 tests with zero failures or skips. Windows and Android builds succeeded with zero errors and retained 118 and 10 existing `CS8602`/`MVVMTK0045`/`XC0025` warnings respectively. No Android emulator, Appium, runtime, or physical-device test was run because this story adds no UI.
+- Team Beer totals UI, editable grid behavior, Low Man/Game Night calculation and finalization, and completed-game Beer presentation remain deferred. Team Copy / New Year also remains deferred: a future story must carry an unresolved opening Beer balance while reusing stable Player identities, and must not copy historical automatic scoring rows into the new Team.
+
+#### Intended Commit Message
+
+`Add Team-lifetime Beer totals accounting`
+
 ## Maintenance Rules
 
 Every future story must update this file before the story is committed. A story is not complete until its accurate feature-history entry is included in the same story-focused commit as its implementation.

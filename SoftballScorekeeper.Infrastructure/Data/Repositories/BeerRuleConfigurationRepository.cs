@@ -154,7 +154,7 @@ public sealed class BeerRuleConfigurationRepository(AppDatabase database)
         }
     }
 
-    private static IReadOnlyList<BeerRuleSetting> ResolveTeamSettings(
+    internal static IReadOnlyList<BeerRuleSetting> ResolveTeamSettings(
         IReadOnlyList<TeamBeerRuleConfiguration> persisted
     )
     {
