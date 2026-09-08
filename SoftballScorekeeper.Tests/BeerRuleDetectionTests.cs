@@ -7,6 +7,16 @@ public sealed class BeerRuleEvaluatorTests
 {
     private readonly BeerRuleEvaluator evaluator = new();
 
+    [Fact]
+    public void Triple_play_appends_stable_persisted_rule_value()
+    {
+        Assert.Equal(7, (int)BeerRuleType.TriplePlay);
+        Assert.Equal(
+            [1, 2, 3, 4, 5, 6, 7],
+            Enum.GetValues<BeerRuleType>().Select(item => (int)item)
+        );
+    }
+
     [Theory]
     [InlineData(null, true)]
     [InlineData(RunnerStartingLocation.First, false)]
@@ -153,6 +163,106 @@ public sealed class BeerRuleEvaluatorTests
     }
 
     [Theory]
+    [InlineData(RunnerDestination.Out)]
+    [InlineData(RunnerDestination.First)]
+    public void Authoritative_triple_play_charges_batter_regardless_of_batter_retirement(
+        RunnerDestination batterDestination)
+    {
+        var context = Context(
+            BatterResult.TriplePlay,
+            [
+                Movement(7, RunnerStartingLocation.Home, batterDestination),
+                Movement(8, RunnerStartingLocation.First, RunnerDestination.Out),
+                Movement(9, RunnerStartingLocation.Second, RunnerDestination.Out),
+                Movement(10, RunnerStartingLocation.Third, RunnerDestination.Out),
+            ]
+        );
+
+        var consequence = Assert.Single(evaluator.Evaluate(context));
+
+        Assert.Equal(
+            (7, BeerRuleType.TriplePlay, 1),
+            (consequence.PlayerId, consequence.RuleType, consequence.Amount)
+        );
+    }
+
+    [Theory]
+    [InlineData(BatterResult.DoublePlay)]
+    [InlineData(BatterResult.Out)]
+    [InlineData(BatterResult.Strikeout)]
+    public void Other_results_do_not_masquerade_as_triple_play(BatterResult result)
+    {
+        Assert.DoesNotContain(
+            evaluator.Evaluate(Context(result, [])),
+            item => item.RuleType == BeerRuleType.TriplePlay
+        );
+    }
+
+    [Fact]
+    public void Double_play_and_triple_play_keep_distinct_rule_identities()
+    {
+        var doublePlay = evaluator.Evaluate(Context(BatterResult.DoublePlay, []));
+        var triplePlay = evaluator.Evaluate(Context(BatterResult.TriplePlay, []));
+
+        Assert.Contains(doublePlay, item => item.RuleType == BeerRuleType.DoublePlay);
+        Assert.DoesNotContain(doublePlay, item => item.RuleType == BeerRuleType.TriplePlay);
+        Assert.Contains(triplePlay, item => item.RuleType == BeerRuleType.TriplePlay);
+        Assert.DoesNotContain(triplePlay, item => item.RuleType == BeerRuleType.DoublePlay);
+    }
+
+    [Theory]
+    [InlineData(RunnerDestination.Out)]
+    [InlineData(RunnerDestination.First)]
+    public void Triple_play_after_prior_batter_out_does_not_stack_with_two_outs_rule(
+        RunnerDestination batterDestination)
+    {
+        var firstOut = Appearance(10, 7, 2, BatterResult.Out);
+        var triplePlay = Appearance(
+            11,
+            7,
+            2,
+            BatterResult.TriplePlay,
+            [
+                Movement(7, RunnerStartingLocation.Home, batterDestination),
+                Movement(8, RunnerStartingLocation.First, RunnerDestination.Out),
+                Movement(9, RunnerStartingLocation.Second, RunnerDestination.Out),
+                Movement(10, RunnerStartingLocation.Third, RunnerDestination.Out),
+            ]
+        );
+
+        var consequences = evaluator.Evaluate(Context(triplePlay, firstOut));
+
+        var consequence = Assert.Single(consequences);
+        Assert.Equal((7, BeerRuleType.TriplePlay, 1),
+            (consequence.PlayerId, consequence.RuleType, consequence.Amount));
+    }
+
+    [Fact]
+    public void Triple_play_does_not_advance_two_outs_count()
+    {
+        var firstOut = Appearance(9, 7, 2, BatterResult.Out);
+        var retiredTriplePlay = Appearance(
+            10,
+            7,
+            2,
+            BatterResult.TriplePlay,
+            [
+                Movement(7, RunnerStartingLocation.Home, RunnerDestination.Out),
+                Movement(8, RunnerStartingLocation.First, RunnerDestination.Out),
+                Movement(9, RunnerStartingLocation.Second, RunnerDestination.Out),
+            ]
+        );
+        var laterBatterOut = Appearance(11, 7, 2, BatterResult.Out);
+
+        var laterConsequences = evaluator.Evaluate(
+            Context(laterBatterOut, firstOut, retiredTriplePlay));
+
+        var consequence = Assert.Single(laterConsequences);
+        Assert.Equal((7, BeerRuleType.TwoOutsInOneInning, 1),
+            (consequence.PlayerId, consequence.RuleType, consequence.Amount));
+    }
+
+    [Theory]
     [InlineData(BatterResult.Out)]
     [InlineData(BatterResult.FielderChoice)]
     [InlineData(BatterResult.TriplePlay)]
@@ -167,7 +277,10 @@ public sealed class BeerRuleEvaluatorTests
             ]
         );
 
-        Assert.Empty(evaluator.Evaluate(context));
+        Assert.DoesNotContain(
+            evaluator.Evaluate(context),
+            item => item.RuleType == BeerRuleType.DoublePlay
+        );
     }
 
     [Fact]
@@ -285,17 +398,15 @@ public sealed class BeerRuleEvaluatorTests
         );
     }
 
-    [Theory]
-    [InlineData(BatterResult.DoublePlay)]
-    [InlineData(BatterResult.TriplePlay)]
-    public void Multi_out_play_counts_once_only_when_batter_is_retired(BatterResult result)
+    [Fact]
+    public void Double_play_counts_once_when_batter_is_retired()
     {
         var firstOut = Appearance(10, 7, 2, BatterResult.Out);
         var batterRetired = Appearance(
             11,
             7,
             2,
-            result,
+            BatterResult.DoublePlay,
             [
                 Movement(7, RunnerStartingLocation.Home, RunnerDestination.Out),
                 Movement(8, RunnerStartingLocation.First, RunnerDestination.Out),

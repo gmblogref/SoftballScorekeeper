@@ -10,9 +10,9 @@ Stable product and architecture decisions belong in the project architecture doc
 
 ## Current Project Status
 
-- **Latest completed story:** Story 7.1.2 — DBO + Strikeout Beer Detection
-- **Completed stories:** Stories 0.0 through 6.9.3 and Stories 7.0 through 7.1.2; Story 6.9.4 retains its recorded physical Android acceptance status, and Stories 3.2 through 3.4 retain their recorded validation status
-- **Current story:** Story 7.1.2 — DBO + Strikeout Beer Detection; implementation and normal automated validation complete
+- **Latest completed story:** Story 7.1.3 — Triple Play Beer Detection
+- **Completed stories:** Stories 0.0 through 6.9.3 and Stories 7.0 through 7.1.3; Story 6.9.4 retains its recorded physical Android acceptance status, and Stories 3.2 through 3.4 retain their recorded validation status
+- **Current story:** Story 7.1.3 — Triple Play Beer Detection; implementation and normal automated validation complete
 - **Current phase:** Beer Rules
 - **Foundation status:** Complete
 
@@ -2932,7 +2932,7 @@ Dedicated Double Play/Triple Play presentation, sacrifice results, HR-limit/dead
 
 - Implemented the automatic rules supported by current authoritative scoring. A committed `HomeRun` produces one `SoloHomeRun` consequence for the batter only when every committed runner movement began at Home, meaning no runner occupied first, second, or third at the start of the PA. A committed `DoublePlay` produces one `DoublePlay` consequence for the batter based on the explicit PA classification, including when two runners are retired and the batter reaches safely; merely recording two outs does not qualify.
 - Added `TwoOutsInOneInning`: the same Player receives one consequence on the second finalized PA in the same offensive half-inning where that batter was authoritatively recorded as retired. Scope is scoring session/team side plus inning, and the second qualifying PA is the ledger source, so outs do not combine across Players, Games, sessions, team sides, or innings and a theoretical third qualifying PA does not add another penalty. Total play outs are not batter outs: runner retirements during a finalized Walk, Single, Double, Triple, Home Run, or batter-safe Fielder's Choice do not count.
-- Current batter-retirement evidence is a finalized ordinary `Out` (including a Fielder's Choice reconciled to the canonical `Out` result), a finalized `SacrificeFly`, or a finalized `DoublePlay`/`TriplePlay` whose committed Home-start participant movement records the batter as Out. A batter-safe DP/TP does not count, while a batter-retired DP/TP counts as one qualifying PA regardless of the play's total outs. The explicit Double Play Beer consequence remains batter-attributed even when the batter survives, so a batter-retired DP can naturally overlap with `TwoOutsInOneInning` when it is that Player's second qualifying PA.
+- Current `TwoOutsInOneInning` evidence is a finalized ordinary `Out` (including a Fielder's Choice reconciled to the canonical `Out` result), a finalized `SacrificeFly`, or a finalized `DoublePlay` whose committed Home-start participant movement records the batter as Out. A batter-safe DP does not count, while a batter-retired DP counts as one qualifying PA regardless of the play's total outs. The explicit Double Play Beer consequence remains batter-attributed even when the batter survives, so a batter-retired DP can naturally overlap with `TwoOutsInOneInning` when it is that Player's second qualifying PA. Story 7.1.3 subsequently established that Triple Play PAs are excluded from this rule regardless of batter retirement.
 - Each implemented consequence has `Amount = 1`, representing one Beer unit / one 12-pack. Detection reads immutable committed PA and runner-movement facts and remains an additive observer: it does not change runner resolution, outs, innings, score, batting order, or batting-statistics calculations. The evaluator and persistence loop return and store a collection, preserving multiple legitimate consequences from one PA.
 - Added automatic-source idempotence keyed by scoring session, source PA, Player, rule, and automatic origin. Repository persistence reconciles repeated evaluator output by skipping an already-present automatic identity; for `TwoOutsInOneInning`, the source is the second qualifying PA. The check applies only to automatic scoring persistence, so future `ManualAdjustment` and `BroughtCredit` rows remain unrestricted and do not collide with automatic consequences.
 - Reused the Story 7.0 lifecycle architecture. Committed Undo removes the automatic consequence, Redo restores the original row exactly once, and divergent scoring discards the abandoned Redo consequence. Reset removes only entries owned by the reset scoring session, Exit/Resume and repository recreation retain exactly one persisted entry without reevaluation, and Game completion preserves the entry without regenerating it. Separate source PAs, Players, Games, and Teams remain independently attributable and isolated.
@@ -2993,6 +2993,25 @@ Dedicated Double Play/Triple Play presentation, sacrifice results, HR-limit/dead
 #### Intended Commit Message
 
 `Add DBO and strikeout Beer detection`
+
+### Story 7.1.3 — Triple Play Beer Detection (Complete)
+
+#### Authoritative Automatic Detection
+
+- Appended the persisted `BeerRuleType.TriplePlay = 7` identifier without renumbering values 1 through 6. An authoritative finalized `BatterResult.TriplePlay` now produces one automatic Triple Play Beer unit for the committed batter's stable `PlayerId`, regardless of whether committed movement semantics mark that batter safe or retired. Double Play and Triple Play remain separate persisted rule identities, and nearby Out, Strikeout, DBO, and Solo HR rules are not inferred from the play's three outs.
+- Triple Play PAs never qualify toward `TwoOutsInOneInning`, regardless of whether the batter is safe or retired. A TP therefore neither stacks with `TwoOutsInOneInning` from that PA nor advances the qualifying-out count used by a later PA. This Beer-rule-specific exclusion leaves the accepted Double Play and other batter-out semantics unchanged.
+- Reused the collection evaluator and automatic identity of scoring session + source PA + Player + rule + automatic origin. Duplicate Triple Play output persists once. Existing scoring snapshots remove and restore automatic TP history through Undo/Redo, divergent scoring abandons the old TP branch, Reset removes only the discarded session's automatic rows, and repository resume, database reopen, and Game completion preserve the row exactly once. Manual adjustments and other Games remain isolated.
+- Detection remains an observer of committed scoring. No Triple Play participant selection, runner state, outs, inning transition, score, batting order, HR configuration, or centralized statistical contribution changed. The current scoring workflow automatically commits TP without persisted participant movements; the Beer-rule exclusion applies equally to this batter-safe repository state and to batter-retired TP facts evaluated at the committed boundary without expanding the story into a scoring redesign.
+
+#### Tests, Validation, and Deferred Work
+
+- Added focused evaluator and repository cases covering stable enum values, batter-safe and batter-retired direct detection, amount and Player attribution, non-triggers, DP/TP separation, exclusion from `TwoOutsInOneInning` for both batter states, exclusion from that rule's qualifying-out count, exact automatic source identity, duplicate-output idempotence, Undo/Redo, divergent Redo, Reset and cross-Game/manual isolation, resume/database reopen, completion preservation, and unchanged in-progress/completed batting statistics. The post-correction focused selection passed 54 of 54 tests with zero failures or skips.
+- After the Triple Play/Two-Outs correction, the full emulator-independent suite passed 853 of 853 tests with zero failures or skips. Android and Windows builds succeeded with zero errors. Android retained 10 existing `CS8602`/`XC0025` warnings; Windows retained 118 existing `CS8602`/`MVVMTK0045`/`XC0025` warnings. `git diff --check` passed. No Android emulator, Appium, runtime, or physical-device test was run because this story changes domain detection and repository-observable behavior only.
+- Beer UI, Team totals, editable Beer grids, BROUGHT/OWED/STILL OWED workflows, configurable rule enablement or values, manual correction UI, and Low Man remain deferred. Story 7.2 can configure the stable Triple Play rule alongside the other authoritative detections without changing TP scoring or weakening automatic-source idempotence. `AGENTS.md` was reviewed and required no change.
+
+#### Intended Commit Message
+
+`Add Triple Play Beer detection`
 
 ## Maintenance Rules
 

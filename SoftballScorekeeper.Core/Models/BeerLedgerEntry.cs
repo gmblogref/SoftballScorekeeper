@@ -36,6 +36,7 @@ public enum BeerRuleType
     TwoOutsInOneInning = 4,
     Strikeout = 5,
     LowMan = 6,
+    TriplePlay = 7,
 }
 
 public enum BeerLedgerEntryOrigin
