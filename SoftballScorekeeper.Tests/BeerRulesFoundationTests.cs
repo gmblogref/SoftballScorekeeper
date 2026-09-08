@@ -139,7 +139,7 @@ public sealed partial class GameScoringSessionRepositoryTests
                 GameScoringSessionId = null,
                 PlayerId = resetPlayerId,
                 Origin = BeerLedgerEntryOrigin.BroughtCredit,
-                Amount = -2,
+                Amount = 2,
             }
         );
 
@@ -186,6 +186,139 @@ public sealed partial class GameScoringSessionRepositoryTests
         var divergent = Assert.Single(await db.GetBeerLedgerEntriesAsync());
         Assert.NotEqual(committed.GamePlateAppearanceId, divergent.GamePlateAppearanceId);
         Assert.False((await repository.GetUndoRedoAvailabilityAsync(context.Game.Id)).CanRedo);
+    }
+
+    [Fact]
+    public async Task Manual_beer_accounting_survives_scoring_undo_redo_completion_and_reopen()
+    {
+        await using var db = await TemporaryTestDatabase.CreateAsync();
+        var context = await CreateReadyGameAsync(db, DateTime.Today, null, null, 1);
+        var scoring = CreateBeerAwareRepository(db.Database, new RecordingBeerEvaluator());
+        await scoring.InitializeAsync(context.Team.Id, context.Game.Id, TeamGameSide.Home);
+        Assert.True((await CompleteHitAsync(scoring, context.Game.Id)).IsSuccess);
+        var playerId = Assert.Single(
+            (await scoring.GetStateForGameAsync(context.Game.Id))!.PlateAppearances
+        ).PlayerId;
+        var accounting = db.CreateBeerAccountingRepository();
+        Assert.True(
+            (
+                await accounting.SetEffectiveRuleCountAsync(
+                    context.Team.Id,
+                    playerId,
+                    BeerRuleType.Dbo,
+                    2
+                )
+            ).IsSuccess
+        );
+        Assert.True((await accounting.SetBroughtAsync(context.Team.Id, playerId, 1)).IsSuccess);
+        var statisticsBefore = await scoring.GetInProgressBattingStatisticsAsync(context.Game.Id);
+
+        Assert.True((await scoring.UndoAsync(context.Game.Id)).IsSuccess);
+        var undone = Assert.Single((await accounting.GetTeamLifetimeAsync(context.Team.Id))!);
+        Assert.Equal((1, 1, 0), (undone.DboCount, undone.Brought, undone.Owed));
+        Assert.DoesNotContain(
+            await db.GetBeerLedgerEntriesAsync(),
+            item => item.Origin == BeerLedgerEntryOrigin.AutomaticScoring
+        );
+
+        Assert.True((await scoring.RedoAsync(context.Game.Id)).IsSuccess);
+        var redone = Assert.Single((await accounting.GetTeamLifetimeAsync(context.Team.Id))!);
+        Assert.Equal((2, 1, 1), (redone.DboCount, redone.Brought, redone.Owed));
+        Assert.Single(
+            (await db.GetBeerLedgerEntriesAsync()).Where(item =>
+                item.Origin == BeerLedgerEntryOrigin.AutomaticScoring
+            )
+        );
+        Assert.True(
+            (
+                await accounting.SetEffectiveRuleCountAsync(
+                    context.Team.Id,
+                    playerId,
+                    BeerRuleType.SoloHomeRun,
+                    1
+                )
+            ).IsSuccess
+        );
+        var statisticsAfter = await scoring.GetInProgressBattingStatisticsAsync(context.Game.Id);
+        Assert.Equal(
+            statisticsBefore!.Players.Select(item =>
+                (
+                    item.PlayerId,
+                    item.BattingStatistics.PlateAppearances,
+                    item.BattingStatistics.AtBats,
+                    item.BattingStatistics.Hits,
+                    item.BattingStatistics.TotalBases
+                )
+            ),
+            statisticsAfter!.Players.Select(item =>
+                (
+                    item.PlayerId,
+                    item.BattingStatistics.PlateAppearances,
+                    item.BattingStatistics.AtBats,
+                    item.BattingStatistics.Hits,
+                    item.BattingStatistics.TotalBases
+                )
+            )
+        );
+        Assert.True((await scoring.CompleteGameAsync(context.Game.Id)).IsSuccess);
+
+        await db.Database.CloseAsync();
+        var reopened = new AppDatabase(db.DatabasePath);
+        try
+        {
+            var persisted = Assert.Single(
+                (await new BeerAccountingRepository(reopened).GetTeamLifetimeAsync(context.Team.Id))!
+            );
+            Assert.Equal(
+                (2, 1, 1, 2L),
+                (
+                    persisted.DboCount,
+                    persisted.SoloHomeRunCount,
+                    (int)persisted.Brought,
+                    persisted.Owed
+                )
+            );
+        }
+        finally
+        {
+            await reopened.CloseAsync();
+        }
+    }
+
+    [Fact]
+    public async Task Reset_removes_automatic_beer_but_preserves_manual_accounting()
+    {
+        await using var db = await TemporaryTestDatabase.CreateAsync();
+        var context = await CreateReadyGameAsync(db, DateTime.Today, null, null, 1);
+        var scoring = CreateBeerAwareRepository(db.Database, new RecordingBeerEvaluator());
+        await scoring.InitializeAsync(context.Team.Id, context.Game.Id, TeamGameSide.Home);
+        Assert.True((await CompleteHitAsync(scoring, context.Game.Id)).IsSuccess);
+        var playerId = Assert.Single(
+            (await scoring.GetStateForGameAsync(context.Game.Id))!.PlateAppearances
+        ).PlayerId;
+        var accounting = db.CreateBeerAccountingRepository();
+        Assert.True(
+            (
+                await accounting.SetEffectiveRuleCountAsync(
+                    context.Team.Id,
+                    playerId,
+                    BeerRuleType.Dbo,
+                    2
+                )
+            ).IsSuccess
+        );
+        Assert.True((await accounting.SetBroughtAsync(context.Team.Id, playerId, 1)).IsSuccess);
+
+        Assert.True((await scoring.ResetGameAsync(context.Game.Id)).IsSuccess);
+
+        var summary = Assert.Single((await accounting.GetTeamLifetimeAsync(context.Team.Id))!);
+        Assert.Equal((1, 1, 0), (summary.DboCount, summary.Brought, summary.Owed));
+        var entries = await db.GetBeerLedgerEntriesAsync();
+        Assert.Equal(2, entries.Count);
+        Assert.DoesNotContain(
+            entries,
+            item => item.Origin == BeerLedgerEntryOrigin.AutomaticScoring
+        );
     }
 
     [Fact]

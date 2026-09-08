@@ -97,6 +97,12 @@ immutable. Scoring Undo/Redo restores its snapshotted consequences but does not
 restore configuration changes. Low Man remains Team/date-level configuration
 and is not part of ordinary Game or plate-appearance Beer evaluation.
 
+Automatic Beer consequences are immutable scoring-derived history. Manual rule
+count adjustments and BROUGHT credits layer on top without changing scoring or
+automatic rows. Beer accounting is lifetime for one Team record, and balances
+such as OWED are derived from ledger data rather than persisted as independently
+mutable truth.
+
 ## Presentation Layer
 
 The Presentation layer is responsible for:

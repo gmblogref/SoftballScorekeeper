@@ -745,6 +745,65 @@ public sealed partial class GameScoringSessionRepositoryTests
     }
 
     [Fact]
+    public async Task Solo_home_run_manual_override_changes_only_beer_accounting()
+    {
+        await using var db = await TemporaryTestDatabase.CreateAsync();
+        var context = await CreateReadyGameAsync(db, DateTime.Today, null, null, 1);
+        var scoring = db.CreateGameScoringSessionRepository();
+        await scoring.InitializeAsync(context.Team.Id, context.Game.Id, TeamGameSide.Home);
+        Assert.True((await scoring.CompleteHomeRunAsync(context.Game.Id)).IsSuccess);
+        var automatic = Assert.Single(await db.GetBeerLedgerEntriesAsync());
+        var statisticsBefore = Assert.Single(
+            (await scoring.GetInProgressBattingStatisticsAsync(context.Game.Id))!.Players
+        ).BattingStatistics;
+
+        var result = await db.CreateBeerAccountingRepository()
+            .SetEffectiveRuleCountAsync(
+                context.Team.Id,
+                automatic.PlayerId,
+                BeerRuleType.SoloHomeRun,
+                0
+            );
+
+        Assert.True(result.IsSuccess);
+        var summary = Assert.Single(
+            (await db.CreateBeerAccountingRepository().GetTeamLifetimeAsync(context.Team.Id))!
+        );
+        Assert.Equal(0, summary.SoloHomeRunCount);
+        Assert.Equal(0, summary.Owed);
+        var entries = await db.GetBeerLedgerEntriesAsync();
+        Assert.Contains(entries, item => item.Id == automatic.Id && item.Amount == 1);
+        var adjustment = Assert.Single(
+            entries.Where(item => item.Origin == BeerLedgerEntryOrigin.ManualAdjustment)
+        );
+        Assert.Equal(-1, adjustment.RuleCountAdjustment);
+        Assert.Equal(-1, adjustment.Amount);
+        var plateAppearance = Assert.Single(
+            (await scoring.GetStateForGameAsync(context.Game.Id))!.PlateAppearances
+        );
+        Assert.Equal(BatterResult.HomeRun, plateAppearance.Result);
+        var statisticsAfter = Assert.Single(
+            (await scoring.GetInProgressBattingStatisticsAsync(context.Game.Id))!.Players
+        ).BattingStatistics;
+        Assert.Equal(
+            (
+                statisticsBefore.PlateAppearances,
+                statisticsBefore.AtBats,
+                statisticsBefore.Hits,
+                statisticsBefore.HomeRuns,
+                statisticsBefore.TotalBases
+            ),
+            (
+                statisticsAfter.PlateAppearances,
+                statisticsAfter.AtBats,
+                statisticsAfter.Hits,
+                statisticsAfter.HomeRuns,
+                statisticsAfter.TotalBases
+            )
+        );
+    }
+
+    [Fact]
     public async Task Reset_removes_solo_home_run_but_preserves_unrelated_history()
     {
         await using var db = await TemporaryTestDatabase.CreateAsync();
@@ -761,7 +820,7 @@ public sealed partial class GameScoringSessionRepositoryTests
                     TeamId = automatic.TeamId,
                     PlayerId = automatic.PlayerId,
                     Origin = BeerLedgerEntryOrigin.BroughtCredit,
-                    Amount = -1,
+                    Amount = 1,
                 }
             )
         );
@@ -949,7 +1008,7 @@ public sealed partial class GameScoringSessionRepositoryTests
                     TeamId = automatic.TeamId,
                     PlayerId = automatic.PlayerId,
                     Origin = BeerLedgerEntryOrigin.BroughtCredit,
-                    Amount = -1,
+                    Amount = 1,
                 }
             )
         );
