@@ -61,6 +61,22 @@ public partial class ScoringPage : ContentPage
         await dialog.ShowAsync(Navigation);
     }
 
+    private async void OnBeerRulesClicked(object sender, EventArgs e)
+    {
+        ScoringMenu.IsVisible = false;
+        var settings = await viewModel.LoadBeerRulesAsync();
+        if (settings is null)
+        {
+            await DisplayAlert(
+                AppResources.GameBeerRulesTitle,
+                AppResources.BeerRulesLoadFailed,
+                AppResources.OkButton);
+            return;
+        }
+        await new BeerRulesDialog(
+            false, settings, viewModel.SaveBeerRulesAsync).ShowAsync(Navigation);
+    }
+
     private async void OnStatsClicked(object sender, EventArgs e)
     {
         ScoringMenu.IsVisible = false;

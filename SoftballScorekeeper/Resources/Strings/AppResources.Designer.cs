@@ -1082,6 +1082,23 @@ namespace SoftballScorekeeper.Resources.Strings {
         public static string ContinueButton { get { return ResourceManager.GetString("ContinueButton", resourceCulture); } }
         public static string NonNegativeWholeNumberRequiredMessage { get { return ResourceManager.GetString("NonNegativeWholeNumberRequiredMessage", resourceCulture); } }
         public static string GameRulesSaveFailed { get { return ResourceManager.GetString("GameRulesSaveFailed", resourceCulture); } }
+        public static string TeamBeerRulesButton { get { return ResourceManager.GetString("TeamBeerRulesButton", resourceCulture); } }
+        public static string TeamBeerRulesTitle { get { return ResourceManager.GetString("TeamBeerRulesTitle", resourceCulture); } }
+        public static string TeamBeerRulesDescription { get { return ResourceManager.GetString("TeamBeerRulesDescription", resourceCulture); } }
+        public static string GameBeerRulesTitle { get { return ResourceManager.GetString("GameBeerRulesTitle", resourceCulture); } }
+        public static string GameBeerRulesDescription { get { return ResourceManager.GetString("GameBeerRulesDescription", resourceCulture); } }
+        public static string BeerRuleEnabledLabel { get { return ResourceManager.GetString("BeerRuleEnabledLabel", resourceCulture); } }
+        public static string BeerRuleAmountLabel { get { return ResourceManager.GetString("BeerRuleAmountLabel", resourceCulture); } }
+        public static string PositiveWholeNumberRequiredMessage { get { return ResourceManager.GetString("PositiveWholeNumberRequiredMessage", resourceCulture); } }
+        public static string BeerRulesLoadFailed { get { return ResourceManager.GetString("BeerRulesLoadFailed", resourceCulture); } }
+        public static string BeerRulesSaveFailed { get { return ResourceManager.GetString("BeerRulesSaveFailed", resourceCulture); } }
+        public static string BeerRuleDboLabel { get { return ResourceManager.GetString("BeerRuleDboLabel", resourceCulture); } }
+        public static string BeerRuleSoloHomeRunLabel { get { return ResourceManager.GetString("BeerRuleSoloHomeRunLabel", resourceCulture); } }
+        public static string BeerRuleDoublePlayLabel { get { return ResourceManager.GetString("BeerRuleDoublePlayLabel", resourceCulture); } }
+        public static string BeerRuleTriplePlayLabel { get { return ResourceManager.GetString("BeerRuleTriplePlayLabel", resourceCulture); } }
+        public static string BeerRuleTwoOutsLabel { get { return ResourceManager.GetString("BeerRuleTwoOutsLabel", resourceCulture); } }
+        public static string BeerRuleStrikeoutLabel { get { return ResourceManager.GetString("BeerRuleStrikeoutLabel", resourceCulture); } }
+        public static string BeerRuleLowManLabel { get { return ResourceManager.GetString("BeerRuleLowManLabel", resourceCulture); } }
         public static string HomeRunScoreboardFormat { get { return ResourceManager.GetString("HomeRunScoreboardFormat", resourceCulture); } }
         public static string HomeRunScoreboardCurrentFormat { get { return ResourceManager.GetString("HomeRunScoreboardCurrentFormat", resourceCulture); } }
         public static string OneUpOnLabel { get { return ResourceManager.GetString("OneUpOnLabel", resourceCulture); } }

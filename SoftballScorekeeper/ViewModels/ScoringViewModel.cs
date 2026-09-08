@@ -12,6 +12,7 @@ public partial class ScoringViewModel : ObservableObject, IQueryAttributable
     private readonly TeamRepository teamRepository;
     private readonly GameRepository gameRepository;
     private readonly GameScoringSessionRepository sessionRepository;
+    private readonly BeerRuleConfigurationRepository? beerRuleConfigurationRepository;
     private bool hasValidContext;
     private int currentBatterPlayerId;
     private TeamGameSide currentTeamSide;
@@ -176,11 +177,38 @@ public partial class ScoringViewModel : ObservableObject, IQueryAttributable
         participantRoleLabels.GetValueOrDefault(playerId, string.Empty);
 
     public ScoringViewModel(TeamRepository teamRepository, GameRepository gameRepository,
-        GameScoringSessionRepository sessionRepository)
+        GameScoringSessionRepository sessionRepository,
+        BeerRuleConfigurationRepository? beerRuleConfigurationRepository = null)
     {
         this.teamRepository = teamRepository;
         this.gameRepository = gameRepository;
         this.sessionRepository = sessionRepository;
+        this.beerRuleConfigurationRepository = beerRuleConfigurationRepository;
+    }
+
+    public async Task<IReadOnlyList<BeerRuleSetting>?> LoadBeerRulesAsync()
+    {
+        if (!IsLoaded || beerRuleConfigurationRepository is null) return null;
+        return await beerRuleConfigurationRepository.GetGameAsync(GameId);
+    }
+
+    public async Task<bool> SaveBeerRulesAsync(IReadOnlyList<BeerRuleSetting> settings)
+    {
+        if (!IsLoaded || IsCompletingPlateAppearance
+            || beerRuleConfigurationRepository is null)
+            return false;
+        IsCompletingPlateAppearance = true;
+        try
+        {
+            if (await beerRuleConfigurationRepository.SaveGameAsync(GameId, settings))
+                return true;
+            ValidationMessage = AppResources.BeerRulesSaveFailed;
+            return false;
+        }
+        finally
+        {
+            IsCompletingPlateAppearance = false;
+        }
     }
 
     public void ApplyQueryAttributes(IDictionary<string, object> query)

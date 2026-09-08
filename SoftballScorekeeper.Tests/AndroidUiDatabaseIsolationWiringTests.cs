@@ -28,6 +28,18 @@ public sealed class AndroidUiDatabaseIsolationWiringTests
         Assert.Contains("\"touch\", $\"files/{seedRequestFileName}\"", fixture);
     }
 
+    [Fact]
+    public void Android_ui_runner_defaults_to_a_dedicated_avd_and_reserves_the_development_avd()
+    {
+        var runner = Read("scripts", "run-android-ui-tests.ps1");
+
+        Assert.Contains("$defaultAndroidUiTestAvdName = 'softball_tablet_ui_tests_api_35'", runner);
+        Assert.Contains("$reservedDevelopmentAvdName = 'softball_tablet_api_35'", runner);
+        Assert.Contains("Assert-NotReservedDevelopmentAvd", runner);
+        Assert.Contains("[string]$AvdName", runner);
+        Assert.Contains("$env:SOFTBALL_ANDROID_AVD", runner);
+    }
+
     private static string Read(params string[] pathParts) =>
         File.ReadAllText(Path.Combine([RepositoryRoot, .. pathParts]));
 

@@ -16,6 +16,7 @@ public partial class TeamWorkspaceViewModel : ObservableObject, IQueryAttributab
     private readonly GameLineupRepository gameLineupRepository;
     private readonly GameScoringSessionRepository gameScoringSessionRepository;
     private readonly SeasonRepository seasonRepository;
+    private readonly BeerRuleConfigurationRepository? beerRuleConfigurationRepository;
     private bool hasGames;
     private bool hasInitialSectionSelection;
     private bool hasInitialScheduleState;
@@ -91,7 +92,8 @@ public partial class TeamWorkspaceViewModel : ObservableObject, IQueryAttributab
         GameRepository gameRepository,
         GameLineupRepository gameLineupRepository,
         GameScoringSessionRepository gameScoringSessionRepository,
-        SeasonRepository seasonRepository)
+        SeasonRepository seasonRepository,
+        BeerRuleConfigurationRepository? beerRuleConfigurationRepository = null)
     {
         ArgumentNullException.ThrowIfNull(teamRepository);
         ArgumentNullException.ThrowIfNull(teamPlayerRepository);
@@ -106,6 +108,31 @@ public partial class TeamWorkspaceViewModel : ObservableObject, IQueryAttributab
         this.gameLineupRepository = gameLineupRepository;
         this.gameScoringSessionRepository = gameScoringSessionRepository;
         this.seasonRepository = seasonRepository;
+        this.beerRuleConfigurationRepository = beerRuleConfigurationRepository;
+    }
+
+    public async Task<IReadOnlyList<BeerRuleSetting>?> LoadBeerRulesAsync()
+    {
+        if (!IsTeamLoaded || beerRuleConfigurationRepository is null) return null;
+        return await beerRuleConfigurationRepository.GetTeamAsync(TeamId);
+    }
+
+    public async Task<bool> SaveBeerRulesAsync(IReadOnlyList<BeerRuleSetting> settings)
+    {
+        if (!IsTeamLoaded || IsBusy || beerRuleConfigurationRepository is null)
+            return false;
+        IsBusy = true;
+        try
+        {
+            if (await beerRuleConfigurationRepository.SaveTeamAsync(TeamId, settings))
+                return true;
+            ValidationMessage = AppResources.BeerRulesSaveFailed;
+            return false;
+        }
+        finally
+        {
+            IsBusy = false;
+        }
     }
 
     public ObservableCollection<TeamRosterItem> RosterPlayers { get; } = new();

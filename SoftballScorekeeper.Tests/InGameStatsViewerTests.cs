@@ -5,7 +5,7 @@ namespace SoftballScorekeeper.Tests;
 public sealed class InGameStatsViewerTests
 {
     [Fact]
-    public void Scoring_menu_places_stats_between_game_rules_and_exit_game()
+    public void Scoring_menu_places_beer_rules_before_stats_and_exit_game()
     {
         var page = LoadXaml("Views", "ScoringPage.xaml");
         var ns = page.Root!.Name.Namespace;
@@ -15,13 +15,14 @@ public sealed class InGameStatsViewerTests
         Assert.Equal(new[]
         {
             "OnGameRulesClicked",
+            "OnBeerRulesClicked",
             "OnStatsClicked",
             "OnExitGameClicked",
             "OnGameOverClicked",
         }, buttons.Select(button => button.Attribute("Clicked")?.Value));
-        Assert.Equal("InGameStatsButton", buttons[1].Attribute("AutomationId")?.Value);
+        Assert.Equal("InGameStatsButton", buttons[2].Attribute("AutomationId")?.Value);
         Assert.Equal("{x:Static strings:AppResources.StatsButton}",
-            buttons[1].Attribute("Text")?.Value);
+            buttons[2].Attribute("Text")?.Value);
     }
 
     [Fact]

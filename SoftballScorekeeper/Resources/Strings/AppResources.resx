@@ -666,6 +666,23 @@
   <data name="ContinueButton" xml:space="preserve"><value>Continue</value></data>
   <data name="NonNegativeWholeNumberRequiredMessage" xml:space="preserve"><value>Enter a non-negative whole number.</value></data>
   <data name="GameRulesSaveFailed" xml:space="preserve"><value>The Game Rules could not be saved. The previous settings were preserved.</value></data>
+  <data name="TeamBeerRulesButton" xml:space="preserve"><value>Beer Rules</value></data>
+  <data name="TeamBeerRulesTitle" xml:space="preserve"><value>Team Beer Rule Defaults</value></data>
+  <data name="TeamBeerRulesDescription" xml:space="preserve"><value>These defaults are copied when scoring starts. Existing Games keep their own settings.</value></data>
+  <data name="GameBeerRulesTitle" xml:space="preserve"><value>Game Beer Rules</value></data>
+  <data name="GameBeerRulesDescription" xml:space="preserve"><value>Changes apply only to future Beer consequences in this Game.</value></data>
+  <data name="BeerRuleEnabledLabel" xml:space="preserve"><value>Enabled</value></data>
+  <data name="BeerRuleAmountLabel" xml:space="preserve"><value>Amount</value></data>
+  <data name="PositiveWholeNumberRequiredMessage" xml:space="preserve"><value>Enter a positive whole-number amount for every Beer rule.</value></data>
+  <data name="BeerRulesLoadFailed" xml:space="preserve"><value>The Beer Rules could not be loaded. Please try again.</value></data>
+  <data name="BeerRulesSaveFailed" xml:space="preserve"><value>The Beer Rules could not be saved. The previous settings were preserved.</value></data>
+  <data name="BeerRuleDboLabel" xml:space="preserve"><value>Dead Ball Out (DBO)</value></data>
+  <data name="BeerRuleSoloHomeRunLabel" xml:space="preserve"><value>Solo Home Run</value></data>
+  <data name="BeerRuleDoublePlayLabel" xml:space="preserve"><value>Double Play</value></data>
+  <data name="BeerRuleTriplePlayLabel" xml:space="preserve"><value>Triple Play</value></data>
+  <data name="BeerRuleTwoOutsLabel" xml:space="preserve"><value>2 Outs in 1 Inning</value></data>
+  <data name="BeerRuleStrikeoutLabel" xml:space="preserve"><value>Strikeout</value></data>
+  <data name="BeerRuleLowManLabel" xml:space="preserve"><value>Low Man</value></data>
   <data name="HomeRunScoreboardFormat" xml:space="preserve"><value>HR {0}/{1}</value></data>
   <data name="HomeRunScoreboardCurrentFormat" xml:space="preserve"><value>HR {0}</value></data>
   <data name="OneUpOnLabel" xml:space="preserve"><value>1-UP ON</value></data>

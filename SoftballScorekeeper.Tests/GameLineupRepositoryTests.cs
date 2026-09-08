@@ -476,6 +476,48 @@ public sealed class GameLineupRepositoryTests
     }
 
     [Fact]
+    public async Task CanUsePreviousAsync_ReturnsFalseWhenNoPriorValidLineupExists()
+    {
+        await using var db = await TemporaryTestDatabase.CreateAsync();
+        var setup = await SetupAsync(db, 1);
+        var target = await AddGameAsync(
+            db,
+            setup,
+            setup.Game.ScheduledDate.AddDays(1),
+            setup.Game.ScheduledTime);
+        var repository = db.CreateGameLineupRepository();
+
+        Assert.False(await repository.CanUsePreviousAsync(setup.Team.Id, target.Id));
+
+        Assert.True((await repository.SaveInitialAsync(
+            setup.Team.Id,
+            setup.Game.Id,
+            [setup.Players[0].Id])).IsSuccess);
+        await db.CreatePlayerRepository().DeactivateAsync([setup.Players[0].Id]);
+
+        Assert.False(await repository.CanUsePreviousAsync(setup.Team.Id, target.Id));
+    }
+
+    [Fact]
+    public async Task CanUsePreviousAsync_ReturnsTrueWhenPriorValidLineupExists()
+    {
+        await using var db = await TemporaryTestDatabase.CreateAsync();
+        var setup = await SetupAsync(db, 1);
+        var target = await AddGameAsync(
+            db,
+            setup,
+            setup.Game.ScheduledDate.AddDays(1),
+            setup.Game.ScheduledTime);
+        var repository = db.CreateGameLineupRepository();
+        Assert.True((await repository.SaveInitialAsync(
+            setup.Team.Id,
+            setup.Game.Id,
+            [setup.Players[0].Id])).IsSuccess);
+
+        Assert.True(await repository.CanUsePreviousAsync(setup.Team.Id, target.Id));
+    }
+
+    [Fact]
     public async Task UsePreviousAsync_UsesDateTimeIdOrderAndNeverAnotherTeam()
     {
         await using var db = await TemporaryTestDatabase.CreateAsync();
