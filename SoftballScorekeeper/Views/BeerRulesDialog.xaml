@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage
+    x:Class="SoftballScorekeeper.Views.BeerRulesDialog"
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:strings="clr-namespace:SoftballScorekeeper.Resources.Strings"
+    xmlns:viewModels="clr-namespace:SoftballScorekeeper.ViewModels"
+    Shell.NavBarIsVisible="False"
+    BackgroundColor="#99000000">
+    <Grid Padding="28">
+        <Border Padding="24"
+                MaximumWidthRequest="720"
+                HorizontalOptions="Center"
+                VerticalOptions="Center"
+                BackgroundColor="{AppThemeBinding Light=White, Dark={StaticResource Gray900}}"
+                Stroke="{AppThemeBinding Light={StaticResource Gray300}, Dark={StaticResource Gray600}}"
+                StrokeShape="RoundRectangle 16">
+            <Grid RowDefinitions="Auto,Auto,*,Auto,Auto" RowSpacing="14">
+                <Label x:Name="TitleLabel"
+                       FontSize="28"
+                       FontAttributes="Bold"
+                       HorizontalTextAlignment="Center" />
+                <Label x:Name="DescriptionLabel"
+                       Grid.Row="1"
+                       FontSize="16"
+                       HorizontalTextAlignment="Center" />
+                <CollectionView x:Name="RulesCollection"
+                                Grid.Row="2"
+                                SelectionMode="None">
+                    <CollectionView.ItemTemplate>
+                        <DataTemplate x:DataType="viewModels:BeerRuleSettingViewModel">
+                            <Grid Padding="8,6"
+                                  ColumnDefinitions="2*,Auto,110"
+                                  ColumnSpacing="14"
+                                  MinimumHeightRequest="58">
+                                <Label Text="{Binding DisplayName}"
+                                       FontSize="18"
+                                       FontAttributes="Bold"
+                                       VerticalTextAlignment="Center" />
+                                <VerticalStackLayout Grid.Column="1"
+                                                     Spacing="0"
+                                                     VerticalOptions="Center">
+                                    <Label Text="{x:Static strings:AppResources.BeerRuleEnabledLabel}"
+                                           HorizontalTextAlignment="Center" />
+                                    <Switch AutomationId="{Binding ToggleAutomationId}"
+                                            IsToggled="{Binding IsEnabled}" />
+                                </VerticalStackLayout>
+                                <VerticalStackLayout Grid.Column="2" Spacing="2">
+                                    <Label Text="{x:Static strings:AppResources.BeerRuleAmountLabel}"
+                                           HorizontalTextAlignment="Center" />
+                                    <Entry AutomationId="{Binding AmountAutomationId}"
+                                           Text="{Binding AmountText}"
+                                           Keyboard="Numeric"
+                                           HorizontalTextAlignment="Center"
+                                           MinimumHeightRequest="48" />
+                                </VerticalStackLayout>
+                            </Grid>
+                        </DataTemplate>
+                    </CollectionView.ItemTemplate>
+                </CollectionView>
+                <Label x:Name="ValidationLabel"
+                       Grid.Row="3"
+                       HorizontalTextAlignment="Center" />
+                <Grid Grid.Row="4" ColumnDefinitions="*,*" ColumnSpacing="14">
+                    <Button AutomationId="CancelBeerRulesButton"
+                            Text="{x:Static strings:AppResources.CancelButton}"
+                            Clicked="OnCancelClicked"
+                            MinimumHeightRequest="56" />
+                    <Button x:Name="SaveButton"
+                            AutomationId="SaveBeerRulesButton"
+                            Grid.Column="1"
+                            Text="{x:Static strings:AppResources.SaveButton}"
+                            Clicked="OnSaveClicked"
+                            MinimumHeightRequest="56" />
+                </Grid>
+            </Grid>
+        </Border>
+    </Grid>
+</ContentPage>

@@ -17,9 +17,12 @@ prerequisite is broken.
 - Appium `3.7.0` (currently validated)
 - Appium UiAutomator2 driver `8.5.0` (currently validated)
 
-The standard local target is the Android 15 / API 35, x86_64, 1280x800 AVD
-whose actual CLI identifier is `softball_tablet_api_35`. The runner does not
-hardcode an emulator serial.
+The standard local target is a dedicated Android 15 / API 35, x86_64, 1280x800
+UI-test AVD whose CLI identifier is `softball_tablet_ui_tests_api_35`. Create it
+once in Android Device Manager by cloning the normal `softball_tablet_api_35`
+AVD (or by creating an equivalent tablet AVD) and assign that exact identifier.
+Keep `softball_tablet_api_35` reserved for Visual Studio and manual development.
+The runner does not hardcode an emulator serial.
 
 ## Preferred workflow
 
@@ -35,7 +38,8 @@ The runner then:
   server, or starts the installed Appium CLI and waits for a healthy status response.
 - Verifies that UiAutomator2 is installed before starting a new emulator.
 - Uses an existing usable device when exactly one is connected, or starts the
-  standard `softball_tablet_api_35` AVD when necessary.
+  dedicated `softball_tablet_ui_tests_api_35` AVD when necessary. It refuses to
+  use the reserved `softball_tablet_api_35` development AVD.
 - Waits for the emulator to become an `adb` device, for Android boot completion,
   and for the package manager to accept install operations.
 - Builds the required embedded-assembly Android APK.
@@ -86,14 +90,17 @@ Optional runner parameters:
 
 ```powershell
 .\scripts\run-android-ui-tests.ps1 -DeviceId emulator-5554
-.\scripts\run-android-ui-tests.ps1 -AvdName softball_tablet_api_35
+.\scripts\run-android-ui-tests.ps1 -AvdName another_dedicated_ui_test_avd
 .\scripts\run-android-ui-tests.ps1 -TestFilter 'FullyQualifiedName~ScoringResumeWorkflowTests'
 .\scripts\run-android-ui-tests.ps1 -AppiumServerUrl 'http://127.0.0.1:4723/' -AdbPath 'adb'
 .\scripts\run-android-ui-tests.ps1 -AppiumCommand 'appium'
 ```
 
 `-AvdName` overrides `SOFTBALL_ANDROID_AVD`; both override the default
-`softball_tablet_api_35` AVD used only when no usable device is connected.
+`softball_tablet_ui_tests_api_35` AVD used only when no usable device is connected.
+The override remains available for another dedicated UI-test AVD; the reserved
+`softball_tablet_api_35` development AVD is rejected whether selected by name or
+already connected as the chosen emulator.
 `-DeviceId`, `-AppiumServerUrl`, and `-AdbPath` override their corresponding
 environment variables for that run. `-AppiumCommand` selects an already-installed
 Appium CLI when it is not available under the default `appium` command.
@@ -173,16 +180,17 @@ $env:SOFTBALL_RUN_ANDROID_UI_TESTS = '1'
 dotnet test SoftballScorekeeper.AndroidUiTests/SoftballScorekeeper.AndroidUiTests.csproj --filter 'FullyQualifiedName~ScoringResumeWorkflowTests'
 ```
 
-`EmbedAssembliesIntoApk=true` is required because the fixture clears application data;
-a Fast Deployment APK loses its separately deployed assemblies when that data is
-cleared. The fixture then creates a Debug-only seed request through `adb`, launches
-the installed package, and the app prepares one Team, ten Players, roster
+`EmbedAssembliesIntoApk=true` is required because the runner installs the APK directly
+with `adb install -r`; the APK must therefore contain the managed assemblies instead
+of depending on Visual Studio Fast Deployment files. The fixture creates a Debug-only
+seed request through `adb`, launches the installed package, resets only the dedicated
+Android UI-test database, and prepares one Team, ten Players, roster
 memberships, one Season, one Game, and a frozen lineup ordered Alex Automation,
 Blake Automation, Casey Automation, Drew Automation, Evan Automation, Finley
 Automation, Gray Automation, Harper Automation, Jordan Automation, and Morgan
 Automation. Release builds contain no seed initializer. Every Android UI test starts
-from newly cleared application data and a new Appium session, so scoring workflows
-remain independently runnable.
+from a freshly reset dedicated test database and a new Appium session; application
+package data and the normal development database are not cleared.
 
 For lower-level troubleshooting only, opt in and run the complete Android UI suite
 against an already installed APK and a separately started Appium server, including
@@ -206,6 +214,6 @@ output.
 | `SOFTBALL_APPIUM_SERVER_URL` | `http://127.0.0.1:4723/` | Appium server endpoint |
 | `SOFTBALL_ANDROID_DEVICE_NAME` | `Android Emulator` | Appium device-name capability |
 | `SOFTBALL_ANDROID_DEVICE_ID` | unset | Selects a specific `adb` device, such as `emulator-5554` |
-| `SOFTBALL_ANDROID_AVD` | `softball_tablet_api_35` | Selects the AVD to start when no usable device is connected |
+| `SOFTBALL_ANDROID_AVD` | `softball_tablet_ui_tests_api_35` | Selects a dedicated UI-test AVD to start when no usable device is connected |
 | `SOFTBALL_ANDROID_PLATFORM_VERSION` | unset | Restricts the Android version when needed |
 | `SOFTBALL_ADB_PATH` | `adb` | Uses a non-default `adb` executable without storing a machine-specific path |

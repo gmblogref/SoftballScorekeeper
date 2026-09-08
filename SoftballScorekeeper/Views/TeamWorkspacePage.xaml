@@ -16,7 +16,8 @@
 
         <controls:PrimarySectionNavigation Grid.Row="0" CurrentSection="Teams" />
 
-        <Grid Grid.Row="1" IsVisible="{Binding IsTeamLoaded}">
+        <Grid Grid.Row="1"
+              IsVisible="{Binding IsTeamLoaded}">
             <Label
                 Text="{Binding TeamName}"
                 Style="{StaticResource Headline}"
@@ -34,7 +35,9 @@
                 </Label.Triggers>
             </Label>
 
-            <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="16" IsVisible="False">
+            <Grid ColumnDefinitions="*,Auto,Auto"
+                  ColumnSpacing="16"
+                  IsVisible="False">
                 <Grid.Triggers>
                     <DataTrigger TargetType="Grid" Binding="{Binding IsEditingTeamName}" Value="True">
                         <Setter Property="IsVisible" Value="True" />
@@ -62,15 +65,14 @@
 
         <Grid
             Grid.Row="2"
-            ColumnDefinitions="*,*"
+            ColumnDefinitions="*,*,*"
             ColumnSpacing="16"
-            HorizontalOptions="Center"
+            HorizontalOptions="Fill"
             IsVisible="{Binding IsTeamLoaded}">
             <Button
                 Text="{x:Static strings:AppResources.GamesSectionLabel}"
                 Command="{Binding SelectGamesSectionCommand}"
                 MinimumHeightRequest="52"
-                MinimumWidthRequest="180"
                 Padding="24,12"
                 BackgroundColor="{AppThemeBinding Light={StaticResource White}, Dark={StaticResource OffBlack}}"
                 BorderColor="{AppThemeBinding Light={StaticResource Black}, Dark={StaticResource Gray300}}"
@@ -90,7 +92,6 @@
                 Text="{x:Static strings:AppResources.RosterSectionLabel}"
                 Command="{Binding SelectRosterSectionCommand}"
                 MinimumHeightRequest="52"
-                MinimumWidthRequest="180"
                 Padding="24,12"
                 BackgroundColor="{AppThemeBinding Light={StaticResource White}, Dark={StaticResource OffBlack}}"
                 BorderColor="{AppThemeBinding Light={StaticResource Black}, Dark={StaticResource Gray300}}"
@@ -102,6 +103,25 @@
                         <Setter Property="BackgroundColor" Value="{StaticResource Primary}" />
                         <Setter Property="BorderColor" Value="{StaticResource Primary}" />
                         <Setter Property="TextColor" Value="{StaticResource White}" />
+                    </DataTrigger>
+                </Button.Triggers>
+            </Button>
+            <Button
+                Grid.Column="2"
+                AutomationId="TeamBeerRulesButton"
+                Text="{x:Static strings:AppResources.TeamBeerRulesButton}"
+                Clicked="OnBeerRulesClicked"
+                MinimumHeightRequest="52"
+                Padding="24,12"
+                BackgroundColor="{AppThemeBinding Light={StaticResource White}, Dark={StaticResource OffBlack}}"
+                BorderColor="{AppThemeBinding Light={StaticResource Black}, Dark={StaticResource Gray300}}"
+                BorderWidth="2"
+                TextColor="{AppThemeBinding Light={StaticResource Black}, Dark={StaticResource White}}">
+                <Button.Triggers>
+                    <DataTrigger TargetType="Button"
+                                 Binding="{Binding IsEditingTeamName}"
+                                 Value="True">
+                        <Setter Property="IsVisible" Value="False" />
                     </DataTrigger>
                 </Button.Triggers>
             </Button>

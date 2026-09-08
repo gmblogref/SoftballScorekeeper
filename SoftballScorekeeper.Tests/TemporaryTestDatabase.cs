@@ -79,12 +79,24 @@ internal sealed class TemporaryTestDatabase : IAsyncDisposable
 
     public BeerLedgerRepository CreateBeerLedgerRepository() => new(Database);
 
+    public BeerRuleConfigurationRepository CreateBeerRuleConfigurationRepository() =>
+        new(Database);
+
     public Task<List<BeerLedgerEntry>> GetBeerLedgerEntriesAsync() =>
         UseSeedingConnectionAsync(connection => connection.Table<BeerLedgerEntry>()
             .OrderBy(item => item.Id).ToListAsync());
 
     public Task<int> SeedBeerLedgerEntryAsync(BeerLedgerEntry entry) =>
         UseSeedingConnectionAsync(connection => connection.InsertAsync(entry));
+
+    public Task<List<TeamBeerRuleConfiguration>> GetTeamBeerRuleConfigurationsAsync() =>
+        UseSeedingConnectionAsync(connection => connection
+            .Table<TeamBeerRuleConfiguration>().OrderBy(item => item.Id).ToListAsync());
+
+    public Task<List<GameScoringBeerRuleConfiguration>>
+        GetGameBeerRuleConfigurationsAsync() =>
+        UseSeedingConnectionAsync(connection => connection
+            .Table<GameScoringBeerRuleConfiguration>().OrderBy(item => item.Id).ToListAsync());
 
     public TeamRecordRepository CreateTeamRecordRepository()
     {

@@ -392,6 +392,9 @@ public sealed class GameScoringSessionRepository
                     "DELETE FROM BeerLedgerEntry WHERE GameScoringSessionId = ?",
                     session.Id);
                 transaction.Execute(
+                    "DELETE FROM GameScoringBeerRuleConfiguration WHERE GameScoringSessionId = ?",
+                    session.Id);
+                transaction.Execute(
                     "DELETE FROM GameScoringLineupPlayer WHERE GameScoringSessionId = ?",
                     session.Id);
                 if (transaction.Delete(session) != 1)
@@ -1330,6 +1333,10 @@ public sealed class GameScoringSessionRepository
                     .FirstOrDefault(session => session.GameId == gameId);
                 if (existing is not null)
                 {
+                    if (!transaction.Table<GameScoringBeerRuleConfiguration>().Any(item =>
+                            item.GameScoringSessionId == existing.Id))
+                        BeerRuleConfigurationRepository.InsertGameSnapshot(
+                            transaction, teamId, existing.Id);
                     result = existing.Status == GameScoringStatus.Completed
                         ? new(existing, false, InitializeScoringSessionFailure.GameCompleted)
                         : new(existing, false, InitializeScoringSessionFailure.None);
@@ -1370,6 +1377,9 @@ public sealed class GameScoringSessionRepository
                 };
                 if (transaction.Insert(session) != 1)
                     throw new InvalidOperationException("Scoring session insertion did not affect one row.");
+
+                BeerRuleConfigurationRepository.InsertGameSnapshot(
+                    transaction, teamId, session.Id);
 
                 foreach (var lineupPlayer in lineup)
                 {
@@ -1783,6 +1793,9 @@ public sealed class GameScoringSessionRepository
             outsAfterPlay,
             runsScored)) ?? throw new InvalidOperationException(
                 "Beer evaluation returned no consequence collection.");
+        var configuration = transaction.Table<GameScoringBeerRuleConfiguration>()
+            .Where(item => item.GameScoringSessionId == session.Id)
+            .ToDictionary(item => item.RuleType);
 
         foreach (var consequence in consequences)
         {
@@ -1793,6 +1806,11 @@ public sealed class GameScoringSessionRepository
                 || transaction.Find<Player>(consequence.PlayerId) is null)
                 throw new InvalidOperationException(
                     "Beer evaluation returned an invalid consequence.");
+            if (!configuration.TryGetValue(consequence.RuleType, out var ruleConfiguration)
+                || ruleConfiguration.Amount <= 0)
+                throw new InvalidOperationException(
+                    "The Game Beer configuration snapshot is invalid.");
+            if (!ruleConfiguration.IsEnabled) continue;
             if (transaction.Table<BeerLedgerEntry>().Any(item =>
                     item.GameScoringSessionId == session.Id
                     && item.GamePlateAppearanceId == appearance.Id
@@ -1809,7 +1827,7 @@ public sealed class GameScoringSessionRepository
                 RuleType = consequence.RuleType,
                 Origin = BeerLedgerEntryOrigin.AutomaticScoring,
                 GamePlateAppearanceId = appearance.Id,
-                Amount = consequence.Amount,
+                Amount = ruleConfiguration.Amount,
             }) != 1)
                 throw new InvalidOperationException(
                     "Beer consequence insertion did not affect one row.");

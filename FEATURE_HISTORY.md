@@ -10,9 +10,9 @@ Stable product and architecture decisions belong in the project architecture doc
 
 ## Current Project Status
 
-- **Latest completed story:** Story 7.1.3 — Triple Play Beer Detection
-- **Completed stories:** Stories 0.0 through 6.9.3 and Stories 7.0 through 7.1.3; Story 6.9.4 retains its recorded physical Android acceptance status, and Stories 3.2 through 3.4 retain their recorded validation status
-- **Current story:** Story 7.1.3 — Triple Play Beer Detection; implementation and normal automated validation complete
+- **Latest completed story:** Story 7.2 — Beer Rules Configuration / Edit
+- **Completed stories:** Stories 0.0 through 6.9.3 and Stories 7.0 through 7.2; Story 6.9.4 retains its recorded physical Android acceptance status, and Stories 3.2 through 3.4 retain their recorded validation status
+- **Current story:** Story 7.2 — Beer Rules Configuration / Edit; implementation and automated validation complete, physical Android acceptance pending
 - **Current phase:** Beer Rules
 - **Foundation status:** Complete
 
@@ -3012,6 +3012,34 @@ Dedicated Double Play/Triple Play presentation, sacrifice results, HR-limit/dead
 #### Intended Commit Message
 
 `Add Triple Play Beer detection`
+
+### Story 7.2 — Beer Rules Configuration / Edit (Complete — physical Android acceptance pending)
+
+#### Normalized Defaults and Game Snapshots
+
+- Added normalized `TeamBeerRuleConfiguration` and `GameScoringBeerRuleConfiguration` rows with unique owner/rule identities, enabled state, and positive integer Beer amount. Missing Team rows resolve through centralized defaults: DBO, Solo HR, Double Play, Triple Play, 2 Outs in 1 Inning, and Low Man are enabled at 1; Strikeout is enabled at 2. Saving Team settings materializes all seven rows.
+- Scoring-session creation transactionally copies the six PA/scoring-event Team rules into a session-owned Game snapshot; Low Man remains Team/date-level configuration only and has no PA evaluation, Game snapshot, calculation, or finalization behavior. Additive database initialization creates both tables and backfills existing scoring sessions that lack a snapshot.
+- Team-default edits do not affect existing active or completed Game snapshots. Reset deletes the discarded session snapshot and automatic Beer entries; the next scoring start copies the Team defaults effective at that later time. Snapshots persist through Exit/Resume, repository recreation, database reopen, and Game completion, and completed snapshots reject edits.
+
+#### Prospective Evaluation and UI
+
+- Kept `BeerRuleEvaluator` as the authoritative detector and centralized its default amounts. Consequence persistence now resolves each detected rule against the current Game snapshot: disabled rules create no row, while enabled rules persist the configured amount as a separate immutable automatic ledger consequence. Configuration never changes scoring results, HR legality, outs, runners, innings, score, batting order, or centralized statistics.
+- In-game edits are prospective and never rescan or rewrite prior PAs or Beer ledger entries. Scoring Undo/Redo continues snapshotting automatic Beer entries but not configuration, so Redo restores the original consequence identity and amount while retaining later configuration edits. Independent configuration is preserved for stacked rules and for Double Play versus Triple Play; Triple Play remains excluded from 2 Outs in 1 Inning.
+- Added a focused tablet-friendly Beer Rules modal with enabled switches and positive whole-number amount fields. Team Workspace opens the seven-rule Team-default surface; the scoring menu opens the six-rule Game surface and explicitly states that changes affect future consequences. Low Man is not presented in the Game surface. All displayed labels, explanations, and validation messages use centralized resources.
+- Refined the Team Workspace header so the Team name remains above one equal-width Games / Roster / Beer Rules action row. The existing Beer Rules click handler and AutomationId remain unchanged, as do the roster and Team-management controls below it. Set Lineup now loads a real `CanUsePreviousLineup` state and keeps Use Previous Lineup disabled while loading or when the shared repository resolver finds no prior lineup with at least one currently eligible Team roster member; the existing restore and replacement-confirmation behavior is unchanged when enabled.
+
+#### Tests, Validation, and Deferred Work
+
+- Added 24 focused configuration, lifecycle, and presentation-source cases covering defaults, Low Man exclusion, persistence/reopen, migration backfill, unique normalized materialization, snapshot isolation and refresh after Reset, enabled/disabled direct rules, amount overrides, prospective edits, four independent stacking combinations, DP/TP independence, disabled TP scoring neutrality, Undo/Redo with later configuration edits, completion read-only behavior, positive-amount validation, and Team/scoring navigation surfaces. The focused selection passed 24 of 24 with zero failures or skips.
+- The full emulator-independent suite passed 876 of 876 tests with zero failures or skips. Windows built with zero errors and retained 118 existing `CS8602`/`MVVMTK0045`/`XC0025` warnings. Android built with zero errors; the normal incremental build reported no warnings, while the embedded-assembly Appium builds retained 10 existing `CS8602`/`XC0025` warnings.
+- Added three opt-in pinpoint Android/Appium tests. Cumulatively, all three passed: Team defaults/edit/persistence; Game configuration persistence, Low Man exclusion, and prospective messaging; and Team/scoring navigation with portrait/landscape dialog usability. The Team scenario's initial run exposed an invalid test seed-navigation assumption; a focused final run using the Team Manager seed and toggling DBO before scrolling passed 1 of 1. Retained screenshots show the DBO switch visibly changing from enabled to disabled, Appium observed its native checked state change, and the disabled state plus representative amounts survived save/reopen. Runner-owned Appium and emulator processes shut down cleanly after every invocation. No unrelated Appium suite was run. Physical-device acceptance has not been confirmed and remains pending.
+- Hardened the Android UI harness after the Story 7.2 runs by reserving `softball_tablet_api_35` for Visual Studio/manual development and changing the runner default to the separate `softball_tablet_ui_tests_api_35` AVD. Explicit `-AvdName`/`SOFTBALL_ANDROID_AVD` overrides remain available for other dedicated UI-test AVDs, while the reserved development AVD is rejected whether named explicitly or encountered as the selected connected emulator. The existing dedicated Android UI-test database selection/reset behavior remains unchanged; no separate application ID or output directories were introduced. Corrected the Android UI README to document the dedicated AVD and database workflow rather than application-data clearing or the reserved development AVD. The PowerShell runner parsed without errors, and the focused database/harness isolation selection passed 7 of 7 emulator-independent tests; no Appium or emulator run was performed.
+- The post-story UI refinements passed 8 of 8 focused repository and presentation-source tests covering unavailable/available previous lineups, the unchanged previous-lineup restore path, command availability wiring, and the equal-width three-button Team Workspace row. A broader class-wide lineup repository invocation became unresponsive and was stopped, but all directly affected pinpoint tests passed. Android and Windows builds succeeded with zero errors and reported 10 and 117 existing `CS8602`/`MVVMTK0045`/`XC0025` warnings respectively. `git diff --check` passed with only line-ending notices. Manual review accepted the grouped Team Workspace buttons, the unavailable/loading Use Previous Lineup disabled state, and the Beer Rules UI. Portrait/landscape usability was checked through the responsive three-star-column layout and both target builds; no emulator, Appium, runtime, or physical-device validation was run for these refinements.
+- Team Beer totals, manual ledger/count editing, BROUGHT/OWED/STILL OWED, Beer balances and carry-forward, Low Man/Game Night calculation and finalization, completed-game Beer summary, season dashboards, and retroactive automatic recalculation remain deferred. Story 7.3 can add manual adjustments independently without rewriting automatic consequences or committed scoring.
+
+#### Intended Commit Message
+
+`Add Beer Rules configuration`
 
 ## Maintenance Rules
 

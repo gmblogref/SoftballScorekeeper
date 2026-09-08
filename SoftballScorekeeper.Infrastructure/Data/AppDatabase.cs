@@ -66,6 +66,8 @@ public sealed class AppDatabase
             await connection.CreateTableAsync<GameScoringHistory>();
             await connection.CreateTableAsync<GameScoringHistorySnapshot>();
             await connection.CreateTableAsync<BeerLedgerEntry>();
+            await connection.CreateTableAsync<TeamBeerRuleConfiguration>();
+            await connection.CreateTableAsync<GameScoringBeerRuleConfiguration>();
             await AddColumnIfMissingAsync<TeamPlayer>(
                 nameof(TeamPlayer.JerseyNumber), "INTEGER");
             await AddColumnIfMissingAsync<GameScoringSession>(
@@ -83,6 +85,8 @@ public sealed class AppDatabase
                         "UPDATE GameScoringSession SET HomeRunLimit = ?",
                         GameScoringSession.DefaultHomeRunLimit);
                 UpgradeStory60ScoringSessions(transaction);
+                Repositories.BeerRuleConfigurationRepository
+                    .EnsureExistingGameSnapshots(transaction);
                 CleanupExpiredScoringHistory(transaction, DateTime.UtcNow);
             });
             isInitialized = true;

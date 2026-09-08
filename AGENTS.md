@@ -89,6 +89,14 @@ semantics and derive separate consequences; Beer evaluation must not redefine
 scoring, runner movement, outs, innings, score, batting order, plate-appearance
 classification, or statistics.
 
+Beer-rule configuration uses normalized Team defaults and historically stable
+Game-scoring snapshots. The six plate-appearance rules are copied when scoring
+starts; later Team edits do not reinterpret active or completed Games. In-game
+edits are prospective, and existing automatic Beer ledger consequences remain
+immutable. Scoring Undo/Redo restores its snapshotted consequences but does not
+restore configuration changes. Low Man remains Team/date-level configuration
+and is not part of ordinary Game or plate-appearance Beer evaluation.
+
 ## Presentation Layer
 
 The Presentation layer is responsible for:
@@ -433,7 +441,7 @@ Android validation is required for UI and interaction stories because Android ta
 
 Codex may create Android UI/Appium tests, but MUST NOT execute emulator/Appium tests unless the user explicitly authorizes that run. When authorized, run Android UI acceptance tests through `scripts/run-android-ui-tests.ps1`. Repository orchestration may stop only Appium and emulator processes that the runner itself started and precisely tracks; never broadly kill Node, Appium, emulator, qemu, adb, or Crashpad processes.
 
-Android UI/Appium automation must use its dedicated configured test database. Test setup may reset or recreate only that test database and must never clear application package data or modify, replace, delete, or migrate the normal development database.
+Android UI/Appium automation must use its dedicated configured test database and a dedicated UI-test AVD that is separate from the emulator reserved for Visual Studio and manual development. The repository runner must default to the dedicated UI-test AVD and must not select the reserved development AVD. Test setup may reset or recreate only the dedicated test database and must never clear application package data or modify, replace, delete, or migrate the normal development database.
 
 Major scoring and tablet-interaction stories should be exercised on the actual target 10-inch Android tablet when it is available. Emulator validation is useful and is acceptable until the physical tablet is available when documented honestly, but it does not permanently replace real-device validation for major touch workflows. Non-UI stories should use validation appropriate to their scope.
 

@@ -13,10 +13,10 @@ public sealed class BeerRuleEvaluator : IBeerRuleEvaluator
         var consequences = new List<BeerConsequence>();
 
         if (appearance.Result == BatterResult.DeadBallOut)
-            consequences.Add(new(appearance.PlayerId, BeerRuleType.Dbo, 1));
+            consequences.Add(Consequence(appearance.PlayerId, BeerRuleType.Dbo));
 
         if (appearance.Result == BatterResult.Strikeout)
-            consequences.Add(new(appearance.PlayerId, BeerRuleType.Strikeout, 2));
+            consequences.Add(Consequence(appearance.PlayerId, BeerRuleType.Strikeout));
 
         if (
             appearance.Result == BatterResult.HomeRun
@@ -24,13 +24,13 @@ public sealed class BeerRuleEvaluator : IBeerRuleEvaluator
                 item.StartingLocation == RunnerStartingLocation.Home
             )
         )
-            consequences.Add(new(appearance.PlayerId, BeerRuleType.SoloHomeRun, 1));
+            consequences.Add(Consequence(appearance.PlayerId, BeerRuleType.SoloHomeRun));
 
         if (appearance.Result == BatterResult.DoublePlay)
-            consequences.Add(new(appearance.PlayerId, BeerRuleType.DoublePlay, 1));
+            consequences.Add(Consequence(appearance.PlayerId, BeerRuleType.DoublePlay));
 
         if (appearance.Result == BatterResult.TriplePlay)
-            consequences.Add(new(appearance.PlayerId, BeerRuleType.TriplePlay, 1));
+            consequences.Add(Consequence(appearance.PlayerId, BeerRuleType.TriplePlay));
 
         if (
             QualifiesForTwoOutsInOneInning(appearance)
@@ -40,7 +40,8 @@ public sealed class BeerRuleEvaluator : IBeerRuleEvaluator
                 && QualifiesForTwoOutsInOneInning(item)
             ) == 2
         )
-            consequences.Add(new(appearance.PlayerId, BeerRuleType.TwoOutsInOneInning, 1));
+            consequences.Add(Consequence(
+                appearance.PlayerId, BeerRuleType.TwoOutsInOneInning));
 
         return consequences;
     }
@@ -48,6 +49,9 @@ public sealed class BeerRuleEvaluator : IBeerRuleEvaluator
     private static bool QualifiesForTwoOutsInOneInning(
         BeerCommittedPlateAppearance appearance) =>
         appearance.Result != BatterResult.TriplePlay && appearance.BatterWasRetired;
+
+    private static BeerConsequence Consequence(int playerId, BeerRuleType ruleType) =>
+        new(playerId, ruleType, BeerRuleConfigurationDefaults.For(ruleType).Amount);
 }
 
 public sealed record BeerConsequence(int PlayerId, BeerRuleType RuleType, int Amount);

@@ -69,6 +69,21 @@ public partial class TeamWorkspacePage : ContentPage
         await viewModel.LoadTeamAsync();
     }
 
+    private async void OnBeerRulesClicked(object sender, EventArgs e)
+    {
+        var settings = await viewModel.LoadBeerRulesAsync();
+        if (settings is null)
+        {
+            await DisplayAlert(
+                AppResources.TeamBeerRulesTitle,
+                AppResources.BeerRulesLoadFailed,
+                AppResources.OkButton);
+            return;
+        }
+        await new BeerRulesDialog(
+            true, settings, viewModel.SaveBeerRulesAsync).ShowAsync(Navigation);
+    }
+
     private async Task ConfirmTeamDeactivationAsync(string teamName)
     {
         var message = string.Format(

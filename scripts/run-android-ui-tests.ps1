@@ -25,6 +25,8 @@ $startedAppium = $false
 $startedAppiumProcess = $null
 $appiumStandardOutputPath = $null
 $appiumStandardErrorPath = $null
+$defaultAndroidUiTestAvdName = 'softball_tablet_ui_tests_api_35'
+$reservedDevelopmentAvdName = 'softball_tablet_api_35'
 
 function Write-Stage {
     param([string]$Message)
@@ -287,6 +289,17 @@ function Get-EmulatorAvdName {
         Select-Object -First 1
 }
 
+function Assert-NotReservedDevelopmentAvd {
+    param(
+        [string]$RequestedAvdName,
+        [string]$SelectionDescription
+    )
+
+    if ($RequestedAvdName.Equals($script:reservedDevelopmentAvdName, [StringComparison]::OrdinalIgnoreCase)) {
+        throw "Android AVD '$RequestedAvdName' is reserved for Visual Studio and manual development. $SelectionDescription must use a dedicated Android UI-test AVD, such as '$($script:defaultAndroidUiTestAvdName)'."
+    }
+}
+
 function Wait-ForEmulatorShutdown {
     param(
         [string]$AdbExecutable,
@@ -491,7 +504,7 @@ try {
     elseif ($usableDeviceIds.Count -eq 0) {
         if ([string]::IsNullOrWhiteSpace($AvdName)) {
             $AvdName = if ([string]::IsNullOrWhiteSpace($env:SOFTBALL_ANDROID_AVD)) {
-                'softball_tablet_api_35'
+                $defaultAndroidUiTestAvdName
             }
             else {
                 $env:SOFTBALL_ANDROID_AVD.Trim()
@@ -500,6 +513,9 @@ try {
         else {
             $AvdName = $AvdName.Trim()
         }
+        Assert-NotReservedDevelopmentAvd `
+            -RequestedAvdName $AvdName `
+            -SelectionDescription 'The Android UI runner'
 
         $emulatorExecutable = Resolve-RequiredCommand -Name 'emulator' -RequestedCommand 'emulator'
         $DeviceId = Start-ConfiguredEmulator `
@@ -510,6 +526,17 @@ try {
     }
     else {
         throw "Multiple usable Android devices are connected: $($usableDeviceIds -join ', '). Specify one with -DeviceId or SOFTBALL_ANDROID_DEVICE_ID."
+    }
+
+    if ($DeviceId -match '^emulator-\d+$') {
+        $selectedAvdName = Get-EmulatorAvdName -AdbExecutable $adbExecutable -EmulatorId $DeviceId
+        if ([string]::IsNullOrWhiteSpace($selectedAvdName)) {
+            throw "Unable to identify the AVD backing emulator '$DeviceId'; the runner cannot verify Android UI-test isolation."
+        }
+        Assert-NotReservedDevelopmentAvd `
+            -RequestedAvdName $selectedAvdName `
+            -SelectionDescription "Emulator '$DeviceId'"
+        Write-Stage "Using Android UI-test AVD: $selectedAvdName"
     }
 
     Write-Stage "Using device: $DeviceId"
