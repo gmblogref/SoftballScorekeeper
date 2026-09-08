@@ -29,18 +29,25 @@ public sealed class BeerRuleEvaluator : IBeerRuleEvaluator
         if (appearance.Result == BatterResult.DoublePlay)
             consequences.Add(new(appearance.PlayerId, BeerRuleType.DoublePlay, 1));
 
+        if (appearance.Result == BatterResult.TriplePlay)
+            consequences.Add(new(appearance.PlayerId, BeerRuleType.TriplePlay, 1));
+
         if (
-            appearance.BatterWasRetired
+            QualifiesForTwoOutsInOneInning(appearance)
             && context.CommittedPlateAppearances.Count(item =>
                 item.PlayerId == appearance.PlayerId
                 && item.Inning == appearance.Inning
-                && item.BatterWasRetired
+                && QualifiesForTwoOutsInOneInning(item)
             ) == 2
         )
             consequences.Add(new(appearance.PlayerId, BeerRuleType.TwoOutsInOneInning, 1));
 
         return consequences;
     }
+
+    private static bool QualifiesForTwoOutsInOneInning(
+        BeerCommittedPlateAppearance appearance) =>
+        appearance.Result != BatterResult.TriplePlay && appearance.BatterWasRetired;
 }
 
 public sealed record BeerConsequence(int PlayerId, BeerRuleType RuleType, int Amount);
