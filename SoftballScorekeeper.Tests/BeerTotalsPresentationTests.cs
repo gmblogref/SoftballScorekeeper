@@ -1,0 +1,180 @@
+using System.Text.RegularExpressions;
+using System.Xml.Linq;
+
+namespace SoftballScorekeeper.Tests;
+
+public sealed class BeerTotalsPresentationTests
+{
+    private const string ExpectedColumns = "180,2,72,88,72,72,88,100,88,100,88";
+
+    [Fact]
+    public void Grid_has_exact_story_order_and_one_shared_horizontal_layout()
+    {
+        var grid = LoadXaml("Views", "Controls", "BeerTotalsGrid.xaml");
+        var ns = grid.Root!.Name.Namespace;
+        var named = NamedElements(grid);
+        var header = named["BeerTotalsHeader"];
+        var row = Assert.Single(named["BeerTotalsPlayerRows"]
+            .Descendants(ns + "DataTemplate")).Elements().Single();
+
+        Assert.Equal("Both", named["BeerTotalsTable"].Parent!
+            .Attribute("Orientation")?.Value);
+        Assert.Equal(ExpectedColumns, header.Attribute("ColumnDefinitions")?.Value);
+        Assert.Equal(ExpectedColumns, row.Attribute("ColumnDefinitions")?.Value);
+        Assert.Single(grid.Descendants(ns + "ScrollView"));
+        Assert.Single(grid.Descendants(ns + "DataTemplate"));
+        Assert.Empty(grid.Descendants(ns + "VisualStateManager.VisualStateGroups"));
+        Assert.Equal(new[]
+        {
+            "{x:Static strings:AppResources.BeerTotalsPlayerHeader}",
+            "{x:Static strings:AppResources.BeerTotalsDboHeader}",
+            "{x:Static strings:AppResources.BeerTotalsSoloHomeRunHeader}",
+            "{x:Static strings:AppResources.BeerTotalsDoublePlayHeader}",
+            "{x:Static strings:AppResources.BeerTotalsTriplePlayHeader}",
+            "{x:Static strings:AppResources.BeerTotalsTwoOutsHeader}",
+            "{x:Static strings:AppResources.BeerTotalsStrikeoutHeader}",
+            "{x:Static strings:AppResources.BeerTotalsLowManHeader}",
+            "{x:Static strings:AppResources.BeerTotalsBroughtHeader}",
+            "{x:Static strings:AppResources.BeerTotalsOwedHeader}",
+        }, header.Elements(ns + "Label").Select(item => item.Attribute("Text")?.Value));
+        Assert.DoesNotContain("StillOwed", grid.ToString(), StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("TeamTotal", grid.ToString(), StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void Editable_cells_are_neutral_and_owed_is_read_only_yellow_bold_and_last()
+    {
+        var grid = LoadXaml("Views", "Controls", "BeerTotalsGrid.xaml");
+        var ns = grid.Root!.Name.Namespace;
+        var x = XNamespace.Get("http://schemas.microsoft.com/winfx/2009/xaml");
+        var row = Assert.Single(NamedElements(grid)["BeerTotalsPlayerRows"]
+            .Descendants(ns + "DataTemplate")).Elements().Single();
+        var buttons = row.Descendants(ns + "Button").ToArray();
+        var entries = row.Descendants(ns + "Entry").ToArray();
+        var styles = grid.Descendants(ns + "Style").ToDictionary(
+            item => item.Attribute(x + "Key")!.Value);
+        var editButtonSetters = styles["BeerTotalEditButton"].Elements(ns + "Setter")
+            .ToDictionary(item => item.Attribute("Property")!.Value,
+                item => item.Attribute("Value")!.Value);
+        var entrySetters = styles["BeerTotalEditEntry"].Elements(ns + "Setter")
+            .ToDictionary(item => item.Attribute("Property")!.Value,
+                item => item.Attribute("Value")!.Value);
+        var owedSetters = styles["BeerTotalOwedValue"].Elements(ns + "Setter")
+            .ToDictionary(item => item.Attribute("Property")!.Value,
+                item => item.Attribute("Value")!.Value);
+
+        Assert.Equal(8, buttons.Length);
+        Assert.Equal(8, entries.Length);
+        Assert.All(buttons, button => Assert.Equal(
+            "{StaticResource BeerTotalEditButton}", button.Attribute("Style")?.Value));
+        Assert.Equal("48", editButtonSetters["MinimumHeightRequest"]);
+        Assert.Equal("Transparent", editButtonSetters["BackgroundColor"]);
+        Assert.Equal("0", editButtonSetters["BorderWidth"]);
+        Assert.Equal("0", editButtonSetters["CornerRadius"]);
+        Assert.Equal("Numeric", entrySetters["Keyboard"]);
+        Assert.Equal("Done", entrySetters["ReturnType"]);
+        Assert.Contains("WarningSurface", entrySetters["BackgroundColor"]);
+        Assert.Contains(row.Elements(ns + "Label"), item =>
+            item.Attribute("Text")?.Value == "{Binding PlayerDisplayName}");
+        Assert.Contains(row.Elements(ns + "Label"), item =>
+            item.Attribute("Text")?.Value == "{Binding Owed}"
+            && item.Attribute("Grid.Column")?.Value == "10"
+            && item.Attribute("Style")?.Value == "{StaticResource BeerTotalOwedValue}");
+        Assert.Contains(buttons, item => item.Attribute("Text")?.Value == "{Binding Brought}"
+            && item.Parent?.Attribute("Grid.Column")?.Value == "9");
+        Assert.All(entries, entry =>
+        {
+            Assert.EndsWith("Editing}", entry.Attribute("IsVisible")?.Value);
+            Assert.Equal("OnEditCompleted", entry.Attribute("Completed")?.Value);
+            Assert.Equal("{StaticResource BeerTotalEditEntry}", entry.Attribute("Style")?.Value);
+        });
+        Assert.Equal(8, row.Descendants(ns + "DataTrigger").Count(trigger =>
+            trigger.Descendants(ns + "Setter").Any(setter =>
+                setter.Attribute("Value")?.Value.Contains("WarningSurface") == true)));
+        Assert.Equal("Bold", owedSetters["FontAttributes"]);
+        Assert.Contains("WarningSurface", owedSetters["BackgroundColor"]);
+        Assert.Contains("WarningText", owedSetters["TextColor"]);
+    }
+
+    [Fact]
+    public void View_model_delegates_authoritative_load_and_writes_then_reloads()
+    {
+        var source = ReadText("ViewModels", "TeamBeerTotalsViewModel.cs");
+
+        Assert.Contains("beerAccountingRepository.GetTeamLifetimeAsync(TeamId)", source);
+        Assert.Contains("beerAccountingRepository.SetEffectiveRuleCountAsync(", source);
+        Assert.Contains("beerAccountingRepository.SetBroughtAsync(", source);
+        Assert.Contains("int.TryParse(enteredValue?.Trim()", source);
+        Assert.Contains("value < 0", source);
+        Assert.Contains("NonNegativeWholeNumberRequiredMessage", source);
+        Assert.Contains("if (!await LoadSummaryAsync())", source);
+        Assert.DoesNotContain("BeerLedgerEntry", source);
+        Assert.DoesNotContain("RuleCountAdjustment", source);
+        Assert.DoesNotContain("Owed =", source);
+        Assert.DoesNotContain("OrderBy", source);
+    }
+
+    [Fact]
+    public void View_model_preserves_context_for_empty_modal_navigation_query()
+    {
+        var source = ReadText("ViewModels", "TeamBeerTotalsViewModel.cs");
+
+        Assert.Matches(
+            new Regex(
+                @"if\s*\(\s*!query\.TryGetValue\([^)]*TeamIdQueryParameter[^)]*\)\s*\)\s*\{\s*if\s*\(\s*!hasValidTeamId\s*\)\s*\{\s*Reset\(\);\s*ValidationMessage\s*=\s*AppResources\.BeerTotalsLoadFailed;\s*\}\s*return;\s*\}",
+                RegexOptions.Singleline),
+            source);
+    }
+
+    [Fact]
+    public void Inline_editing_replaces_the_modal_and_supports_done_or_cell_switch_save()
+    {
+        var shell = ReadText("AppShell.xaml.cs");
+        var composition = ReadText("MauiProgram.cs");
+        var page = ReadText("Views", "TeamBeerTotalsPage.xaml.cs");
+        var gridCode = ReadText("Views", "Controls", "BeerTotalsGrid.xaml.cs");
+        var grid = LoadXaml("Views", "Controls", "BeerTotalsGrid.xaml");
+        var ns = grid.Root!.Name.Namespace;
+
+        Assert.Contains("TeamBeerTotalsRoute", shell);
+        Assert.Contains("typeof(Views.TeamBeerTotalsPage)", shell);
+        Assert.Contains("AddSingleton<BeerAccountingRepository>()", composition);
+        Assert.Contains("AddTransient<TeamBeerTotalsViewModel>()", composition);
+        Assert.Contains("AddTransient<TeamBeerTotalsPage>()", composition);
+        Assert.Contains("TotalsGrid.SaveRequested = viewModel.SaveEditAsync", page);
+        Assert.DoesNotContain("PushModalAsync", page);
+        Assert.Contains("await SaveActiveEditAsync()", gridCode);
+        Assert.Contains("activeRow is not null && !await SaveActiveEditAsync()", gridCode);
+        Assert.Contains("SelectionLength", gridCode);
+        Assert.Contains("isSaving", gridCode);
+        Assert.Contains("OnAndroidEditorAction", gridCode);
+        Assert.Contains("ImeAction.Done", gridCode);
+        Assert.Contains("completedEntry.Unfocus()", gridCode);
+        Assert.Equal("Numeric", grid.Descendants(ns + "Style")
+            .Single(style => style.Attribute(XNamespace.Get(
+                "http://schemas.microsoft.com/winfx/2009/xaml") + "Key")?.Value
+                == "BeerTotalEditEntry")
+            .Elements(ns + "Setter").Single(setter =>
+                setter.Attribute("Property")?.Value == "Keyboard")
+            .Attribute("Value")?.Value);
+        Assert.DoesNotContain("BeerTotalEditDialog", page);
+        Assert.False(File.Exists(Path.Combine(
+            RepositoryRoot, "SoftballScorekeeper", "Views", "BeerTotalEditDialog.xaml")));
+    }
+
+    private static XDocument LoadXaml(params string[] path) => XDocument.Load(
+        Path.Combine(new[] { RepositoryRoot, "SoftballScorekeeper" }.Concat(path).ToArray()));
+
+    private static string ReadText(params string[] path) => File.ReadAllText(
+        Path.Combine(new[] { RepositoryRoot, "SoftballScorekeeper" }.Concat(path).ToArray()));
+
+    private static Dictionary<string, XElement> NamedElements(XDocument page)
+    {
+        var x = XNamespace.Get("http://schemas.microsoft.com/winfx/2009/xaml");
+        return page.Descendants().Where(item => item.Attribute(x + "Name") is not null)
+            .ToDictionary(item => item.Attribute(x + "Name")!.Value);
+    }
+
+    private static string RepositoryRoot => Path.GetFullPath(Path.Combine(
+        AppContext.BaseDirectory, "..", "..", "..", ".."));
+}

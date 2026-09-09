@@ -12,12 +12,14 @@ internal static class AndroidAutomationConstants
     public const string CompletedStatisticsSortingTestSeedRequestFileName =
         "android-ui-test-completed-statistics-sorting";
     public const string TeamRecordTestSeedRequestFileName = "android-ui-test-team-record";
+    public const string BeerTotalsTestSeedRequestFileName = "android-ui-test-beer-totals";
     public static readonly IReadOnlyList<string> TestSeedRequestFileNames =
     [
         TestSeedRequestFileName,
         MissingGameTestSeedRequestFileName,
         CompletedStatisticsSortingTestSeedRequestFileName,
         TeamRecordTestSeedRequestFileName,
+        BeerTotalsTestSeedRequestFileName,
     ];
     public const string FirstBatterName = "Alex Automation";
     public const string SecondBatterName = "Blake Automation";

@@ -667,6 +667,21 @@
   <data name="NonNegativeWholeNumberRequiredMessage" xml:space="preserve"><value>Enter a non-negative whole number.</value></data>
   <data name="GameRulesSaveFailed" xml:space="preserve"><value>The Game Rules could not be saved. The previous settings were preserved.</value></data>
   <data name="TeamBeerRulesButton" xml:space="preserve"><value>Beer Rules</value></data>
+  <data name="BeerTotalsButton" xml:space="preserve"><value>Beer Totals</value></data>
+  <data name="BeerTotalsTitle" xml:space="preserve"><value>Beer Totals</value></data>
+  <data name="BeerTotalsLoadFailed" xml:space="preserve"><value>Beer Totals could not be loaded. Please try again.</value></data>
+  <data name="BeerTotalsSaveFailed" xml:space="preserve"><value>The Beer total could not be saved. The current totals were reloaded.</value></data>
+  <data name="BeerTotalsEmptyState" xml:space="preserve"><value>No Players are available for this Team's Beer Totals.</value></data>
+  <data name="BeerTotalsPlayerHeader" xml:space="preserve"><value>Player</value></data>
+  <data name="BeerTotalsDboHeader" xml:space="preserve"><value>DBO</value></data>
+  <data name="BeerTotalsSoloHomeRunHeader" xml:space="preserve"><value>Solo HR</value></data>
+  <data name="BeerTotalsDoublePlayHeader" xml:space="preserve"><value>DP</value></data>
+  <data name="BeerTotalsTriplePlayHeader" xml:space="preserve"><value>TP</value></data>
+  <data name="BeerTotalsTwoOutsHeader" xml:space="preserve"><value>2 Outs</value></data>
+  <data name="BeerTotalsStrikeoutHeader" xml:space="preserve"><value>Strikeout</value></data>
+  <data name="BeerTotalsLowManHeader" xml:space="preserve"><value>Low Man</value></data>
+  <data name="BeerTotalsOwedHeader" xml:space="preserve"><value>OWED</value></data>
+  <data name="BeerTotalsBroughtHeader" xml:space="preserve"><value>BROUGHT</value></data>
   <data name="TeamBeerRulesTitle" xml:space="preserve"><value>Team Beer Rule Defaults</value></data>
   <data name="TeamBeerRulesDescription" xml:space="preserve"><value>These defaults are copied when scoring starts. Existing Games keep their own settings.</value></data>
   <data name="GameBeerRulesTitle" xml:space="preserve"><value>Game Beer Rules</value></data>

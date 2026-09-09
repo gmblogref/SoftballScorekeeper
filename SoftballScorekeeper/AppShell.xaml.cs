@@ -9,6 +9,7 @@
         public const string PlayerWorkspaceRoute = "player-workspace";
         public const string InactivePlayersRoute = "inactive-players";
         public const string TeamWorkspaceRoute = "team-workspace";
+        public const string TeamBeerTotalsRoute = "team-beer-totals";
         public const string AddPlayersToTeamRoute = "add-players-to-team";
         public const string AddGameRoute = "add-game";
         public const string EditGameRoute = "edit-game";
@@ -31,6 +32,7 @@
             Routing.RegisterRoute(PlayerWorkspaceRoute, typeof(Views.PlayerWorkspacePage));
             Routing.RegisterRoute(InactivePlayersRoute, typeof(Views.InactivePlayersPage));
             Routing.RegisterRoute(TeamWorkspaceRoute, typeof(Views.TeamWorkspacePage));
+            Routing.RegisterRoute(TeamBeerTotalsRoute, typeof(Views.TeamBeerTotalsPage));
             Routing.RegisterRoute(AddPlayersToTeamRoute, typeof(Views.AddPlayersToTeamPage));
             Routing.RegisterRoute(AddGameRoute, typeof(Views.AddGamePage));
             Routing.RegisterRoute(EditGameRoute, typeof(Views.EditGamePage));

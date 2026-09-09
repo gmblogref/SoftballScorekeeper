@@ -65,7 +65,7 @@
 
         <Grid
             Grid.Row="2"
-            ColumnDefinitions="*,*,*"
+            ColumnDefinitions="*,*,*,*"
             ColumnSpacing="16"
             HorizontalOptions="Fill"
             IsVisible="{Binding IsTeamLoaded}">
@@ -108,11 +108,22 @@
             </Button>
             <Button
                 Grid.Column="2"
+                AutomationId="TeamBeerTotalsButton"
+                Text="{x:Static strings:AppResources.BeerTotalsButton}"
+                Clicked="OnBeerTotalsClicked"
+                MinimumHeightRequest="52"
+                Padding="12"
+                BackgroundColor="{AppThemeBinding Light={StaticResource White}, Dark={StaticResource OffBlack}}"
+                BorderColor="{AppThemeBinding Light={StaticResource Black}, Dark={StaticResource Gray300}}"
+                BorderWidth="2"
+                TextColor="{AppThemeBinding Light={StaticResource Black}, Dark={StaticResource White}}" />
+            <Button
+                Grid.Column="3"
                 AutomationId="TeamBeerRulesButton"
                 Text="{x:Static strings:AppResources.TeamBeerRulesButton}"
                 Clicked="OnBeerRulesClicked"
                 MinimumHeightRequest="52"
-                Padding="24,12"
+                Padding="12"
                 BackgroundColor="{AppThemeBinding Light={StaticResource White}, Dark={StaticResource OffBlack}}"
                 BorderColor="{AppThemeBinding Light={StaticResource Black}, Dark={StaticResource Gray300}}"
                 BorderWidth="2"
