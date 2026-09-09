@@ -1083,6 +1083,21 @@ namespace SoftballScorekeeper.Resources.Strings {
         public static string NonNegativeWholeNumberRequiredMessage { get { return ResourceManager.GetString("NonNegativeWholeNumberRequiredMessage", resourceCulture); } }
         public static string GameRulesSaveFailed { get { return ResourceManager.GetString("GameRulesSaveFailed", resourceCulture); } }
         public static string TeamBeerRulesButton { get { return ResourceManager.GetString("TeamBeerRulesButton", resourceCulture); } }
+        public static string BeerTotalsButton { get { return ResourceManager.GetString("BeerTotalsButton", resourceCulture); } }
+        public static string BeerTotalsTitle { get { return ResourceManager.GetString("BeerTotalsTitle", resourceCulture); } }
+        public static string BeerTotalsLoadFailed { get { return ResourceManager.GetString("BeerTotalsLoadFailed", resourceCulture); } }
+        public static string BeerTotalsSaveFailed { get { return ResourceManager.GetString("BeerTotalsSaveFailed", resourceCulture); } }
+        public static string BeerTotalsEmptyState { get { return ResourceManager.GetString("BeerTotalsEmptyState", resourceCulture); } }
+        public static string BeerTotalsPlayerHeader { get { return ResourceManager.GetString("BeerTotalsPlayerHeader", resourceCulture); } }
+        public static string BeerTotalsDboHeader { get { return ResourceManager.GetString("BeerTotalsDboHeader", resourceCulture); } }
+        public static string BeerTotalsSoloHomeRunHeader { get { return ResourceManager.GetString("BeerTotalsSoloHomeRunHeader", resourceCulture); } }
+        public static string BeerTotalsDoublePlayHeader { get { return ResourceManager.GetString("BeerTotalsDoublePlayHeader", resourceCulture); } }
+        public static string BeerTotalsTriplePlayHeader { get { return ResourceManager.GetString("BeerTotalsTriplePlayHeader", resourceCulture); } }
+        public static string BeerTotalsTwoOutsHeader { get { return ResourceManager.GetString("BeerTotalsTwoOutsHeader", resourceCulture); } }
+        public static string BeerTotalsStrikeoutHeader { get { return ResourceManager.GetString("BeerTotalsStrikeoutHeader", resourceCulture); } }
+        public static string BeerTotalsLowManHeader { get { return ResourceManager.GetString("BeerTotalsLowManHeader", resourceCulture); } }
+        public static string BeerTotalsOwedHeader { get { return ResourceManager.GetString("BeerTotalsOwedHeader", resourceCulture); } }
+        public static string BeerTotalsBroughtHeader { get { return ResourceManager.GetString("BeerTotalsBroughtHeader", resourceCulture); } }
         public static string TeamBeerRulesTitle { get { return ResourceManager.GetString("TeamBeerRulesTitle", resourceCulture); } }
         public static string TeamBeerRulesDescription { get { return ResourceManager.GetString("TeamBeerRulesDescription", resourceCulture); } }
         public static string GameBeerRulesTitle { get { return ResourceManager.GetString("GameBeerRulesTitle", resourceCulture); } }

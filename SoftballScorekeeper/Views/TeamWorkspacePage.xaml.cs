@@ -84,6 +84,16 @@ public partial class TeamWorkspacePage : ContentPage
             true, settings, viewModel.SaveBeerRulesAsync).ShowAsync(Navigation);
     }
 
+    private async void OnBeerTotalsClicked(object sender, EventArgs e)
+    {
+        await Shell.Current.GoToAsync(
+            AppShell.TeamBeerTotalsRoute,
+            new ShellNavigationQueryParameters
+            {
+                [AppShell.TeamIdQueryParameter] = viewModel.TeamId,
+            });
+    }
+
     private async Task ConfirmTeamDeactivationAsync(string teamName)
     {
         var message = string.Format(

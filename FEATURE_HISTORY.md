@@ -10,9 +10,9 @@ Stable product and architecture decisions belong in the project architecture doc
 
 ## Current Project Status
 
-- **Latest completed story:** Story 7.2 — Beer Rules Configuration / Edit
-- **Completed stories:** Stories 0.0 through 6.9.3 and Stories 7.0 through 7.2; Story 6.9.4 retains its recorded physical Android acceptance status, and Stories 3.2 through 3.4 retain their recorded validation status
-- **Current story:** Story 7.2 — Beer Rules Configuration / Edit; implementation and automated validation complete, physical Android acceptance pending
+- **Latest completed story:** Story 7.3 — Beer Totals Management
+- **Completed stories:** Stories 0.0 through 6.9.3 and Stories 7.0 through 7.3; Story 6.9.4 retains its recorded physical Android acceptance status, and Stories 3.2 through 3.4 retain their recorded validation status
+- **Current story:** Story 7.4 — Team Beer Totals Grid / Beer Page; implementation and normal automated validation complete, Android UI and physical-device acceptance pending
 - **Current phase:** Beer Rules
 - **Foundation status:** Complete
 
@@ -3061,6 +3061,27 @@ Dedicated Double Play/Triple Play presentation, sacrifice results, HR-limit/dead
 #### Intended Commit Message
 
 `Add Team-lifetime Beer totals accounting`
+
+### Story 7.4 — Team Beer Totals Grid / Beer Page (Implementation complete — acceptance pending)
+
+#### Team Beer Totals Presentation
+
+- Added a dedicated Shell-routed Beer Totals page from Team Workspace and expanded the equal-width quick-action row to `Games | Roster | Beer Totals | Beer Rules`. Beer Totals and Beer Rules remain distinct, and the existing Games, Roster, and Beer Rules behavior and Beer Rules automation identifier are preserved.
+- Added a Beer-specific, horizontally scrollable table shared by portrait and landscape. It displays the repository-ordered Team-lifetime rows and exact columns `Player | DBO | Solo HR | DP | TP | 2 Outs | Strikeout | Low Man | BROUGHT | OWED`; there is no STILL OWED field or Team-total footer. Player and OWED are read-only, while all seven effective rule counts and BROUGHT use touch-sized, explicitly transparent/borderless neutral cells that enter numeric edit mode in place. There is one shared template with no orientation-specific alternate or legacy purple-cell layout. The active cell alone uses the same yellow warning surface as OWED, selects the current value for immediate replacement where practical, and saves through keyboard Done/Enter or a valid transition to another editable cell. The modal Beer-total editor was removed. The grid follows the batting-statistics alignment and separator treatment, and its final OWED values remain read-only, bold, yellow, signed, and last for quick scanning.
+- The ViewModel consumes `BeerAccountingRepository.GetTeamLifetimeAsync` directly and displays its current and inactive Team members plus Players retained through Team Beer history, in the repository's last-name/first-name/ID order. It delegates count writes to `SetEffectiveRuleCountAsync` and BROUGHT writes to `SetBroughtAsync`. Successful edits reload the full authoritative summary, so presentation code does not inspect ledger rows or calculate obligations, signed corrections, Player inclusion, BROUGHT balance, or OWED. Signed OWED values, including negative balances, are displayed without clamping.
+- Edits accept nonnegative whole numbers through the existing `int` boundary, including zero, and reject blank, decimal, negative, nonnumeric, and out-of-range input before repository delegation and without optimistic row mutation. Invalid input remains selected in the active yellow cell with resource-backed validation feedback. Entries explicitly request the numeric keyboard and Done return action; the standard MAUI `Completed` path is backed by a scoped Android native editor-action/Enter handler routed through the same guarded save, and successful completion explicitly unfocuses the Entry to dismiss the keyboard. The inline grid permits only one active cell, prevents duplicate or overlapping saves, and preserves stable row instances while a successful write reloads and refreshes the authoritative Team summary. Failed writes reload authoritative state where possible and leave the page usable.
+- The Beer Totals ViewModel preserves its established Team context when MAUI reapplies an empty navigation query after the edit modal closes. Missing context on a new ViewModel and explicitly invalid Team identifiers still produce the existing load-failure state.
+- Low Man is available through the existing manual effective-count API, but automatic Low Man assignment, Game Night/date grouping, finalization, and combined-OBP behavior remain deferred. Beer Totals edits are Team-level accounting only and are not connected to scoring state or scoring Undo/Redo.
+
+#### Tests, Validation, and Acceptance Status
+
+- Added five focused emulator-independent presentation tests for exact grid order and exclusions, one shared orientation-independent template, eight neutral-cell inline edit targets, yellow active-cell state, final read-only yellow/bold OWED treatment, authoritative repository delegation and refresh, explicit numeric/Done completion wiring and Android fallback, numeric validation, single-edit/save coordination, modal removal, empty-query Team-context preservation, route/DI wiring, and shared portrait/landscape layout; updated the existing Team Workspace presentation test for the four equal-width actions. The final inline-edit focused selection passed 5 of 5 and the normal Beer accounting/configuration/totals selection passed 28 of 28, both with zero failures or skips. Before the earlier modal-context regression was added, the full emulator-independent suite passed 906 of 906 with zero failures or skips; it was not rerun for this UX refinement.
+- Windows and Android builds succeeded with zero errors after the inline-edit refinement and retained the existing nullable, MVVM Toolkit AOT, and XAML binding warnings. The updated Android UI test project compiled with zero warnings or errors; Appium was not run. `git diff --check` passed.
+- Added two deterministic, isolated Android UI scenarios covering distinct Team Workspace navigation, required grid fields in portrait and landscape, effective-count and BROUGHT edits, signed OWED refresh/persistence, invalid-negative preservation, and Player isolation. An authorized pinpoint run on the dedicated UI-test AVD passed the navigation/grid scenario in both orientations and initially exposed the empty-modal-query context reset; that scenario was not rerun after the completion fix because the final grid retains the same single shared layout. The editing scenario now invokes Android's actual IME Done editor action and uses the visible Shell Navigate-up control for its persistence reopen. Its final focused run passed 1 of 1 with no retry after the completed fixes, verifying keyboard dismissal, editor exit, both authoritative OWED refreshes, negative balance persistence, invalid-negative preservation, Player isolation, and retained Team context. Earlier diagnostic iterations exposed the raw-Enter automation mismatch and a nonfunctional accessibility tap when neutral Labels were briefly evaluated; the final accessible cells retain explicit neutral Button styling. Physical-device acceptance remains pending.
+
+#### Intended Commit Message
+
+`Add Team Beer Totals page`
 
 ## Maintenance Rules
 

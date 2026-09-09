@@ -13,12 +13,14 @@ public sealed class AndroidUiTestDataInitializer
     internal const string CompletedStatisticsSortingRequestFileName =
         "android-ui-test-completed-statistics-sorting";
     internal const string TeamRecordRequestFileName = "android-ui-test-team-record";
+    internal const string BeerTotalsRequestFileName = "android-ui-test-beer-totals";
     private static readonly string[] RequestFileNames =
     [
         RequestFileName,
         MissingGameRequestFileName,
         CompletedStatisticsSortingRequestFileName,
         TeamRecordRequestFileName,
+        BeerTotalsRequestFileName,
     ];
 
     private readonly AppDatabase database;
@@ -27,6 +29,7 @@ public sealed class AndroidUiTestDataInitializer
     private readonly GameRepository gameRepository;
     private readonly GameLineupRepository lineupRepository;
     private readonly GameScoringSessionRepository scoringRepository;
+    private readonly BeerAccountingRepository beerAccountingRepository;
 
     public AndroidUiTestDataInitializer(
         AppDatabase database,
@@ -34,7 +37,8 @@ public sealed class AndroidUiTestDataInitializer
         PlayerRepository playerRepository,
         GameRepository gameRepository,
         GameLineupRepository lineupRepository,
-        GameScoringSessionRepository scoringRepository)
+        GameScoringSessionRepository scoringRepository,
+        BeerAccountingRepository beerAccountingRepository)
     {
         this.database = database;
         this.teamRepository = teamRepository;
@@ -42,6 +46,7 @@ public sealed class AndroidUiTestDataInitializer
         this.gameRepository = gameRepository;
         this.lineupRepository = lineupRepository;
         this.scoringRepository = scoringRepository;
+        this.beerAccountingRepository = beerAccountingRepository;
     }
 
     internal async Task<AndroidUiTestContext?> InitializeIfRequestedAsync()
@@ -53,18 +58,24 @@ public sealed class AndroidUiTestDataInitializer
             FileSystem.AppDataDirectory, CompletedStatisticsSortingRequestFileName);
         var teamRecordRequestPath = Path.Combine(
             FileSystem.AppDataDirectory, TeamRecordRequestFileName);
+        var beerTotalsRequestPath = Path.Combine(
+            FileSystem.AppDataDirectory, BeerTotalsRequestFileName);
         var useMissingGame = File.Exists(missingGameRequestPath);
         var useCompletedStatisticsSorting = File.Exists(
             completedStatisticsSortingRequestPath);
         var useTeamRecord = File.Exists(teamRecordRequestPath);
+        var useBeerTotals = File.Exists(beerTotalsRequestPath);
         if (!File.Exists(requestPath) && !useMissingGame
-            && !useCompletedStatisticsSorting && !useTeamRecord) return null;
+            && !useCompletedStatisticsSorting && !useTeamRecord && !useBeerTotals) return null;
 
         if (File.Exists(requestPath)) File.Delete(requestPath);
         if (useMissingGame) File.Delete(missingGameRequestPath);
         if (useCompletedStatisticsSorting)
             File.Delete(completedStatisticsSortingRequestPath);
         if (useTeamRecord) File.Delete(teamRecordRequestPath);
+        if (useBeerTotals) File.Delete(beerTotalsRequestPath);
+
+        if (useBeerTotals) return await SeedBeerTotalsAsync();
 
         if (useTeamRecord) return await SeedTeamRecordAsync();
 
@@ -129,6 +140,44 @@ public sealed class AndroidUiTestDataInitializer
 
     internal static bool IsInitializationRequested(string appDataDirectory) =>
         RequestFileNames.Any(fileName => File.Exists(Path.Combine(appDataDirectory, fileName)));
+
+    private async Task<AndroidUiTestContext> SeedBeerTotalsAsync()
+    {
+        var team = new Team { Name = "Automation Beer Team", IsActive = true };
+        EnsureSingleRow(await teamRepository.CreateAsync(team), "Beer-totals team");
+        foreach (var firstName in new[] { "Alex", "Blake" })
+        {
+            var player = await playerRepository.CreateForTeamAsync(
+                new Player
+                {
+                    FirstName = firstName,
+                    LastName = "Automation",
+                    IsActive = true,
+                },
+                team.Id);
+            if (!player.IsSuccess)
+                throw new InvalidOperationException("Could not seed a Beer-totals Player.");
+
+            if (firstName == "Alex")
+            {
+                EnsureBeerUpdate(await beerAccountingRepository.SetEffectiveRuleCountAsync(
+                    team.Id, player.PlayerId, BeerRuleType.TriplePlay, 1));
+                EnsureBeerUpdate(await beerAccountingRepository.SetEffectiveRuleCountAsync(
+                    team.Id, player.PlayerId, BeerRuleType.LowMan, 2));
+                EnsureBeerUpdate(await beerAccountingRepository.SetBroughtAsync(
+                    team.Id, player.PlayerId, 5));
+            }
+        }
+
+        return new AndroidUiTestContext(team.Id, 0, true);
+    }
+
+    private static void EnsureBeerUpdate(BeerAccountingUpdateResult result)
+    {
+        if (!result.IsSuccess)
+            throw new InvalidOperationException(
+                $"Could not seed Beer totals: {result.FailureReason}.");
+    }
 
     private async Task<AndroidUiTestContext> SeedTeamRecordAsync()
     {

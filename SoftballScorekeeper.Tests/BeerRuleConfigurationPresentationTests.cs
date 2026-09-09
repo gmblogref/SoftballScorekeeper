@@ -44,27 +44,30 @@ public sealed class BeerRuleConfigurationPresentationTests
     }
 
     [Fact]
-    public void Team_workspace_groups_games_roster_and_beer_rules_in_equal_width_columns()
+    public void Team_workspace_groups_games_roster_beer_totals_and_beer_rules_in_equal_width_columns()
     {
         var teamPage = LoadXaml("Views", "TeamWorkspacePage.xaml");
         var ns = teamPage.Root!.Name.Namespace;
         var actionGrid = Assert.Single(
             teamPage.Descendants(ns + "Grid"),
-            grid => grid.Attribute("ColumnDefinitions")?.Value == "*,*,*"
+            grid => grid.Attribute("ColumnDefinitions")?.Value == "*,*,*,*"
         );
         var buttons = actionGrid.Elements(ns + "Button").ToArray();
 
-        Assert.Equal(3, buttons.Length);
+        Assert.Equal(4, buttons.Length);
         Assert.Equal(
             [
                 "{x:Static strings:AppResources.GamesSectionLabel}",
                 "{x:Static strings:AppResources.RosterSectionLabel}",
+                "{x:Static strings:AppResources.BeerTotalsButton}",
                 "{x:Static strings:AppResources.TeamBeerRulesButton}",
             ],
             buttons.Select(button => button.Attribute("Text")?.Value)
         );
-        Assert.Equal("TeamBeerRulesButton", buttons[2].Attribute("AutomationId")?.Value);
-        Assert.Equal("OnBeerRulesClicked", buttons[2].Attribute("Clicked")?.Value);
+        Assert.Equal("TeamBeerTotalsButton", buttons[2].Attribute("AutomationId")?.Value);
+        Assert.Equal("OnBeerTotalsClicked", buttons[2].Attribute("Clicked")?.Value);
+        Assert.Equal("TeamBeerRulesButton", buttons[3].Attribute("AutomationId")?.Value);
+        Assert.Equal("OnBeerRulesClicked", buttons[3].Attribute("Clicked")?.Value);
     }
 
     [Fact]
