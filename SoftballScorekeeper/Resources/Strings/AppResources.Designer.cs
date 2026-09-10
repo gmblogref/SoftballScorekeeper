@@ -949,6 +949,7 @@ namespace SoftballScorekeeper.Resources.Strings {
         public static string CompletedGameLoadFailedMessage { get { return ResourceManager.GetString("CompletedGameLoadFailedMessage", resourceCulture); } }
         public static string ExitGameButton { get { return ResourceManager.GetString("ExitGameButton", resourceCulture); } }
         public static string ScoringMenuAccessibility { get { return ResourceManager.GetString("ScoringMenuAccessibility", resourceCulture); } }
+        public static string TeamWorkspaceMenuAccessibility { get { return ResourceManager.GetString("TeamWorkspaceMenuAccessibility", resourceCulture); } }
         public static string ScoringTitle { get { return ResourceManager.GetString("ScoringTitle", resourceCulture); } }
         public static string OurTeamLabel { get { return ResourceManager.GetString("OurTeamLabel", resourceCulture); } }
         public static string HomeAwayLabel { get { return ResourceManager.GetString("HomeAwayLabel", resourceCulture); } }
@@ -1151,5 +1152,19 @@ namespace SoftballScorekeeper.Resources.Strings {
         public static string JerseyNumberLabel { get { return ResourceManager.GetString("JerseyNumberLabel", resourceCulture); } }
         public static string JerseyNumberDisplayFormat { get { return ResourceManager.GetString("JerseyNumberDisplayFormat", resourceCulture); } }
         public static string JerseyNumberUpdateFailed { get { return ResourceManager.GetString("JerseyNumberUpdateFailed", resourceCulture); } }
+        public static string TeamStatsTitle { get { return ResourceManager.GetString("TeamStatsTitle", resourceCulture); } }
+        public static string TeamStatsButton { get { return ResourceManager.GetString("TeamStatsButton", resourceCulture); } }
+        public static string TeamStatsAllGamesFilter { get { return ResourceManager.GetString("TeamStatsAllGamesFilter", resourceCulture); } }
+        public static string TeamStatsLastGameNightFilter { get { return ResourceManager.GetString("TeamStatsLastGameNightFilter", resourceCulture); } }
+        public static string TeamStatsCurrentLeagueSeasonFilter { get { return ResourceManager.GetString("TeamStatsCurrentLeagueSeasonFilter", resourceCulture); } }
+        public static string TeamStatsCustomFilter { get { return ResourceManager.GetString("TeamStatsCustomFilter", resourceCulture); } }
+        public static string TeamStatsCustomFilterCount { get { return ResourceManager.GetString("TeamStatsCustomFilterCount", resourceCulture); } }
+        public static string TeamStatsCustomTitle { get { return ResourceManager.GetString("TeamStatsCustomTitle", resourceCulture); } }
+        public static string TeamStatsCustomGameFormat { get { return ResourceManager.GetString("TeamStatsCustomGameFormat", resourceCulture); } }
+        public static string TeamStatsNoCompletedGames { get { return ResourceManager.GetString("TeamStatsNoCompletedGames", resourceCulture); } }
+        public static string TeamStatsLoadFailed { get { return ResourceManager.GetString("TeamStatsLoadFailed", resourceCulture); } }
+        public static string SelectAllButton { get { return ResourceManager.GetString("SelectAllButton", resourceCulture); } }
+        public static string ClearAllButton { get { return ResourceManager.GetString("ClearAllButton", resourceCulture); } }
+        public static string ApplyButton { get { return ResourceManager.GetString("ApplyButton", resourceCulture); } }
     }
 }

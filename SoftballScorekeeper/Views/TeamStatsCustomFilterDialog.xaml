@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:strings="clr-namespace:SoftballScorekeeper.Resources.Strings"
+             xmlns:viewModels="clr-namespace:SoftballScorekeeper.ViewModels"
+             x:Class="SoftballScorekeeper.Views.TeamStatsCustomFilterDialog"
+             Shell.NavBarIsVisible="False"
+             BackgroundColor="#99000000">
+    <Grid Padding="24">
+        <Border Padding="20" MaximumWidthRequest="800" HorizontalOptions="Center" VerticalOptions="Center" BackgroundColor="{AppThemeBinding Light=White, Dark={StaticResource Gray900}}" StrokeShape="RoundRectangle 16">
+            <Grid RowDefinitions="Auto,Auto,*,Auto" RowSpacing="12" MaximumHeightRequest="700">
+                <Label Text="{x:Static strings:AppResources.TeamStatsCustomTitle}" FontSize="28" FontAttributes="Bold" HorizontalTextAlignment="Center" />
+                <Grid Grid.Row="1" ColumnDefinitions="*,*" ColumnSpacing="12">
+                    <Button AutomationId="TeamStatsSelectAll" Text="{x:Static strings:AppResources.SelectAllButton}" Clicked="OnSelectAllClicked" MinimumHeightRequest="52" />
+                    <Button Grid.Column="1" AutomationId="TeamStatsClearAll" Text="{x:Static strings:AppResources.ClearAllButton}" Clicked="OnClearAllClicked" MinimumHeightRequest="52" />
+                </Grid>
+                <CollectionView x:Name="GamesCollection" Grid.Row="2" SelectionMode="None">
+                    <CollectionView.ItemTemplate>
+                        <DataTemplate x:DataType="viewModels:TeamStatsGameSelectionItem">
+                            <Grid ColumnDefinitions="Auto,*" Padding="8" MinimumHeightRequest="58">
+                                <CheckBox AutomationId="{Binding SelectionAutomationId}" IsChecked="{Binding IsSelected}" VerticalOptions="Center" />
+                                <Label Grid.Column="1" AutomationId="{Binding DisplayAutomationId}" Text="{Binding DisplayText}" VerticalTextAlignment="Center" />
+                            </Grid>
+                        </DataTemplate>
+                    </CollectionView.ItemTemplate>
+                </CollectionView>
+                <Grid Grid.Row="3" ColumnDefinitions="*,*" ColumnSpacing="12">
+                    <Button Text="{x:Static strings:AppResources.CancelButton}" Clicked="OnCancelClicked" MinimumHeightRequest="56" />
+                    <Button Grid.Column="1" AutomationId="TeamStatsApplyCustom" Text="{x:Static strings:AppResources.ApplyButton}" Clicked="OnApplyClicked" MinimumHeightRequest="56" />
+                </Grid>
+            </Grid>
+        </Border>
+    </Grid>
+</ContentPage>

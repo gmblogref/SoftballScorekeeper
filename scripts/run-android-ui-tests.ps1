@@ -498,6 +498,31 @@ try {
             throw "Android device '$DeviceId' is not connected and usable. Available devices: $available."
         }
     }
+    elseif (-not [string]::IsNullOrWhiteSpace($AvdName)) {
+        $AvdName = $AvdName.Trim()
+        Assert-NotReservedDevelopmentAvd `
+            -RequestedAvdName $AvdName `
+            -SelectionDescription 'The Android UI runner'
+
+        $matchingDeviceIds = @($usableDeviceIds | Where-Object {
+            $_ -match '^emulator-\d+$' -and
+            (Get-EmulatorAvdName -AdbExecutable $adbExecutable -EmulatorId $_) -eq $AvdName
+        })
+        if ($matchingDeviceIds.Count -gt 1) {
+            throw "Multiple connected emulators report requested AVD '$AvdName': $($matchingDeviceIds -join ', ')."
+        }
+        if ($matchingDeviceIds.Count -eq 1) {
+            $DeviceId = $matchingDeviceIds[0]
+        }
+        else {
+            $emulatorExecutable = Resolve-RequiredCommand -Name 'emulator' -RequestedCommand 'emulator'
+            $DeviceId = Start-ConfiguredEmulator `
+                -AdbExecutable $adbExecutable `
+                -EmulatorExecutable $emulatorExecutable `
+                -RequestedAvdName $AvdName `
+                -ExistingDeviceIds @($initialDeviceStates.Keys)
+        }
+    }
     elseif ($usableDeviceIds.Count -eq 1) {
         $DeviceId = $usableDeviceIds[0]
     }

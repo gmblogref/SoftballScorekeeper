@@ -71,6 +71,8 @@ The repository uses three production projects plus one automated test project: t
 
 An Application project remains planned future work. The `SoftballScorekeeper.Tests` project references Core and Infrastructure and must not reference the MAUI presentation project. Do not create additional project boundaries early merely to imitate textbook Clean Architecture. Clear dependency direction, independently testable business rules, and separation of MAUI, SQLite, and domain logic matter more than the number of projects, interfaces, or wrapper services.
 
+A `Team` record represents exactly one Team Year. Its owned `Season` records represent League Season subdivisions within that Team Year, such as Spring, Summer, or Fall; do not use League Season scope as the Team Year boundary.
+
 Preferred dependency direction:
 
 ```text
@@ -473,6 +475,8 @@ Repository tests do not provide MAUI UI coverage and must not be reported as And
 Scoring-engine development requires comprehensive table-driven tests covering base states, out counts, batter outcomes, runner movement, corrections, and derived statistics. Repository integration tests may use isolated temporary SQLite databases. UI automation is not required unless a later story explicitly adds it.
 
 Batting statistics must derive from authoritative batting outcomes through the centralized statistics calculator. UI and future correction workflows must not independently calculate PA, AB, H, AVG, OBP, or SLG.
+
+Filtered batting statistics must derive from authoritative selected Completed Game data through the same centralized statistics calculation. Filter selection is transient presentation state; do not persist duplicate aggregate snapshots for filter results.
 
 Every future `BatterResult` must explicitly define its statistical contribution to PA, AB, Hit, Total Bases, and OBP numerator/denominator behavior.
 

@@ -14,6 +14,7 @@ public sealed class AndroidUiTestDataInitializer
         "android-ui-test-completed-statistics-sorting";
     internal const string TeamRecordRequestFileName = "android-ui-test-team-record";
     internal const string BeerTotalsRequestFileName = "android-ui-test-beer-totals";
+    internal const string TeamStatsRequestFileName = "android-ui-test-team-stats";
     private static readonly string[] RequestFileNames =
     [
         RequestFileName,
@@ -21,6 +22,7 @@ public sealed class AndroidUiTestDataInitializer
         CompletedStatisticsSortingRequestFileName,
         TeamRecordRequestFileName,
         BeerTotalsRequestFileName,
+        TeamStatsRequestFileName,
     ];
 
     private readonly AppDatabase database;
@@ -60,13 +62,17 @@ public sealed class AndroidUiTestDataInitializer
             FileSystem.AppDataDirectory, TeamRecordRequestFileName);
         var beerTotalsRequestPath = Path.Combine(
             FileSystem.AppDataDirectory, BeerTotalsRequestFileName);
+        var teamStatsRequestPath = Path.Combine(
+            FileSystem.AppDataDirectory, TeamStatsRequestFileName);
         var useMissingGame = File.Exists(missingGameRequestPath);
         var useCompletedStatisticsSorting = File.Exists(
             completedStatisticsSortingRequestPath);
         var useTeamRecord = File.Exists(teamRecordRequestPath);
         var useBeerTotals = File.Exists(beerTotalsRequestPath);
+        var useTeamStats = File.Exists(teamStatsRequestPath);
         if (!File.Exists(requestPath) && !useMissingGame
-            && !useCompletedStatisticsSorting && !useTeamRecord && !useBeerTotals) return null;
+            && !useCompletedStatisticsSorting && !useTeamRecord && !useBeerTotals
+            && !useTeamStats) return null;
 
         if (File.Exists(requestPath)) File.Delete(requestPath);
         if (useMissingGame) File.Delete(missingGameRequestPath);
@@ -74,6 +80,9 @@ public sealed class AndroidUiTestDataInitializer
             File.Delete(completedStatisticsSortingRequestPath);
         if (useTeamRecord) File.Delete(teamRecordRequestPath);
         if (useBeerTotals) File.Delete(beerTotalsRequestPath);
+        if (useTeamStats) File.Delete(teamStatsRequestPath);
+
+        if (useTeamStats) return await SeedTeamStatsAsync();
 
         if (useBeerTotals) return await SeedBeerTotalsAsync();
 
@@ -174,6 +183,152 @@ public sealed class AndroidUiTestDataInitializer
         await SeedBeerTotalsLowManGameAsync(team.Id, playerIds);
 
         return new AndroidUiTestContext(team.Id, 0, true);
+    }
+
+    private async Task<AndroidUiTestContext> SeedTeamStatsAsync()
+    {
+        var team = new Team { Name = "Automation Stats Team", IsActive = true };
+        EnsureSingleRow(await teamRepository.CreateAsync(team), "Team-stats team");
+
+        var playerIds = new List<int>();
+        foreach (var firstName in new[] { "Alex", "Blake" })
+        {
+            var player = await playerRepository.CreateForTeamAsync(
+                new Player
+                {
+                    FirstName = firstName,
+                    LastName = "Automation",
+                    IsActive = true,
+                },
+                team.Id);
+            if (!player.IsSuccess)
+                throw new InvalidOperationException("Could not seed a Team-stats Player.");
+            playerIds.Add(player.PlayerId);
+        }
+
+        var springGameIds = await CreateTeamStatsGamesAsync(
+            team.Id,
+            "Spring",
+            [
+                (new DateTime(2026, 4, 1), new TimeSpan(18, 30, 0), "Spring One"),
+                (new DateTime(2026, 4, 8), new TimeSpan(19, 0, 0), "Spring Two"),
+            ]);
+        var summerGameIds = await CreateTeamStatsGamesAsync(
+            team.Id,
+            "Summer 1",
+            [
+                (new DateTime(2026, 7, 1), new TimeSpan(18, 0, 0), "Summer One"),
+                (new DateTime(2026, 7, 8), new TimeSpan(18, 30, 0), "Summer Two"),
+                (new DateTime(2026, 7, 15), new TimeSpan(19, 0, 0), "Summer Three"),
+            ]);
+        _ = await CreateTeamStatsGamesAsync(
+            team.Id,
+            "Summer 2",
+            [(new DateTime(2026, 8, 1), new TimeSpan(18, 30, 0), "Future Summer")]);
+        var fallGameId = (await CreateTeamStatsGamesAsync(
+            team.Id,
+            "Fall",
+            [(new DateTime(2026, 9, 1), new TimeSpan(18, 30, 0), "In Progress Fall")]))[0];
+
+        var completedGameIds = springGameIds.Concat(summerGameIds).ToArray();
+        var alexResults = new[]
+        {
+            BatterResult.Single,
+            BatterResult.Double,
+            BatterResult.Triple,
+            BatterResult.HomeRun,
+            BatterResult.Walk,
+        };
+        var connection = new SQLiteAsyncConnection(
+            database.DatabasePath,
+            SQLiteOpenFlags.ReadWrite | SQLiteOpenFlags.SharedCache);
+        try
+        {
+            for (var index = 0; index < completedGameIds.Length; index++)
+            {
+                await InsertTeamStatsSessionAsync(
+                    connection,
+                    completedGameIds[index],
+                    playerIds,
+                    GameScoringStatus.Completed,
+                    alexResults[index]);
+            }
+            await InsertTeamStatsSessionAsync(
+                connection,
+                fallGameId,
+                playerIds,
+                GameScoringStatus.InProgress,
+                BatterResult.HomeRun);
+        }
+        finally
+        {
+            await connection.CloseAsync();
+        }
+
+        return new AndroidUiTestContext(team.Id, 0, true);
+    }
+
+    private async Task<IReadOnlyList<int>> CreateTeamStatsGamesAsync(
+        int teamId,
+        string leagueSeasonName,
+        IReadOnlyList<(DateTime Date, TimeSpan Time, string Opponent)> games)
+    {
+        var createdIds = new List<int>(games.Count);
+        foreach (var batch in games.Chunk(2))
+        {
+            var result = await gameRepository.CreateForTeamAsync(
+                teamId,
+                new Season { Name = leagueSeasonName, Year = 2026 },
+                batch.Select(game => new Game
+                {
+                    ScheduledDate = game.Date,
+                    ScheduledTime = game.Time,
+                    Opponent = game.Opponent,
+                }).ToArray());
+            if (!result.IsCompleteSuccess)
+                throw new InvalidOperationException(
+                    $"Could not seed Android Team-stats {leagueSeasonName} Games."
+                    + $" Failure: {result.FailureReason}.");
+            createdIds.AddRange(result.CreatedGameIds);
+        }
+        return createdIds;
+    }
+
+    private static async Task InsertTeamStatsSessionAsync(
+        SQLiteAsyncConnection connection,
+        int gameId,
+        IReadOnlyList<int> playerIds,
+        GameScoringStatus status,
+        BatterResult firstPlayerResult)
+    {
+        var session = new GameScoringSession
+        {
+            GameId = gameId,
+            Status = status,
+            TeamSide = TeamGameSide.Home,
+            CurrentBatterPosition = 1,
+            CurrentInning = 1,
+            CompletedAtUtc = status == GameScoringStatus.Completed ? DateTime.UtcNow : null,
+        };
+        EnsureSingleRow(await connection.InsertAsync(session), "Team-stats scoring session");
+        for (var index = 0; index < playerIds.Count; index++)
+        {
+            EnsureSingleRow(await connection.InsertAsync(new GameScoringLineupPlayer
+            {
+                GameScoringSessionId = session.Id,
+                PlayerId = playerIds[index],
+                BattingPosition = index + 1,
+            }), "Team-stats frozen lineup Player");
+            EnsureSingleRow(await connection.InsertAsync(new GamePlateAppearance
+            {
+                GameScoringSessionId = session.Id,
+                PlayerId = playerIds[index],
+                BattingPosition = index + 1,
+                PlateAppearanceNumber = index + 1,
+                Inning = 1,
+                Result = index == 0 ? firstPlayerResult : BatterResult.Out,
+            }), "Team-stats plate appearance");
+        }
     }
 
     private async Task SeedBeerTotalsLowManGameAsync(

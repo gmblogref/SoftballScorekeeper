@@ -16,9 +16,7 @@ public sealed class BeerTotalsTests(AndroidAppiumFixture fixture)
         try
         {
             OpenTeamWorkspace(driver);
-            Assert.True(AndroidElementWait.UntilAutomationId(driver, "TeamBeerTotalsButton").Displayed);
-            Assert.True(AndroidElementWait.UntilAutomationId(driver, "TeamBeerRulesButton").Displayed);
-            AndroidElementWait.UntilAutomationId(driver, "TeamBeerTotalsButton").Click();
+            AndroidTeamWorkspaceMenu.Select(driver, "Beer Totals");
             AndroidElementWait.UntilText(driver, "Beer Totals");
             AndroidElementWait.UntilText(driver, "Automation Beer Team");
             Assert.DoesNotContain("STILL OWED", driver.PageSource, StringComparison.OrdinalIgnoreCase);
@@ -49,7 +47,7 @@ public sealed class BeerTotalsTests(AndroidAppiumFixture fixture)
             EditValue(driver, "BeerTotalsBrought-1", "8");
             Assert.Equal("-1", FindByAutomationId(driver, "BeerTotalsOwed-1").Text);
             driver.FindElement(MobileBy.AccessibilityId("Navigate up")).Click();
-            AndroidElementWait.UntilAutomationId(driver, "TeamBeerTotalsButton").Click();
+            AndroidTeamWorkspaceMenu.Select(driver, "Beer Totals");
             Assert.Equal("-1", FindByAutomationId(driver, "BeerTotalsOwed-1").Text);
 
             FindByAutomationId(driver, "BeerTotalsStrikeout-1").Click();
@@ -102,7 +100,7 @@ public sealed class BeerTotalsTests(AndroidAppiumFixture fixture)
             Assert.Equal("0", FindByAutomationId(driver, "BeerTotalsOwed-2").Text);
 
             driver.FindElement(MobileBy.AccessibilityId("Navigate up")).Click();
-            AndroidElementWait.UntilAutomationId(driver, "TeamBeerTotalsButton").Click();
+            AndroidTeamWorkspaceMenu.Select(driver, "Beer Totals");
             AndroidElementWait.UntilText(driver, "Low Man: Alex Automation");
             Assert.Equal("Recalculate Low Man",
                 AndroidElementWait.UntilAutomationId(driver, "CalculateLowManButton").Text);
@@ -127,7 +125,7 @@ public sealed class BeerTotalsTests(AndroidAppiumFixture fixture)
     private static void OpenBeerTotals(AndroidDriver driver)
     {
         OpenTeamWorkspace(driver);
-        AndroidElementWait.UntilAutomationId(driver, "TeamBeerTotalsButton").Click();
+        AndroidTeamWorkspaceMenu.Select(driver, "Beer Totals");
         AndroidElementWait.UntilText(driver, "Beer Totals");
     }
 

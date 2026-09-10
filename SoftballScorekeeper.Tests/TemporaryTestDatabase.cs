@@ -86,6 +86,9 @@ internal sealed class TemporaryTestDatabase : IAsyncDisposable
 
     public LowManCalculationRepository CreateLowManCalculationRepository() => new(Database);
 
+    public TeamBattingStatisticsRepository CreateTeamBattingStatisticsRepository() =>
+        new(Database);
+
     public Task<List<BeerLedgerEntry>> GetBeerLedgerEntriesAsync() =>
         UseSeedingConnectionAsync(connection => connection.Table<BeerLedgerEntry>()
             .OrderBy(item => item.Id).ToListAsync());
