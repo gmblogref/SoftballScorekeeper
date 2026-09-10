@@ -20,4 +20,7 @@ public partial class TeamBeerTotalsPage : ContentPage
         await viewModel.LoadAsync();
     }
 
+    private async void OnCalculateLowManClicked(object sender, EventArgs e) =>
+        await viewModel.CalculateLowManAsync();
+
 }

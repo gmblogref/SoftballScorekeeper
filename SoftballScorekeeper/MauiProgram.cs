@@ -63,6 +63,7 @@ namespace SoftballScorekeeper
             builder.Services.AddSingleton<GameScoringSessionRepository>();
             builder.Services.AddSingleton<BeerRuleConfigurationRepository>();
             builder.Services.AddSingleton<BeerAccountingRepository>();
+            builder.Services.AddSingleton<LowManCalculationRepository>();
             builder.Services.AddSingleton<TeamRecordRepository>();
 #if DEBUG
             builder.Services.AddSingleton<AndroidUiTestDataInitializer>();

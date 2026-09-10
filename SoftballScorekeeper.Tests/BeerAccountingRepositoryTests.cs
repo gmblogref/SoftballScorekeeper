@@ -7,7 +7,7 @@ namespace SoftballScorekeeper.Tests;
 public sealed class BeerAccountingRepositoryTests
 {
     [Fact]
-    public async Task Initialization_adds_effective_count_to_existing_beer_ledger_table()
+    public async Task Initialization_adds_accounting_and_game_night_columns_to_existing_beer_ledger_table()
     {
         await using var db = await TemporaryTestDatabase.CreateUninitializedAsync();
         await db.ExecuteAsync(
@@ -22,6 +22,10 @@ public sealed class BeerAccountingRepositoryTests
         Assert.Contains(
             columns,
             column => column.Name == nameof(BeerLedgerEntry.RuleCountAdjustment)
+        );
+        Assert.Contains(
+            columns,
+            column => column.Name == nameof(BeerLedgerEntry.PlayingDate)
         );
     }
 

@@ -145,6 +145,7 @@ public sealed class AndroidUiTestDataInitializer
     {
         var team = new Team { Name = "Automation Beer Team", IsActive = true };
         EnsureSingleRow(await teamRepository.CreateAsync(team), "Beer-totals team");
+        var playerIds = new List<int>();
         foreach (var firstName in new[] { "Alex", "Blake" })
         {
             var player = await playerRepository.CreateForTeamAsync(
@@ -157,6 +158,7 @@ public sealed class AndroidUiTestDataInitializer
                 team.Id);
             if (!player.IsSuccess)
                 throw new InvalidOperationException("Could not seed a Beer-totals Player.");
+            playerIds.Add(player.PlayerId);
 
             if (firstName == "Alex")
             {
@@ -169,7 +171,67 @@ public sealed class AndroidUiTestDataInitializer
             }
         }
 
+        await SeedBeerTotalsLowManGameAsync(team.Id, playerIds);
+
         return new AndroidUiTestContext(team.Id, 0, true);
+    }
+
+    private async Task SeedBeerTotalsLowManGameAsync(
+        int teamId,
+        IReadOnlyList<int> playerIds)
+    {
+        var gameResult = await gameRepository.CreateForTeamAsync(
+            teamId,
+            new Season { Name = "Automation", Year = 2026 },
+            [new Game
+            {
+                ScheduledDate = new DateTime(2026, 8, 15),
+                ScheduledTime = new TimeSpan(18, 30, 0),
+                Opponent = "Automation Low Man Opponent",
+            }]);
+        if (!gameResult.IsCompleteSuccess)
+            throw new InvalidOperationException("Could not seed the Low Man Game Night.");
+
+        var gameId = gameResult.CreatedGameIds.Single();
+        var connection = new SQLiteAsyncConnection(
+            database.DatabasePath,
+            SQLiteOpenFlags.ReadWrite | SQLiteOpenFlags.SharedCache);
+        try
+        {
+            var session = new GameScoringSession
+            {
+                GameId = gameId,
+                Status = GameScoringStatus.Completed,
+                TeamSide = TeamGameSide.Home,
+                CurrentBatterPosition = 1,
+                CurrentInning = 1,
+                CompletedAtUtc = DateTime.UtcNow,
+            };
+            EnsureSingleRow(await connection.InsertAsync(session),
+                "Low Man completed scoring session");
+            for (var index = 0; index < playerIds.Count; index++)
+            {
+                EnsureSingleRow(await connection.InsertAsync(new GameScoringLineupPlayer
+                {
+                    GameScoringSessionId = session.Id,
+                    PlayerId = playerIds[index],
+                    BattingPosition = index + 1,
+                }), "Low Man frozen lineup Player");
+                EnsureSingleRow(await connection.InsertAsync(new GamePlateAppearance
+                {
+                    GameScoringSessionId = session.Id,
+                    PlayerId = playerIds[index],
+                    BattingPosition = index + 1,
+                    PlateAppearanceNumber = index + 1,
+                    Inning = 1,
+                    Result = index == 0 ? BatterResult.Out : BatterResult.Single,
+                }), "Low Man plate appearance");
+            }
+        }
+        finally
+        {
+            await connection.CloseAsync();
+        }
     }
 
     private static void EnsureBeerUpdate(BeerAccountingUpdateResult result)

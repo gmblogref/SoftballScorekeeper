@@ -682,6 +682,17 @@
   <data name="BeerTotalsLowManHeader" xml:space="preserve"><value>Low Man</value></data>
   <data name="BeerTotalsOwedHeader" xml:space="preserve"><value>OWED</value></data>
   <data name="BeerTotalsBroughtHeader" xml:space="preserve"><value>BROUGHT</value></data>
+  <data name="LowManCalculationHeading" xml:space="preserve"><value>Low Man Game Night</value></data>
+  <data name="LowManSelectGameNight" xml:space="preserve"><value>Select a playing date</value></data>
+  <data name="CalculateLowManButton" xml:space="preserve"><value>Calculate Low Man</value></data>
+  <data name="RecalculateLowManButton" xml:space="preserve"><value>Recalculate Low Man</value></data>
+  <data name="LowManGameNightOption" xml:space="preserve"><value>{0:MMM d, yyyy} — {1} of {2} Games completed</value></data>
+  <data name="LowManAllGamesCompleted" xml:space="preserve"><value>All Games on this playing date are completed.</value></data>
+  <data name="LowManIncompleteGamesWarning" xml:space="preserve"><value>{0} incomplete Game(s) will be excluded from this calculation.</value></data>
+  <data name="LowManNoGameNights" xml:space="preserve"><value>No scheduled playing dates are available.</value></data>
+  <data name="LowManCalculationSucceeded" xml:space="preserve"><value>Low Man: {0}</value></data>
+  <data name="LowManCalculationNoResult" xml:space="preserve"><value>Calculation complete. No automatic Low Man consequence applies.</value></data>
+  <data name="LowManCalculationFailed" xml:space="preserve"><value>Low Man could not be calculated. No Beer totals were changed.</value></data>
   <data name="TeamBeerRulesTitle" xml:space="preserve"><value>Team Beer Rule Defaults</value></data>
   <data name="TeamBeerRulesDescription" xml:space="preserve"><value>These defaults are copied when scoring starts. Existing Games keep their own settings.</value></data>
   <data name="GameBeerRulesTitle" xml:space="preserve"><value>Game Beer Rules</value></data>
