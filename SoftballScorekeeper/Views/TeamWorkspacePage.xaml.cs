@@ -66,11 +66,16 @@ public partial class TeamWorkspacePage : ContentPage
     protected override async void OnAppearing()
     {
         base.OnAppearing();
+        TeamActionMenu.IsVisible = false;
         await viewModel.LoadTeamAsync();
     }
 
+    private void OnTeamMenuClicked(object sender, EventArgs e) =>
+        TeamActionMenu.IsVisible = !TeamActionMenu.IsVisible;
+
     private async void OnBeerRulesClicked(object sender, EventArgs e)
     {
+        TeamActionMenu.IsVisible = false;
         var settings = await viewModel.LoadBeerRulesAsync();
         if (settings is null)
         {
@@ -86,12 +91,33 @@ public partial class TeamWorkspacePage : ContentPage
 
     private async void OnBeerTotalsClicked(object sender, EventArgs e)
     {
+        TeamActionMenu.IsVisible = false;
         await Shell.Current.GoToAsync(
             AppShell.TeamBeerTotalsRoute,
             new ShellNavigationQueryParameters
             {
                 [AppShell.TeamIdQueryParameter] = viewModel.TeamId,
             });
+    }
+
+    private async void OnTeamStatsClicked(object sender, EventArgs e)
+    {
+        TeamActionMenu.IsVisible = false;
+        await Shell.Current.GoToAsync(
+            AppShell.TeamStatsRoute,
+            new ShellNavigationQueryParameters
+            {
+                [AppShell.TeamIdQueryParameter] = viewModel.TeamId,
+            });
+    }
+
+    private void OnDeactivateTeamClicked(object sender, EventArgs e)
+    {
+        TeamActionMenu.IsVisible = false;
+        if (viewModel.RequestDeactivateTeamCommand.CanExecute(null))
+        {
+            viewModel.RequestDeactivateTeamCommand.Execute(null);
+        }
     }
 
     private async Task ConfirmTeamDeactivationAsync(string teamName)

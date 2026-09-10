@@ -40,7 +40,7 @@ public sealed class BeerRulesConfigurationTests
             SetAmount(driver, "Strikeout", "3");
             SetAmount(driver, "LowMan", "2");
             AndroidElementWait.UntilAutomationId(driver, "SaveBeerRulesButton").Click();
-            AndroidElementWait.UntilAutomationId(driver, "TeamBeerRulesButton").Click();
+            AndroidTeamWorkspaceMenu.Select(driver, "Beer Rules");
 
             AndroidElementWait.UntilText(driver, TeamTitle);
             AssertRule(driver, "Dbo", false, "1");
@@ -136,10 +136,10 @@ public sealed class BeerRulesConfigurationTests
     private void AssertTeamDialogUsable(AndroidDriver driver, ScreenOrientation orientation)
     {
         fixture.SetOrientation(orientation);
-        AndroidElementWait.UntilAutomationId(driver, "TeamBeerRulesButton").Click();
+        AndroidTeamWorkspaceMenu.Select(driver, "Beer Rules");
         AssertDialogControlsWithinViewport(driver, TeamTitle);
         AndroidElementWait.UntilAutomationId(driver, "CancelBeerRulesButton").Click();
-        AndroidElementWait.UntilAutomationId(driver, "TeamBeerRulesButton");
+        AndroidTeamWorkspaceMenu.UntilAvailable(driver);
     }
 
     private static void AssertDialogControlsWithinViewport(AndroidDriver driver, string title)
@@ -168,7 +168,7 @@ public sealed class BeerRulesConfigurationTests
     private static void OpenTeamBeerRules(AndroidDriver driver)
     {
         AndroidElementWait.UntilAutomationId(driver, "TeamCard-1").Click();
-        AndroidElementWait.UntilAutomationId(driver, "TeamBeerRulesButton").Click();
+        AndroidTeamWorkspaceMenu.Select(driver, "Beer Rules");
         AndroidElementWait.UntilText(driver, TeamTitle);
     }
 

@@ -71,6 +71,19 @@ public partial class BattingStatisticsTableViewModel : ObservableObject
     {
         ArgumentNullException.ThrowIfNull(players);
         Clear();
+        LoadCore(players);
+    }
+
+    public void Reload(IReadOnlyList<GameBattingPlayerProjection> players)
+    {
+        ArgumentNullException.ThrowIfNull(players);
+        Rows.Clear();
+        TeamTotal = null;
+        LoadCore(players);
+    }
+
+    private void LoadCore(IReadOnlyList<GameBattingPlayerProjection> players)
+    {
         for (var index = 0; index < players.Count; index++)
             Rows.Add(new(players[index], index));
         ApplySort();

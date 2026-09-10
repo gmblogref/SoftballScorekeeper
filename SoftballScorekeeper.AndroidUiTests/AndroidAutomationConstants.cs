@@ -13,6 +13,7 @@ internal static class AndroidAutomationConstants
         "android-ui-test-completed-statistics-sorting";
     public const string TeamRecordTestSeedRequestFileName = "android-ui-test-team-record";
     public const string BeerTotalsTestSeedRequestFileName = "android-ui-test-beer-totals";
+    public const string TeamStatsTestSeedRequestFileName = "android-ui-test-team-stats";
     public static readonly IReadOnlyList<string> TestSeedRequestFileNames =
     [
         TestSeedRequestFileName,
@@ -20,6 +21,7 @@ internal static class AndroidAutomationConstants
         CompletedStatisticsSortingTestSeedRequestFileName,
         TeamRecordTestSeedRequestFileName,
         BeerTotalsTestSeedRequestFileName,
+        TeamStatsTestSeedRequestFileName,
     ];
     public const string FirstBatterName = "Alex Automation";
     public const string SecondBatterName = "Blake Automation";

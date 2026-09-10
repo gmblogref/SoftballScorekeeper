@@ -9,9 +9,26 @@
              x:DataType="viewModels:TeamWorkspaceViewModel"
              Title="{x:Static strings:AppResources.TeamWorkspaceTitle}">
 
+    <ContentPage.ToolbarItems>
+        <ToolbarItem
+            AutomationId="TeamWorkspaceMenuButton"
+            Text="{x:Static strings:AppResources.TeamWorkspaceMenuAccessibility}"
+            Order="Primary"
+            Priority="0"
+            IsEnabled="{Binding IsTeamLoaded}"
+            Clicked="OnTeamMenuClicked">
+            <ToolbarItem.IconImageSource>
+                <FontImageSource
+                    Glyph="&#x2630;"
+                    Size="28"
+                    Color="{AppThemeBinding Light={StaticResource Black}, Dark={StaticResource SecondaryDarkText}}" />
+            </ToolbarItem.IconImageSource>
+        </ToolbarItem>
+    </ContentPage.ToolbarItems>
+
     <Grid
         Padding="40"
-        RowDefinitions="Auto,Auto,Auto,Auto,*,Auto,Auto,Auto"
+        RowDefinitions="Auto,Auto,Auto,Auto,*,Auto,Auto"
         RowSpacing="20">
 
         <controls:PrimarySectionNavigation Grid.Row="0" CurrentSection="Teams" />
@@ -65,11 +82,12 @@
 
         <Grid
             Grid.Row="2"
-            ColumnDefinitions="*,*,*,*"
+            ColumnDefinitions="*,*"
             ColumnSpacing="16"
             HorizontalOptions="Fill"
             IsVisible="{Binding IsTeamLoaded}">
             <Button
+                AutomationId="TeamWorkspaceGamesSectionButton"
                 Text="{x:Static strings:AppResources.GamesSectionLabel}"
                 Command="{Binding SelectGamesSectionCommand}"
                 MinimumHeightRequest="52"
@@ -89,6 +107,7 @@
             </Button>
             <Button
                 Grid.Column="1"
+                AutomationId="TeamWorkspaceRosterSectionButton"
                 Text="{x:Static strings:AppResources.RosterSectionLabel}"
                 Command="{Binding SelectRosterSectionCommand}"
                 MinimumHeightRequest="52"
@@ -103,36 +122,6 @@
                         <Setter Property="BackgroundColor" Value="{StaticResource Primary}" />
                         <Setter Property="BorderColor" Value="{StaticResource Primary}" />
                         <Setter Property="TextColor" Value="{StaticResource White}" />
-                    </DataTrigger>
-                </Button.Triggers>
-            </Button>
-            <Button
-                Grid.Column="2"
-                AutomationId="TeamBeerTotalsButton"
-                Text="{x:Static strings:AppResources.BeerTotalsButton}"
-                Clicked="OnBeerTotalsClicked"
-                MinimumHeightRequest="52"
-                Padding="12"
-                BackgroundColor="{AppThemeBinding Light={StaticResource White}, Dark={StaticResource OffBlack}}"
-                BorderColor="{AppThemeBinding Light={StaticResource Black}, Dark={StaticResource Gray300}}"
-                BorderWidth="2"
-                TextColor="{AppThemeBinding Light={StaticResource Black}, Dark={StaticResource White}}" />
-            <Button
-                Grid.Column="3"
-                AutomationId="TeamBeerRulesButton"
-                Text="{x:Static strings:AppResources.TeamBeerRulesButton}"
-                Clicked="OnBeerRulesClicked"
-                MinimumHeightRequest="52"
-                Padding="12"
-                BackgroundColor="{AppThemeBinding Light={StaticResource White}, Dark={StaticResource OffBlack}}"
-                BorderColor="{AppThemeBinding Light={StaticResource Black}, Dark={StaticResource Gray300}}"
-                BorderWidth="2"
-                TextColor="{AppThemeBinding Light={StaticResource Black}, Dark={StaticResource White}}">
-                <Button.Triggers>
-                    <DataTrigger TargetType="Button"
-                                 Binding="{Binding IsEditingTeamName}"
-                                 Value="True">
-                        <Setter Property="IsVisible" Value="False" />
                     </DataTrigger>
                 </Button.Triggers>
             </Button>
@@ -540,27 +529,57 @@
                 Padding="24,12" />
         </HorizontalStackLayout>
 
-        <Button
-            Grid.Row="7"
-            Margin="0,12,0,0"
-            Padding="24,14"
-            MinimumHeightRequest="52"
-            MinimumWidthRequest="200"
-            HorizontalOptions="Center"
-            Text="{x:Static strings:AppResources.DeactivateTeamButton}"
-            Command="{Binding RequestDeactivateTeamCommand}"
-            BackgroundColor="Transparent"
-            BorderColor="{AppThemeBinding Light=#B3261E, Dark=#FFB4AB}"
-            BorderWidth="2"
-            TextColor="{AppThemeBinding Light=#B3261E, Dark=#FFB4AB}">
-            <Button.Triggers>
-                <DataTrigger TargetType="Button" Binding="{Binding IsRemovingPlayers}" Value="True">
-                    <Setter Property="IsVisible" Value="False" />
-                </DataTrigger>
-                <DataTrigger TargetType="Button" Binding="{Binding IsRemovingGames}" Value="True">
-                    <Setter Property="IsVisible" Value="False" />
-                </DataTrigger>
-            </Button.Triggers>
-        </Button>
+        <Border
+            x:Name="TeamActionMenu"
+            AutomationId="TeamWorkspaceActionMenu"
+            IsVisible="False"
+            Grid.RowSpan="7"
+            Margin="0,8,0,0"
+            Padding="8"
+            WidthRequest="260"
+            HorizontalOptions="End"
+            VerticalOptions="Start"
+            ZIndex="10"
+            BackgroundColor="{AppThemeBinding Light={StaticResource White}, Dark={StaticResource OffBlack}}"
+            Stroke="{AppThemeBinding Light={StaticResource Gray400}, Dark={StaticResource Gray600}}"
+            StrokeShape="RoundRectangle 8">
+            <VerticalStackLayout Spacing="4">
+                <Button
+                    AutomationId="TeamStatsButton"
+                    Text="{x:Static strings:AppResources.TeamStatsButton}"
+                    Clicked="OnTeamStatsClicked"
+                    MinimumHeightRequest="52"
+                    HorizontalOptions="Fill"
+                    BackgroundColor="Transparent"
+                    TextColor="{AppThemeBinding Light={StaticResource Black}, Dark={StaticResource White}}" />
+                <Button
+                    AutomationId="TeamBeerTotalsButton"
+                    Text="{x:Static strings:AppResources.BeerTotalsButton}"
+                    Clicked="OnBeerTotalsClicked"
+                    MinimumHeightRequest="52"
+                    HorizontalOptions="Fill"
+                    BackgroundColor="Transparent"
+                    TextColor="{AppThemeBinding Light={StaticResource Black}, Dark={StaticResource White}}" />
+                <Button
+                    AutomationId="TeamBeerRulesButton"
+                    Text="{x:Static strings:AppResources.TeamBeerRulesButton}"
+                    Clicked="OnBeerRulesClicked"
+                    MinimumHeightRequest="52"
+                    HorizontalOptions="Fill"
+                    BackgroundColor="Transparent"
+                    TextColor="{AppThemeBinding Light={StaticResource Black}, Dark={StaticResource White}}" />
+                <Button
+                    AutomationId="DeactivateTeamMenuItem"
+                    Text="{x:Static strings:AppResources.DeactivateTeamButton}"
+                    Clicked="OnDeactivateTeamClicked"
+                    MinimumHeightRequest="52"
+                    HorizontalOptions="Fill"
+                    BackgroundColor="Transparent"
+                    BorderColor="{AppThemeBinding Light=#B3261E, Dark=#FFB4AB}"
+                    BorderWidth="2"
+                    TextColor="{AppThemeBinding Light=#B3261E, Dark=#FFB4AB}" />
+            </VerticalStackLayout>
+        </Border>
+
     </Grid>
 </ContentPage>

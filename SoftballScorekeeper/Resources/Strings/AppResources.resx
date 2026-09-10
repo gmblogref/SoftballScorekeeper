@@ -569,6 +569,7 @@
   <data name="CompletedGameLoadFailedMessage" xml:space="preserve"><value>The completed Game record could not be loaded.</value></data>
   <data name="ExitGameButton" xml:space="preserve"><value>Exit Game</value></data>
   <data name="ScoringMenuAccessibility" xml:space="preserve"><value>Open scoring menu</value></data>
+  <data name="TeamWorkspaceMenuAccessibility" xml:space="preserve"><value>Open team menu</value></data>
   <data name="ScoringTitle" xml:space="preserve"><value>Scoring</value></data>
   <data name="OurTeamLabel" xml:space="preserve"><value>Our Team</value></data>
   <data name="HomeAwayLabel" xml:space="preserve"><value>Home / Away</value></data>
@@ -732,4 +733,18 @@
   <data name="ResetGameFailedMessage" xml:space="preserve"><value>The Game could not be reset. Its scoring state was preserved.</value></data>
   <data name="DecreaseValueButtonLabel" xml:space="preserve"><value>-</value></data>
   <data name="IncreaseValueButtonLabel" xml:space="preserve"><value>+</value></data>
+  <data name="TeamStatsTitle" xml:space="preserve"><value>Team Stats</value></data>
+  <data name="TeamStatsButton" xml:space="preserve"><value>Team Stats</value></data>
+  <data name="TeamStatsAllGamesFilter" xml:space="preserve"><value>All Games</value></data>
+  <data name="TeamStatsLastGameNightFilter" xml:space="preserve"><value>Last Game Night</value></data>
+  <data name="TeamStatsCurrentLeagueSeasonFilter" xml:space="preserve"><value>Current League Season</value></data>
+  <data name="TeamStatsCustomFilter" xml:space="preserve"><value>Filter Games</value></data>
+  <data name="TeamStatsCustomFilterCount" xml:space="preserve"><value>Custom ({0} Games)</value></data>
+  <data name="TeamStatsCustomTitle" xml:space="preserve"><value>Select Completed Games</value></data>
+  <data name="TeamStatsCustomGameFormat" xml:space="preserve"><value>{0:MMM d, yyyy} | {1} | {2:t} | {3}</value></data>
+  <data name="TeamStatsNoCompletedGames" xml:space="preserve"><value>No Completed Games match this filter.</value></data>
+  <data name="TeamStatsLoadFailed" xml:space="preserve"><value>Team Stats could not be loaded.</value></data>
+  <data name="SelectAllButton" xml:space="preserve"><value>Select All</value></data>
+  <data name="ClearAllButton" xml:space="preserve"><value>Clear All</value></data>
+  <data name="ApplyButton" xml:space="preserve"><value>Apply</value></data>
 </root>
