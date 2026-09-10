@@ -25,6 +25,8 @@ public sealed class BeerLedgerEntry
 
     public int? GamePlateAppearanceId { get; set; }
 
+    public DateTime? PlayingDate { get; set; }
+
     public int? RuleCountAdjustment { get; set; }
 
     public int Amount { get; set; }

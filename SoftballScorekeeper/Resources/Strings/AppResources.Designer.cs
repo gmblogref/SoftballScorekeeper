@@ -1098,6 +1098,17 @@ namespace SoftballScorekeeper.Resources.Strings {
         public static string BeerTotalsLowManHeader { get { return ResourceManager.GetString("BeerTotalsLowManHeader", resourceCulture); } }
         public static string BeerTotalsOwedHeader { get { return ResourceManager.GetString("BeerTotalsOwedHeader", resourceCulture); } }
         public static string BeerTotalsBroughtHeader { get { return ResourceManager.GetString("BeerTotalsBroughtHeader", resourceCulture); } }
+        public static string LowManCalculationHeading { get { return ResourceManager.GetString("LowManCalculationHeading", resourceCulture); } }
+        public static string LowManSelectGameNight { get { return ResourceManager.GetString("LowManSelectGameNight", resourceCulture); } }
+        public static string CalculateLowManButton { get { return ResourceManager.GetString("CalculateLowManButton", resourceCulture); } }
+        public static string RecalculateLowManButton { get { return ResourceManager.GetString("RecalculateLowManButton", resourceCulture); } }
+        public static string LowManGameNightOption { get { return ResourceManager.GetString("LowManGameNightOption", resourceCulture); } }
+        public static string LowManAllGamesCompleted { get { return ResourceManager.GetString("LowManAllGamesCompleted", resourceCulture); } }
+        public static string LowManIncompleteGamesWarning { get { return ResourceManager.GetString("LowManIncompleteGamesWarning", resourceCulture); } }
+        public static string LowManNoGameNights { get { return ResourceManager.GetString("LowManNoGameNights", resourceCulture); } }
+        public static string LowManCalculationSucceeded { get { return ResourceManager.GetString("LowManCalculationSucceeded", resourceCulture); } }
+        public static string LowManCalculationNoResult { get { return ResourceManager.GetString("LowManCalculationNoResult", resourceCulture); } }
+        public static string LowManCalculationFailed { get { return ResourceManager.GetString("LowManCalculationFailed", resourceCulture); } }
         public static string TeamBeerRulesTitle { get { return ResourceManager.GetString("TeamBeerRulesTitle", resourceCulture); } }
         public static string TeamBeerRulesDescription { get { return ResourceManager.GetString("TeamBeerRulesDescription", resourceCulture); } }
         public static string GameBeerRulesTitle { get { return ResourceManager.GetString("GameBeerRulesTitle", resourceCulture); } }

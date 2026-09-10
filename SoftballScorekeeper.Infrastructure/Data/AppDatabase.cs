@@ -80,6 +80,14 @@ public sealed class AppDatabase
                 nameof(GameScoringPendingRunnerMovement.OutOrder), "INTEGER");
             await AddColumnIfMissingAsync<BeerLedgerEntry>(
                 nameof(BeerLedgerEntry.RuleCountAdjustment), "INTEGER");
+            await AddColumnIfMissingAsync<BeerLedgerEntry>(
+                nameof(BeerLedgerEntry.PlayingDate), "DATETIME");
+            await connection.ExecuteAsync(
+                """
+                CREATE UNIQUE INDEX IF NOT EXISTS UX_BeerLedgerEntry_LowMan_Source
+                ON BeerLedgerEntry (TeamId, PlayingDate, PlayerId, RuleType, Origin)
+                WHERE PlayingDate IS NOT NULL AND RuleType = 6 AND Origin = 1
+                """);
             await connection.RunInTransactionAsync(transaction =>
             {
                 if (legacyScoringRules)

@@ -162,6 +162,77 @@ public sealed class BeerTotalsPresentationTests
             RepositoryRoot, "SoftballScorekeeper", "Views", "BeerTotalEditDialog.xaml")));
     }
 
+    [Fact]
+    public void Beer_totals_hosts_schedule_backed_deliberate_low_man_calculation()
+    {
+        var page = LoadXaml("Views", "TeamBeerTotalsPage.xaml");
+        var ns = page.Root!.Name.Namespace;
+        var source = ReadText("ViewModels", "TeamBeerTotalsViewModel.cs");
+        var composition = ReadText("MauiProgram.cs");
+        var grid = ReadText("Views", "Controls", "BeerTotalsGrid.xaml");
+
+        var picker = Assert.Single(page.Descendants(ns + "Picker"));
+        var button = Assert.Single(page.Descendants(ns + "Button").Where(item =>
+            item.Attribute("AutomationId")?.Value == "CalculateLowManButton"));
+        Assert.Equal("{Binding GameNights}", picker.Attribute("ItemsSource")?.Value);
+        Assert.Equal("{Binding SelectedGameNight}", picker.Attribute("SelectedItem")?.Value);
+        Assert.Equal("OnCalculateLowManClicked", button.Attribute("Clicked")?.Value);
+        Assert.Contains("lowManCalculationRepository.GetGameNightsAsync(TeamId)", source);
+        Assert.Contains("lowManCalculationRepository.CalculateAsync(", source);
+        Assert.Contains("gameNight.IncompleteGameCount", source);
+        Assert.Contains("await LoadSummaryAsync()", source);
+        Assert.Contains("AddSingleton<LowManCalculationRepository>()", composition);
+        Assert.DoesNotContain("CalculateLowMan", grid);
+        Assert.DoesNotContain("BattingStatistics", grid);
+    }
+
+    [Fact]
+    public void Low_man_result_message_uses_authoritative_winner_names_and_preserves_no_result_text()
+    {
+        var source = ReadText("ViewModels", "TeamBeerTotalsViewModel.cs");
+        var resources = XDocument.Load(Path.Combine(
+            RepositoryRoot,
+            "SoftballScorekeeper",
+            "Resources",
+            "Strings",
+            "AppResources.resx"));
+        var values = resources.Root!.Elements("data").ToDictionary(
+            item => item.Attribute("name")!.Value,
+            item => item.Element("value")!.Value);
+
+        Assert.Equal("Low Man: {0}", values["LowManCalculationSucceeded"]);
+        Assert.Contains("result.Winners.Count > 0", source);
+        Assert.Contains("AppResources.LowManCalculationNoResult", source);
+        Assert.Contains(
+            "string.Join(\", \", winners.Select(item => item.DisplayName))",
+            source);
+        Assert.DoesNotContain("Rows.Where", source);
+    }
+
+    [Fact]
+    public void Selected_date_loads_persisted_low_man_state_and_switches_action_text()
+    {
+        var page = LoadXaml("Views", "TeamBeerTotalsPage.xaml");
+        var ns = page.Root!.Name.Namespace;
+        var source = ReadText("ViewModels", "TeamBeerTotalsViewModel.cs");
+        var button = Assert.Single(page.Descendants(ns + "Button").Where(item =>
+            item.Attribute("AutomationId")?.Value == "CalculateLowManButton"));
+
+        Assert.Equal("{Binding LowManActionText}", button.Attribute("Text")?.Value);
+        Assert.Equal("{Binding CanSelectGameNight}",
+            Assert.Single(page.Descendants(ns + "Picker")).Attribute("IsEnabled")?.Value);
+        Assert.Contains("AppResources.RecalculateLowManButton", source);
+        Assert.Contains("AppResources.CalculateLowManButton", source);
+        Assert.Contains("GetPersistedAutomaticWinnersAsync(TeamId, selected.PlayingDate)",
+            source);
+        Assert.Contains("partial void OnSelectedGameNightChanged", source);
+        Assert.Contains("ClearSelectedLowManState();", source);
+        Assert.Contains("HasCalculatedLowMan = winners.Count > 0", source);
+        Assert.Contains("if (SelectedGameNight != selected)", source);
+        Assert.Contains("await LoadSelectedLowManStateAsync();", source);
+        Assert.DoesNotContain("SetEffectiveRuleCountAsync(TeamId", source);
+    }
+
     private static XDocument LoadXaml(params string[] path) => XDocument.Load(
         Path.Combine(new[] { RepositoryRoot, "SoftballScorekeeper" }.Concat(path).ToArray()));
 

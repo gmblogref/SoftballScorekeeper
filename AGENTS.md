@@ -97,11 +97,19 @@ immutable. Scoring Undo/Redo restores its snapshotted consequences but does not
 restore configuration changes. Low Man remains Team/date-level configuration
 and is not part of ordinary Game or plate-appearance Beer evaluation.
 
+Low Man is the deliberate recalculation exception: it aggregates authoritative
+numeric batting-statistic components across every completed Game for one Team
+and scheduled playing date, then reconciles only that date's automatic Low Man
+ledger results. It must not average formatted or per-Game rates, run when a Game
+completes, or become a global Beer recalculation workflow.
+
 Automatic Beer consequences are immutable scoring-derived history. Manual rule
 count adjustments and BROUGHT credits layer on top without changing scoring or
 automatic rows. Beer accounting is lifetime for one Team record, and balances
 such as OWED are derived from ledger data rather than persisted as independently
-mutable truth.
+mutable truth. Date-scoped automatic Low Man results are the narrow exception to
+immutability because deliberate recalculation must reconcile corrected completed
+Game history while preserving all manual adjustments.
 
 ## Presentation Layer
 

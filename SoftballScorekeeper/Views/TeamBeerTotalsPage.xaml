@@ -8,7 +8,7 @@
     xmlns:viewModels="clr-namespace:SoftballScorekeeper.ViewModels"
     x:DataType="viewModels:TeamBeerTotalsViewModel"
     Title="{x:Static strings:AppResources.BeerTotalsTitle}">
-    <Grid Padding="40" RowDefinitions="Auto,Auto,Auto,*" RowSpacing="14">
+    <Grid Padding="40" RowDefinitions="Auto,Auto,Auto,Auto,*" RowSpacing="14">
         <Label Text="{x:Static strings:AppResources.BeerTotalsTitle}" Style="{StaticResource Headline}" HorizontalTextAlignment="Center" SemanticProperties.HeadingLevel="Level1" />
         <Label Grid.Row="1" AutomationId="BeerTotalsTeamName" Text="{Binding TeamName}" Style="{StaticResource SubHeadline}" HorizontalTextAlignment="Center" />
         <Label Grid.Row="2" Text="{Binding ValidationMessage}" HorizontalTextAlignment="Center">
@@ -18,7 +18,31 @@
                 </DataTrigger>
             </Label.Triggers>
         </Label>
-        <Grid Grid.Row="3">
+        <Border Grid.Row="3" StrokeShape="RoundRectangle 8" Padding="12">
+            <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto,Auto" ColumnSpacing="12" RowSpacing="6">
+                <Label Text="{x:Static strings:AppResources.LowManCalculationHeading}" FontAttributes="Bold" />
+                <Picker
+                    Grid.Row="1"
+                    AutomationId="LowManGameNightPicker"
+                    ItemsSource="{Binding GameNights}"
+                    ItemDisplayBinding="{Binding DisplayText, x:DataType=viewModels:LowManGameNightViewModel}"
+                    SelectedItem="{Binding SelectedGameNight}"
+                    IsEnabled="{Binding CanSelectGameNight}"
+                    Title="{x:Static strings:AppResources.LowManSelectGameNight}" />
+                <Button
+                    Grid.Row="1"
+                    Grid.Column="1"
+                    AutomationId="CalculateLowManButton"
+                    Text="{Binding LowManActionText}"
+                    IsEnabled="{Binding CanCalculateLowMan}"
+                    Clicked="OnCalculateLowManClicked" />
+                <Label
+                    Grid.Row="2"
+                    Text="{Binding SelectedGameNight.DetailText, TargetNullValue={x:Static strings:AppResources.LowManNoGameNights}}" />
+                <Label Grid.Row="2" Grid.Column="1" Text="{Binding LowManStatusMessage}" HorizontalTextAlignment="End" />
+            </Grid>
+        </Border>
+        <Grid Grid.Row="4">
             <ActivityIndicator AutomationId="BeerTotalsLoading" IsRunning="{Binding IsBusy}" IsVisible="{Binding IsBusy}" HorizontalOptions="Center" VerticalOptions="Center" />
             <Label AutomationId="BeerTotalsEmptyState" Text="{x:Static strings:AppResources.BeerTotalsEmptyState}" IsVisible="{Binding HasNoRows}" HorizontalTextAlignment="Center" VerticalOptions="Center" />
             <controls:BeerTotalsGrid x:Name="TotalsGrid" IsVisible="{Binding HasRows}" />

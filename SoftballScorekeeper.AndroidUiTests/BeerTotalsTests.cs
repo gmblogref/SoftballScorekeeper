@@ -68,6 +68,53 @@ public sealed class BeerTotalsTests(AndroidAppiumFixture fixture)
         }
     }
 
+    [AndroidUiFact]
+    public void Calculate_low_man_for_selected_game_night_refreshes_low_man_and_owed()
+    {
+        fixture.ResetApplication(AndroidAutomationConstants.BeerTotalsTestSeedRequestFileName);
+        var driver = fixture.Driver;
+        try
+        {
+            OpenBeerTotals(driver);
+            Assert.Equal("2", FindByAutomationId(driver, "BeerTotalsLowMan-1").Text);
+            Assert.Equal("-2", FindByAutomationId(driver, "BeerTotalsOwed-1").Text);
+
+            var picker = AndroidElementWait.UntilAutomationId(driver, "LowManGameNightPicker");
+            Assert.Equal("Calculate Low Man",
+                AndroidElementWait.UntilAutomationId(driver, "CalculateLowManButton").Text);
+            Assert.Contains("Aug 15, 2026", picker.Text, StringComparison.Ordinal);
+            Assert.Contains("1 of 1 Games completed", picker.Text, StringComparison.Ordinal);
+            picker.Click();
+            AndroidElementWait.UntilText(
+                driver,
+                "Aug 15, 2026 — 1 of 1 Games completed").Click();
+
+            AndroidElementWait.UntilAutomationId(driver, "CalculateLowManButton").Click();
+
+            AndroidElementWait.UntilAutomationIdText(driver, "BeerTotalsLowMan-1", "3");
+            AndroidElementWait.UntilAutomationIdText(driver, "BeerTotalsOwed-1", "-1");
+            AndroidElementWait.UntilText(
+                driver,
+                "Low Man: Alex Automation");
+            Assert.Equal("Recalculate Low Man",
+                AndroidElementWait.UntilAutomationId(driver, "CalculateLowManButton").Text);
+            Assert.Equal("0", FindByAutomationId(driver, "BeerTotalsLowMan-2").Text);
+            Assert.Equal("0", FindByAutomationId(driver, "BeerTotalsOwed-2").Text);
+
+            driver.FindElement(MobileBy.AccessibilityId("Navigate up")).Click();
+            AndroidElementWait.UntilAutomationId(driver, "TeamBeerTotalsButton").Click();
+            AndroidElementWait.UntilText(driver, "Low Man: Alex Automation");
+            Assert.Equal("Recalculate Low Man",
+                AndroidElementWait.UntilAutomationId(driver, "CalculateLowManButton").Text);
+        }
+        catch (Exception exception)
+        {
+            ThrowWithDiagnostics(
+                nameof(Calculate_low_man_for_selected_game_night_refreshes_low_man_and_owed),
+                exception);
+        }
+    }
+
     private void AssertGridReachable(AndroidDriver driver, ScreenOrientation orientation)
     {
         fixture.SetOrientation(orientation);
