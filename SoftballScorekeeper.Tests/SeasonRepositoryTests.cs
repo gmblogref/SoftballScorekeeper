@@ -21,7 +21,8 @@ public sealed class SeasonRepositoryTests
                 (fall.Id, team.Id, "Fall", 2026),
                 (invitational.Id, team.Id, "Spring Invitational", 2027),
             ],
-            seasons.Select(season => (season.Id, season.TeamId, season.Name, season.Year)));
+            seasons.Select(season => (season.Id, season.TeamId, season.Name, season.Year))
+        );
     }
 
     [Fact]
@@ -41,7 +42,14 @@ public sealed class SeasonRepositoryTests
     {
         await using var testDatabase = await TemporaryTestDatabase.CreateAsync();
         var team = await CreateTeamAsync(testDatabase);
-        var names = new[] { "A League", "Bash Series", "City Nights", "Dome Session", "Extra Innings" };
+        var names = new[]
+        {
+            "A League",
+            "Bash Series",
+            "City Nights",
+            "Dome Session",
+            "Extra Innings",
+        };
         foreach (var name in names)
         {
             await CreateSeasonAsync(testDatabase, team, name, 2026);
@@ -81,7 +89,8 @@ public sealed class SeasonRepositoryTests
 
         Assert.Equal(
             [zulu.Id, firstAlpha.Id, secondAlpha.Id, laterYear.Id],
-            seasons.Select(season => season.Id));
+            seasons.Select(season => season.Id)
+        );
     }
 
     [Fact]
@@ -91,12 +100,15 @@ public sealed class SeasonRepositoryTests
         var team = await CreateTeamAsync(testDatabase);
         var season = await CreateSeasonAsync(testDatabase, team, "Summer 2", 2026);
 
-        var result = await testDatabase.CreateSeasonRepository()
+        var result = await testDatabase
+            .CreateSeasonRepository()
             .GetByIdForTeamAsync(team.Id, season.Id);
 
         Assert.NotNull(result);
-        Assert.Equal((season.Id, team.Id, "Summer 2", 2026),
-            (result.Id, result.TeamId, result.Name, result.Year));
+        Assert.Equal(
+            (season.Id, team.Id, "Summer 2", 2026),
+            (result.Id, result.TeamId, result.Name, result.Year)
+        );
     }
 
     [Fact]
@@ -107,7 +119,8 @@ public sealed class SeasonRepositoryTests
         var otherTeam = await CreateTeamAsync(testDatabase, "Royals");
         var otherSeason = await CreateSeasonAsync(testDatabase, otherTeam, "Summer", 2026);
 
-        var result = await testDatabase.CreateSeasonRepository()
+        var result = await testDatabase
+            .CreateSeasonRepository()
             .GetByIdForTeamAsync(selectedTeam.Id, otherSeason.Id);
 
         Assert.Null(result);
@@ -160,7 +173,8 @@ public sealed class SeasonRepositoryTests
         var otherTeam = await CreateTeamAsync(testDatabase, "Royals");
         await CreateSeasonAsync(testDatabase, otherTeam, "Summer", 2026);
 
-        var result = await testDatabase.CreateSeasonRepository()
+        var result = await testDatabase
+            .CreateSeasonRepository()
             .HasSeasonsForTeamAsync(selectedTeam.Id);
 
         Assert.False(result);
@@ -181,7 +195,8 @@ public sealed class SeasonRepositoryTests
         var persisted = Assert.Single(await testDatabase.GetSeasonsAsync());
         Assert.Equal(
             (season.Id, team.Id, "Rainout Makeup", 2025),
-            (persisted.Id, persisted.TeamId, persisted.Name, persisted.Year));
+            (persisted.Id, persisted.TeamId, persisted.Name, persisted.Year)
+        );
     }
 
     [Fact]
@@ -190,15 +205,18 @@ public sealed class SeasonRepositoryTests
         await using var testDatabase = await TemporaryTestDatabase.CreateAsync();
         var team = await CreateTeamAsync(testDatabase);
 
-        var season = await testDatabase.CreateSeasonRepository()
+        var season = await testDatabase
+            .CreateSeasonRepository()
             .GetOrCreateForTeamAsync(team.Id, "  Summer 2  ", 2026);
 
         Assert.NotNull(season);
         Assert.True(season.Id > 0);
         Assert.Equal((team.Id, "Summer 2", 2026), (season.TeamId, season.Name, season.Year));
         var persisted = Assert.Single(await testDatabase.GetSeasonsAsync());
-        Assert.Equal((season.Id, team.Id, "Summer 2", 2026),
-            (persisted.Id, persisted.TeamId, persisted.Name, persisted.Year));
+        Assert.Equal(
+            (season.Id, team.Id, "Summer 2", 2026),
+            (persisted.Id, persisted.TeamId, persisted.Name, persisted.Year)
+        );
     }
 
     [Fact]
@@ -217,18 +235,18 @@ public sealed class SeasonRepositoryTests
     }
 
     [Fact]
-    public async Task GetOrCreateForTeamAsync_SameNameDifferentYear_CreatesIndependentSeason()
+    public async Task GetOrCreateForTeamAsync_MismatchedTeamYear_IsRejected()
     {
         await using var testDatabase = await TemporaryTestDatabase.CreateAsync();
         var team = await CreateTeamAsync(testDatabase);
         var existing = await CreateSeasonAsync(testDatabase, team, "Summer", 2026);
 
-        var created = await testDatabase.CreateSeasonRepository()
+        var created = await testDatabase
+            .CreateSeasonRepository()
             .GetOrCreateForTeamAsync(team.Id, "Summer", 2027);
 
-        Assert.NotNull(created);
-        Assert.NotEqual(existing.Id, created.Id);
-        Assert.Equal(2, (await testDatabase.GetSeasonsAsync()).Count);
+        Assert.Null(created);
+        Assert.Single(await testDatabase.GetSeasonsAsync());
     }
 
     [Fact]
@@ -239,7 +257,8 @@ public sealed class SeasonRepositoryTests
         var secondTeam = await CreateTeamAsync(testDatabase, "Royals");
         var first = await CreateSeasonAsync(testDatabase, firstTeam, "Summer", 2026);
 
-        var second = await testDatabase.CreateSeasonRepository()
+        var second = await testDatabase
+            .CreateSeasonRepository()
             .GetOrCreateForTeamAsync(secondTeam.Id, "Summer", 2026);
 
         Assert.NotNull(second);
@@ -279,7 +298,8 @@ public sealed class SeasonRepositoryTests
 
     private static async Task<Team> CreateTeamAsync(
         TemporaryTestDatabase testDatabase,
-        string name = "Tigers")
+        string name = "Tigers"
+    )
     {
         var team = new Team { Name = name };
         Assert.Equal(1, await testDatabase.CreateTeamRepository().CreateAsync(team));
@@ -290,7 +310,8 @@ public sealed class SeasonRepositoryTests
         TemporaryTestDatabase testDatabase,
         Team team,
         string name,
-        int year)
+        int year
+    )
     {
         var season = new Season
         {

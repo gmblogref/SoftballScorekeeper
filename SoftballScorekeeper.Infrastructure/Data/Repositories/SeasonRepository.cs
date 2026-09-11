@@ -1,5 +1,5 @@
-using SQLite;
 using SoftballScorekeeper.Core.Models;
+using SQLite;
 
 namespace SoftballScorekeeper.Infrastructure.Data.Repositories;
 
@@ -30,7 +30,8 @@ public sealed class SeasonRepository
             WHERE Season.TeamId = ?
             ORDER BY Season.Year, Season.Id
             """,
-            teamId);
+            teamId
+        );
     }
 
     public async Task<Season?> GetByIdForTeamAsync(int teamId, int seasonId)
@@ -50,7 +51,8 @@ public sealed class SeasonRepository
             LIMIT 1
             """,
             teamId,
-            seasonId);
+            seasonId
+        );
 
         return seasons.FirstOrDefault();
     }
@@ -70,7 +72,8 @@ public sealed class SeasonRepository
             INNER JOIN Team ON Team.Id = Season.TeamId
             WHERE Season.TeamId = ?
             """,
-            teamId);
+            teamId
+        );
 
         return count > 0;
     }
@@ -96,24 +99,30 @@ public sealed class SeasonRepository
         SQLiteConnection connection,
         int teamId,
         string name,
-        int year)
+        int year
+    )
     {
         var normalizedName = name.Trim();
-        var activeTeam = connection.Table<Team>()
+        var activeTeam = connection
+            .Table<Team>()
             .FirstOrDefault(team => team.Id == teamId && team.IsActive);
-        if (activeTeam is null)
+        if (activeTeam is null || activeTeam.Year != year)
         {
             return null;
         }
 
-        var existingSeason = connection.Table<Season>()
+        var existingSeason = connection
+            .Table<Season>()
             .Where(season => season.TeamId == teamId && season.Year == year)
             .ToList()
             .OrderBy(season => season.Id)
-            .FirstOrDefault(season => string.Equals(
-                season.Name.Trim(),
-                normalizedName,
-                StringComparison.OrdinalIgnoreCase));
+            .FirstOrDefault(season =>
+                string.Equals(
+                    season.Name.Trim(),
+                    normalizedName,
+                    StringComparison.OrdinalIgnoreCase
+                )
+            );
         if (existingSeason is not null)
         {
             return existingSeason;
@@ -131,8 +140,6 @@ public sealed class SeasonRepository
 
     internal static bool HasValidSeasonValues(int teamId, string? name, int year)
     {
-        return teamId > 0
-            && !string.IsNullOrWhiteSpace(name)
-            && year is >= 1 and <= 9999;
+        return teamId > 0 && !string.IsNullOrWhiteSpace(name) && year is >= 1 and <= 9999;
     }
 }

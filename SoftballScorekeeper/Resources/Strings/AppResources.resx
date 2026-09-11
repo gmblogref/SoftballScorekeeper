@@ -747,4 +747,15 @@
   <data name="SelectAllButton" xml:space="preserve"><value>Select All</value></data>
   <data name="ClearAllButton" xml:space="preserve"><value>Clear All</value></data>
   <data name="ApplyButton" xml:space="preserve"><value>Apply</value></data>
+  <data name="TeamYearLabel" xml:space="preserve"><value>Team Year</value></data>
+  <data name="TeamYearPlaceholder" xml:space="preserve"><value>Enter a four-digit year</value></data>
+  <data name="TeamYearInvalid" xml:space="preserve"><value>Enter a Team Year from 1 through 9999.</value></data>
+  <data name="CopyTeamToNewYearButton" xml:space="preserve"><value>Copy Team to New Year</value></data>
+  <data name="CopyTeamConfirmationTitle" xml:space="preserve"><value>Copy Team to New Year?</value></data>
+  <data name="CopyTeamConfirmationMessage" xml:space="preserve"><value>Copy {0} from {1} to {2}? Current roster Players, jersey numbers, current-year League Seasons, and Beer Rules will copy. Games, statistics, prior Beer-rule counts, and BROUGHT will not copy. Each unresolved signed Beer balance will carry forward, and destination BROUGHT starts at zero.</value></data>
+  <data name="CopyTeamConfirmButton" xml:space="preserve"><value>Copy Team</value></data>
+  <data name="CopyTeamDestinationExists" xml:space="preserve"><value>The destination Team Year already exists. Use the existing Team or reactivate it separately.</value></data>
+  <data name="CopyTeamFailed" xml:space="preserve"><value>The Team could not be copied. No destination changes were saved.</value></data>
+  <data name="ExpandedTeamYearHeaderFormat" xml:space="preserve"><value>{0} ▼</value></data>
+  <data name="CollapsedTeamYearHeaderFormat" xml:space="preserve"><value>{0} ▶</value></data>
 </root>

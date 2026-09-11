@@ -19,6 +19,7 @@ public partial class AddGameViewModel : ObservableObject, IQueryAttributable
     private bool isUpdatingSecondGameTime;
     private bool seasonYearEdited;
     private bool secondGameTimeEdited;
+    private int teamYear;
     private DateTime scheduledDate = DateTime.Today;
     private TimeSpan scheduledTime;
     private TimeSpan secondGameTime;
@@ -67,7 +68,8 @@ public partial class AddGameViewModel : ObservableObject, IQueryAttributable
     public AddGameViewModel(
         TeamRepository teamRepository,
         SeasonRepository seasonRepository,
-        GameRepository gameRepository)
+        GameRepository gameRepository
+    )
     {
         ArgumentNullException.ThrowIfNull(teamRepository);
         ArgumentNullException.ThrowIfNull(seasonRepository);
@@ -143,8 +145,10 @@ public partial class AddGameViewModel : ObservableObject, IQueryAttributable
 
     public void ApplyQueryAttributes(IDictionary<string, object> query)
     {
-        if (!query.TryGetValue(AppShell.TeamIdQueryParameter, out var value)
-            || !TryParseTeamId(value, out var parsedTeamId))
+        if (
+            !query.TryGetValue(AppShell.TeamIdQueryParameter, out var value)
+            || !TryParseTeamId(value, out var parsedTeamId)
+        )
         {
             ResetTeamState();
             ValidationMessage = AppResources.TeamNotFound;
@@ -185,16 +189,23 @@ public partial class AddGameViewModel : ObservableObject, IQueryAttributable
             }
 
             var selectedSeasonId = SelectedSeason?.Season.Id;
-            var seasons = await seasonRepository.GetForTeamAsync(TeamId);
-            var mostRecentlyUsedSeasonId = await gameRepository
-                .GetMostRecentlyUsedSeasonIdAsync(TeamId);
+            teamYear = team.Year;
+            SeasonYearText = team.Year.ToString(CultureInfo.CurrentCulture);
+            seasonYearEdited = false;
+            var seasons = (await seasonRepository.GetForTeamAsync(TeamId))
+                .Where(item => item.Year == team.Year)
+                .ToArray();
+            var mostRecentlyUsedSeasonId = await gameRepository.GetMostRecentlyUsedSeasonIdAsync(
+                TeamId
+            );
             Seasons.Clear();
             foreach (var season in seasons)
             {
                 Seasons.Add(new SeasonSelectionItem(season));
             }
 
-            SelectedSeason = Seasons.FirstOrDefault(item => item.Season.Id == selectedSeasonId)
+            SelectedSeason =
+                Seasons.FirstOrDefault(item => item.Season.Id == selectedSeasonId)
                 ?? Seasons.FirstOrDefault(item => item.Season.Id == mostRecentlyUsedSeasonId)
                 ?? Seasons.OrderByDescending(item => item.Season.Id).FirstOrDefault();
             if (Seasons.Count == 0)
@@ -241,10 +252,7 @@ public partial class AddGameViewModel : ObservableObject, IQueryAttributable
                 return;
             }
 
-            var games = new List<Game>
-            {
-                BuildGame(ScheduledTime),
-            };
+            var games = new List<Game> { BuildGame(ScheduledTime) };
             if (AddSecondGame)
             {
                 games.Add(BuildGame(SecondGameTime));
@@ -253,9 +261,10 @@ public partial class AddGameViewModel : ObservableObject, IQueryAttributable
             var result = await gameRepository.CreateForTeamAsync(TeamId, season, games);
             if (!result.IsCompleteSuccess)
             {
-                ValidationMessage = result.FailureReason == CreateGamesFailure.DuplicateSchedule
-                    ? AppResources.DuplicateGameSchedule
-                    : AppResources.GameCreationFailed;
+                ValidationMessage =
+                    result.FailureReason == CreateGamesFailure.DuplicateSchedule
+                        ? AppResources.DuplicateGameSchedule
+                        : AppResources.GameCreationFailed;
                 return;
             }
 
@@ -306,21 +315,12 @@ public partial class AddGameViewModel : ObservableObject, IQueryAttributable
             return false;
         }
 
-        if (!int.TryParse(SeasonYearText, NumberStyles.Integer, CultureInfo.CurrentCulture, out var year)
-            || year is < 1 or > 9999)
-        {
-            ValidationMessage = AppResources.SeasonYearInvalid;
-            season = new Season();
-            return false;
-        }
-
         SeasonName = normalizedName;
-        SeasonYearText = year.ToString(CultureInfo.CurrentCulture);
         season = new Season
         {
             TeamId = TeamId,
             Name = normalizedName,
-            Year = year,
+            Year = teamYear,
         };
         return true;
     }
@@ -345,17 +345,20 @@ public partial class AddGameViewModel : ObservableObject, IQueryAttributable
         var nextDate = ScheduledDate.AddDays(7);
         var scheduledGames = await gameRepository.GetForTeamAsync(TeamId);
         var occupiedTimes = scheduledGames
-            .Where(game => game.SeasonId == resolvedSeasonId
-                && game.ScheduledDate.Date == nextDate.Date)
+            .Where(game =>
+                game.SeasonId == resolvedSeasonId && game.ScheduledDate.Date == nextDate.Date
+            )
             .Select(game => game.ScheduledTime)
             .ToHashSet();
         var nextTime = FindNextAvailableStandardTime(occupiedTimes, AddSecondGame);
 
-        var resolvedSelection = Seasons.FirstOrDefault(
-            item => item.Season.Id == resolvedSeasonId);
+        var resolvedSelection = Seasons.FirstOrDefault(item => item.Season.Id == resolvedSeasonId);
         if (resolvedSelection is null)
         {
-            var resolvedSeason = await seasonRepository.GetByIdForTeamAsync(TeamId, resolvedSeasonId);
+            var resolvedSeason = await seasonRepository.GetByIdForTeamAsync(
+                TeamId,
+                resolvedSeasonId
+            );
             if (resolvedSeason is not null)
             {
                 resolvedSelection = new SeasonSelectionItem(resolvedSeason);
@@ -375,14 +378,17 @@ public partial class AddGameViewModel : ObservableObject, IQueryAttributable
 
     private static TimeSpan FindNextAvailableStandardTime(
         IReadOnlySet<TimeSpan> occupiedTimes,
-        bool requiresConsecutiveSecondTime)
+        bool requiresConsecutiveSecondTime
+    )
     {
         var candidate = DefaultGameTime;
         for (var slot = 0; slot < 24; slot++)
         {
             var secondTime = AddOneHour(candidate);
-            if (!occupiedTimes.Contains(candidate)
-                && (!requiresConsecutiveSecondTime || !occupiedTimes.Contains(secondTime)))
+            if (
+                !occupiedTimes.Contains(candidate)
+                && (!requiresConsecutiveSecondTime || !occupiedTimes.Contains(secondTime))
+            )
             {
                 return candidate;
             }
@@ -390,7 +396,9 @@ public partial class AddGameViewModel : ObservableObject, IQueryAttributable
             candidate = secondTime;
         }
 
-        throw new InvalidOperationException("No standard Game time is available on the selected date.");
+        throw new InvalidOperationException(
+            "No standard Game time is available on the selected date."
+        );
     }
 
     private void ResetTeamState()
@@ -406,6 +414,7 @@ public partial class AddGameViewModel : ObservableObject, IQueryAttributable
         AddSecondGame = true;
         scheduledDate = DateTime.Today;
         seasonYearText = scheduledDate.Year.ToString(CultureInfo.CurrentCulture);
+        teamYear = 0;
         seasonYearEdited = false;
         scheduledTime = DefaultGameTime;
         secondGameTime = AddOneHour(scheduledTime);
@@ -433,9 +442,11 @@ public partial class AddGameViewModel : ObservableObject, IQueryAttributable
             return true;
         }
 
-        if (value is string stringValue
+        if (
+            value is string stringValue
             && int.TryParse(stringValue, out var stringTeamId)
-            && stringTeamId > 0)
+            && stringTeamId > 0
+        )
         {
             parsedTeamId = stringTeamId;
             return true;

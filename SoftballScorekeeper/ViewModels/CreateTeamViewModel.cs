@@ -1,3 +1,4 @@
+using System.Globalization;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using SoftballScorekeeper.Core.Models;
@@ -12,6 +13,14 @@ public partial class CreateTeamViewModel : ObservableObject
 
     [ObservableProperty]
     private string teamName = string.Empty;
+
+    private string teamYearText = string.Empty;
+
+    public string TeamYearText
+    {
+        get => teamYearText;
+        set => SetProperty(ref teamYearText, value);
+    }
 
     [ObservableProperty]
     private string validationMessage = string.Empty;
@@ -57,6 +66,7 @@ public partial class CreateTeamViewModel : ObservableObject
             var team = new Team
             {
                 Name = TeamName,
+                Year = int.Parse(TeamYearText, CultureInfo.CurrentCulture),
             };
 
             if (await teamRepository.CreateAsync(team) != 1)
@@ -69,6 +79,7 @@ public partial class CreateTeamViewModel : ObservableObject
             if (addAnother)
             {
                 TeamName = string.Empty;
+                TeamYearText = string.Empty;
                 return;
             }
 
@@ -89,6 +100,7 @@ public partial class CreateTeamViewModel : ObservableObject
     private async Task CancelAsync()
     {
         TeamName = string.Empty;
+        TeamYearText = string.Empty;
         ValidationMessage = string.Empty;
         IsSaved = false;
         await Shell.Current.GoToAsync("..");
@@ -105,15 +117,19 @@ public partial class CreateTeamViewModel : ObservableObject
 
         TeamName = trimmedName;
 
-        if (await teamRepository.ActiveNameExistsAsync(trimmedName))
+        if (
+            !int.TryParse(TeamYearText, NumberStyles.None, CultureInfo.CurrentCulture, out var year)
+            || year is < 1 or > 9999
+        )
         {
-            ValidationMessage = AppResources.DuplicateTeamName;
+            ValidationMessage = AppResources.TeamYearInvalid;
             return false;
         }
+        TeamYearText = year.ToString(CultureInfo.CurrentCulture);
 
-        if (await teamRepository.InactiveNameExistsAsync(trimmedName))
+        if (await teamRepository.NameYearExistsAsync(trimmedName, year))
         {
-            ValidationMessage = AppResources.InactiveTeamNameExists;
+            ValidationMessage = AppResources.DuplicateTeamName;
             return false;
         }
 

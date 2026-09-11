@@ -130,7 +130,7 @@ public sealed class TeamRepositoryTests
         await using var testDatabase = await TemporaryTestDatabase.CreateAsync();
         var repository = testDatabase.CreateTeamRepository();
         var excludedTeam = await CreateTeamAsync(repository, "Falcons");
-        await CreateTeamAsync(repository, " falcons ");
+        await CreateTeamAsync(repository, " falcons ", year: 2027);
 
         var excludingOneTeam = await repository.ActiveNameExistsAsync("FALCONS", excludedTeam.Id);
         var excludingMissingTeam = await repository.ActiveNameExistsAsync("Falcons", int.MaxValue);
@@ -194,10 +194,13 @@ public sealed class TeamRepositoryTests
         await using var testDatabase = await TemporaryTestDatabase.CreateAsync();
         var repository = testDatabase.CreateTeamRepository();
         var excludedTeam = await CreateTeamAsync(repository, "Falcons", isActive: false);
-        await CreateTeamAsync(repository, " falcons ", isActive: false);
+        await CreateTeamAsync(repository, " falcons ", isActive: false, year: 2027);
 
         var excludingOneTeam = await repository.InactiveNameExistsAsync("FALCONS", excludedTeam.Id);
-        var excludingMissingTeam = await repository.InactiveNameExistsAsync("Falcons", int.MaxValue);
+        var excludingMissingTeam = await repository.InactiveNameExistsAsync(
+            "Falcons",
+            int.MaxValue
+        );
 
         Assert.True(excludingOneTeam);
         Assert.True(excludingMissingTeam);
@@ -334,12 +337,15 @@ public sealed class TeamRepositoryTests
     private static async Task<Team> CreateTeamAsync(
         TeamRepository repository,
         string name,
-        bool isActive = true)
+        bool isActive = true,
+        int year = 2026
+    )
     {
         var team = new Team
         {
             Name = name,
             IsActive = isActive,
+            Year = year,
         };
 
         var rowsInserted = await repository.CreateAsync(team);

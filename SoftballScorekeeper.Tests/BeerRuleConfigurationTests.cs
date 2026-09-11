@@ -227,7 +227,7 @@ public sealed partial class GameScoringSessionRepositoryTests
         );
 
         Assert.Equal(
-            new[] { 2, 4 },
+            new long[] { 2, 4 },
             (await db.GetBeerLedgerEntriesAsync())
                 .Where(item => item.RuleType == BeerRuleType.Strikeout)
                 .Select(item => item.Amount)

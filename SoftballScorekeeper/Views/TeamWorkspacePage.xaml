@@ -569,6 +569,14 @@
                     BackgroundColor="Transparent"
                     TextColor="{AppThemeBinding Light={StaticResource Black}, Dark={StaticResource White}}" />
                 <Button
+                    AutomationId="CopyTeamToNewYearButton"
+                    Text="{x:Static strings:AppResources.CopyTeamToNewYearButton}"
+                    Clicked="OnCopyTeamClicked"
+                    MinimumHeightRequest="52"
+                    HorizontalOptions="Fill"
+                    BackgroundColor="Transparent"
+                    TextColor="{AppThemeBinding Light={StaticResource Black}, Dark={StaticResource White}}" />
+                <Button
                     AutomationId="DeactivateTeamMenuItem"
                     Text="{x:Static strings:AppResources.DeactivateTeamButton}"
                     Clicked="OnDeactivateTeamClicked"

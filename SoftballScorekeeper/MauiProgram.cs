@@ -1,5 +1,4 @@
 ﻿using Microsoft.Extensions.Logging;
-
 using SoftballScorekeeper.Configuration;
 using SoftballScorekeeper.Infrastructure.Data;
 using SoftballScorekeeper.Infrastructure.Data.Repositories;
@@ -25,7 +24,7 @@ namespace SoftballScorekeeper
                 });
 
 #if DEBUG
-    		builder.Logging.AddDebug();
+            builder.Logging.AddDebug();
 #endif
 
             builder.Services.AddSingleton<AppShell>();
@@ -36,24 +35,30 @@ namespace SoftballScorekeeper
                 var useAndroidUiTestDatabase = false;
 #if DEBUG && ANDROID
                 useAndroidUiTestDatabase = AndroidUiTestDataInitializer.IsInitializationRequested(
-                    FileSystem.AppDataDirectory);
+                    FileSystem.AppDataDirectory
+                );
 #endif
                 var normalDatabasePath = AppDatabaseFileIsolation.ResolveDatabasePath(
                     FileSystem.AppDataDirectory,
                     settings.DatabaseFileName,
                     settings.AndroidUiTestDatabaseFileName,
-                    useAndroidUiTestDatabase: false);
+                    useAndroidUiTestDatabase: false
+                );
                 var databasePath = AppDatabaseFileIsolation.ResolveDatabasePath(
                     FileSystem.AppDataDirectory,
                     settings.DatabaseFileName,
                     settings.AndroidUiTestDatabaseFileName,
-                    useAndroidUiTestDatabase);
+                    useAndroidUiTestDatabase
+                );
                 if (useAndroidUiTestDatabase)
                     AppDatabaseFileIsolation.ResetAndroidUiTestDatabase(
-                        normalDatabasePath, databasePath);
+                        normalDatabasePath,
+                        databasePath
+                    );
                 return new AppDatabase(databasePath);
             });
             builder.Services.AddSingleton<TeamRepository>();
+            builder.Services.AddSingleton<TeamYearCopyRepository>();
             builder.Services.AddSingleton<PlayerRepository>();
             builder.Services.AddSingleton<TeamPlayerRepository>();
             builder.Services.AddSingleton<SeasonRepository>();

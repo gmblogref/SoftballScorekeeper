@@ -50,13 +50,16 @@ public sealed class BeerRuleConfigurationPresentationTests
         var ns = teamPage.Root!.Name.Namespace;
         var sectionGrid = Assert.Single(
             teamPage.Descendants(ns + "Grid"),
-            grid => grid.Attribute("ColumnDefinitions")?.Value == "*,*"
+            grid =>
+                grid.Attribute("ColumnDefinitions")?.Value == "*,*"
                 && grid.Elements(ns + "Button").Count() == 2
         );
         var sectionButtons = sectionGrid.Elements(ns + "Button").ToArray();
         var menuTrigger = Assert.Single(teamPage.Descendants(ns + "ToolbarItem"));
-        var actionMenu = Assert.Single(teamPage.Descendants(ns + "Border"), item =>
-            item.Attribute("AutomationId")?.Value == "TeamWorkspaceActionMenu");
+        var actionMenu = Assert.Single(
+            teamPage.Descendants(ns + "Border"),
+            item => item.Attribute("AutomationId")?.Value == "TeamWorkspaceActionMenu"
+        );
         var menuButtons = actionMenu.Descendants(ns + "Button").ToArray();
 
         Assert.Equal(
@@ -68,46 +71,63 @@ public sealed class BeerRuleConfigurationPresentationTests
         );
         Assert.Equal(
             ["TeamWorkspaceGamesSectionButton", "TeamWorkspaceRosterSectionButton"],
-            sectionButtons.Select(button => button.Attribute("AutomationId")?.Value));
+            sectionButtons.Select(button => button.Attribute("AutomationId")?.Value)
+        );
         Assert.Equal("TeamWorkspaceMenuButton", menuTrigger.Attribute("AutomationId")?.Value);
         Assert.Equal("Primary", menuTrigger.Attribute("Order")?.Value);
         Assert.Equal("OnTeamMenuClicked", menuTrigger.Attribute("Clicked")?.Value);
         Assert.Equal("{Binding IsTeamLoaded}", menuTrigger.Attribute("IsEnabled")?.Value);
-        Assert.Equal("{x:Static strings:AppResources.TeamWorkspaceMenuAccessibility}",
-            menuTrigger.Attribute("Text")?.Value);
-        Assert.Contains(menuTrigger.Descendants(ns + "FontImageSource"), icon =>
-            icon.Attribute("Glyph")?.Value == "☰");
+        Assert.Equal(
+            "{x:Static strings:AppResources.TeamWorkspaceMenuAccessibility}",
+            menuTrigger.Attribute("Text")?.Value
+        );
+        Assert.Contains(
+            menuTrigger.Descendants(ns + "FontImageSource"),
+            icon => icon.Attribute("Glyph")?.Value == "☰"
+        );
         Assert.Equal("False", actionMenu.Attribute("IsVisible")?.Value);
         Assert.Equal("7", actionMenu.Attribute("Grid.RowSpan")?.Value);
         Assert.DoesNotContain("IsGamesSectionSelected", actionMenu.ToString());
         Assert.DoesNotContain("IsRosterSectionSelected", actionMenu.ToString());
-        Assert.Equal(4, menuButtons.Length);
+        Assert.Equal(5, menuButtons.Length);
         Assert.Equal(
             [
                 "{x:Static strings:AppResources.TeamStatsButton}",
                 "{x:Static strings:AppResources.BeerTotalsButton}",
                 "{x:Static strings:AppResources.TeamBeerRulesButton}",
+                "{x:Static strings:AppResources.CopyTeamToNewYearButton}",
                 "{x:Static strings:AppResources.DeactivateTeamButton}",
             ],
-            menuButtons.Select(item => item.Attribute("Text")?.Value));
+            menuButtons.Select(item => item.Attribute("Text")?.Value)
+        );
         Assert.Equal("OnTeamStatsClicked", menuButtons[0].Attribute("Clicked")?.Value);
         Assert.Equal("OnBeerTotalsClicked", menuButtons[1].Attribute("Clicked")?.Value);
         Assert.Equal("OnBeerRulesClicked", menuButtons[2].Attribute("Clicked")?.Value);
-        Assert.Equal("OnDeactivateTeamClicked", menuButtons[3].Attribute("Clicked")?.Value);
-        Assert.Equal("2", menuButtons[3].Attribute("BorderWidth")?.Value);
-        Assert.Contains("#B3261E", menuButtons[3].Attribute("TextColor")?.Value);
-        Assert.Contains("#B3261E", menuButtons[3].Attribute("BorderColor")?.Value);
+        Assert.Equal("OnCopyTeamClicked", menuButtons[3].Attribute("Clicked")?.Value);
+        Assert.Equal("OnDeactivateTeamClicked", menuButtons[4].Attribute("Clicked")?.Value);
+        Assert.Equal("2", menuButtons[4].Attribute("BorderWidth")?.Value);
+        Assert.Contains("#B3261E", menuButtons[4].Attribute("TextColor")?.Value);
+        Assert.Contains("#B3261E", menuButtons[4].Attribute("BorderColor")?.Value);
 
         var buttons = teamPage.Descendants(ns + "Button").ToArray();
-        Assert.DoesNotContain(sectionButtons, item => item.Attribute("Text")?.Value is
-            "{x:Static strings:AppResources.BeerTotalsButton}"
-            or "{x:Static strings:AppResources.TeamBeerRulesButton}"
-            or "{x:Static strings:AppResources.TeamStatsButton}"
-            or "{x:Static strings:AppResources.DeactivateTeamButton}");
-        Assert.Contains(buttons, item => item.Attribute("Text")?.Value
-            == "{x:Static strings:AppResources.AddGameButton}");
-        Assert.Contains(buttons, item => item.Attribute("Text")?.Value
-            == "{x:Static strings:AppResources.RemoveGamesButton}");
+        Assert.DoesNotContain(
+            sectionButtons,
+            item =>
+                item.Attribute("Text")?.Value
+                    is "{x:Static strings:AppResources.BeerTotalsButton}"
+                        or "{x:Static strings:AppResources.TeamBeerRulesButton}"
+                        or "{x:Static strings:AppResources.TeamStatsButton}"
+                        or "{x:Static strings:AppResources.DeactivateTeamButton}"
+        );
+        Assert.Contains(
+            buttons,
+            item => item.Attribute("Text")?.Value == "{x:Static strings:AppResources.AddGameButton}"
+        );
+        Assert.Contains(
+            buttons,
+            item =>
+                item.Attribute("Text")?.Value == "{x:Static strings:AppResources.RemoveGamesButton}"
+        );
     }
 
     [Fact]
@@ -117,7 +137,8 @@ public sealed class BeerRuleConfigurationPresentationTests
         var ns = lineupPage.Root!.Name.Namespace;
         var button = Assert.Single(
             lineupPage.Descendants(ns + "Button"),
-            item => item.Attribute("Text")?.Value
+            item =>
+                item.Attribute("Text")?.Value
                 == "{x:Static strings:AppResources.UsePreviousLineupButton}"
         );
         var viewModel = ReadText("ViewModels", "SetLineupViewModel.cs");

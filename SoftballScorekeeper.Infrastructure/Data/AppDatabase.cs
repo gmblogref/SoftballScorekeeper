@@ -1,5 +1,5 @@
-using SQLite;
 using SoftballScorekeeper.Core.Models;
+using SQLite;
 
 namespace SoftballScorekeeper.Infrastructure.Data;
 
@@ -16,13 +16,15 @@ public sealed class AppDatabase
         {
             throw new ArgumentException(
                 "Database path cannot be null, empty, or whitespace.",
-                nameof(databasePath));
+                nameof(databasePath)
+            );
         }
 
         DatabasePath = databasePath;
         connection = new SQLiteAsyncConnection(
             DatabasePath,
-            SQLiteOpenFlags.ReadWrite | SQLiteOpenFlags.Create | SQLiteOpenFlags.SharedCache);
+            SQLiteOpenFlags.ReadWrite | SQLiteOpenFlags.Create | SQLiteOpenFlags.SharedCache
+        );
     }
 
     public string DatabasePath { get; }
@@ -68,35 +70,50 @@ public sealed class AppDatabase
             await connection.CreateTableAsync<BeerLedgerEntry>();
             await connection.CreateTableAsync<TeamBeerRuleConfiguration>();
             await connection.CreateTableAsync<GameScoringBeerRuleConfiguration>();
-            await AddColumnIfMissingAsync<TeamPlayer>(
-                nameof(TeamPlayer.JerseyNumber), "INTEGER");
+            await AddColumnIfMissingAsync<TeamPlayer>(nameof(TeamPlayer.JerseyNumber), "INTEGER");
             await AddColumnIfMissingAsync<GameScoringSession>(
-                nameof(GameScoringSession.CompletedAtUtc), "DATETIME");
+                nameof(GameScoringSession.CompletedAtUtc),
+                "DATETIME"
+            );
             await AddColumnIfMissingAsync<GameScoringHistory>(
-                nameof(GameScoringHistory.PendingStartPosition), "INTEGER");
+                nameof(GameScoringHistory.PendingStartPosition),
+                "INTEGER"
+            );
             await AddColumnIfMissingAsync<GamePlateAppearanceRunnerMovement>(
-                nameof(GamePlateAppearanceRunnerMovement.OutOrder), "INTEGER");
+                nameof(GamePlateAppearanceRunnerMovement.OutOrder),
+                "INTEGER"
+            );
             await AddColumnIfMissingAsync<GameScoringPendingRunnerMovement>(
-                nameof(GameScoringPendingRunnerMovement.OutOrder), "INTEGER");
+                nameof(GameScoringPendingRunnerMovement.OutOrder),
+                "INTEGER"
+            );
             await AddColumnIfMissingAsync<BeerLedgerEntry>(
-                nameof(BeerLedgerEntry.RuleCountAdjustment), "INTEGER");
+                nameof(BeerLedgerEntry.RuleCountAdjustment),
+                "INTEGER"
+            );
             await AddColumnIfMissingAsync<BeerLedgerEntry>(
-                nameof(BeerLedgerEntry.PlayingDate), "DATETIME");
+                nameof(BeerLedgerEntry.PlayingDate),
+                "DATETIME"
+            );
             await connection.ExecuteAsync(
                 """
                 CREATE UNIQUE INDEX IF NOT EXISTS UX_BeerLedgerEntry_LowMan_Source
                 ON BeerLedgerEntry (TeamId, PlayingDate, PlayerId, RuleType, Origin)
                 WHERE PlayingDate IS NOT NULL AND RuleType = 6 AND Origin = 1
-                """);
+                """
+            );
             await connection.RunInTransactionAsync(transaction =>
             {
+                UpgradeStory77TeamYearsAndLineage(transaction);
                 if (legacyScoringRules)
                     transaction.Execute(
                         "UPDATE GameScoringSession SET HomeRunLimit = ?",
-                        GameScoringSession.DefaultHomeRunLimit);
+                        GameScoringSession.DefaultHomeRunLimit
+                    );
                 UpgradeStory60ScoringSessions(transaction);
-                Repositories.BeerRuleConfigurationRepository
-                    .EnsureExistingGameSnapshots(transaction);
+                Repositories.BeerRuleConfigurationRepository.EnsureExistingGameSnapshots(
+                    transaction
+                );
                 CleanupExpiredScoringHistory(transaction, DateTime.UtcNow);
             });
             isInitialized = true;
@@ -110,17 +127,21 @@ public sealed class AppDatabase
     private async Task AddColumnIfMissingAsync<T>(string columnName, string sqlType)
     {
         var columns = await connection.GetTableInfoAsync(typeof(T).Name);
-        if (columns.Any(column => column.Name == columnName)) return;
+        if (columns.Any(column => column.Name == columnName))
+            return;
         await connection.ExecuteAsync(
-            $"ALTER TABLE {typeof(T).Name} ADD COLUMN {columnName} {sqlType}");
+            $"ALTER TABLE {typeof(T).Name} ADD COLUMN {columnName} {sqlType}"
+        );
     }
 
     private async Task<bool> RequiresScoringRulesCompatibilityAsync()
     {
         var table = await connection.QueryAsync<SqliteTable>(
             "SELECT name FROM sqlite_master WHERE type = 'table' AND name = ?",
-            nameof(GameScoringSession));
-        if (table.Count == 0) return false;
+            nameof(GameScoringSession)
+        );
+        if (table.Count == 0)
+            return false;
         var columns = await connection.GetTableInfoAsync(nameof(GameScoringSession));
         return columns.All(column => column.Name != nameof(GameScoringSession.HomeRunLimit));
     }
@@ -130,14 +151,61 @@ public sealed class AppDatabase
         public string Name { get; set; } = string.Empty;
     }
 
-    internal static void CleanupExpiredScoringHistory(
-        SQLiteConnection transaction, DateTime utcNow)
+    private static void UpgradeStory77TeamYearsAndLineage(SQLiteConnection transaction)
+    {
+        if (transaction.ExecuteScalar<int>("PRAGMA user_version") >= 1)
+            return;
+
+        var teams = transaction.Table<Team>().OrderBy(item => item.Id).ToList();
+        foreach (var team in teams)
+        {
+            var years = transaction
+                .Table<Season>()
+                .Where(item => item.TeamId == team.Id)
+                .ToList()
+                .Select(item => item.Year)
+                .Where(item => item is >= 1 and <= 9999)
+                .ToArray();
+            team.Year = years.Length == 0 ? Team.LegacyDefaultYear : years.Max();
+            team.TeamLineageId = Guid.NewGuid();
+            team.PreviousTeamId = null;
+            if (transaction.Update(team) != 1)
+                throw new InvalidOperationException("Team Year migration did not affect one row.");
+        }
+
+        var duplicate = teams
+            .GroupBy(item => (Name: item.Name.Trim().ToUpperInvariant(), item.Year))
+            .FirstOrDefault(group => group.Count() > 1);
+        if (duplicate is not null)
+            throw new InvalidOperationException(
+                $"Team Year migration found duplicate Team name/year '{duplicate.Key.Name}' / {duplicate.Key.Year}."
+            );
+
+        transaction.Execute(
+            "CREATE UNIQUE INDEX IF NOT EXISTS UX_Team_Lineage_Year ON Team (TeamLineageId, Year)"
+        );
+        transaction.Execute(
+            "CREATE UNIQUE INDEX IF NOT EXISTS UX_Team_PreviousTeam ON Team (PreviousTeamId) WHERE PreviousTeamId IS NOT NULL"
+        );
+        transaction.Execute(
+            "CREATE UNIQUE INDEX IF NOT EXISTS UX_Team_Name_Year ON Team (Name COLLATE NOCASE, Year)"
+        );
+        transaction.Execute(
+            "CREATE UNIQUE INDEX IF NOT EXISTS UX_BeerLedgerEntry_CarryForward ON BeerLedgerEntry (TeamId, PlayerId, Origin) WHERE Origin = 4"
+        );
+        transaction.Execute("PRAGMA user_version = 1");
+    }
+
+    internal static void CleanupExpiredScoringHistory(SQLiteConnection transaction, DateTime utcNow)
     {
         var cutoff = utcNow - ScoringHistoryRetention;
-        var expiredSessionIds = transaction.Table<GameScoringSession>()
-            .Where(item => item.Status == GameScoringStatus.Completed
+        var expiredSessionIds = transaction
+            .Table<GameScoringSession>()
+            .Where(item =>
+                item.Status == GameScoringStatus.Completed
                 && item.CompletedAtUtc != null
-                && item.CompletedAtUtc <= cutoff)
+                && item.CompletedAtUtc <= cutoff
+            )
             .ToList()
             .Select(item => item.Id)
             .ToArray();
@@ -145,10 +213,12 @@ public sealed class AppDatabase
         {
             transaction.Execute(
                 "DELETE FROM GameScoringHistorySnapshot WHERE GameScoringSessionId = ?",
-                sessionId);
+                sessionId
+            );
             transaction.Execute(
                 "DELETE FROM GameScoringHistory WHERE GameScoringSessionId = ?",
-                sessionId);
+                sessionId
+            );
         }
     }
 
@@ -171,53 +241,66 @@ public sealed class AppDatabase
             else if (session.CurrentInning < 1)
             {
                 throw new InvalidOperationException(
-                    $"Scoring session {session.Id} has invalid inning or out state.");
+                    $"Scoring session {session.Id} has invalid inning or out state."
+                );
             }
             if (session.CurrentOuts is < 0 or > 2)
                 throw new InvalidOperationException(
-                    $"Scoring session {session.Id} has invalid inning or out state.");
+                    $"Scoring session {session.Id} has invalid inning or out state."
+                );
 
-            var sessionAppearances = transaction.Table<GamePlateAppearance>()
-                .Where(item => item.GameScoringSessionId == session.Id).ToList();
+            var sessionAppearances = transaction
+                .Table<GamePlateAppearance>()
+                .Where(item => item.GameScoringSessionId == session.Id)
+                .ToList();
             foreach (var appearance in sessionAppearances.Where(item => item.Inning == 0))
             {
                 appearance.Inning = 1;
                 if (transaction.Update(appearance) != 1)
                     throw new InvalidOperationException(
-                        "Plate-appearance compatibility update did not affect one row.");
+                        "Plate-appearance compatibility update did not affect one row."
+                    );
             }
             var appearanceIds = sessionAppearances.Select(item => item.Id).ToHashSet();
             var legacyScoringMovements = transaction
-                .Table<GamePlateAppearanceRunnerMovement>().ToList()
-                .Where(item => appearanceIds.Contains(item.GamePlateAppearanceId)
+                .Table<GamePlateAppearanceRunnerMovement>()
+                .ToList()
+                .Where(item =>
+                    appearanceIds.Contains(item.GamePlateAppearanceId)
                     && item.Destination == RunnerDestination.Scores
-                    && item.RunCounts is null);
+                    && item.RunCounts is null
+                );
             foreach (var movement in legacyScoringMovements)
             {
                 movement.RunCounts = true;
                 if (transaction.Update(movement) != 1)
                     throw new InvalidOperationException(
-                        "Runner-movement compatibility update did not affect one row.");
+                        "Runner-movement compatibility update did not affect one row."
+                    );
             }
 
-            var existingSequence = transaction.Table<GameScoringLineupPlayer>()
+            var existingSequence = transaction
+                .Table<GameScoringLineupPlayer>()
                 .Where(item => item.GameScoringSessionId == session.Id)
                 .ToList();
             if (existingSequence.Count > 0)
             {
                 if (inningStateChanged && transaction.Update(session) != 1)
                     throw new InvalidOperationException(
-                        "Scoring-session compatibility update did not affect one row.");
+                        "Scoring-session compatibility update did not affect one row."
+                    );
                 continue;
             }
 
             if (session.CurrentBatterPosition != 0)
             {
                 throw new InvalidOperationException(
-                    $"Scoring session {session.Id} has incomplete live scoring state.");
+                    $"Scoring session {session.Id} has incomplete live scoring state."
+                );
             }
 
-            var lineup = transaction.Table<GameLineupPlayer>()
+            var lineup = transaction
+                .Table<GameLineupPlayer>()
                 .Where(item => item.GameId == session.GameId)
                 .OrderBy(item => item.BattingOrder)
                 .ThenBy(item => item.Id)
@@ -225,7 +308,8 @@ public sealed class AppDatabase
             if (!IsStructurallyValid(lineup))
             {
                 throw new InvalidOperationException(
-                    $"Scoring session {session.Id} cannot be upgraded from an invalid frozen lineup.");
+                    $"Scoring session {session.Id} cannot be upgraded from an invalid frozen lineup."
+                );
             }
 
             foreach (var lineupPlayer in lineup)
@@ -239,7 +323,8 @@ public sealed class AppDatabase
                 if (transaction.Insert(sequencePlayer) != 1)
                 {
                     throw new InvalidOperationException(
-                        "Live batting-sequence insertion did not affect one row.");
+                        "Live batting-sequence insertion did not affect one row."
+                    );
                 }
             }
 
@@ -249,7 +334,8 @@ public sealed class AppDatabase
             if (transaction.Update(session) != 1)
             {
                 throw new InvalidOperationException(
-                    "Scoring-session compatibility update did not affect one row.");
+                    "Scoring-session compatibility update did not affect one row."
+                );
             }
         }
     }
@@ -257,6 +343,7 @@ public sealed class AppDatabase
     private static bool IsStructurallyValid(IReadOnlyList<GameLineupPlayer> lineup) =>
         lineup.Count > 0
         && lineup.Select(item => item.PlayerId).Distinct().Count() == lineup.Count
-        && lineup.Select(item => item.BattingOrder)
+        && lineup
+            .Select(item => item.BattingOrder)
             .SequenceEqual(Enumerable.Range(1, lineup.Count));
 }

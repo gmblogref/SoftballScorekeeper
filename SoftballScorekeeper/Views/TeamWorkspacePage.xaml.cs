@@ -15,24 +15,24 @@ public partial class TeamWorkspacePage : ContentPage
         viewModel.DeactivateTeamConfirmationRequested = ConfirmTeamDeactivationAsync;
         viewModel.RemovePlayersConfirmationRequested = ConfirmPlayerRemovalAsync;
         viewModel.RemoveGamesConfirmationRequested = ConfirmGameRemovalAsync;
+        viewModel.CopyTeamConfirmationRequested = ConfirmTeamCopyAsync;
         BindingContext = viewModel;
     }
 
     private async Task ConfirmGameRemovalAsync(int selectedGameCount)
     {
-        var messageTemplate = selectedGameCount == 1
-            ? AppResources.RemoveGameConfirmationMessage
-            : AppResources.RemoveGamesConfirmationMessage;
-        var message = string.Format(
-            CultureInfo.CurrentCulture,
-            messageTemplate,
-            selectedGameCount);
+        var messageTemplate =
+            selectedGameCount == 1
+                ? AppResources.RemoveGameConfirmationMessage
+                : AppResources.RemoveGamesConfirmationMessage;
+        var message = string.Format(CultureInfo.CurrentCulture, messageTemplate, selectedGameCount);
 
         var confirmed = await DisplayAlert(
             AppResources.RemoveGamesConfirmationTitle,
             message,
             AppResources.ConfirmRemoveGamesButton,
-            AppResources.CancelButton);
+            AppResources.CancelButton
+        );
 
         if (confirmed && viewModel.ConfirmRemoveSelectedGamesCommand.CanExecute(null))
         {
@@ -42,20 +42,23 @@ public partial class TeamWorkspacePage : ContentPage
 
     private async Task ConfirmPlayerRemovalAsync(int selectedPlayerCount, string teamName)
     {
-        var messageTemplate = selectedPlayerCount == 1
-            ? AppResources.RemovePlayerFromTeamConfirmationMessage
-            : AppResources.RemovePlayersFromTeamConfirmationMessage;
+        var messageTemplate =
+            selectedPlayerCount == 1
+                ? AppResources.RemovePlayerFromTeamConfirmationMessage
+                : AppResources.RemovePlayersFromTeamConfirmationMessage;
         var message = string.Format(
             CultureInfo.CurrentCulture,
             messageTemplate,
             selectedPlayerCount,
-            teamName);
+            teamName
+        );
 
         var confirmed = await DisplayAlert(
             AppResources.RemovePlayersFromTeamConfirmationTitle,
             message,
             AppResources.ConfirmRemovePlayersFromTeamButton,
-            AppResources.CancelButton);
+            AppResources.CancelButton
+        );
 
         if (confirmed && viewModel.ConfirmRemoveSelectedPlayersCommand.CanExecute(null))
         {
@@ -82,11 +85,13 @@ public partial class TeamWorkspacePage : ContentPage
             await DisplayAlert(
                 AppResources.TeamBeerRulesTitle,
                 AppResources.BeerRulesLoadFailed,
-                AppResources.OkButton);
+                AppResources.OkButton
+            );
             return;
         }
-        await new BeerRulesDialog(
-            true, settings, viewModel.SaveBeerRulesAsync).ShowAsync(Navigation);
+        await new BeerRulesDialog(true, settings, viewModel.SaveBeerRulesAsync).ShowAsync(
+            Navigation
+        );
     }
 
     private async void OnBeerTotalsClicked(object sender, EventArgs e)
@@ -97,7 +102,8 @@ public partial class TeamWorkspacePage : ContentPage
             new ShellNavigationQueryParameters
             {
                 [AppShell.TeamIdQueryParameter] = viewModel.TeamId,
-            });
+            }
+        );
     }
 
     private async void OnTeamStatsClicked(object sender, EventArgs e)
@@ -108,7 +114,8 @@ public partial class TeamWorkspacePage : ContentPage
             new ShellNavigationQueryParameters
             {
                 [AppShell.TeamIdQueryParameter] = viewModel.TeamId,
-            });
+            }
+        );
     }
 
     private void OnDeactivateTeamClicked(object sender, EventArgs e)
@@ -120,18 +127,46 @@ public partial class TeamWorkspacePage : ContentPage
         }
     }
 
+    private void OnCopyTeamClicked(object sender, EventArgs e)
+    {
+        TeamActionMenu.IsVisible = false;
+        if (viewModel.RequestCopyTeamCommand.CanExecute(null))
+            viewModel.RequestCopyTeamCommand.Execute(null);
+    }
+
+    private async Task ConfirmTeamCopyAsync(string teamName, int sourceYear, int destinationYear)
+    {
+        var message = string.Format(
+            CultureInfo.CurrentCulture,
+            AppResources.CopyTeamConfirmationMessage,
+            teamName,
+            sourceYear,
+            destinationYear
+        );
+        var confirmed = await DisplayAlert(
+            AppResources.CopyTeamConfirmationTitle,
+            message,
+            AppResources.CopyTeamConfirmButton,
+            AppResources.CancelButton
+        );
+        if (confirmed && viewModel.ConfirmCopyTeamCommand.CanExecute(null))
+            await viewModel.ConfirmCopyTeamCommand.ExecuteAsync(null);
+    }
+
     private async Task ConfirmTeamDeactivationAsync(string teamName)
     {
         var message = string.Format(
             CultureInfo.CurrentCulture,
             AppResources.DeactivateTeamConfirmationMessage,
-            teamName);
+            teamName
+        );
 
         var confirmed = await DisplayAlert(
             AppResources.DeactivateTeamConfirmationTitle,
             message,
             AppResources.ConfirmDeactivateTeamButton,
-            AppResources.CancelButton);
+            AppResources.CancelButton
+        );
 
         if (!confirmed || !viewModel.ConfirmDeactivateTeamCommand.CanExecute(null))
         {

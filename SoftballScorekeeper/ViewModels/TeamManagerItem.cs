@@ -9,7 +9,7 @@ public sealed class TeamManagerItem
     public TeamManagerItem(Team team, TeamYearRecord record)
     {
         Team = team;
-        Year = record.Year;
+        Year = team.Year;
         RecordDisplay = string.Format(
             CultureInfo.CurrentCulture,
             AppResources.TeamRecordFormat,

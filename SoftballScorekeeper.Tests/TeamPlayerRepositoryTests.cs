@@ -11,7 +11,8 @@ public sealed class TeamPlayerRepositoryTests
         await using var testDatabase = await TemporaryTestDatabase.CreateAsync();
         var team = await CreateTeamAsync(testDatabase);
 
-        var players = await testDatabase.CreateTeamPlayerRepository()
+        var players = await testDatabase
+            .CreateTeamPlayerRepository()
             .GetActivePlayersForTeamAsync(team.Id);
 
         Assert.Empty(players);
@@ -25,7 +26,8 @@ public sealed class TeamPlayerRepositoryTests
         var player = await CreatePlayerAsync(testDatabase, "Amy", "Adams");
         await AddTeamPlayerAsync(testDatabase, team, player);
 
-        var roster = await testDatabase.CreateTeamPlayerRepository()
+        var roster = await testDatabase
+            .CreateTeamPlayerRepository()
             .GetActivePlayersForTeamAsync(team.Id);
 
         var rosterPlayer = Assert.Single(roster);
@@ -42,7 +44,8 @@ public sealed class TeamPlayerRepositoryTests
         var player = await CreatePlayerAsync(testDatabase, "Amy", "Adams");
         await AddTeamPlayerAsync(testDatabase, team, player, isActive: false);
 
-        var roster = await testDatabase.CreateTeamPlayerRepository()
+        var roster = await testDatabase
+            .CreateTeamPlayerRepository()
             .GetActivePlayersForTeamAsync(team.Id);
 
         Assert.Empty(roster);
@@ -57,7 +60,8 @@ public sealed class TeamPlayerRepositoryTests
         await AddTeamPlayerAsync(testDatabase, team, player);
         Assert.Equal(1, await testDatabase.CreatePlayerRepository().DeactivateAsync([player.Id]));
 
-        var roster = await testDatabase.CreateTeamPlayerRepository()
+        var roster = await testDatabase
+            .CreateTeamPlayerRepository()
             .GetActivePlayersForTeamAsync(team.Id);
 
         Assert.Empty(roster);
@@ -72,7 +76,8 @@ public sealed class TeamPlayerRepositoryTests
         await AddTeamPlayerAsync(testDatabase, team, player);
         Assert.Equal(1, await testDatabase.CreateTeamRepository().DeactivateAsync(team.Id));
 
-        var roster = await testDatabase.CreateTeamPlayerRepository()
+        var roster = await testDatabase
+            .CreateTeamPlayerRepository()
             .GetActivePlayersForTeamAsync(team.Id);
 
         Assert.Empty(roster);
@@ -87,7 +92,8 @@ public sealed class TeamPlayerRepositoryTests
         var player = await CreatePlayerAsync(testDatabase, "Amy", "Adams");
         await AddTeamPlayerAsync(testDatabase, otherTeam, player);
 
-        var roster = await testDatabase.CreateTeamPlayerRepository()
+        var roster = await testDatabase
+            .CreateTeamPlayerRepository()
             .GetActivePlayersForTeamAsync(selectedTeam.Id);
 
         Assert.Empty(roster);
@@ -103,7 +109,8 @@ public sealed class TeamPlayerRepositoryTests
         await AddTeamPlayerAsync(testDatabase, team, amy);
         await AddTeamPlayerAsync(testDatabase, team, bob);
 
-        var roster = await testDatabase.CreateTeamPlayerRepository()
+        var roster = await testDatabase
+            .CreateTeamPlayerRepository()
             .GetActivePlayersForTeamAsync(team.Id);
 
         Assert.Equal([amy.Id, bob.Id], roster.Select(player => player.Id));
@@ -121,7 +128,8 @@ public sealed class TeamPlayerRepositoryTests
         await AddTeamPlayerAsync(testDatabase, team, amy);
         await AddTeamPlayerAsync(testDatabase, team, bob);
 
-        var roster = await testDatabase.CreateTeamPlayerRepository()
+        var roster = await testDatabase
+            .CreateTeamPlayerRepository()
             .GetActivePlayersForTeamAsync(team.Id);
 
         Assert.Equal(["Amy", "bob", "charlie"], roster.Select(player => player.FirstName));
@@ -139,7 +147,8 @@ public sealed class TeamPlayerRepositoryTests
         await AddTeamPlayerAsync(testDatabase, team, adams);
         await AddTeamPlayerAsync(testDatabase, team, baker);
 
-        var roster = await testDatabase.CreateTeamPlayerRepository()
+        var roster = await testDatabase
+            .CreateTeamPlayerRepository()
             .GetActivePlayersForTeamAsync(team.Id);
 
         Assert.Equal([adams.Id, baker.Id, clark.Id], roster.Select(player => player.Id));
@@ -155,7 +164,8 @@ public sealed class TeamPlayerRepositoryTests
         await AddTeamPlayerAsync(testDatabase, team, named);
         await AddTeamPlayerAsync(testDatabase, team, unnamed);
 
-        var roster = await testDatabase.CreateTeamPlayerRepository()
+        var roster = await testDatabase
+            .CreateTeamPlayerRepository()
             .GetActivePlayersForTeamAsync(team.Id);
 
         Assert.Equal([unnamed.Id, named.Id], roster.Select(player => player.Id));
@@ -171,7 +181,8 @@ public sealed class TeamPlayerRepositoryTests
         await AddTeamPlayerAsync(testDatabase, team, first);
         await AddTeamPlayerAsync(testDatabase, team, second);
 
-        var roster = await testDatabase.CreateTeamPlayerRepository()
+        var roster = await testDatabase
+            .CreateTeamPlayerRepository()
             .GetActivePlayersForTeamAsync(team.Id);
 
         Assert.Equal(2, roster.Count);
@@ -183,7 +194,8 @@ public sealed class TeamPlayerRepositoryTests
     {
         await using var testDatabase = await TemporaryTestDatabase.CreateAsync();
 
-        var roster = await testDatabase.CreateTeamPlayerRepository()
+        var roster = await testDatabase
+            .CreateTeamPlayerRepository()
             .GetActivePlayersForTeamAsync(int.MaxValue);
 
         Assert.Empty(roster);
@@ -207,19 +219,40 @@ public sealed class TeamPlayerRepositoryTests
         var player = await CreatePlayerAsync(testDatabase, "Amy", "Adams");
         var teamPlayer = await AddTeamPlayerAsync(testDatabase, team, player);
 
-        var roster = await testDatabase.CreateTeamPlayerRepository()
+        var roster = await testDatabase
+            .CreateTeamPlayerRepository()
             .GetActivePlayersForTeamAsync(team.Id);
 
         Assert.Single(roster);
-        var persistedTeam = Assert.Single(await testDatabase.CreateTeamRepository().GetActiveAsync());
-        var persistedPlayer = Assert.Single(await testDatabase.CreatePlayerRepository().GetActiveAsync());
+        var persistedTeam = Assert.Single(
+            await testDatabase.CreateTeamRepository().GetActiveAsync()
+        );
+        var persistedPlayer = Assert.Single(
+            await testDatabase.CreatePlayerRepository().GetActiveAsync()
+        );
         var persistedTeamPlayer = Assert.Single(await testDatabase.GetTeamPlayersAsync());
-        Assert.Equal((team.Id, team.Name, team.IsActive),
-            (persistedTeam.Id, persistedTeam.Name, persistedTeam.IsActive));
-        Assert.Equal((player.Id, player.FirstName, player.LastName, player.IsActive),
-            (persistedPlayer.Id, persistedPlayer.FirstName, persistedPlayer.LastName, persistedPlayer.IsActive));
-        Assert.Equal((teamPlayer.Id, teamPlayer.TeamId, teamPlayer.PlayerId, teamPlayer.IsActive),
-            (persistedTeamPlayer.Id, persistedTeamPlayer.TeamId, persistedTeamPlayer.PlayerId, persistedTeamPlayer.IsActive));
+        Assert.Equal(
+            (team.Id, team.Name, team.IsActive),
+            (persistedTeam.Id, persistedTeam.Name, persistedTeam.IsActive)
+        );
+        Assert.Equal(
+            (player.Id, player.FirstName, player.LastName, player.IsActive),
+            (
+                persistedPlayer.Id,
+                persistedPlayer.FirstName,
+                persistedPlayer.LastName,
+                persistedPlayer.IsActive
+            )
+        );
+        Assert.Equal(
+            (teamPlayer.Id, teamPlayer.TeamId, teamPlayer.PlayerId, teamPlayer.IsActive),
+            (
+                persistedTeamPlayer.Id,
+                persistedTeamPlayer.TeamId,
+                persistedTeamPlayer.PlayerId,
+                persistedTeamPlayer.IsActive
+            )
+        );
     }
 
     [Fact]
@@ -238,11 +271,13 @@ public sealed class TeamPlayerRepositoryTests
         await AddTeamPlayerAsync(db, otherTeam, otherMember);
         Assert.Equal(1, await db.CreatePlayerRepository().DeactivateAsync([inactivePlayer.Id]));
 
-        var eligible = await db.CreateTeamPlayerRepository().GetEligiblePlayersForTeamAsync(team.Id);
+        var eligible = await db.CreateTeamPlayerRepository()
+            .GetEligiblePlayersForTeamAsync(team.Id);
 
         Assert.Equal(
             [unassociated.Id, inactiveMember.Id, otherMember.Id],
-            eligible.Select(player => player.Id));
+            eligible.Select(player => player.Id)
+        );
     }
 
     [Fact]
@@ -269,9 +304,13 @@ public sealed class TeamPlayerRepositoryTests
         var amyAble = await CreatePlayerAsync(db, "amy", "able");
         var duplicate = await CreatePlayerAsync(db, "amy", "able");
 
-        var eligible = await db.CreateTeamPlayerRepository().GetEligiblePlayersForTeamAsync(team.Id);
+        var eligible = await db.CreateTeamPlayerRepository()
+            .GetEligiblePlayersForTeamAsync(team.Id);
 
-        Assert.Equal([amyNull.Id, amyAble.Id, duplicate.Id, charlie.Id], eligible.Select(player => player.Id));
+        Assert.Equal(
+            [amyNull.Id, amyAble.Id, duplicate.Id, charlie.Id],
+            eligible.Select(player => player.Id)
+        );
     }
 
     [Fact]
@@ -282,7 +321,9 @@ public sealed class TeamPlayerRepositoryTests
         var player = await CreatePlayerAsync(db, "Amy", "Able");
         var relationship = await AddTeamPlayerAsync(db, team, player, isActive: false);
 
-        Assert.Single(await db.CreateTeamPlayerRepository().GetEligiblePlayersForTeamAsync(team.Id));
+        Assert.Single(
+            await db.CreateTeamPlayerRepository().GetEligiblePlayersForTeamAsync(team.Id)
+        );
 
         var persisted = Assert.Single(await db.GetTeamPlayersAsync());
         Assert.Equal((relationship.Id, false), (persisted.Id, persisted.IsActive));
@@ -295,7 +336,8 @@ public sealed class TeamPlayerRepositoryTests
         var team = await CreateTeamAsync(db);
         var player = await CreatePlayerAsync(db, "Amy", "Able");
 
-        var result = await db.CreateTeamPlayerRepository().AddPlayersToTeamAsync(team.Id, [player.Id]);
+        var result = await db.CreateTeamPlayerRepository()
+            .AddPlayersToTeamAsync(team.Id, [player.Id]);
 
         Assert.Equal([player.Id], result.RequestedPlayerIds);
         Assert.Equal([player.Id], result.EligiblePlayerIds);
@@ -316,7 +358,8 @@ public sealed class TeamPlayerRepositoryTests
         var player = await CreatePlayerAsync(db, "Amy", "Able");
         var original = await AddTeamPlayerAsync(db, team, player, isActive: false);
 
-        var result = await db.CreateTeamPlayerRepository().AddPlayersToTeamAsync(team.Id, [player.Id]);
+        var result = await db.CreateTeamPlayerRepository()
+            .AddPlayersToTeamAsync(team.Id, [player.Id]);
 
         Assert.Equal([player.Id], result.ReactivatedPlayerIds);
         Assert.Empty(result.InsertedPlayerIds);
@@ -334,7 +377,8 @@ public sealed class TeamPlayerRepositoryTests
         var player = await CreatePlayerAsync(db, "Amy", "Able");
         var original = await AddTeamPlayerAsync(db, team, player);
 
-        var result = await db.CreateTeamPlayerRepository().AddPlayersToTeamAsync(team.Id, [player.Id, player.Id]);
+        var result = await db.CreateTeamPlayerRepository()
+            .AddPlayersToTeamAsync(team.Id, [player.Id, player.Id]);
 
         Assert.Equal([player.Id], result.RequestedPlayerIds);
         Assert.Equal([player.Id], result.AlreadyActivePlayerIds);
@@ -356,9 +400,11 @@ public sealed class TeamPlayerRepositoryTests
         await AddTeamPlayerAsync(db, team, alreadyActive);
         Assert.Equal(1, await db.CreatePlayerRepository().DeactivateAsync([inactive.Id]));
 
-        var result = await db.CreateTeamPlayerRepository().AddPlayersToTeamAsync(
-            team.Id,
-            [inserted.Id, reactivated.Id, alreadyActive.Id, inactive.Id, int.MaxValue, 0, -1]);
+        var result = await db.CreateTeamPlayerRepository()
+            .AddPlayersToTeamAsync(
+                team.Id,
+                [inserted.Id, reactivated.Id, alreadyActive.Id, inactive.Id, int.MaxValue, 0, -1]
+            );
 
         Assert.Equal([inserted.Id], result.InsertedPlayerIds);
         Assert.Equal([reactivated.Id], result.ReactivatedPlayerIds);
@@ -412,7 +458,10 @@ public sealed class TeamPlayerRepositoryTests
         var relationships = await db.GetTeamPlayersAsync();
         Assert.Equal(3, relationships.Count);
         Assert.Contains(relationships, item => item.Id == otherRelationship.Id && item.IsActive);
-        Assert.Contains(relationships, item => item.Id == unrelatedRelationship.Id && item.IsActive);
+        Assert.Contains(
+            relationships,
+            item => item.Id == unrelatedRelationship.Id && item.IsActive
+        );
         Assert.DoesNotContain(relationships, item => !item.IsActive);
     }
 
@@ -459,7 +508,7 @@ public sealed class TeamPlayerRepositoryTests
         var player = await CreatePlayerAsync(db, "Amy", "Able");
         var zulu = await CreateTeamAsync(db, "zulu");
         var alpha = await CreateTeamAsync(db, "Alpha");
-        var duplicate = await CreateTeamAsync(db, "Alpha");
+        var duplicate = await CreateTeamAsync(db, "Alpha", 2027);
         await AddTeamPlayerAsync(db, zulu, player);
         await AddTeamPlayerAsync(db, alpha, player);
         await AddTeamPlayerAsync(db, duplicate, player);
@@ -477,7 +526,9 @@ public sealed class TeamPlayerRepositoryTests
         var team = await CreateTeamAsync(db);
         var relationship = await AddTeamPlayerAsync(db, team, player);
 
-        Assert.Single(await db.CreateTeamPlayerRepository().GetActiveTeamsForPlayerAsync(player.Id));
+        Assert.Single(
+            await db.CreateTeamPlayerRepository().GetActiveTeamsForPlayerAsync(player.Id)
+        );
 
         var persisted = Assert.Single(await db.GetTeamPlayersAsync());
         Assert.Equal((relationship.Id, relationship.IsActive), (persisted.Id, persisted.IsActive));
@@ -491,7 +542,8 @@ public sealed class TeamPlayerRepositoryTests
         var player = await CreatePlayerAsync(db, "Amy", "Able");
         var relationship = await AddTeamPlayerAsync(db, team, player);
 
-        var result = await db.CreateTeamPlayerRepository().RemovePlayersFromTeamAsync(team.Id, [player.Id]);
+        var result = await db.CreateTeamPlayerRepository()
+            .RemovePlayersFromTeamAsync(team.Id, [player.Id]);
 
         Assert.Equal([player.Id], result.RequestedPlayerIds);
         Assert.Equal([player.Id], result.RemovedPlayerIds);
@@ -502,7 +554,13 @@ public sealed class TeamPlayerRepositoryTests
         var persistedRelationship = Assert.Single(await db.GetTeamPlayersAsync());
         Assert.Equal(
             (relationship.Id, relationship.TeamId, relationship.PlayerId, false),
-            (persistedRelationship.Id, persistedRelationship.TeamId, persistedRelationship.PlayerId, persistedRelationship.IsActive));
+            (
+                persistedRelationship.Id,
+                persistedRelationship.TeamId,
+                persistedRelationship.PlayerId,
+                persistedRelationship.IsActive
+            )
+        );
         var persistedPlayer = Assert.Single(await db.CreatePlayerRepository().GetActiveAsync());
         Assert.Equal(player.Id, persistedPlayer.Id);
         Assert.True(persistedPlayer.IsActive);
@@ -520,13 +578,23 @@ public sealed class TeamPlayerRepositoryTests
         var unselectedRelationship = await AddTeamPlayerAsync(db, selectedTeam, unselected);
         var otherTeamRelationship = await AddTeamPlayerAsync(db, otherTeam, selected);
 
-        await db.CreateTeamPlayerRepository().RemovePlayersFromTeamAsync(selectedTeam.Id, [selected.Id]);
+        await db.CreateTeamPlayerRepository()
+            .RemovePlayersFromTeamAsync(selectedTeam.Id, [selected.Id]);
 
         var relationships = await db.GetTeamPlayersAsync();
         Assert.Equal(3, relationships.Count);
-        Assert.Contains(relationships, item => item.Id == selectedRelationship.Id && !item.IsActive);
-        Assert.Contains(relationships, item => item.Id == unselectedRelationship.Id && item.IsActive);
-        Assert.Contains(relationships, item => item.Id == otherTeamRelationship.Id && item.IsActive);
+        Assert.Contains(
+            relationships,
+            item => item.Id == selectedRelationship.Id && !item.IsActive
+        );
+        Assert.Contains(
+            relationships,
+            item => item.Id == unselectedRelationship.Id && item.IsActive
+        );
+        Assert.Contains(
+            relationships,
+            item => item.Id == otherTeamRelationship.Id && item.IsActive
+        );
         Assert.Equal(2, (await db.CreatePlayerRepository().GetActiveAsync()).Count);
     }
 
@@ -539,9 +607,8 @@ public sealed class TeamPlayerRepositoryTests
         await AddTeamPlayerAsync(db, team, player);
         await AddTeamPlayerAsync(db, team, player);
 
-        var result = await db.CreateTeamPlayerRepository().RemovePlayersFromTeamAsync(
-            team.Id,
-            [player.Id, player.Id]);
+        var result = await db.CreateTeamPlayerRepository()
+            .RemovePlayersFromTeamAsync(team.Id, [player.Id, player.Id]);
 
         Assert.Equal([player.Id], result.RequestedPlayerIds);
         Assert.Equal([player.Id], result.RemovedPlayerIds);
@@ -561,9 +628,11 @@ public sealed class TeamPlayerRepositoryTests
         await AddTeamPlayerAsync(db, team, inactiveMember, isActive: false);
         Assert.Equal(1, await db.CreatePlayerRepository().DeactivateAsync([inactivePlayer.Id]));
 
-        var result = await db.CreateTeamPlayerRepository().RemovePlayersFromTeamAsync(
-            team.Id,
-            [inactiveMember.Id, notOnTeam.Id, inactivePlayer.Id, int.MaxValue, 0, -1]);
+        var result = await db.CreateTeamPlayerRepository()
+            .RemovePlayersFromTeamAsync(
+                team.Id,
+                [inactiveMember.Id, notOnTeam.Id, inactivePlayer.Id, int.MaxValue, 0, -1]
+            );
 
         Assert.Empty(result.RemovedPlayerIds);
         Assert.Equal([inactiveMember.Id], result.AlreadyInactivePlayerIds);
@@ -583,10 +652,24 @@ public sealed class TeamPlayerRepositoryTests
         Assert.Equal(1, await db.CreateTeamRepository().DeactivateAsync(inactiveTeam.Id));
         var repository = db.CreateTeamPlayerRepository();
 
-        Assert.Empty((await repository.RemovePlayersFromTeamAsync(activeTeam.Id, null)).RequestedPlayerIds);
-        Assert.Empty((await repository.RemovePlayersFromTeamAsync(activeTeam.Id, [])).RequestedPlayerIds);
-        Assert.Equal([player.Id], (await repository.RemovePlayersFromTeamAsync(int.MaxValue, [player.Id])).IgnoredPlayerIds);
-        Assert.Equal([player.Id], (await repository.RemovePlayersFromTeamAsync(inactiveTeam.Id, [player.Id])).IgnoredPlayerIds);
+        Assert.Empty(
+            (await repository.RemovePlayersFromTeamAsync(activeTeam.Id, null)).RequestedPlayerIds
+        );
+        Assert.Empty(
+            (await repository.RemovePlayersFromTeamAsync(activeTeam.Id, [])).RequestedPlayerIds
+        );
+        Assert.Equal(
+            [player.Id],
+            (
+                await repository.RemovePlayersFromTeamAsync(int.MaxValue, [player.Id])
+            ).IgnoredPlayerIds
+        );
+        Assert.Equal(
+            [player.Id],
+            (
+                await repository.RemovePlayersFromTeamAsync(inactiveTeam.Id, [player.Id])
+            ).IgnoredPlayerIds
+        );
         var persisted = Assert.Single(await db.GetTeamPlayersAsync());
         Assert.Equal((relationship.Id, true), (persisted.Id, persisted.IsActive));
     }
@@ -602,9 +685,12 @@ public sealed class TeamPlayerRepositoryTests
         await AddTeamPlayerAsync(db, team, first);
         await AddTeamPlayerAsync(db, team, second);
 
-        var complete = await db.CreateTeamPlayerRepository().RemovePlayersFromTeamAsync(team.Id, [first.Id]);
-        var partial = await db.CreateTeamPlayerRepository().RemovePlayersFromTeamAsync(team.Id, [second.Id, notOnTeam.Id]);
-        var noOp = await db.CreateTeamPlayerRepository().RemovePlayersFromTeamAsync(team.Id, [first.Id]);
+        var complete = await db.CreateTeamPlayerRepository()
+            .RemovePlayersFromTeamAsync(team.Id, [first.Id]);
+        var partial = await db.CreateTeamPlayerRepository()
+            .RemovePlayersFromTeamAsync(team.Id, [second.Id, notOnTeam.Id]);
+        var noOp = await db.CreateTeamPlayerRepository()
+            .RemovePlayersFromTeamAsync(team.Id, [first.Id]);
 
         Assert.Equal(1, complete.SuccessfulRemovalCount);
         Assert.Equal(1, partial.SuccessfulRemovalCount);
@@ -622,9 +708,18 @@ public sealed class TeamPlayerRepositoryTests
         var original = await AddTeamPlayerAsync(db, team, player);
         var repository = db.CreateTeamPlayerRepository();
 
-        Assert.Equal([player.Id], (await repository.RemovePlayersFromTeamAsync(team.Id, [player.Id])).RemovedPlayerIds);
-        Assert.Equal([player.Id], (await repository.GetEligiblePlayersForTeamAsync(team.Id)).Select(item => item.Id));
-        Assert.Equal([player.Id], (await repository.AddPlayersToTeamAsync(team.Id, [player.Id])).ReactivatedPlayerIds);
+        Assert.Equal(
+            [player.Id],
+            (await repository.RemovePlayersFromTeamAsync(team.Id, [player.Id])).RemovedPlayerIds
+        );
+        Assert.Equal(
+            [player.Id],
+            (await repository.GetEligiblePlayersForTeamAsync(team.Id)).Select(item => item.Id)
+        );
+        Assert.Equal(
+            [player.Id],
+            (await repository.AddPlayersToTeamAsync(team.Id, [player.Id])).ReactivatedPlayerIds
+        );
 
         var relationship = Assert.Single(await db.GetTeamPlayersAsync());
         Assert.Equal(original.Id, relationship.Id);
@@ -650,15 +745,18 @@ public sealed class TeamPlayerRepositoryTests
             roster,
             item =>
             {
-                Assert.Equal((alphaAmy.Id, alpha.Id, amy.Id),
-                    (item.TeamPlayerId, item.TeamId, item.Player.Id));
+                Assert.Equal(
+                    (alphaAmy.Id, alpha.Id, amy.Id),
+                    (item.TeamPlayerId, item.TeamId, item.Player.Id)
+                );
                 Assert.Equal(7, item.JerseyNumber);
             },
             item =>
             {
                 Assert.Equal(bob.Id, item.Player.Id);
                 Assert.Null(item.JerseyNumber);
-            });
+            }
+        );
     }
 
     [Fact]
@@ -674,7 +772,10 @@ public sealed class TeamPlayerRepositoryTests
 
         Assert.Equal(1, await repository.UpdateJerseyNumberAsync(alpha.Id, alphaMembership.Id, 7));
         Assert.Equal(1, await repository.UpdateJerseyNumberAsync(alpha.Id, alphaMembership.Id, 11));
-        Assert.Equal(1, await repository.UpdateJerseyNumberAsync(alpha.Id, alphaMembership.Id, null));
+        Assert.Equal(
+            1,
+            await repository.UpdateJerseyNumberAsync(alpha.Id, alphaMembership.Id, null)
+        );
 
         var relationships = await db.GetTeamPlayersAsync();
         Assert.Null(relationships.Single(item => item.Id == alphaMembership.Id).JerseyNumber);
@@ -689,26 +790,71 @@ public sealed class TeamPlayerRepositoryTests
         var inactiveTeam = await CreateTeamAsync(db, "Inactive");
         var activePlayer = await CreatePlayerAsync(db, "Amy", "Able");
         var inactivePlayer = await CreatePlayerAsync(db, "Bob", "Baker");
-        var activeMembership = await AddTeamPlayerAsync(db, activeTeam, activePlayer, jerseyNumber: 7);
-        var inactiveMembership = await AddTeamPlayerAsync(db, activeTeam, activePlayer, isActive: false, jerseyNumber: 8);
-        var inactiveTeamMembership = await AddTeamPlayerAsync(db, inactiveTeam, activePlayer, jerseyNumber: 9);
-        var inactivePlayerMembership = await AddTeamPlayerAsync(db, activeTeam, inactivePlayer, jerseyNumber: 10);
+        var activeMembership = await AddTeamPlayerAsync(
+            db,
+            activeTeam,
+            activePlayer,
+            jerseyNumber: 7
+        );
+        var inactiveMembership = await AddTeamPlayerAsync(
+            db,
+            activeTeam,
+            activePlayer,
+            isActive: false,
+            jerseyNumber: 8
+        );
+        var inactiveTeamMembership = await AddTeamPlayerAsync(
+            db,
+            inactiveTeam,
+            activePlayer,
+            jerseyNumber: 9
+        );
+        var inactivePlayerMembership = await AddTeamPlayerAsync(
+            db,
+            activeTeam,
+            inactivePlayer,
+            jerseyNumber: 10
+        );
         Assert.Equal(1, await db.CreateTeamRepository().DeactivateAsync(inactiveTeam.Id));
         Assert.Equal(1, await db.CreatePlayerRepository().DeactivateAsync([inactivePlayer.Id]));
         var repository = db.CreateTeamPlayerRepository();
 
-        Assert.Equal(0, await repository.UpdateJerseyNumberAsync(activeTeam.Id, activeMembership.Id, -1));
+        Assert.Equal(
+            0,
+            await repository.UpdateJerseyNumberAsync(activeTeam.Id, activeMembership.Id, -1)
+        );
         Assert.Equal(0, await repository.UpdateJerseyNumberAsync(activeTeam.Id, int.MaxValue, 12));
-        Assert.Equal(0, await repository.UpdateJerseyNumberAsync(activeTeam.Id, inactiveMembership.Id, 12));
-        Assert.Equal(0, await repository.UpdateJerseyNumberAsync(inactiveTeam.Id, inactiveTeamMembership.Id, 12));
-        Assert.Equal(0, await repository.UpdateJerseyNumberAsync(activeTeam.Id, inactivePlayerMembership.Id, 12));
-        Assert.Equal(0, await repository.UpdateJerseyNumberAsync(inactiveTeam.Id, activeMembership.Id, 12));
+        Assert.Equal(
+            0,
+            await repository.UpdateJerseyNumberAsync(activeTeam.Id, inactiveMembership.Id, 12)
+        );
+        Assert.Equal(
+            0,
+            await repository.UpdateJerseyNumberAsync(inactiveTeam.Id, inactiveTeamMembership.Id, 12)
+        );
+        Assert.Equal(
+            0,
+            await repository.UpdateJerseyNumberAsync(activeTeam.Id, inactivePlayerMembership.Id, 12)
+        );
+        Assert.Equal(
+            0,
+            await repository.UpdateJerseyNumberAsync(inactiveTeam.Id, activeMembership.Id, 12)
+        );
 
         var relationships = await db.GetTeamPlayersAsync();
         Assert.Equal(7, relationships.Single(item => item.Id == activeMembership.Id).JerseyNumber);
-        Assert.Equal(8, relationships.Single(item => item.Id == inactiveMembership.Id).JerseyNumber);
-        Assert.Equal(9, relationships.Single(item => item.Id == inactiveTeamMembership.Id).JerseyNumber);
-        Assert.Equal(10, relationships.Single(item => item.Id == inactivePlayerMembership.Id).JerseyNumber);
+        Assert.Equal(
+            8,
+            relationships.Single(item => item.Id == inactiveMembership.Id).JerseyNumber
+        );
+        Assert.Equal(
+            9,
+            relationships.Single(item => item.Id == inactiveTeamMembership.Id).JerseyNumber
+        );
+        Assert.Equal(
+            10,
+            relationships.Single(item => item.Id == inactivePlayerMembership.Id).JerseyNumber
+        );
     }
 
     [Fact]
@@ -722,27 +868,33 @@ public sealed class TeamPlayerRepositoryTests
                 TeamId INTEGER NOT NULL,
                 PlayerId INTEGER NOT NULL,
                 IsActive INTEGER NOT NULL)
-            """);
+            """
+        );
 
         await db.Database.InitializeAsync();
 
-        var columns = await db.UseConnectionAsync(
-            connection => connection.GetTableInfoAsync(nameof(TeamPlayer)));
+        var columns = await db.UseConnectionAsync(connection =>
+            connection.GetTableInfoAsync(nameof(TeamPlayer))
+        );
         Assert.Contains(columns, column => column.Name == nameof(TeamPlayer.JerseyNumber));
 
         var team = await CreateTeamAsync(db);
         var player = await CreatePlayerAsync(db, "Amy", "Able");
         var membership = await AddTeamPlayerAsync(db, team, player);
-        Assert.Equal(1, await db.CreateTeamPlayerRepository()
-            .UpdateJerseyNumberAsync(team.Id, membership.Id, 7));
+        Assert.Equal(
+            1,
+            await db.CreateTeamPlayerRepository().UpdateJerseyNumberAsync(team.Id, membership.Id, 7)
+        );
         Assert.Equal(7, Assert.Single(await db.GetTeamPlayersAsync()).JerseyNumber);
     }
 
     private static async Task<Team> CreateTeamAsync(
         TemporaryTestDatabase testDatabase,
-        string name = "Falcons")
+        string name = "Falcons",
+        int year = 2026
+    )
     {
-        var team = new Team { Name = name };
+        var team = new Team { Name = name, Year = year };
         Assert.Equal(1, await testDatabase.CreateTeamRepository().CreateAsync(team));
         return team;
     }
@@ -750,7 +902,8 @@ public sealed class TeamPlayerRepositoryTests
     private static async Task<Player> CreatePlayerAsync(
         TemporaryTestDatabase testDatabase,
         string firstName,
-        string? lastName)
+        string? lastName
+    )
     {
         var player = new Player { FirstName = firstName, LastName = lastName };
         Assert.Equal(1, await testDatabase.CreatePlayerRepository().CreateAsync(player));
@@ -762,7 +915,8 @@ public sealed class TeamPlayerRepositoryTests
         Team team,
         Player player,
         bool isActive = true,
-        int? jerseyNumber = null)
+        int? jerseyNumber = null
+    )
     {
         var teamPlayer = new TeamPlayer
         {

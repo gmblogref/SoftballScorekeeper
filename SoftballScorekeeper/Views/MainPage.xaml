@@ -34,52 +34,74 @@
                 IsVisible="{Binding HasNoTeams}" />
 
             <CollectionView
-                ItemsSource="{Binding Teams}"
+                ItemsSource="{Binding TeamYearGroups}"
                 IsVisible="{Binding HasTeams}"
                 SelectionMode="None">
                 <CollectionView.ItemTemplate>
-                    <DataTemplate x:DataType="viewModels:TeamManagerItem">
-                        <Border
-                            Margin="0,0,0,12"
-                            Padding="28,16"
-                            MinimumHeightRequest="64"
-                            HorizontalOptions="Start"
-                            BackgroundColor="{AppThemeBinding Light={StaticResource White}, Dark={StaticResource Gray900}}"
-                            Stroke="{AppThemeBinding Light={StaticResource Gray300}, Dark={StaticResource Gray500}}"
-                            StrokeThickness="2"
-                            AutomationId="{Binding CardAutomationId}"
-                            SemanticProperties.Description="{Binding Name}">
-                            <Border.GestureRecognizers>
-                                <TapGestureRecognizer
-                                    Command="{Binding Source={x:Reference PageRoot}, Path=BindingContext.OpenTeamCommand}"
-                                    CommandParameter="{Binding .}"
-                                    NumberOfTapsRequired="1" />
-                            </Border.GestureRecognizers>
+                    <DataTemplate x:DataType="viewModels:TeamManagerYearGroup">
+                        <VerticalStackLayout Spacing="0">
+                            <Button
+                                Margin="0,4"
+                                Padding="20,8"
+                                MinimumHeightRequest="48"
+                                HorizontalOptions="Fill"
+                                Text="{Binding HeaderDisplay}"
+                                Command="{Binding ToggleExpansionCommand}"
+                                AutomationId="{Binding Year, StringFormat='TeamYearGroup-{0}'}"
+                                FontAttributes="Bold"
+                                FontSize="18"
+                                BackgroundColor="{AppThemeBinding Light={StaticResource Gray200}, Dark={StaticResource Gray600}}"
+                                TextColor="{AppThemeBinding Light={StaticResource Gray900}, Dark={StaticResource White}}" />
+                            <VerticalStackLayout
+                                IsVisible="{Binding IsExpanded}"
+                                BindableLayout.ItemsSource="{Binding Teams}">
+                                <BindableLayout.ItemTemplate>
+                                    <DataTemplate x:DataType="viewModels:TeamManagerItem">
+                                        <Border
+                                            Margin="0,0,0,12"
+                                            Padding="28,16"
+                                            MinimumHeightRequest="64"
+                                            HorizontalOptions="Start"
+                                            BackgroundColor="{AppThemeBinding Light={StaticResource White}, Dark={StaticResource Gray900}}"
+                                            Stroke="{AppThemeBinding Light={StaticResource Gray300}, Dark={StaticResource Gray500}}"
+                                            StrokeThickness="2"
+                                            AutomationId="{Binding CardAutomationId}"
+                                            SemanticProperties.Description="{Binding Name}">
+                                            <Border.GestureRecognizers>
+                                                <TapGestureRecognizer
+                                                    Command="{Binding Source={x:Reference PageRoot}, Path=BindingContext.OpenTeamCommand}"
+                                                    CommandParameter="{Binding .}"
+                                                    NumberOfTapsRequired="1" />
+                                            </Border.GestureRecognizers>
 
-                            <Border.StrokeShape>
-                                <RoundRectangle CornerRadius="14" />
-                            </Border.StrokeShape>
+                                            <Border.StrokeShape>
+                                                <RoundRectangle CornerRadius="14" />
+                                            </Border.StrokeShape>
 
-                            <VerticalStackLayout Spacing="2">
-                                <Label
-                                    Text="{Binding Name}"
-                                    AutomationId="{Binding NameAutomationId}"
-                                    FontFamily="OpenSansSemibold"
-                                    FontSize="24"
-                                    LineBreakMode="WordWrap"
-                                    HorizontalOptions="Start"
-                                    HorizontalTextAlignment="Start" />
-                                <Label
-                                    Text="{Binding Year}"
-                                    AutomationId="{Binding YearAutomationId}"
-                                    IsVisible="{Binding HasYear}"
-                                    FontSize="16" />
-                                <Label
-                                    Text="{Binding RecordDisplay}"
-                                    AutomationId="{Binding RecordAutomationId}"
-                                    FontSize="16" />
+                                            <VerticalStackLayout Spacing="2">
+                                                <Label
+                                                    Text="{Binding Name}"
+                                                    AutomationId="{Binding NameAutomationId}"
+                                                    FontFamily="OpenSansSemibold"
+                                                    FontSize="24"
+                                                    LineBreakMode="WordWrap"
+                                                    HorizontalOptions="Start"
+                                                    HorizontalTextAlignment="Start" />
+                                                <Label
+                                                    Text="{Binding Year}"
+                                                    AutomationId="{Binding YearAutomationId}"
+                                                    IsVisible="{Binding HasYear}"
+                                                    FontSize="16" />
+                                                <Label
+                                                    Text="{Binding RecordDisplay}"
+                                                    AutomationId="{Binding RecordAutomationId}"
+                                                    FontSize="16" />
+                                            </VerticalStackLayout>
+                                        </Border>
+                                    </DataTemplate>
+                                </BindableLayout.ItemTemplate>
                             </VerticalStackLayout>
-                        </Border>
+                        </VerticalStackLayout>
                     </DataTemplate>
                 </CollectionView.ItemTemplate>
             </CollectionView>

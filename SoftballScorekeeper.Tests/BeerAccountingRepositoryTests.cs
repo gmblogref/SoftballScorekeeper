@@ -23,10 +23,7 @@ public sealed class BeerAccountingRepositoryTests
             columns,
             column => column.Name == nameof(BeerLedgerEntry.RuleCountAdjustment)
         );
-        Assert.Contains(
-            columns,
-            column => column.Name == nameof(BeerLedgerEntry.PlayingDate)
-        );
+        Assert.Contains(columns, column => column.Name == nameof(BeerLedgerEntry.PlayingDate));
     }
 
     [Fact]
@@ -78,7 +75,7 @@ public sealed class BeerAccountingRepositoryTests
             .Where(item => item.Origin == BeerLedgerEntryOrigin.AutomaticScoring)
             .ToArray();
         Assert.Equal(2, automatic.Length);
-        Assert.Equal(new[] { 2, 3 }, automatic.Select(item => item.Amount));
+        Assert.Equal(new long[] { 2, 3 }, automatic.Select(item => item.Amount));
         var adjustment = Assert.Single(
             (await db.GetBeerLedgerEntriesAsync()).Where(item =>
                 item.Origin == BeerLedgerEntryOrigin.ManualAdjustment
@@ -346,14 +343,15 @@ public sealed class BeerAccountingRepositoryTests
     }
 
     [Fact]
-    public async Task Summary_uses_current_name_and_keeps_removed_inactive_player_history()
+    public async Task Summary_uses_current_name_and_keeps_removed_inactive_player_nonzero_balance()
     {
         await using var db = await TemporaryTestDatabase.CreateAsync();
         var (team, player) = await CreateMemberAsync(db, "Sam", "Old");
-        await SeedAutomaticAsync(db, team.Id, player.Id, BeerRuleType.Dbo, 1);
+        await SeedAutomaticAsync(db, team.Id, player.Id, BeerRuleType.Dbo, 2);
         Assert.True(
-            (await db.CreateBeerAccountingRepository().SetBroughtAsync(team.Id, player.Id, 1))
-                .IsSuccess
+            (
+                await db.CreateBeerAccountingRepository().SetBroughtAsync(team.Id, player.Id, 1)
+            ).IsSuccess
         );
         player.FirstName = "Samuel";
         player.LastName = "Current";
@@ -374,7 +372,175 @@ public sealed class BeerAccountingRepositoryTests
         Assert.Equal("Samuel Current", summary.PlayerDisplayName);
         Assert.Equal(1, summary.DboCount);
         Assert.Equal(1, summary.Brought);
-        Assert.Equal(0, summary.Owed);
+        Assert.Equal(1, summary.Owed);
+    }
+
+    [Fact]
+    public async Task Summary_lists_current_roster_before_nonroster_nonzero_balances_and_omits_nonroster_zero_balance()
+    {
+        await using var db = await TemporaryTestDatabase.CreateAsync();
+        var team = new Team { Name = "Ordering Team" };
+        Assert.Equal(1, await db.CreateTeamRepository().CreateAsync(team));
+        var activeAlpha = await CreatePlayerAsync(db, team.Id, "Active", "Alpha");
+        var activeZulu = await CreatePlayerAsync(db, team.Id, "Active", "Zulu");
+        var positive = await CreatePlayerAsync(db, team.Id, "Former", "Aardvark");
+        var negative = await CreatePlayerAsync(db, team.Id, "Former", "Baker");
+        var zero = await CreatePlayerAsync(db, team.Id, "Former", "Carter");
+        await SeedAutomaticAsync(db, team.Id, positive.Id, BeerRuleType.Dbo, 3);
+        Assert.True(
+            (
+                await db.CreateBeerAccountingRepository().SetBroughtAsync(team.Id, negative.Id, 2)
+            ).IsSuccess
+        );
+        await SeedAutomaticAsync(db, team.Id, zero.Id, BeerRuleType.Dbo, 1);
+        Assert.True(
+            (
+                await db.CreateBeerAccountingRepository().SetBroughtAsync(team.Id, zero.Id, 1)
+            ).IsSuccess
+        );
+        var removed = await db.CreateTeamPlayerRepository()
+            .RemovePlayersFromTeamAsync(team.Id, [positive.Id, negative.Id, zero.Id]);
+        Assert.Equal(3, removed.RemovedPlayerIds.Count);
+
+        var summaries = (await db.CreateBeerAccountingRepository().GetTeamLifetimeAsync(team.Id))!;
+
+        Assert.Equal(
+            [activeAlpha.Id, activeZulu.Id, positive.Id, negative.Id],
+            summaries.Select(item => item.PlayerId)
+        );
+        Assert.Equal(3, summaries.Single(item => item.PlayerId == positive.Id).Owed);
+        Assert.Equal(-2, summaries.Single(item => item.PlayerId == negative.Id).Owed);
+        Assert.DoesNotContain(summaries, item => item.PlayerId == zero.Id);
+    }
+
+    [Fact]
+    public async Task Nonroster_inactive_player_with_balance_is_visible_without_membership_or_reactivation()
+    {
+        await using var db = await TemporaryTestDatabase.CreateAsync();
+        var team = new Team { Name = "Accounting Only Team" };
+        Assert.Equal(1, await db.CreateTeamRepository().CreateAsync(team));
+        var player = new Player { FirstName = "Inactive", LastName = "Holder" };
+        Assert.Equal(1, await db.CreatePlayerRepository().CreateAsync(player));
+        await SeedAutomaticAsync(db, team.Id, player.Id, BeerRuleType.Strikeout, 2);
+        Assert.Equal(1, await db.CreatePlayerRepository().DeactivateAsync([player.Id]));
+
+        var summary = Assert.Single(
+            (await db.CreateBeerAccountingRepository().GetTeamLifetimeAsync(team.Id))!
+        );
+
+        Assert.Equal(player.Id, summary.PlayerId);
+        Assert.Equal(2, summary.Owed);
+        Assert.False((await db.GetPlayersAsync()).Single(item => item.Id == player.Id).IsActive);
+        Assert.DoesNotContain(
+            await db.GetTeamPlayersAsync(),
+            item => item.TeamId == team.Id && item.PlayerId == player.Id
+        );
+    }
+
+    [Fact]
+    public async Task Rejoining_preserves_balance_moves_player_into_roster_order_and_does_not_duplicate_row()
+    {
+        await using var db = await TemporaryTestDatabase.CreateAsync();
+        var team = new Team { Name = "Rejoin Team" };
+        Assert.Equal(1, await db.CreateTeamRepository().CreateAsync(team));
+        var active = await CreatePlayerAsync(db, team.Id, "Current", "Zulu");
+        var rejoining = new Player { FirstName = "Returning", LastName = "Alpha" };
+        Assert.Equal(1, await db.CreatePlayerRepository().CreateAsync(rejoining));
+        await SeedAutomaticAsync(db, team.Id, rejoining.Id, BeerRuleType.TriplePlay, 4);
+        var accounting = db.CreateBeerAccountingRepository();
+        Assert.Equal(
+            [active.Id, rejoining.Id],
+            (await accounting.GetTeamLifetimeAsync(team.Id))!.Select(item => item.PlayerId)
+        );
+
+        var added = await db.CreateTeamPlayerRepository()
+            .AddPlayersToTeamAsync(team.Id, [rejoining.Id]);
+
+        Assert.Equal([rejoining.Id], added.InsertedPlayerIds);
+        var summaries = (await accounting.GetTeamLifetimeAsync(team.Id))!;
+        Assert.Equal([rejoining.Id, active.Id], summaries.Select(item => item.PlayerId));
+        Assert.Equal(4, summaries.Single(item => item.PlayerId == rejoining.Id).Owed);
+        Assert.Equal(summaries.Count, summaries.Select(item => item.PlayerId).Distinct().Count());
+    }
+
+    [Fact]
+    public async Task Copied_team_carry_forward_entries_include_ineligible_players_without_roster_changes()
+    {
+        await using var db = await TemporaryTestDatabase.CreateAsync();
+        var source = new Team { Name = "Source Year" };
+        var destination = new Team { Name = "Destination Year" };
+        Assert.Equal(1, await db.CreateTeamRepository().CreateAsync(source));
+        Assert.Equal(1, await db.CreateTeamRepository().CreateAsync(destination));
+        var rosterPlayer = await CreatePlayerAsync(db, destination.Id, "Roster", "Alpha");
+        var positive = new Player { FirstName = "Positive", LastName = "Carry" };
+        var negative = new Player { FirstName = "Negative", LastName = "Credit" };
+        Assert.Equal(1, await db.CreatePlayerRepository().CreateAsync(positive));
+        Assert.Equal(1, await db.CreatePlayerRepository().CreateAsync(negative));
+        Assert.Equal(1, await db.CreatePlayerRepository().DeactivateAsync([positive.Id]));
+        Assert.Equal(
+            1,
+            await db.SeedTeamPlayerAsync(
+                new TeamPlayer
+                {
+                    TeamId = source.Id,
+                    PlayerId = positive.Id,
+                    IsActive = false,
+                }
+            )
+        );
+        await SeedAutomaticAsync(db, source.Id, positive.Id, BeerRuleType.Dbo, 3);
+        await db.SeedBeerLedgerEntryAsync(
+            new BeerLedgerEntry
+            {
+                TeamId = source.Id,
+                PlayerId = negative.Id,
+                Origin = BeerLedgerEntryOrigin.BroughtCredit,
+                Amount = 2,
+            }
+        );
+        await db.SeedBeerLedgerEntryAsync(
+            new BeerLedgerEntry
+            {
+                TeamId = destination.Id,
+                PlayerId = positive.Id,
+                RuleType = BeerRuleType.Dbo,
+                Origin = BeerLedgerEntryOrigin.ManualAdjustment,
+                RuleCountAdjustment = 3,
+                Amount = 3,
+            }
+        );
+        await db.SeedBeerLedgerEntryAsync(
+            new BeerLedgerEntry
+            {
+                TeamId = destination.Id,
+                PlayerId = negative.Id,
+                Origin = BeerLedgerEntryOrigin.BroughtCredit,
+                Amount = 2,
+            }
+        );
+
+        var summaries = (
+            await db.CreateBeerAccountingRepository().GetTeamLifetimeAsync(destination.Id)
+        )!;
+
+        var sourceSummaries = (
+            await db.CreateBeerAccountingRepository().GetTeamLifetimeAsync(source.Id)
+        )!;
+        Assert.Equal(3, sourceSummaries.Single(item => item.PlayerId == positive.Id).Owed);
+        Assert.Equal(-2, sourceSummaries.Single(item => item.PlayerId == negative.Id).Owed);
+        Assert.Equal(
+            [rosterPlayer.Id, positive.Id, negative.Id],
+            summaries.Select(item => item.PlayerId)
+        );
+        Assert.Equal(3, summaries.Single(item => item.PlayerId == positive.Id).Owed);
+        Assert.Equal(-2, summaries.Single(item => item.PlayerId == negative.Id).Owed);
+        Assert.DoesNotContain(
+            await db.GetTeamPlayersAsync(),
+            item =>
+                item.TeamId == destination.Id
+                && (item.PlayerId == positive.Id || item.PlayerId == negative.Id)
+        );
+        Assert.False((await db.GetPlayersAsync()).Single(item => item.Id == positive.Id).IsActive);
     }
 
     [Fact]
@@ -515,6 +681,22 @@ public sealed class BeerAccountingRepositoryTests
             await db.SeedTeamPlayerAsync(new TeamPlayer { TeamId = team.Id, PlayerId = player.Id })
         );
         return (team, player);
+    }
+
+    private static async Task<Player> CreatePlayerAsync(
+        TemporaryTestDatabase db,
+        int teamId,
+        string firstName,
+        string lastName
+    )
+    {
+        var player = new Player { FirstName = firstName, LastName = lastName };
+        Assert.Equal(1, await db.CreatePlayerRepository().CreateAsync(player));
+        Assert.Equal(
+            1,
+            await db.SeedTeamPlayerAsync(new TeamPlayer { TeamId = teamId, PlayerId = player.Id })
+        );
+        return player;
     }
 
     private static Task<int> SeedAutomaticAsync(

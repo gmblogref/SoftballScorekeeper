@@ -15,14 +15,38 @@ public sealed class TeamRepository
 
     public async Task<int> CreateAsync(Team team)
     {
+        if (!HasValidIdentity(team.Name, team.Year) || team.PreviousTeamId is not null)
+            return 0;
         var connection = await database.GetConnectionAsync();
+        if (await NameYearExistsAsync(connection, team.Name, team.Year, null))
+            return 0;
+        team.Name = team.Name.Trim();
+        if (team.TeamLineageId == Guid.Empty)
+            team.TeamLineageId = Guid.NewGuid();
         return await connection.InsertAsync(team);
     }
 
     public async Task<int> UpdateAsync(Team team)
     {
         var connection = await database.GetConnectionAsync();
+        var persisted = await connection.FindAsync<Team>(team.Id);
+        if (
+            persisted is null
+            || !HasValidIdentity(team.Name, team.Year)
+            || team.Year != persisted.Year
+            || team.TeamLineageId != persisted.TeamLineageId
+            || team.PreviousTeamId != persisted.PreviousTeamId
+            || await NameYearExistsAsync(connection, team.Name, team.Year, team.Id)
+        )
+            return 0;
+        team.Name = team.Name.Trim();
         return await connection.UpdateAsync(team);
+    }
+
+    public async Task<bool> NameYearExistsAsync(string name, int year, int? excludedTeamId = null)
+    {
+        var connection = await database.GetConnectionAsync();
+        return await NameYearExistsAsync(connection, name, year, excludedTeamId);
     }
 
     public async Task<int> DeactivateAsync(int id)
@@ -32,7 +56,8 @@ public sealed class TeamRepository
             "UPDATE Team SET IsActive = ? WHERE Id = ? AND IsActive = ?",
             false,
             id,
-            true);
+            true
+        );
     }
 
     public async Task<int> ReactivateAsync(int id)
@@ -42,13 +67,15 @@ public sealed class TeamRepository
             "UPDATE Team SET IsActive = ? WHERE Id = ? AND IsActive = ?",
             true,
             id,
-            false);
+            false
+        );
     }
 
     public async Task<List<Team>> GetActiveAsync()
     {
         var connection = await database.GetConnectionAsync();
-        return await connection.Table<Team>()
+        return await connection
+            .Table<Team>()
             .Where(team => team.IsActive)
             .OrderBy(team => team.Name)
             .ToListAsync();
@@ -57,7 +84,8 @@ public sealed class TeamRepository
     public async Task<List<Team>> GetInactiveAsync()
     {
         var connection = await database.GetConnectionAsync();
-        return await connection.Table<Team>()
+        return await connection
+            .Table<Team>()
             .Where(team => !team.IsActive)
             .OrderBy(team => team.Name)
             .ToListAsync();
@@ -66,7 +94,8 @@ public sealed class TeamRepository
     public async Task<Team?> GetActiveByIdAsync(int id)
     {
         var connection = await database.GetConnectionAsync();
-        return await connection.Table<Team>()
+        return await connection
+            .Table<Team>()
             .Where(team => team.Id == id && team.IsActive)
             .FirstOrDefaultAsync();
     }
@@ -95,31 +124,46 @@ public sealed class TeamRepository
     {
         var normalizedName = name.Trim();
         var connection = await database.GetConnectionAsync();
-        var activeTeams = await connection.Table<Team>()
-            .Where(team => team.IsActive)
-            .ToListAsync();
+        var activeTeams = await connection.Table<Team>().Where(team => team.IsActive).ToListAsync();
 
-        return activeTeams.Any(
-            team => team.Id != excludedTeamId
-                && string.Equals(
-                    team.Name.Trim(),
-                    normalizedName,
-                    StringComparison.OrdinalIgnoreCase));
+        return activeTeams.Any(team =>
+            team.Id != excludedTeamId
+            && string.Equals(team.Name.Trim(), normalizedName, StringComparison.OrdinalIgnoreCase)
+        );
     }
 
     private async Task<bool> InactiveNameExistsAsync(string name, int? excludedTeamId)
     {
         var normalizedName = name.Trim();
         var connection = await database.GetConnectionAsync();
-        var inactiveTeams = await connection.Table<Team>()
+        var inactiveTeams = await connection
+            .Table<Team>()
             .Where(team => !team.IsActive)
             .ToListAsync();
 
-        return inactiveTeams.Any(
-            team => team.Id != excludedTeamId
-                && string.Equals(
-                    team.Name.Trim(),
-                    normalizedName,
-                    StringComparison.OrdinalIgnoreCase));
+        return inactiveTeams.Any(team =>
+            team.Id != excludedTeamId
+            && string.Equals(team.Name.Trim(), normalizedName, StringComparison.OrdinalIgnoreCase)
+        );
     }
+
+    private static async Task<bool> NameYearExistsAsync(
+        SQLite.SQLiteAsyncConnection connection,
+        string name,
+        int year,
+        int? excludedTeamId
+    )
+    {
+        if (!HasValidIdentity(name, year))
+            return false;
+        var normalizedName = name.Trim();
+        var teams = await connection.Table<Team>().Where(item => item.Year == year).ToListAsync();
+        return teams.Any(item =>
+            item.Id != excludedTeamId
+            && string.Equals(item.Name.Trim(), normalizedName, StringComparison.OrdinalIgnoreCase)
+        );
+    }
+
+    private static bool HasValidIdentity(string? name, int year) =>
+        !string.IsNullOrWhiteSpace(name) && year is >= 1 and <= 9999;
 }
