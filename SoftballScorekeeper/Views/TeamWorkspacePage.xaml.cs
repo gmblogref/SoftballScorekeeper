@@ -118,6 +118,18 @@ public partial class TeamWorkspacePage : ContentPage
         );
     }
 
+    private async void OnTeamYearSummaryClicked(object sender, EventArgs e)
+    {
+        TeamActionMenu.IsVisible = false;
+        await Shell.Current.GoToAsync(
+            AppShell.TeamYearSummaryRoute,
+            new ShellNavigationQueryParameters
+            {
+                [AppShell.TeamIdQueryParameter] = viewModel.TeamId,
+            }
+        );
+    }
+
     private void OnDeactivateTeamClicked(object sender, EventArgs e)
     {
         TeamActionMenu.IsVisible = false;

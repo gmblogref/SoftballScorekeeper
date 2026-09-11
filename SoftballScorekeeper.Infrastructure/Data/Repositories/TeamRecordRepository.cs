@@ -28,34 +28,39 @@ public sealed class TeamRecordRepository
 
         var connection = await database.GetConnectionAsync();
         var placeholders = string.Join(",", requestedIds.Select(_ => "?"));
+        var teams = await connection.QueryAsync<Team>(
+            $"SELECT * FROM Team WHERE Id IN ({placeholders})",
+            requestedIds.Cast<object>().ToArray()
+        );
+        var teamsById = teams.ToDictionary(team => team.Id);
         var seasons = await connection.QueryAsync<Season>(
             $"SELECT * FROM Season WHERE TeamId IN ({placeholders})",
             requestedIds.Cast<object>().ToArray()
         );
-        var latestYears = seasons
-            .GroupBy(season => season.TeamId)
-            .ToDictionary(group => group.Key, group => group.Max(season => season.Year));
         var records = requestedIds.ToDictionary(
             teamId => teamId,
             teamId =>
             {
-                var year = latestYears.TryGetValue(teamId, out var latestYear)
-                    ? latestYear
+                var year = teamsById.TryGetValue(teamId, out var team)
+                    ? team.Year
                     : (int?)null;
-                return new TeamYearRecord(year, 0, 0);
+                return new TeamYearRecord(year, 0, 0, 0, 0);
             }
         );
 
-        var latestSeasonIds = seasons
-            .Where(season => latestYears.GetValueOrDefault(season.TeamId) == season.Year)
+        var teamYearSeasonIds = seasons
+            .Where(season =>
+                teamsById.TryGetValue(season.TeamId, out var team)
+                && season.Year == team.Year
+            )
             .Select(season => season.Id)
             .Where(id => id > 0)
             .Distinct()
             .ToArray();
-        if (latestSeasonIds.Length == 0)
+        if (teamYearSeasonIds.Length == 0)
             return records;
 
-        placeholders = string.Join(",", latestSeasonIds.Select(_ => "?"));
+        placeholders = string.Join(",", teamYearSeasonIds.Select(_ => "?"));
         var games = await connection.QueryAsync<Game>(
             $"""
             SELECT Game.*
@@ -64,7 +69,7 @@ public sealed class TeamRecordRepository
                 AND Season.TeamId = Game.TeamId
             WHERE Game.SeasonId IN ({placeholders})
             """,
-            latestSeasonIds.Cast<object>().ToArray()
+            teamYearSeasonIds.Cast<object>().ToArray()
         );
         var sessions = await scoringSessionRepository.GetForGamesAsync(
             games.Select(game => game.Id)
@@ -74,6 +79,8 @@ public sealed class TeamRecordRepository
         {
             var wins = 0;
             var losses = 0;
+            var ties = 0;
+            var gamesPlayed = 0;
             foreach (var game in gamesForTeam)
             {
                 sessions.TryGetValue(game.Id, out var session);
@@ -81,14 +88,23 @@ public sealed class TeamRecordRepository
                 if (summary.Status != GameScheduleStatus.Final)
                     continue;
 
+                gamesPlayed++;
                 if (summary.Result == TeamGameResult.Win)
                     wins++;
                 else if (summary.Result == TeamGameResult.Loss)
                     losses++;
+                else if (summary.Result == TeamGameResult.Tie)
+                    ties++;
             }
 
             if (records.TryGetValue(gamesForTeam.Key, out var record))
-                records[gamesForTeam.Key] = record with { Wins = wins, Losses = losses };
+                records[gamesForTeam.Key] = record with
+                {
+                    GamesPlayed = gamesPlayed,
+                    Wins = wins,
+                    Losses = losses,
+                    Ties = ties,
+                };
         }
 
         return records;

@@ -51,13 +51,13 @@ public sealed class TeamBattingStatisticsRepositoryTests
         var projection = await db.CreateTeamBattingStatisticsRepository().GetAsync(team.Id);
 
         Assert.NotNull(projection);
-        Assert.Equal(3, projection.CompletedGames.Count);
+        Assert.Equal(2, projection.CompletedGames.Count);
         var stats = Assert.Single(projection.Players).BattingStatistics;
-        Assert.Equal((3, 3, 2, 1),
+        Assert.Equal((2, 2, 1, 0),
             (stats.PlateAppearances, stats.AtBats, stats.Hits, stats.HomeRuns));
         var teamTotal = BattingStatisticsCalculator.CalculateTeam(
             projection.Players.Select(item => item.BattingStatistics));
-        Assert.Equal((3, 2), (teamTotal.PlateAppearances, teamTotal.Hits));
+        Assert.Equal((2, 1), (teamTotal.PlateAppearances, teamTotal.Hits));
     }
 
     [Fact]

@@ -56,7 +56,8 @@ public partial class LandingPageViewModel : ObservableObject
                 : null;
             var teamItems = teams.Select(team =>
             {
-                var record = records.GetValueOrDefault(team.Id) ?? new TeamYearRecord(null, 0, 0);
+                var record = records.GetValueOrDefault(team.Id)
+                    ?? new TeamYearRecord(null, 0, 0, 0, 0);
                 return new TeamManagerItem(team, record);
             }).ToArray();
             var newestYear = teamItems.Select(item => item.Team.Year).DefaultIfEmpty().Max();

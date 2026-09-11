@@ -71,6 +71,7 @@ namespace SoftballScorekeeper
             builder.Services.AddSingleton<LowManCalculationRepository>();
             builder.Services.AddSingleton<TeamRecordRepository>();
             builder.Services.AddSingleton<TeamBattingStatisticsRepository>();
+            builder.Services.AddSingleton<TeamYearSummaryRepository>();
 #if DEBUG
             builder.Services.AddSingleton<AndroidUiTestDataInitializer>();
 #endif
@@ -85,6 +86,7 @@ namespace SoftballScorekeeper
             builder.Services.AddTransient<TeamWorkspaceViewModel>();
             builder.Services.AddTransient<TeamBeerTotalsViewModel>();
             builder.Services.AddTransient<TeamStatsViewModel>();
+            builder.Services.AddTransient<TeamYearSummaryViewModel>();
             builder.Services.AddTransient<AddPlayersToTeamViewModel>();
             builder.Services.AddTransient<AddGameViewModel>();
             builder.Services.AddTransient<EditGameViewModel>();
@@ -101,6 +103,7 @@ namespace SoftballScorekeeper
             builder.Services.AddTransient<TeamWorkspacePage>();
             builder.Services.AddTransient<TeamBeerTotalsPage>();
             builder.Services.AddTransient<TeamStatsPage>();
+            builder.Services.AddTransient<TeamYearSummaryPage>();
             builder.Services.AddTransient<AddPlayersToTeamPage>();
             builder.Services.AddTransient<AddGamePage>();
             builder.Services.AddTransient<EditGamePage>();

@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:controls="clr-namespace:SoftballScorekeeper.Views.Controls"
+             xmlns:strings="clr-namespace:SoftballScorekeeper.Resources.Strings"
+             xmlns:viewModels="clr-namespace:SoftballScorekeeper.ViewModels"
+             x:Class="SoftballScorekeeper.Views.TeamYearSummaryPage"
+             x:DataType="viewModels:TeamYearSummaryViewModel"
+             Title="{x:Static strings:AppResources.TeamYearSummaryTitle}">
+    <Grid Padding="20" RowDefinitions="Auto,*" RowSpacing="10">
+        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
+            <VerticalStackLayout>
+                <Label AutomationId="TeamYearSummaryHeader" Text="{Binding Header}" Style="{StaticResource Headline}" HorizontalTextAlignment="Center" />
+                <Label Text="{Binding ValidationMessage}" TextColor="{StaticResource WarningText}" HorizontalTextAlignment="Center" />
+            </VerticalStackLayout>
+            <ActivityIndicator Grid.Column="1" IsRunning="{Binding IsBusy}" IsVisible="{Binding IsBusy}" />
+        </Grid>
+        <ScrollView Grid.Row="1" Orientation="Vertical" VerticalScrollBarVisibility="Always">
+            <VerticalStackLayout Spacing="18">
+                <VerticalStackLayout AutomationId="TeamYearResultSection" Spacing="8">
+                    <Label Text="{x:Static strings:AppResources.TeamYearResultSummaryHeading}" Style="{StaticResource SubHeadline}" />
+                    <Border Padding="14" Stroke="{AppThemeBinding Light={StaticResource Gray400}, Dark={StaticResource Gray600}}" StrokeShape="RoundRectangle 8">
+                        <Grid ColumnDefinitions="*,*,*,*" ColumnSpacing="8">
+                            <VerticalStackLayout><Label Text="{x:Static strings:AppResources.GamesPlayedLabel}" FontAttributes="Bold" HorizontalTextAlignment="Center" /><Label AutomationId="TeamYearGamesPlayed" Text="{Binding GamesPlayed}" FontSize="24" HorizontalTextAlignment="Center" /></VerticalStackLayout>
+                            <VerticalStackLayout Grid.Column="1"><Label Text="{x:Static strings:AppResources.WinsLabel}" FontAttributes="Bold" HorizontalTextAlignment="Center" /><Label AutomationId="TeamYearWins" Text="{Binding Wins}" FontSize="24" HorizontalTextAlignment="Center" /></VerticalStackLayout>
+                            <VerticalStackLayout Grid.Column="2"><Label Text="{x:Static strings:AppResources.LossesLabel}" FontAttributes="Bold" HorizontalTextAlignment="Center" /><Label AutomationId="TeamYearLosses" Text="{Binding Losses}" FontSize="24" HorizontalTextAlignment="Center" /></VerticalStackLayout>
+                            <VerticalStackLayout Grid.Column="3"><Label Text="{x:Static strings:AppResources.TiesLabel}" FontAttributes="Bold" HorizontalTextAlignment="Center" /><Label AutomationId="TeamYearTies" Text="{Binding Ties}" FontSize="24" HorizontalTextAlignment="Center" /></VerticalStackLayout>
+                        </Grid>
+                    </Border>
+                </VerticalStackLayout>
+
+                <VerticalStackLayout AutomationId="TeamYearBattingSection" Spacing="8">
+                    <Label Text="{x:Static strings:AppResources.TeamYearBattingSummaryHeading}" Style="{StaticResource SubHeadline}" />
+                    <Label AutomationId="TeamYearBattingEmpty" Text="{x:Static strings:AppResources.TeamYearBattingEmptyState}" IsVisible="{Binding HasNoBatting}" HorizontalTextAlignment="Center" />
+                    <controls:BattingStatisticsGrid BindingContext="{Binding Statistics}" HeightRequest="300" />
+                </VerticalStackLayout>
+
+                <VerticalStackLayout AutomationId="TeamYearBeerSection" Spacing="8">
+                    <Label Text="{x:Static strings:AppResources.TeamYearBeerSummaryHeading}" Style="{StaticResource SubHeadline}" />
+                    <Label AutomationId="TeamYearBeerEmpty" Text="{x:Static strings:AppResources.TeamYearBeerEmptyState}" IsVisible="{Binding HasNoBeer}" HorizontalTextAlignment="Center" />
+                    <controls:TeamYearBeerGrid HeightRequest="300" />
+                </VerticalStackLayout>
+            </VerticalStackLayout>
+        </ScrollView>
+    </Grid>
+</ContentPage>

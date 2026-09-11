@@ -57,6 +57,38 @@ public sealed class TeamRepositoryTests
     }
 
     [Fact]
+    public async Task HasSuccessorAsync_UsesOnlyExactPreviousTeamRelationship()
+    {
+        await using var testDatabase = await TemporaryTestDatabase.CreateAsync();
+        var repository = testDatabase.CreateTeamRepository();
+        var source = await CreateTeamAsync(repository, "Source", year: 2026);
+        var unrelated = await CreateTeamAsync(repository, "Unrelated", year: 2026);
+        var otherSource = await CreateTeamAsync(repository, "Other", year: 2026);
+
+        Assert.False(await repository.HasSuccessorAsync(source.Id));
+        Assert.False(await repository.HasSuccessorAsync(unrelated.Id));
+
+        var destination = Assert.IsType<Team>(
+            (await testDatabase.CreateTeamYearCopyRepository().CopyAsync(source.Id))
+                .DestinationTeam
+        );
+        Assert.Equal(source.Id, destination.PreviousTeamId);
+        Assert.True(await repository.HasSuccessorAsync(source.Id));
+        Assert.False(await repository.HasSuccessorAsync(destination.Id));
+
+        Assert.True(
+            (await testDatabase.CreateTeamYearCopyRepository().CopyAsync(otherSource.Id))
+                .IsSuccess
+        );
+        Assert.False(await repository.HasSuccessorAsync(unrelated.Id));
+
+        Assert.Equal(1, await repository.DeactivateAsync(destination.Id));
+        Assert.True(await repository.HasSuccessorAsync(source.Id));
+        Assert.False(await repository.HasSuccessorAsync(0));
+        Assert.False(await repository.HasSuccessorAsync(-1));
+    }
+
+    [Fact]
     public async Task GetInactiveAsync_ActiveAndUnorderedInactiveTeamsExist_ReturnsOnlyOrderedInactiveTeams()
     {
         await using var testDatabase = await TemporaryTestDatabase.CreateAsync();

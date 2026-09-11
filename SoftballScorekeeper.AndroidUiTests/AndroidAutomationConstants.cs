@@ -16,6 +16,8 @@ internal static class AndroidAutomationConstants
     public const string TeamStatsTestSeedRequestFileName = "android-ui-test-team-stats";
     public const string TeamYearCopyTestSeedRequestFileName =
         "android-ui-test-team-year-copy";
+    public const string TeamYearSummaryTestSeedRequestFileName =
+        "android-ui-test-team-year-summary";
     public static readonly IReadOnlyList<string> TestSeedRequestFileNames =
     [
         TestSeedRequestFileName,
@@ -25,6 +27,7 @@ internal static class AndroidAutomationConstants
         BeerTotalsTestSeedRequestFileName,
         TeamStatsTestSeedRequestFileName,
         TeamYearCopyTestSeedRequestFileName,
+        TeamYearSummaryTestSeedRequestFileName,
     ];
     public const string FirstBatterName = "Alex Automation";
     public const string SecondBatterName = "Blake Automation";
