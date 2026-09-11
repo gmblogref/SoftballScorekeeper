@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentView xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:strings="clr-namespace:SoftballScorekeeper.Resources.Strings"
+             xmlns:viewModels="clr-namespace:SoftballScorekeeper.ViewModels"
+             x:Class="SoftballScorekeeper.Views.Controls.TeamYearBeerGrid"
+             x:DataType="viewModels:TeamYearSummaryViewModel">
+    <ContentView.Resources>
+        <Style x:Key="YearBeerHeader" TargetType="Label"><Setter Property="FontSize" Value="12" /><Setter Property="FontAttributes" Value="Bold" /><Setter Property="HorizontalTextAlignment" Value="Center" /><Setter Property="VerticalTextAlignment" Value="Center" /></Style>
+        <Style x:Key="YearBeerValue" TargetType="Label"><Setter Property="FontSize" Value="16" /><Setter Property="HorizontalTextAlignment" Value="Center" /><Setter Property="VerticalTextAlignment" Value="Center" /></Style>
+    </ContentView.Resources>
+    <ScrollView AutomationId="TeamYearBeerSummaryGrid" Orientation="Both" HorizontalScrollBarVisibility="Always" VerticalScrollBarVisibility="Default">
+        <VerticalStackLayout Spacing="0" MinimumWidthRequest="950" HorizontalOptions="Start">
+            <Grid Padding="10,6,10,0" RowDefinitions="Auto,2" ColumnDefinitions="180,2,72,88,72,72,88,100,88,100,88">
+                <Label Text="{x:Static strings:AppResources.BeerTotalsPlayerHeader}" Style="{StaticResource YearBeerHeader}" />
+                <BoxView Grid.Column="1" Grid.RowSpan="2" BackgroundColor="{AppThemeBinding Light={StaticResource Gray500}, Dark={StaticResource Gray400}}" />
+                <Label Grid.Column="2" Text="{x:Static strings:AppResources.BeerTotalsDboHeader}" Style="{StaticResource YearBeerHeader}" />
+                <Label Grid.Column="3" Text="{x:Static strings:AppResources.BeerTotalsSoloHomeRunHeader}" Style="{StaticResource YearBeerHeader}" />
+                <Label Grid.Column="4" Text="{x:Static strings:AppResources.BeerTotalsDoublePlayHeader}" Style="{StaticResource YearBeerHeader}" />
+                <Label Grid.Column="5" Text="{x:Static strings:AppResources.BeerTotalsTriplePlayHeader}" Style="{StaticResource YearBeerHeader}" />
+                <Label Grid.Column="6" Text="{x:Static strings:AppResources.BeerTotalsTwoOutsHeader}" Style="{StaticResource YearBeerHeader}" />
+                <Label Grid.Column="7" Text="{x:Static strings:AppResources.BeerTotalsStrikeoutHeader}" Style="{StaticResource YearBeerHeader}" />
+                <Label Grid.Column="8" Text="{x:Static strings:AppResources.BeerTotalsLowManHeader}" Style="{StaticResource YearBeerHeader}" />
+                <Label Grid.Column="9" Text="{x:Static strings:AppResources.BeerTotalsBroughtHeader}" Style="{StaticResource YearBeerHeader}" />
+                <Label Grid.Column="10" Text="{x:Static strings:AppResources.BeerTotalsOwedHeader}" Style="{StaticResource YearBeerHeader}" />
+                <BoxView Grid.Row="1" Grid.ColumnSpan="11" BackgroundColor="{AppThemeBinding Light={StaticResource Gray500}, Dark={StaticResource Gray400}}" />
+            </Grid>
+            <VerticalStackLayout Spacing="0" BindableLayout.ItemsSource="{Binding BeerRows}">
+                <BindableLayout.ItemTemplate>
+                    <DataTemplate x:DataType="viewModels:TeamYearBeerRowViewModel">
+                        <Grid AutomationId="{Binding PlayerId, StringFormat='TeamYearBeerRow-{0}'}" Padding="10,0" RowDefinitions="48,1" ColumnDefinitions="180,2,72,88,72,72,88,100,88,100,88">
+                            <Label Text="{Binding PlayerDisplayName}" FontSize="16" FontAttributes="Bold" VerticalTextAlignment="Center" LineBreakMode="TailTruncation" MaxLines="1" />
+                            <BoxView Grid.Column="1" Grid.RowSpan="2" BackgroundColor="{AppThemeBinding Light={StaticResource Gray500}, Dark={StaticResource Gray400}}" />
+                            <Label Grid.Column="2" Text="{Binding DboCount}" Style="{StaticResource YearBeerValue}" /><Label Grid.Column="3" Text="{Binding SoloHomeRunCount}" Style="{StaticResource YearBeerValue}" />
+                            <Label Grid.Column="4" Text="{Binding DoublePlayCount}" Style="{StaticResource YearBeerValue}" /><Label Grid.Column="5" Text="{Binding TriplePlayCount}" Style="{StaticResource YearBeerValue}" />
+                            <Label Grid.Column="6" Text="{Binding TwoOutsInOneInningCount}" Style="{StaticResource YearBeerValue}" /><Label Grid.Column="7" Text="{Binding StrikeoutCount}" Style="{StaticResource YearBeerValue}" />
+                            <Label Grid.Column="8" Text="{Binding LowManCount}" Style="{StaticResource YearBeerValue}" /><Label Grid.Column="9" Text="{Binding Brought}" Style="{StaticResource YearBeerValue}" />
+                            <Label Grid.Column="10" Text="{Binding Owed}" Style="{StaticResource YearBeerValue}" FontAttributes="Bold" />
+                            <BoxView Grid.Row="1" Grid.ColumnSpan="11" BackgroundColor="{AppThemeBinding Light={StaticResource Gray300}, Dark={StaticResource Gray600}}" />
+                        </Grid>
+                    </DataTemplate>
+                </BindableLayout.ItemTemplate>
+            </VerticalStackLayout>
+        </VerticalStackLayout>
+    </ScrollView>
+</ContentView>

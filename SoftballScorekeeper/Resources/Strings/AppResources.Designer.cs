@@ -1177,5 +1177,18 @@ namespace SoftballScorekeeper.Resources.Strings {
         public static string CopyTeamFailed { get { return ResourceManager.GetString("CopyTeamFailed", resourceCulture); } }
         public static string ExpandedTeamYearHeaderFormat { get { return ResourceManager.GetString("ExpandedTeamYearHeaderFormat", resourceCulture); } }
         public static string CollapsedTeamYearHeaderFormat { get { return ResourceManager.GetString("CollapsedTeamYearHeaderFormat", resourceCulture); } }
+        public static string TeamYearSummaryTitle { get { return ResourceManager.GetString("TeamYearSummaryTitle", resourceCulture); } }
+        public static string TeamYearSummaryButton { get { return ResourceManager.GetString("TeamYearSummaryButton", resourceCulture); } }
+        public static string TeamYearSummaryHeaderFormat { get { return ResourceManager.GetString("TeamYearSummaryHeaderFormat", resourceCulture); } }
+        public static string TeamYearSummaryLoadFailed { get { return ResourceManager.GetString("TeamYearSummaryLoadFailed", resourceCulture); } }
+        public static string TeamYearResultSummaryHeading { get { return ResourceManager.GetString("TeamYearResultSummaryHeading", resourceCulture); } }
+        public static string TeamYearBattingSummaryHeading { get { return ResourceManager.GetString("TeamYearBattingSummaryHeading", resourceCulture); } }
+        public static string TeamYearBeerSummaryHeading { get { return ResourceManager.GetString("TeamYearBeerSummaryHeading", resourceCulture); } }
+        public static string GamesPlayedLabel { get { return ResourceManager.GetString("GamesPlayedLabel", resourceCulture); } }
+        public static string WinsLabel { get { return ResourceManager.GetString("WinsLabel", resourceCulture); } }
+        public static string LossesLabel { get { return ResourceManager.GetString("LossesLabel", resourceCulture); } }
+        public static string TiesLabel { get { return ResourceManager.GetString("TiesLabel", resourceCulture); } }
+        public static string TeamYearBattingEmptyState { get { return ResourceManager.GetString("TeamYearBattingEmptyState", resourceCulture); } }
+        public static string TeamYearBeerEmptyState { get { return ResourceManager.GetString("TeamYearBeerEmptyState", resourceCulture); } }
     }
 }

@@ -89,10 +89,11 @@ public sealed class BeerRuleConfigurationPresentationTests
         Assert.Equal("7", actionMenu.Attribute("Grid.RowSpan")?.Value);
         Assert.DoesNotContain("IsGamesSectionSelected", actionMenu.ToString());
         Assert.DoesNotContain("IsRosterSectionSelected", actionMenu.ToString());
-        Assert.Equal(5, menuButtons.Length);
+        Assert.Equal(6, menuButtons.Length);
         Assert.Equal(
             [
                 "{x:Static strings:AppResources.TeamStatsButton}",
+                "{x:Static strings:AppResources.TeamYearSummaryButton}",
                 "{x:Static strings:AppResources.BeerTotalsButton}",
                 "{x:Static strings:AppResources.TeamBeerRulesButton}",
                 "{x:Static strings:AppResources.CopyTeamToNewYearButton}",
@@ -101,13 +102,14 @@ public sealed class BeerRuleConfigurationPresentationTests
             menuButtons.Select(item => item.Attribute("Text")?.Value)
         );
         Assert.Equal("OnTeamStatsClicked", menuButtons[0].Attribute("Clicked")?.Value);
-        Assert.Equal("OnBeerTotalsClicked", menuButtons[1].Attribute("Clicked")?.Value);
-        Assert.Equal("OnBeerRulesClicked", menuButtons[2].Attribute("Clicked")?.Value);
-        Assert.Equal("OnCopyTeamClicked", menuButtons[3].Attribute("Clicked")?.Value);
-        Assert.Equal("OnDeactivateTeamClicked", menuButtons[4].Attribute("Clicked")?.Value);
-        Assert.Equal("2", menuButtons[4].Attribute("BorderWidth")?.Value);
-        Assert.Contains("#B3261E", menuButtons[4].Attribute("TextColor")?.Value);
-        Assert.Contains("#B3261E", menuButtons[4].Attribute("BorderColor")?.Value);
+        Assert.Equal("OnTeamYearSummaryClicked", menuButtons[1].Attribute("Clicked")?.Value);
+        Assert.Equal("OnBeerTotalsClicked", menuButtons[2].Attribute("Clicked")?.Value);
+        Assert.Equal("OnBeerRulesClicked", menuButtons[3].Attribute("Clicked")?.Value);
+        Assert.Equal("OnCopyTeamClicked", menuButtons[4].Attribute("Clicked")?.Value);
+        Assert.Equal("OnDeactivateTeamClicked", menuButtons[5].Attribute("Clicked")?.Value);
+        Assert.Equal("2", menuButtons[5].Attribute("BorderWidth")?.Value);
+        Assert.Contains("#B3261E", menuButtons[5].Attribute("TextColor")?.Value);
+        Assert.Contains("#B3261E", menuButtons[5].Attribute("BorderColor")?.Value);
 
         var buttons = teamPage.Descendants(ns + "Button").ToArray();
         Assert.DoesNotContain(
@@ -117,6 +119,7 @@ public sealed class BeerRuleConfigurationPresentationTests
                     is "{x:Static strings:AppResources.BeerTotalsButton}"
                         or "{x:Static strings:AppResources.TeamBeerRulesButton}"
                         or "{x:Static strings:AppResources.TeamStatsButton}"
+                        or "{x:Static strings:AppResources.TeamYearSummaryButton}"
                         or "{x:Static strings:AppResources.DeactivateTeamButton}"
         );
         Assert.Contains(

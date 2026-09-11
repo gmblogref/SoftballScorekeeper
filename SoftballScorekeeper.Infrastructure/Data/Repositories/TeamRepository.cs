@@ -100,6 +100,18 @@ public sealed class TeamRepository
             .FirstOrDefaultAsync();
     }
 
+    public async Task<bool> HasSuccessorAsync(int teamId)
+    {
+        if (teamId <= 0)
+            return false;
+
+        var connection = await database.GetConnectionAsync();
+        return await connection
+            .Table<Team>()
+            .Where(team => team.PreviousTeamId == teamId)
+            .CountAsync() > 0;
+    }
+
     public Task<bool> ActiveNameExistsAsync(string name)
     {
         return ActiveNameExistsAsync(name, excludedTeamId: null);

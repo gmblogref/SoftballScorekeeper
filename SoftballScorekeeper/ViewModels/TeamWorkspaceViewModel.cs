@@ -24,6 +24,7 @@ public partial class TeamWorkspaceViewModel : ObservableObject, IQueryAttributab
     private bool hasValidTeamId;
     private bool isConfirmationPending;
     private bool isRemovingGames;
+    private bool isTeamYearSummaryAvailable;
     private IReadOnlyList<int> pendingGameIds = Array.Empty<int>();
     private IReadOnlyList<int> pendingPlayerIds = Array.Empty<int>();
     private int selectedGameCount;
@@ -224,6 +225,12 @@ public partial class TeamWorkspaceViewModel : ObservableObject, IQueryAttributab
 
     public bool HasNoGames => !HasGames;
 
+    public bool IsTeamYearSummaryAvailable
+    {
+        get => isTeamYearSummaryAvailable;
+        private set => SetProperty(ref isTeamYearSummaryAvailable, value);
+    }
+
     public TeamWorkspaceSection SelectedSection
     {
         get => selectedSection;
@@ -291,10 +298,12 @@ public partial class TeamWorkspaceViewModel : ObservableObject, IQueryAttributab
             var team = await teamRepository.GetActiveByIdAsync(TeamId);
             if (team is null)
             {
+                IsTeamYearSummaryAvailable = false;
                 ValidationMessage = AppResources.TeamNotFound;
                 return;
             }
 
+            var hasSuccessor = await teamRepository.HasSuccessorAsync(TeamId);
             var players = await teamPlayerRepository.GetActiveRosterForTeamAsync(TeamId);
             var games = await gameRepository.GetForTeamAsync(TeamId);
             var seasons = await seasonRepository.GetForTeamAsync(TeamId);
@@ -308,6 +317,7 @@ public partial class TeamWorkspaceViewModel : ObservableObject, IQueryAttributab
             loadedTeam = team;
             TeamName = team.Name;
             EditableTeamName = team.Name;
+            IsTeamYearSummaryAvailable = hasSuccessor;
             RosterPlayers.Clear();
             foreach (var player in players)
             {
@@ -961,6 +971,7 @@ public partial class TeamWorkspaceViewModel : ObservableObject, IQueryAttributab
     private void InvalidateTeam()
     {
         loadedTeam = null;
+        IsTeamYearSummaryAvailable = false;
         IsTeamLoaded = false;
         IsEditingTeamName = false;
     }
@@ -976,6 +987,7 @@ public partial class TeamWorkspaceViewModel : ObservableObject, IQueryAttributab
         HasPlayers = false;
         HasNoPlayers = false;
         HasGames = false;
+        IsTeamYearSummaryAvailable = false;
         hasInitialSectionSelection = false;
         hasInitialScheduleState = false;
         ScheduleMonthGroups.Clear();

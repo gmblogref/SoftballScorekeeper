@@ -74,11 +74,12 @@ public sealed class TeamBattingStatisticsRepository(AppDatabase database)
             return null;
 
         var connection = await database.GetConnectionAsync();
-        if (await connection.FindAsync<Team>(teamId) is null)
+        var team = await connection.FindAsync<Team>(teamId);
+        if (team is null)
             return null;
 
         var seasons = await connection.Table<Season>()
-            .Where(item => item.TeamId == teamId)
+            .Where(item => item.TeamId == teamId && item.Year == team.Year)
             .ToListAsync();
         if (seasons.Count == 0)
             return new([], []);

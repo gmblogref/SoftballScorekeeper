@@ -182,6 +182,13 @@ public sealed class TeamYearCopyRepositoryTests
             await db.CreateBeerRuleConfigurationRepository().SaveTeamAsync(source.Id, settings)
         );
         var sourceEntries = await db.GetBeerLedgerEntriesAsync();
+        var sourceIdentity = (
+            source.Name,
+            source.Year,
+            source.TeamLineageId,
+            source.PreviousTeamId,
+            source.IsActive
+        );
 
         var result = await db.CreateTeamYearCopyRepository().CopyAsync(source.Id);
 
@@ -265,6 +272,21 @@ public sealed class TeamYearCopyRepositoryTests
                 .Where(item => item.TeamId == source.Id)
                 .Select(item => item.Id)
         );
+        var persistedSource = Assert.IsType<Team>(
+            await db.CreateTeamRepository().GetActiveByIdAsync(source.Id)
+        );
+        Assert.Equal(
+            sourceIdentity,
+            (
+                persistedSource.Name,
+                persistedSource.Year,
+                persistedSource.TeamLineageId,
+                persistedSource.PreviousTeamId,
+                persistedSource.IsActive
+            )
+        );
+        Assert.True(await db.CreateTeamRepository().HasSuccessorAsync(source.Id));
+        Assert.False(await db.CreateTeamRepository().HasSuccessorAsync(destination.Id));
     }
 
     [Fact]

@@ -5,14 +5,14 @@ namespace SoftballScorekeeper.Tests;
 public sealed class TeamRecordRepositoryTests
 {
     [Fact]
-    public async Task Team_without_seasons_has_no_year_and_zero_record()
+    public async Task Team_without_seasons_uses_authoritative_year_and_zero_record()
     {
         await using var db = await TemporaryTestDatabase.CreateAsync();
         var team = await CreateTeamAsync(db, "No Seasons");
 
         var records = await db.CreateTeamRecordRepository().GetForTeamsAsync([team.Id]);
 
-        Assert.Equal(new TeamYearRecord(null, 0, 0), records[team.Id]);
+        Assert.Equal(new TeamYearRecord(2026, 0, 0, 0, 0), records[team.Id]);
     }
 
     [Fact]
@@ -25,7 +25,7 @@ public sealed class TeamRecordRepositoryTests
 
         var records = await db.CreateTeamRecordRepository().GetForTeamsAsync([team.Id]);
 
-        Assert.Equal(new TeamYearRecord(2026, 0, 0), records[team.Id]);
+        Assert.Equal(new TeamYearRecord(2026, 0, 0, 0, 0), records[team.Id]);
     }
 
     [Theory]
@@ -56,11 +56,20 @@ public sealed class TeamRecordRepositoryTests
 
         var records = await db.CreateTeamRecordRepository().GetForTeamsAsync([team.Id]);
 
-        Assert.Equal(new TeamYearRecord(2026, expectedWins, expectedLosses), records[team.Id]);
+        Assert.Equal(
+            new TeamYearRecord(
+                2026,
+                expectedWins + expectedLosses,
+                expectedWins,
+                expectedLosses,
+                0
+            ),
+            records[team.Id]
+        );
     }
 
     [Fact]
-    public async Task Only_completed_games_affect_record_and_tie_affects_neither_total()
+    public async Task Only_completed_games_affect_record_and_tie_is_counted()
     {
         await using var db = await TemporaryTestDatabase.CreateAsync();
         var team = await CreateTeamAsync(db, "Lifecycle");
@@ -84,11 +93,11 @@ public sealed class TeamRecordRepositoryTests
 
         var records = await db.CreateTeamRecordRepository().GetForTeamsAsync([team.Id]);
 
-        Assert.Equal(new TeamYearRecord(2026, 1, 1), records[team.Id]);
+        Assert.Equal(new TeamYearRecord(2026, 3, 1, 1, 1), records[team.Id]);
     }
 
     [Fact]
-    public async Task Latest_year_combines_all_its_seasons_and_excludes_older_year()
+    public async Task Team_year_combines_all_matching_seasons_and_excludes_older_year()
     {
         await using var db = await TemporaryTestDatabase.CreateAsync();
         var team = await CreateTeamAsync(db, "Multi Season");
@@ -134,11 +143,11 @@ public sealed class TeamRecordRepositoryTests
 
         var records = await db.CreateTeamRecordRepository().GetForTeamsAsync([team.Id]);
 
-        Assert.Equal(new TeamYearRecord(2026, 2, 1), records[team.Id]);
+        Assert.Equal(new TeamYearRecord(2026, 3, 2, 1, 0), records[team.Id]);
     }
 
     [Fact]
-    public async Task Newer_season_changes_card_year_even_before_it_has_completed_games()
+    public async Task Team_year_remains_authoritative_when_legacy_seasons_exist()
     {
         await using var db = await TemporaryTestDatabase.CreateAsync();
         var team = await CreateTeamAsync(db, "New Year");
@@ -156,11 +165,11 @@ public sealed class TeamRecordRepositoryTests
 
         var records = await db.CreateTeamRecordRepository().GetForTeamsAsync([team.Id]);
 
-        Assert.Equal(new TeamYearRecord(2026, 0, 0), records[team.Id]);
+        Assert.Equal(new TeamYearRecord(2026, 0, 0, 0, 0), records[team.Id]);
     }
 
     [Fact]
-    public async Task Mixed_latest_year_history_aggregates_across_seasons()
+    public async Task Mixed_team_year_history_aggregates_across_seasons()
     {
         await using var db = await TemporaryTestDatabase.CreateAsync();
         var team = await CreateTeamAsync(db, "Mixed History");
@@ -185,7 +194,7 @@ public sealed class TeamRecordRepositoryTests
 
         var records = await db.CreateTeamRecordRepository().GetForTeamsAsync([team.Id]);
 
-        Assert.Equal(new TeamYearRecord(2026, 1, 1), records[team.Id]);
+        Assert.Equal(new TeamYearRecord(2026, 3, 1, 1, 1), records[team.Id]);
     }
 
     [Fact]
@@ -193,7 +202,7 @@ public sealed class TeamRecordRepositoryTests
     {
         await using var db = await TemporaryTestDatabase.CreateAsync();
         var first = await CreateTeamAsync(db, "First");
-        var second = await CreateTeamAsync(db, "Second");
+        var second = await CreateTeamAsync(db, "Second", 2025);
         var firstSeason = await CreateSeasonAsync(db, first.Id, "Spring", 2026);
         var secondSeason = await CreateSeasonAsync(db, second.Id, "Fall", 2025);
         var firstGame = await CreateGameAsync(db, first.Id, firstSeason.Id);
@@ -217,8 +226,8 @@ public sealed class TeamRecordRepositoryTests
 
         var records = await db.CreateTeamRecordRepository().GetForTeamsAsync([first.Id, second.Id]);
 
-        Assert.Equal(new TeamYearRecord(2026, 1, 0), records[first.Id]);
-        Assert.Equal(new TeamYearRecord(2025, 0, 1), records[second.Id]);
+        Assert.Equal(new TeamYearRecord(2026, 1, 1, 0, 0), records[first.Id]);
+        Assert.Equal(new TeamYearRecord(2025, 1, 0, 1, 0), records[second.Id]);
     }
 
     [Fact]
@@ -235,12 +244,15 @@ public sealed class TeamRecordRepositoryTests
 
         var after = await db.CreateTeamRecordRepository().GetForTeamsAsync([team.Id]);
         Assert.Equal(before[team.Id], after[team.Id]);
-        Assert.Equal(new TeamYearRecord(2026, 1, 0), after[team.Id]);
+        Assert.Equal(new TeamYearRecord(2026, 1, 1, 0, 0), after[team.Id]);
     }
 
-    private static async Task<Team> CreateTeamAsync(TemporaryTestDatabase db, string name)
+    private static async Task<Team> CreateTeamAsync(
+        TemporaryTestDatabase db,
+        string name,
+        int year = 2026)
     {
-        var team = new Team { Name = name };
+        var team = new Team { Name = name, Year = year };
         Assert.Equal(1, await db.CreateTeamRepository().CreateAsync(team));
         return team;
     }

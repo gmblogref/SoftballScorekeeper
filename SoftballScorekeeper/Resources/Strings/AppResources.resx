@@ -758,4 +758,17 @@
   <data name="CopyTeamFailed" xml:space="preserve"><value>The Team could not be copied. No destination changes were saved.</value></data>
   <data name="ExpandedTeamYearHeaderFormat" xml:space="preserve"><value>{0} ▼</value></data>
   <data name="CollapsedTeamYearHeaderFormat" xml:space="preserve"><value>{0} ▶</value></data>
+  <data name="TeamYearSummaryTitle" xml:space="preserve"><value>Team Year Summary</value></data>
+  <data name="TeamYearSummaryButton" xml:space="preserve"><value>Team Year Summary</value></data>
+  <data name="TeamYearSummaryHeaderFormat" xml:space="preserve"><value>{0} — {1} Year Summary</value></data>
+  <data name="TeamYearSummaryLoadFailed" xml:space="preserve"><value>Team Year Summary could not be loaded.</value></data>
+  <data name="TeamYearResultSummaryHeading" xml:space="preserve"><value>Team Result Summary</value></data>
+  <data name="TeamYearBattingSummaryHeading" xml:space="preserve"><value>Batting Summary</value></data>
+  <data name="TeamYearBeerSummaryHeading" xml:space="preserve"><value>Beer Summary</value></data>
+  <data name="GamesPlayedLabel" xml:space="preserve"><value>Games Played</value></data>
+  <data name="WinsLabel" xml:space="preserve"><value>Wins</value></data>
+  <data name="LossesLabel" xml:space="preserve"><value>Losses</value></data>
+  <data name="TiesLabel" xml:space="preserve"><value>Ties</value></data>
+  <data name="TeamYearBattingEmptyState" xml:space="preserve"><value>No Completed Games are available for this Team Year.</value></data>
+  <data name="TeamYearBeerEmptyState" xml:space="preserve"><value>No Beer totals are available for this Team Year.</value></data>
 </root>

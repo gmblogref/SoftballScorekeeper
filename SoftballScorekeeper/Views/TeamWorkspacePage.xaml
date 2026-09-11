@@ -553,6 +553,15 @@
                     BackgroundColor="Transparent"
                     TextColor="{AppThemeBinding Light={StaticResource Black}, Dark={StaticResource White}}" />
                 <Button
+                    AutomationId="TeamYearSummaryButton"
+                    Text="{x:Static strings:AppResources.TeamYearSummaryButton}"
+                    Clicked="OnTeamYearSummaryClicked"
+                    IsVisible="{Binding IsTeamYearSummaryAvailable}"
+                    MinimumHeightRequest="52"
+                    HorizontalOptions="Fill"
+                    BackgroundColor="Transparent"
+                    TextColor="{AppThemeBinding Light={StaticResource Black}, Dark={StaticResource White}}" />
+                <Button
                     AutomationId="TeamBeerTotalsButton"
                     Text="{x:Static strings:AppResources.BeerTotalsButton}"
                     Clicked="OnBeerTotalsClicked"

@@ -16,6 +16,8 @@ public sealed class AndroidUiTestDataInitializer
     internal const string BeerTotalsRequestFileName = "android-ui-test-beer-totals";
     internal const string TeamStatsRequestFileName = "android-ui-test-team-stats";
     internal const string TeamYearCopyRequestFileName = "android-ui-test-team-year-copy";
+    internal const string TeamYearSummaryRequestFileName =
+        "android-ui-test-team-year-summary";
     private static readonly string[] RequestFileNames =
     [
         RequestFileName,
@@ -25,6 +27,7 @@ public sealed class AndroidUiTestDataInitializer
         BeerTotalsRequestFileName,
         TeamStatsRequestFileName,
         TeamYearCopyRequestFileName,
+        TeamYearSummaryRequestFileName,
     ];
 
     private readonly AppDatabase database;
@@ -68,6 +71,8 @@ public sealed class AndroidUiTestDataInitializer
             FileSystem.AppDataDirectory, TeamStatsRequestFileName);
         var teamYearCopyRequestPath = Path.Combine(
             FileSystem.AppDataDirectory, TeamYearCopyRequestFileName);
+        var teamYearSummaryRequestPath = Path.Combine(
+            FileSystem.AppDataDirectory, TeamYearSummaryRequestFileName);
         var useMissingGame = File.Exists(missingGameRequestPath);
         var useCompletedStatisticsSorting = File.Exists(
             completedStatisticsSortingRequestPath);
@@ -75,9 +80,10 @@ public sealed class AndroidUiTestDataInitializer
         var useBeerTotals = File.Exists(beerTotalsRequestPath);
         var useTeamStats = File.Exists(teamStatsRequestPath);
         var useTeamYearCopy = File.Exists(teamYearCopyRequestPath);
+        var useTeamYearSummary = File.Exists(teamYearSummaryRequestPath);
         if (!File.Exists(requestPath) && !useMissingGame
             && !useCompletedStatisticsSorting && !useTeamRecord && !useBeerTotals
-            && !useTeamStats && !useTeamYearCopy) return null;
+            && !useTeamStats && !useTeamYearCopy && !useTeamYearSummary) return null;
 
         if (File.Exists(requestPath)) File.Delete(requestPath);
         if (useMissingGame) File.Delete(missingGameRequestPath);
@@ -87,6 +93,9 @@ public sealed class AndroidUiTestDataInitializer
         if (useBeerTotals) File.Delete(beerTotalsRequestPath);
         if (useTeamStats) File.Delete(teamStatsRequestPath);
         if (useTeamYearCopy) File.Delete(teamYearCopyRequestPath);
+        if (useTeamYearSummary) File.Delete(teamYearSummaryRequestPath);
+
+        if (useTeamYearSummary) return await SeedTeamYearSummaryAsync();
 
         if (useTeamYearCopy) return await SeedTeamYearCopyAsync();
 
@@ -189,6 +198,143 @@ public sealed class AndroidUiTestDataInitializer
         }
 
         await SeedBeerTotalsLowManGameAsync(team.Id, playerIds);
+
+        return new AndroidUiTestContext(team.Id, 0, true);
+    }
+
+    private async Task<AndroidUiTestContext> SeedTeamYearSummaryAsync()
+    {
+        var team = new Team
+        {
+            Name = "Automation Year Summary",
+            Year = 2026,
+            IsActive = true,
+        };
+        EnsureSingleRow(await teamRepository.CreateAsync(team), "Team-year-summary Team");
+
+        var playerIds = new List<int>();
+        foreach (var firstName in new[] { "Alex", "Blake" })
+        {
+            var player = await playerRepository.CreateForTeamAsync(
+                new Player
+                {
+                    FirstName = firstName,
+                    LastName = "Automation",
+                    IsActive = true,
+                },
+                team.Id);
+            if (!player.IsSuccess)
+                throw new InvalidOperationException(
+                    "Could not seed a Team-year-summary Player.");
+            playerIds.Add(player.PlayerId);
+        }
+
+        var springGames = await gameRepository.CreateForTeamAsync(
+            team.Id,
+            new Season { Name = "Spring", Year = team.Year },
+            [
+                new Game
+                {
+                    ScheduledDate = new DateTime(2026, 4, 1),
+                    ScheduledTime = new TimeSpan(18, 30, 0),
+                    Opponent = "Automation Win",
+                },
+                new Game
+                {
+                    ScheduledDate = new DateTime(2026, 4, 8),
+                    ScheduledTime = new TimeSpan(18, 30, 0),
+                    Opponent = "Automation Loss",
+                },
+            ]);
+        var summerGames = await gameRepository.CreateForTeamAsync(
+            team.Id,
+            new Season { Name = "Summer", Year = team.Year },
+            [new Game
+            {
+                ScheduledDate = new DateTime(2026, 7, 1),
+                ScheduledTime = new TimeSpan(18, 30, 0),
+                Opponent = "Automation Tie",
+            }]);
+        if (!springGames.IsCompleteSuccess || !summerGames.IsCompleteSuccess)
+            throw new InvalidOperationException(
+                "Could not seed Team-year-summary Games.");
+
+        var games = springGames.CreatedGameIds
+            .Concat(summerGames.CreatedGameIds)
+            .ToArray();
+        var alexResults = new[]
+        {
+            BatterResult.Single,
+            BatterResult.HomeRun,
+            BatterResult.Walk,
+        };
+        var scores = new[] { (8, 3), (2, 5), (6, 6) };
+        var connection = new SQLiteAsyncConnection(
+            database.DatabasePath,
+            SQLiteOpenFlags.ReadWrite | SQLiteOpenFlags.SharedCache);
+        try
+        {
+            for (var index = 0; index < games.Length; index++)
+            {
+                var session = new GameScoringSession
+                {
+                    GameId = games[index],
+                    Status = GameScoringStatus.Completed,
+                    TeamSide = TeamGameSide.Home,
+                    HomeScore = scores[index].Item1,
+                    VisitorScore = scores[index].Item2,
+                    CurrentBatterPosition = 1,
+                    CurrentInning = 1,
+                    CompletedAtUtc = DateTime.UtcNow,
+                };
+                EnsureSingleRow(await connection.InsertAsync(session),
+                    "Team-year-summary scoring session");
+                for (var playerIndex = 0; playerIndex < playerIds.Count; playerIndex++)
+                {
+                    EnsureSingleRow(await connection.InsertAsync(new GameScoringLineupPlayer
+                    {
+                        GameScoringSessionId = session.Id,
+                        PlayerId = playerIds[playerIndex],
+                        BattingPosition = playerIndex + 1,
+                    }), "Team-year-summary frozen lineup Player");
+                    EnsureSingleRow(await connection.InsertAsync(new GamePlateAppearance
+                    {
+                        GameScoringSessionId = session.Id,
+                        PlayerId = playerIds[playerIndex],
+                        BattingPosition = playerIndex + 1,
+                        PlateAppearanceNumber = playerIndex + 1,
+                        Inning = 1,
+                        Result = playerIndex == 0
+                            ? alexResults[index]
+                            : BatterResult.Out,
+                    }), "Team-year-summary plate appearance");
+                }
+            }
+
+            EnsureSingleRow(await connection.InsertAsync(new Team
+            {
+                Name = team.Name,
+                Year = team.Year + 1,
+                TeamLineageId = team.TeamLineageId,
+                PreviousTeamId = team.Id,
+                IsActive = true,
+            }), "Team-year-summary successor Team");
+        }
+        finally
+        {
+            await connection.CloseAsync();
+        }
+
+        EnsureBeerUpdate(await beerAccountingRepository.SetEffectiveRuleCountAsync(
+            team.Id, playerIds[0], BeerRuleType.Dbo, 1));
+        EnsureBeerUpdate(await beerAccountingRepository.SetEffectiveRuleCountAsync(
+            team.Id, playerIds[0], BeerRuleType.TriplePlay, 2));
+        EnsureBeerUpdate(await beerAccountingRepository.SetEffectiveRuleCountAsync(
+            team.Id, playerIds[0], BeerRuleType.Strikeout, 3));
+        EnsureBeerUpdate(await beerAccountingRepository.SetEffectiveRuleCountAsync(
+            team.Id, playerIds[0], BeerRuleType.LowMan, 4));
+        EnsureBeerUpdate(await beerAccountingRepository.SetBroughtAsync(
+            team.Id, playerIds[0], 2));
 
         return new AndroidUiTestContext(team.Id, 0, true);
     }
