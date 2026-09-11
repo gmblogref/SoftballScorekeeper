@@ -10,9 +10,9 @@ Stable product and architecture decisions belong in the project architecture doc
 
 ## Current Project Status
 
-- **Latest completed story:** Story 7.5 — Low Man / Game Night Automatic Calculation
-- **Completed stories:** Stories 0.0 through 6.9.5 and Stories 7.0 through 7.5; Story 6.9.4 retains its recorded physical Android acceptance status, and Stories 3.2 through 3.4 retain their recorded validation status
-- **Current story:** Story 6.9.5 — Team Stats Game Filtering; implementation, normal automated validation, and pinpoint Android UI validation complete; physical-device acceptance pending
+- **Latest completed story:** Story 7.7 — Copy Team to New Year and Beer Balance Carry Forward
+- **Completed stories:** Stories 0.0 through 6.9.5, Stories 7.0 through 7.5, and Story 7.7; Story 6.9.4 retains its recorded physical Android acceptance status, and Stories 3.2 through 3.4 retain their recorded validation status
+- **Current story:** Story 7.7 — Copy Team to New Year and Beer Balance Carry Forward; implementation and automated validation complete, Android and physical acceptance pending
 - **Current phase:** Beer Rules
 - **Foundation status:** Complete
 
@@ -3129,6 +3129,32 @@ Dedicated Double Play/Triple Play presentation, sacrifice results, HR-limit/dead
 #### Intended Commit Message
 
 `Add Low Man Game Night calculation`
+
+### Story 7.7 — Copy Team to New Year and Beer Balance Carry Forward (Complete — physical Android acceptance passed)
+
+#### Team Year, Lineage, and Compatibility Migration
+
+- Added required Team Year, immutable lineage identity, and immediate predecessor fields. Normal Team creation requires a resource-backed year, starts a new lineage, and enforces normalized name/year uniqueness across active and inactive Teams; name edits retain the immutable year and lineage. Team Manager now uses authoritative Team Year rather than deriving identity from the latest Season.
+- Introduced schema version 1 through `PRAGMA user_version`. Version-zero Teams migrate transactionally: single-year Teams use their Season year, seasonless Teams use fixed compatibility year 2026, and multi-year Teams use their greatest Season year. Each receives an independent lineage and no predecessor. Older mismatched Seasons and Games remain unchanged/readable legacy history. Duplicate canonical normalized name/year data aborts diagnostically without repair or version advancement.
+- New Season writes must match Team Year. Add/Edit Game derives new League Season year from the Team, filters legacy mismatched Seasons from new selection, and the repositories reject mismatched existing or proposed Season definitions.
+
+#### Atomic New-Year Copy and Beer Accounting
+
+- Added one transactionally atomic `TeamYearCopyRepository` operation and a Team Workspace overflow action with detailed resource-backed confirmation and overlapping-execution protection. Copy creates exactly the next Team Year in the same lineage with the source as immediate predecessor; year 9999, branching, lineage/year, and normalized name/year collisions—including inactive destinations—return structured failures without reusing or reactivating records.
+- The destination receives fresh current-year League Season definitions, eligible active roster memberships for active global Players with stable Player IDs and jersey numbers, and all seven resolved Beer configurations persisted explicitly. Games, lineups, scoring/history, statistics, prior automatic/manual rule rows, Low Man rows, and prior BROUGHT rows do not copy. The source is not mutated.
+- Added immutable signed `CarryForward` ledger rows with source Team audit identity and widened ledger amounts to 64-bit. Each nonzero source OWED becomes exactly one destination opening row; it contributes directly to destination OWED without affecting rule counts or BROUGHT. Zero produces no row. Balance-only and inactive Players retain stable identity without roster creation/reactivation and appear after active roster Players while nonzero.
+
+#### Tests, Validation, and Acceptance Status
+
+- Added eight focused migration/copy/identity integration tests plus the earlier four non-roster projection tests. Coverage includes versioning and migration inference, preserved legacy history, diagnostic collisions, year and lineage invariants, basic and chained copies, no branching, year 9999, active/inactive collisions, roster eligibility, Player identity, nullable/populated jerseys, current-year Season copying, Game exclusion, seven explicit Beer settings, signed/zero/unique carry rows, count/BROUGHT reset, non-roster ordering, source ledger preservation, and injected mid-copy failure rollback of all destination rows. Updated existing tests for year-aware uniqueness, Season invariants, 64-bit amounts, and the fifth Team overflow action.
+- The final focused Story 7.7/Beer/Season selection passed 47 of 47 tests, and the full emulator-independent suite passed 943 of 943, with zero failures or skips. The full Android/Windows solution build succeeded with zero errors and 147 existing nullable, MVVM Toolkit AOT, and XAML binding warnings. `git diff --check` passed.
+- Added exactly two isolated Story 7.7 Android/Appium scenarios with a dedicated copy seed. On `softball_tablet_ui_tests_api_35`, the exact copy-workflow scenario passed 1 of 1 in 27 seconds after one test-only retry that explicitly selected the Games section after destination navigation. It verified the 2026-to-2027 confirmation, destination navigation, stable copied roster names and jersey numbers, current-year Spring/Summer definitions with the legacy 2025 Season excluded, copied nondefault Beer Rules, and no copied historical Game. The exact destination Beer Totals scenario passed 1 of 1 in 25 seconds after one test-only retry that removed an unsupported first-name ordering assumption within the non-roster group. It verified zero destination rule counts and BROUGHT, stable Player IDs, signed `+3` and `-2` carry-forward balances, active-roster-first grouping, omission of the zero-balance holder, visibility of an inactive non-roster balance holder, and absence of balance-only destination roster memberships. No production behavior changed during Appium diagnosis, and no broad Android UI suite or unrelated scenario ran.
+- Physical review prompted a final Team Manager presentation refinement: active Teams are now grouped directly by authoritative `Team.Year` under resource-backed, Games-style collapsible headers ordered newest year first. Existing repository ordering is preserved within each year. Expansion state is transient and retained across refreshes; initially only the newest year is expanded, and a newly introduced newest year such as a copied successor opens automatically. Team cards retain their identity-based Workspace navigation, year, and record presentation, while the existing empty state and inactive-Team exclusion remain unchanged. Five new grouping presentation tests plus the two existing Team Manager tests passed 7 of 7. Android and Windows builds succeeded with zero errors and 10 and 137 existing nullable/MVVM Toolkit/XAML warnings respectively; `git diff --check` passed. No additional Android/Appium run was required for this presentation-only polish.
+- Final physical-device acceptance passed with no Story 7.7 defect. Manual review confirmed authoritative `Team.Year` grouping, descending 2027-before-2026 ordering, correct Team placement beneath clear and visually consistent year separators, working collapse/expand behavior, unchanged Team-card navigation, and acceptable portrait and landscape presentation. Together with both previously authorized passing pinpoint Appium scenarios, physical acceptance is complete.
+
+#### Intended Commit Message
+
+`Copy Team to new year with Beer carry forward`
 
 ## Maintenance Rules
 

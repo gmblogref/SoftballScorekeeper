@@ -35,6 +35,9 @@
                 </Entry.Triggers>
             </Entry>
 
+            <Label Text="{x:Static strings:AppResources.TeamYearLabel}" />
+            <Label Text="{Binding TeamYear}" />
+
             <Label Text="{Binding ValidationMessage}">
                 <Label.Triggers>
                     <DataTrigger

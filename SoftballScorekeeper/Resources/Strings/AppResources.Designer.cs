@@ -1166,5 +1166,16 @@ namespace SoftballScorekeeper.Resources.Strings {
         public static string SelectAllButton { get { return ResourceManager.GetString("SelectAllButton", resourceCulture); } }
         public static string ClearAllButton { get { return ResourceManager.GetString("ClearAllButton", resourceCulture); } }
         public static string ApplyButton { get { return ResourceManager.GetString("ApplyButton", resourceCulture); } }
+        public static string TeamYearLabel { get { return ResourceManager.GetString("TeamYearLabel", resourceCulture); } }
+        public static string TeamYearPlaceholder { get { return ResourceManager.GetString("TeamYearPlaceholder", resourceCulture); } }
+        public static string TeamYearInvalid { get { return ResourceManager.GetString("TeamYearInvalid", resourceCulture); } }
+        public static string CopyTeamToNewYearButton { get { return ResourceManager.GetString("CopyTeamToNewYearButton", resourceCulture); } }
+        public static string CopyTeamConfirmationTitle { get { return ResourceManager.GetString("CopyTeamConfirmationTitle", resourceCulture); } }
+        public static string CopyTeamConfirmationMessage { get { return ResourceManager.GetString("CopyTeamConfirmationMessage", resourceCulture); } }
+        public static string CopyTeamConfirmButton { get { return ResourceManager.GetString("CopyTeamConfirmButton", resourceCulture); } }
+        public static string CopyTeamDestinationExists { get { return ResourceManager.GetString("CopyTeamDestinationExists", resourceCulture); } }
+        public static string CopyTeamFailed { get { return ResourceManager.GetString("CopyTeamFailed", resourceCulture); } }
+        public static string ExpandedTeamYearHeaderFormat { get { return ResourceManager.GetString("ExpandedTeamYearHeaderFormat", resourceCulture); } }
+        public static string CollapsedTeamYearHeaderFormat { get { return ResourceManager.GetString("CollapsedTeamYearHeaderFormat", resourceCulture); } }
     }
 }

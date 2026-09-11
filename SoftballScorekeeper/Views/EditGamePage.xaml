@@ -27,9 +27,8 @@
                     </Border>
                 </VerticalStackLayout>
                 <Grid Grid.Column="1" ColumnDefinitions="*,Auto"><Label Text="{x:Static strings:AppResources.CreateNewSeasonLabel}" VerticalTextAlignment="Center" /><Switch Grid.Column="1" IsToggled="{Binding IsCreatingNewSeason, Mode=TwoWay}" /></Grid>
-                <Grid Grid.Row="1" Grid.ColumnSpan="2" ColumnDefinitions="2*,*" ColumnSpacing="20" IsVisible="{Binding IsCreatingNewSeason}">
+                <Grid Grid.Row="1" Grid.ColumnSpan="2" IsVisible="{Binding IsCreatingNewSeason}">
                     <VerticalStackLayout Spacing="8"><Label Text="{x:Static strings:AppResources.SeasonNameLabel}" /><Entry Text="{Binding SeasonName, Mode=TwoWay}" Placeholder="{x:Static strings:AppResources.SeasonNamePlaceholder}" MinimumHeightRequest="52" /></VerticalStackLayout>
-                    <VerticalStackLayout Grid.Column="1" Spacing="8"><Label Text="{x:Static strings:AppResources.SeasonYearLabel}" /><Entry Text="{Binding SeasonYearText, Mode=TwoWay}" Placeholder="{x:Static strings:AppResources.SeasonYearPlaceholder}" Keyboard="Numeric" MaxLength="4" MinimumHeightRequest="52" /></VerticalStackLayout>
                 </Grid>
                 <VerticalStackLayout Grid.Row="2" Spacing="8"><Label Text="{x:Static strings:AppResources.GameDateLabel}" /><DatePicker Date="{Binding ScheduledDate, Mode=TwoWay}" MinimumHeightRequest="52" /></VerticalStackLayout>
                 <VerticalStackLayout Grid.Row="2" Grid.Column="1" Spacing="8"><Label Text="{x:Static strings:AppResources.GameTimeLabel}" /><TimePicker Time="{Binding ScheduledTime, Mode=TwoWay}" MinimumHeightRequest="52" /></VerticalStackLayout>

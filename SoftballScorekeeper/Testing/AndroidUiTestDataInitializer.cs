@@ -15,6 +15,7 @@ public sealed class AndroidUiTestDataInitializer
     internal const string TeamRecordRequestFileName = "android-ui-test-team-record";
     internal const string BeerTotalsRequestFileName = "android-ui-test-beer-totals";
     internal const string TeamStatsRequestFileName = "android-ui-test-team-stats";
+    internal const string TeamYearCopyRequestFileName = "android-ui-test-team-year-copy";
     private static readonly string[] RequestFileNames =
     [
         RequestFileName,
@@ -23,6 +24,7 @@ public sealed class AndroidUiTestDataInitializer
         TeamRecordRequestFileName,
         BeerTotalsRequestFileName,
         TeamStatsRequestFileName,
+        TeamYearCopyRequestFileName,
     ];
 
     private readonly AppDatabase database;
@@ -64,15 +66,18 @@ public sealed class AndroidUiTestDataInitializer
             FileSystem.AppDataDirectory, BeerTotalsRequestFileName);
         var teamStatsRequestPath = Path.Combine(
             FileSystem.AppDataDirectory, TeamStatsRequestFileName);
+        var teamYearCopyRequestPath = Path.Combine(
+            FileSystem.AppDataDirectory, TeamYearCopyRequestFileName);
         var useMissingGame = File.Exists(missingGameRequestPath);
         var useCompletedStatisticsSorting = File.Exists(
             completedStatisticsSortingRequestPath);
         var useTeamRecord = File.Exists(teamRecordRequestPath);
         var useBeerTotals = File.Exists(beerTotalsRequestPath);
         var useTeamStats = File.Exists(teamStatsRequestPath);
+        var useTeamYearCopy = File.Exists(teamYearCopyRequestPath);
         if (!File.Exists(requestPath) && !useMissingGame
             && !useCompletedStatisticsSorting && !useTeamRecord && !useBeerTotals
-            && !useTeamStats) return null;
+            && !useTeamStats && !useTeamYearCopy) return null;
 
         if (File.Exists(requestPath)) File.Delete(requestPath);
         if (useMissingGame) File.Delete(missingGameRequestPath);
@@ -81,6 +86,9 @@ public sealed class AndroidUiTestDataInitializer
         if (useTeamRecord) File.Delete(teamRecordRequestPath);
         if (useBeerTotals) File.Delete(beerTotalsRequestPath);
         if (useTeamStats) File.Delete(teamStatsRequestPath);
+        if (useTeamYearCopy) File.Delete(teamYearCopyRequestPath);
+
+        if (useTeamYearCopy) return await SeedTeamYearCopyAsync();
 
         if (useTeamStats) return await SeedTeamStatsAsync();
 
@@ -181,6 +189,113 @@ public sealed class AndroidUiTestDataInitializer
         }
 
         await SeedBeerTotalsLowManGameAsync(team.Id, playerIds);
+
+        return new AndroidUiTestContext(team.Id, 0, true);
+    }
+
+    private async Task<AndroidUiTestContext> SeedTeamYearCopyAsync()
+    {
+        var team = new Team
+        {
+            Name = "Automation Copy Team",
+            Year = 2026,
+            IsActive = true,
+        };
+        EnsureSingleRow(await teamRepository.CreateAsync(team), "Team-year-copy source Team");
+
+        var rosterPlayers = new[]
+        {
+            (FirstName: "Mike", LastName: "Current", JerseyNumber: 12),
+            (FirstName: "Zulu", LastName: "Current", JerseyNumber: 34),
+        };
+        foreach (var playerData in rosterPlayers)
+        {
+            var result = await playerRepository.CreateForTeamAsync(
+                new Player
+                {
+                    FirstName = playerData.FirstName,
+                    LastName = playerData.LastName,
+                    IsActive = true,
+                },
+                team.Id);
+            if (!result.IsSuccess)
+                throw new InvalidOperationException(
+                    "Could not seed a Team-year-copy roster Player.");
+        }
+
+        var nonRosterPlayers = new[]
+        {
+            new Player { FirstName = "Aaron", LastName = "Owed", IsActive = false },
+            new Player { FirstName = "Beta", LastName = "Credit", IsActive = true },
+            new Player { FirstName = "Zero", LastName = "Balance", IsActive = false },
+        };
+        foreach (var player in nonRosterPlayers)
+            EnsureSingleRow(await playerRepository.CreateAsync(player),
+                "Team-year-copy non-roster Player");
+
+        var connection = new SQLiteAsyncConnection(
+            database.DatabasePath,
+            SQLiteOpenFlags.ReadWrite | SQLiteOpenFlags.SharedCache);
+        try
+        {
+            var memberships = await connection.Table<TeamPlayer>()
+                .Where(item => item.TeamId == team.Id)
+                .OrderBy(item => item.Id)
+                .ToListAsync();
+            for (var index = 0; index < memberships.Count; index++)
+            {
+                memberships[index].JerseyNumber = rosterPlayers[index].JerseyNumber;
+                EnsureSingleRow(await connection.UpdateAsync(memberships[index]),
+                    "Team-year-copy jersey number");
+            }
+
+            var spring = new Season { TeamId = team.Id, Name = "Spring", Year = 2026 };
+            var summer = new Season { TeamId = team.Id, Name = "Summer", Year = 2026 };
+            var legacy = new Season { TeamId = team.Id, Name = "Legacy", Year = 2025 };
+            EnsureSingleRow(await connection.InsertAsync(spring), "Team-year-copy Spring Season");
+            EnsureSingleRow(await connection.InsertAsync(summer), "Team-year-copy Summer Season");
+            EnsureSingleRow(await connection.InsertAsync(legacy), "Team-year-copy legacy Season");
+            EnsureSingleRow(await connection.InsertAsync(new Game
+            {
+                TeamId = team.Id,
+                SeasonId = spring.Id,
+                ScheduledDate = new DateTime(2026, 5, 4),
+                ScheduledTime = new TimeSpan(18, 30, 0),
+                Opponent = "Historical Opponent",
+            }), "Team-year-copy historical Game");
+
+            foreach (var setting in BeerRuleConfigurationDefaults.TeamRules)
+            {
+                EnsureSingleRow(await connection.InsertAsync(new TeamBeerRuleConfiguration
+                {
+                    TeamId = team.Id,
+                    RuleType = setting.RuleType,
+                    IsEnabled = setting.RuleType != BeerRuleType.Dbo,
+                    Amount = setting.RuleType == BeerRuleType.Strikeout ? 4 : setting.Amount,
+                }), "Team-year-copy Beer Rule configuration");
+            }
+
+            EnsureSingleRow(await connection.InsertAsync(new BeerLedgerEntry
+            {
+                TeamId = team.Id,
+                PlayerId = nonRosterPlayers[0].Id,
+                RuleType = BeerRuleType.Dbo,
+                Origin = BeerLedgerEntryOrigin.ManualAdjustment,
+                RuleCountAdjustment = 3,
+                Amount = 3,
+            }), "Team-year-copy positive Beer balance");
+            EnsureSingleRow(await connection.InsertAsync(new BeerLedgerEntry
+            {
+                TeamId = team.Id,
+                PlayerId = nonRosterPlayers[1].Id,
+                Origin = BeerLedgerEntryOrigin.BroughtCredit,
+                Amount = 2,
+            }), "Team-year-copy negative Beer balance");
+        }
+        finally
+        {
+            await connection.CloseAsync();
+        }
 
         return new AndroidUiTestContext(team.Id, 0, true);
     }

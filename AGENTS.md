@@ -73,6 +73,19 @@ An Application project remains planned future work. The `SoftballScorekeeper.Tes
 
 A `Team` record represents exactly one Team Year. Its owned `Season` records represent League Season subdivisions within that Team Year, such as Spring, Summer, or Fall; do not use League Season scope as the Team Year boundary.
 
+Team Year is required, valid from 1 through 9999, and immutable after Team
+creation. New Season writes must derive and match their owning Team Year.
+Pre-Story-7.7 multi-year Teams retain older mismatched Seasons and Games as
+readable legacy history; those Seasons cannot define new Games or copy forward.
+Seasonless legacy Teams migrate to fixed year 2026, single-year Teams use that
+year, and multi-year Teams use their greatest Season year without splitting.
+
+Every Team has an immutable lineage identifier and optional immutable immediate
+predecessor. Normal Team creation starts a new lineage. Copy Team creates only
+the next year, shares the lineage, points to the source Team, and cannot branch.
+Team lineage/year and normalized Team name/year are unique across active and
+inactive Teams. Copy collisions never reuse or reactivate an existing Team.
+
 Preferred dependency direction:
 
 ```text
@@ -112,6 +125,25 @@ such as OWED are derived from ledger data rather than persisted as independently
 mutable truth. Date-scoped automatic Low Man results are the narrow exception to
 immutability because deliberate recalculation must reconcile corrected completed
 Game history while preserving all manual adjustments.
+
+Team Beer accounting may include Players without current TeamPlayer membership
+when they have a nonzero Team-scoped Beer balance. Active/current roster Players
+are displayed first, followed by non-roster Players with nonzero balances. Beer
+balance alone must never create or reactivate roster membership.
+
+Copy Team to New Year is one atomic local transaction. It copies current-year
+League Season definitions, active roster memberships for active Players with
+jersey numbers, and all seven resolved Team Beer settings. It does not copy
+Games, scoring or lineup history, statistics, automatic or manual rule history,
+Low Man rows, or BROUGHT rows. The source Team is never mutated.
+
+Only the source's signed unresolved Beer balance crosses the Team-Year boundary.
+Each nonzero Player balance becomes one immutable destination CarryForward row
+with the stable PlayerId and source Team ID; zero creates no row. CarryForward
+contributes directly to OWED, affects no Beer-rule count, and is not BROUGHT:
+OWED equals signed carry-forward plus current-year effective obligation minus
+current-year BROUGHT. Carry-forward alone never creates or reactivates roster or
+Player state.
 
 ## Presentation Layer
 

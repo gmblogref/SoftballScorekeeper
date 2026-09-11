@@ -17,6 +17,7 @@ public partial class TeamWorkspaceViewModel : ObservableObject, IQueryAttributab
     private readonly GameScoringSessionRepository gameScoringSessionRepository;
     private readonly SeasonRepository seasonRepository;
     private readonly BeerRuleConfigurationRepository? beerRuleConfigurationRepository;
+    private readonly TeamYearCopyRepository? teamYearCopyRepository;
     private bool hasGames;
     private bool hasInitialSectionSelection;
     private bool hasInitialScheduleState;
@@ -93,7 +94,9 @@ public partial class TeamWorkspaceViewModel : ObservableObject, IQueryAttributab
         GameLineupRepository gameLineupRepository,
         GameScoringSessionRepository gameScoringSessionRepository,
         SeasonRepository seasonRepository,
-        BeerRuleConfigurationRepository? beerRuleConfigurationRepository = null)
+        BeerRuleConfigurationRepository? beerRuleConfigurationRepository = null,
+        TeamYearCopyRepository? teamYearCopyRepository = null
+    )
     {
         ArgumentNullException.ThrowIfNull(teamRepository);
         ArgumentNullException.ThrowIfNull(teamPlayerRepository);
@@ -109,11 +112,13 @@ public partial class TeamWorkspaceViewModel : ObservableObject, IQueryAttributab
         this.gameScoringSessionRepository = gameScoringSessionRepository;
         this.seasonRepository = seasonRepository;
         this.beerRuleConfigurationRepository = beerRuleConfigurationRepository;
+        this.teamYearCopyRepository = teamYearCopyRepository;
     }
 
     public async Task<IReadOnlyList<BeerRuleSetting>?> LoadBeerRulesAsync()
     {
-        if (!IsTeamLoaded || beerRuleConfigurationRepository is null) return null;
+        if (!IsTeamLoaded || beerRuleConfigurationRepository is null)
+            return null;
         return await beerRuleConfigurationRepository.GetTeamAsync(TeamId);
     }
 
@@ -144,6 +149,8 @@ public partial class TeamWorkspaceViewModel : ObservableObject, IQueryAttributab
     public Func<int, string, Task>? RemovePlayersConfirmationRequested { get; set; }
 
     public Func<int, Task>? RemoveGamesConfirmationRequested { get; set; }
+
+    public Func<string, int, int, Task>? CopyTeamConfirmationRequested { get; set; }
 
     public int SelectedGameCount
     {
@@ -178,12 +185,14 @@ public partial class TeamWorkspaceViewModel : ObservableObject, IQueryAttributab
         }
     }
 
-    public string SelectedGameCountText => string.Format(
-        CultureInfo.CurrentCulture,
-        SelectedGameCount == 1
-            ? AppResources.SelectedGameCountSingularText
-            : AppResources.SelectedGameCountPluralText,
-        SelectedGameCount);
+    public string SelectedGameCountText =>
+        string.Format(
+            CultureInfo.CurrentCulture,
+            SelectedGameCount == 1
+                ? AppResources.SelectedGameCountSingularText
+                : AppResources.SelectedGameCountPluralText,
+            SelectedGameCount
+        );
 
     public int SelectedPlayerCount
     {
@@ -290,9 +299,11 @@ public partial class TeamWorkspaceViewModel : ObservableObject, IQueryAttributab
             var games = await gameRepository.GetForTeamAsync(TeamId);
             var seasons = await seasonRepository.GetForTeamAsync(TeamId);
             var gameIdsWithLineups = await gameLineupRepository.GetGameIdsWithLineupsAsync(
-                games.Select(game => game.Id));
+                games.Select(game => game.Id)
+            );
             var scoringSessions = await gameScoringSessionRepository.GetForGamesAsync(
-                games.Select(game => game.Id));
+                games.Select(game => game.Id)
+            );
 
             loadedTeam = team;
             TeamName = team.Name;
@@ -361,15 +372,15 @@ public partial class TeamWorkspaceViewModel : ObservableObject, IQueryAttributab
                 return;
             }
 
-            if (await teamRepository.ActiveNameExistsAsync(trimmedName, loadedTeam.Id))
+            if (
+                await teamRepository.NameYearExistsAsync(
+                    trimmedName,
+                    loadedTeam.Year,
+                    loadedTeam.Id
+                )
+            )
             {
                 ValidationMessage = AppResources.DuplicateTeamName;
-                return;
-            }
-
-            if (await teamRepository.InactiveNameExistsAsync(trimmedName, loadedTeam.Id))
-            {
-                ValidationMessage = AppResources.InactiveTeamNameExists;
                 return;
             }
 
@@ -435,6 +446,61 @@ public partial class TeamWorkspaceViewModel : ObservableObject, IQueryAttributab
         }
     }
 
+    [RelayCommand]
+    private async Task RequestCopyTeamAsync()
+    {
+        if (
+            IsBusy
+            || isConfirmationPending
+            || !IsTeamLoaded
+            || loadedTeam is null
+            || teamYearCopyRepository is null
+        )
+            return;
+        isConfirmationPending = true;
+        try
+        {
+            var confirmation = CopyTeamConfirmationRequested;
+            if (confirmation is not null)
+                await confirmation(loadedTeam.Name, loadedTeam.Year, loadedTeam.Year + 1);
+        }
+        finally
+        {
+            isConfirmationPending = false;
+        }
+    }
+
+    [RelayCommand]
+    private async Task ConfirmCopyTeamAsync()
+    {
+        if (IsBusy || !IsTeamLoaded || loadedTeam is null || teamYearCopyRepository is null)
+            return;
+        IsBusy = true;
+        try
+        {
+            var result = await teamYearCopyRepository.CopyAsync(loadedTeam.Id);
+            if (!result.IsSuccess || result.DestinationTeam is null)
+            {
+                ValidationMessage =
+                    result.FailureReason == CopyTeamToNewYearFailure.DestinationExists
+                        ? AppResources.CopyTeamDestinationExists
+                        : AppResources.CopyTeamFailed;
+                return;
+            }
+            await Shell.Current.GoToAsync(
+                AppShell.TeamWorkspaceRoute,
+                new ShellNavigationQueryParameters
+                {
+                    [AppShell.TeamIdQueryParameter] = result.DestinationTeam.Id,
+                }
+            );
+        }
+        finally
+        {
+            IsBusy = false;
+        }
+    }
+
     [RelayCommand(CanExecute = nameof(CanConfirmDeactivateTeam))]
     private async Task ConfirmDeactivateTeamAsync()
     {
@@ -469,7 +535,7 @@ public partial class TeamWorkspaceViewModel : ObservableObject, IQueryAttributab
     {
         var parameters = new ShellNavigationQueryParameters
         {
-            [AppShell.TeamIdQueryParameter] = TeamId
+            [AppShell.TeamIdQueryParameter] = TeamId,
         };
 
         await Shell.Current.GoToAsync(AppShell.AddPlayersToTeamRoute, parameters);
@@ -494,12 +560,15 @@ public partial class TeamWorkspaceViewModel : ObservableObject, IQueryAttributab
         int? jerseyNumber = null;
         if (text.Length > 0)
         {
-            if (!int.TryParse(
+            if (
+                !int.TryParse(
                     text,
                     NumberStyles.None,
                     CultureInfo.CurrentCulture,
-                    out var parsedNumber)
-                || parsedNumber < 0)
+                    out var parsedNumber
+                )
+                || parsedNumber < 0
+            )
             {
                 ValidationMessage = AppResources.NonNegativeWholeNumberRequiredMessage;
                 return;
@@ -520,10 +589,13 @@ public partial class TeamWorkspaceViewModel : ObservableObject, IQueryAttributab
         {
             try
             {
-                if (await teamPlayerRepository.UpdateJerseyNumberAsync(
+                if (
+                    await teamPlayerRepository.UpdateJerseyNumberAsync(
                         TeamId,
                         item.TeamPlayerId,
-                        jerseyNumber) != 1)
+                        jerseyNumber
+                    ) != 1
+                )
                 {
                     ValidationMessage = AppResources.JerseyNumberUpdateFailed;
                     return;
@@ -556,7 +628,7 @@ public partial class TeamWorkspaceViewModel : ObservableObject, IQueryAttributab
     {
         var parameters = new ShellNavigationQueryParameters
         {
-            [AppShell.TeamIdQueryParameter] = TeamId
+            [AppShell.TeamIdQueryParameter] = TeamId,
         };
 
         await Shell.Current.GoToAsync(AppShell.AddGameRoute, parameters);
@@ -564,7 +636,8 @@ public partial class TeamWorkspaceViewModel : ObservableObject, IQueryAttributab
 
     private async Task OpenGameAsync(GameScheduleItem item)
     {
-        if (item.GameId <= 0) return;
+        if (item.GameId <= 0)
+            return;
         if (IsRemovingGames)
         {
             item.IsSelected = !item.IsSelected;
@@ -651,8 +724,13 @@ public partial class TeamWorkspaceViewModel : ObservableObject, IQueryAttributab
         IsBusy = true;
         try
         {
-            var result = await teamPlayerRepository.RemovePlayersFromTeamAsync(TeamId, requestedIds);
-            await ReloadRosterAsync(result.SuccessfulRemovalCount == requestedIds.Length ? null : requestedIds);
+            var result = await teamPlayerRepository.RemovePlayersFromTeamAsync(
+                TeamId,
+                requestedIds
+            );
+            await ReloadRosterAsync(
+                result.SuccessfulRemovalCount == requestedIds.Length ? null : requestedIds
+            );
 
             if (result.SuccessfulRemovalCount == requestedIds.Length)
             {
@@ -661,13 +739,15 @@ public partial class TeamWorkspaceViewModel : ObservableObject, IQueryAttributab
                 return;
             }
 
-            ValidationMessage = result.SuccessfulRemovalCount == 0
-                ? AppResources.RemovePlayersNoOpMessage
-                : string.Format(
-                    CultureInfo.CurrentCulture,
-                    AppResources.RemovePlayersPartialResultMessage,
-                    result.SuccessfulRemovalCount,
-                    requestedIds.Length);
+            ValidationMessage =
+                result.SuccessfulRemovalCount == 0
+                    ? AppResources.RemovePlayersNoOpMessage
+                    : string.Format(
+                        CultureInfo.CurrentCulture,
+                        AppResources.RemovePlayersPartialResultMessage,
+                        result.SuccessfulRemovalCount,
+                        requestedIds.Length
+                    );
         }
         catch
         {
@@ -740,7 +820,8 @@ public partial class TeamWorkspaceViewModel : ObservableObject, IQueryAttributab
         {
             var result = await gameRepository.RemoveGamesAsync(TeamId, requestedIds);
             await ReloadScheduleAsync(
-                result.SuccessfulRemovalCount == requestedIds.Length ? null : requestedIds);
+                result.SuccessfulRemovalCount == requestedIds.Length ? null : requestedIds
+            );
 
             if (result.SuccessfulRemovalCount == requestedIds.Length)
             {
@@ -749,15 +830,17 @@ public partial class TeamWorkspaceViewModel : ObservableObject, IQueryAttributab
                 return;
             }
 
-            ValidationMessage = result.SuccessfulRemovalCount == 0
-                ? result.BlockedGameIds.Count > 0
-                    ? AppResources.RemoveGamesBlockedMessage
-                    : AppResources.RemoveGamesNoOpMessage
-                : string.Format(
-                    CultureInfo.CurrentCulture,
-                    AppResources.RemoveGamesPartialResultMessage,
-                    result.SuccessfulRemovalCount,
-                    requestedIds.Length);
+            ValidationMessage =
+                result.SuccessfulRemovalCount == 0
+                    ? result.BlockedGameIds.Count > 0
+                        ? AppResources.RemoveGamesBlockedMessage
+                        : AppResources.RemoveGamesNoOpMessage
+                    : string.Format(
+                        CultureInfo.CurrentCulture,
+                        AppResources.RemoveGamesPartialResultMessage,
+                        result.SuccessfulRemovalCount,
+                        requestedIds.Length
+                    );
         }
         catch
         {
@@ -792,8 +875,11 @@ public partial class TeamWorkspaceViewModel : ObservableObject, IQueryAttributab
 
     private bool CanManageRoster()
     {
-        return CanManageTeam() && !IsEditingTeamName && !IsRemovingPlayers
-            && !IsRemovingGames && !isConfirmationPending;
+        return CanManageTeam()
+            && !IsEditingTeamName
+            && !IsRemovingPlayers
+            && !IsRemovingGames
+            && !isConfirmationPending;
     }
 
     private bool CanEditRosterItem(TeamRosterItem? item) =>
@@ -802,18 +888,26 @@ public partial class TeamWorkspaceViewModel : ObservableObject, IQueryAttributab
     private bool CanBeginRemovePlayers() => CanManageRoster() && HasPlayers;
 
     private bool CanAddGame() =>
-        CanManageTeam() && !IsEditingTeamName && !IsRemovingPlayers
-        && !IsRemovingGames && !isConfirmationPending && IsGamesSectionSelected;
+        CanManageTeam()
+        && !IsEditingTeamName
+        && !IsRemovingPlayers
+        && !IsRemovingGames
+        && !isConfirmationPending
+        && IsGamesSectionSelected;
 
     private bool CanBeginRemoveGames() =>
-        CanManageTeam() && !IsEditingTeamName && !IsRemovingPlayers
-        && !IsRemovingGames && !isConfirmationPending && IsGamesSectionSelected && HasGames;
+        CanManageTeam()
+        && !IsEditingTeamName
+        && !IsRemovingPlayers
+        && !IsRemovingGames
+        && !isConfirmationPending
+        && IsGamesSectionSelected
+        && HasGames;
 
     private bool CanCancelRemoveGames() =>
         CanManageTeam() && IsRemovingGames && !isConfirmationPending;
 
-    private bool CanRemoveSelectedGames() =>
-        CanCancelRemoveGames() && HasSelectedGames;
+    private bool CanRemoveSelectedGames() => CanCancelRemoveGames() && HasSelectedGames;
 
     private bool CanConfirmRemoveSelectedGames() =>
         CanManageTeam() && IsRemovingGames && isConfirmationPending && pendingGameIds.Count > 0;
@@ -821,8 +915,7 @@ public partial class TeamWorkspaceViewModel : ObservableObject, IQueryAttributab
     private bool CanCancelRemovePlayers() =>
         CanManageTeam() && IsRemovingPlayers && !isConfirmationPending;
 
-    private bool CanRemoveSelectedPlayers() =>
-        CanCancelRemovePlayers() && HasSelectedPlayers;
+    private bool CanRemoveSelectedPlayers() => CanCancelRemovePlayers() && HasSelectedPlayers;
 
     private bool CanConfirmRemoveSelectedPlayers() =>
         CanManageTeam() && IsRemovingPlayers && isConfirmationPending && pendingPlayerIds.Count > 0;
@@ -951,11 +1044,12 @@ public partial class TeamWorkspaceViewModel : ObservableObject, IQueryAttributab
         var games = await gameRepository.GetForTeamAsync(TeamId);
         var seasons = await seasonRepository.GetForTeamAsync(TeamId);
         var gameIdsWithLineups = await gameLineupRepository.GetGameIdsWithLineupsAsync(
-            games.Select(game => game.Id));
+            games.Select(game => game.Id)
+        );
         var scoringSessions = await gameScoringSessionRepository.GetForGamesAsync(
-            games.Select(game => game.Id));
-        RebuildSchedule(
-            games, seasons, gameIdsWithLineups, scoringSessions, idsToReselect);
+            games.Select(game => game.Id)
+        );
+        RebuildSchedule(games, seasons, gameIdsWithLineups, scoringSessions, idsToReselect);
         UpdateGameSelectionState();
     }
 
@@ -987,13 +1081,15 @@ public partial class TeamWorkspaceViewModel : ObservableObject, IQueryAttributab
         IReadOnlyList<Season> seasons,
         IReadOnlySet<int> gameIdsWithLineups,
         IReadOnlyDictionary<int, GameScoringSession> scoringSessions,
-        IReadOnlyCollection<int>? idsToReselect = null)
+        IReadOnlyCollection<int>? idsToReselect = null
+    )
     {
         var selectedIds = idsToReselect?.ToHashSet();
         var previousExpansion = hasInitialScheduleState
             ? ScheduleMonthGroups.ToDictionary(
                 group => (group.Year, group.Month),
-                group => group.IsExpanded)
+                group => group.IsExpanded
+            )
             : null;
         var orderedGames = games
             .OrderBy(game => game.ScheduledDate)
@@ -1010,7 +1106,8 @@ public partial class TeamWorkspaceViewModel : ObservableObject, IQueryAttributab
             .Where(date => date >= today)
             .Cast<DateTime?>()
             .FirstOrDefault();
-        var initialExpandedMonth = nextPlayingDate
+        var initialExpandedMonth =
+            nextPlayingDate
             ?? orderedGames.Select(game => (DateTime?)game.ScheduledDate.Date).LastOrDefault();
         var spansMultipleYears = orderedGames
             .Select(game => game.ScheduledDate.Year)
@@ -1019,8 +1116,11 @@ public partial class TeamWorkspaceViewModel : ObservableObject, IQueryAttributab
             .Any();
 
         ScheduleMonthGroups.Clear();
-        foreach (var monthGames in orderedGames.GroupBy(
-                     game => (game.ScheduledDate.Year, game.ScheduledDate.Month)))
+        foreach (
+            var monthGames in orderedGames.GroupBy(game =>
+                (game.ScheduledDate.Year, game.ScheduledDate.Month)
+            )
+        )
         {
             var key = monthGames.Key;
             var headerFormat = spansMultipleYears ? "MMM yyyy" : "MMM";
@@ -1028,13 +1128,15 @@ public partial class TeamWorkspaceViewModel : ObservableObject, IQueryAttributab
                 .ToString(headerFormat, CultureInfo.CurrentCulture)
                 .ToUpper(CultureInfo.CurrentCulture);
             var scheduleItems = monthGames
-                .Select(game => CreateScheduleItem(
-                    game,
-                    seasonNames,
-                    nextPlayingDate,
-                    gameIdsWithLineups.Contains(game.Id),
-                    GameScheduleSummary.FromSession(
-                        scoringSessions.GetValueOrDefault(game.Id))))
+                .Select(game =>
+                    CreateScheduleItem(
+                        game,
+                        seasonNames,
+                        nextPlayingDate,
+                        gameIdsWithLineups.Contains(game.Id),
+                        GameScheduleSummary.FromSession(scoringSessions.GetValueOrDefault(game.Id))
+                    )
+                )
                 .ToArray();
             foreach (var item in scheduleItems)
             {
@@ -1046,12 +1148,9 @@ public partial class TeamWorkspaceViewModel : ObservableObject, IQueryAttributab
                     && key.Year == initialExpandedMonth.Value.Year
                     && key.Month == initialExpandedMonth.Value.Month;
 
-            ScheduleMonthGroups.Add(new GameScheduleMonthGroup(
-                key.Year,
-                key.Month,
-                header,
-                scheduleItems,
-                isExpanded));
+            ScheduleMonthGroups.Add(
+                new GameScheduleMonthGroup(key.Year, key.Month, header, scheduleItems, isExpanded)
+            );
         }
 
         HasGames = ScheduleMonthGroups.Count > 0;
@@ -1063,17 +1162,19 @@ public partial class TeamWorkspaceViewModel : ObservableObject, IQueryAttributab
         IReadOnlyDictionary<int, string> seasonNames,
         DateTime? nextPlayingDate,
         bool hasLineup,
-        GameScheduleSummary scoringSummary)
+        GameScheduleSummary scoringSummary
+    )
     {
-        var isNextPlayingDate = nextPlayingDate is not null
-            && game.ScheduledDate.Date == nextPlayingDate.Value;
+        var isNextPlayingDate =
+            nextPlayingDate is not null && game.ScheduledDate.Date == nextPlayingDate.Value;
         var opponent = string.IsNullOrWhiteSpace(game.Opponent)
             ? AppResources.ScheduleTbdText
             : game.Opponent.Trim();
         var field = string.IsNullOrWhiteSpace(game.Field)
             ? AppResources.ScheduleTbdText
             : game.Field.Trim();
-        var season = seasonNames.TryGetValue(game.SeasonId, out var persistedSeasonName)
+        var season =
+            seasonNames.TryGetValue(game.SeasonId, out var persistedSeasonName)
             && !string.IsNullOrWhiteSpace(persistedSeasonName)
                 ? persistedSeasonName.Trim()
                 : AppResources.ScheduleTbdText;
@@ -1085,8 +1186,8 @@ public partial class TeamWorkspaceViewModel : ObservableObject, IQueryAttributab
             NextDisplay = isNextPlayingDate ? AppResources.NextGameLabel : string.Empty,
             DateDisplay = game.ScheduledDate.ToString("MMM d", CultureInfo.CurrentCulture),
             OpponentDisplay = opponent,
-            TimeDisplay = DateTime.Today
-                .Add(game.ScheduledTime)
+            TimeDisplay = DateTime
+                .Today.Add(game.ScheduledTime)
                 .ToString("t", CultureInfo.CurrentCulture),
             FieldDisplay = field,
             SeasonDisplay = season,
@@ -1106,33 +1207,37 @@ public partial class TeamWorkspaceViewModel : ObservableObject, IQueryAttributab
             StatusText = GetScheduleStatusText(scoringSummary.Status),
             Result = scoringSummary.Result,
             ResultText = GetTeamGameResultText(scoringSummary.Result),
-            FinalScoreDisplay = scoringSummary.Status == GameScheduleStatus.Final
-                ? string.Format(
-                    CultureInfo.CurrentCulture,
-                    AppResources.FinalGameScoreFormat,
-                    scoringSummary.VisitorScore,
-                    scoringSummary.HomeScore)
-                : string.Empty,
+            FinalScoreDisplay =
+                scoringSummary.Status == GameScheduleStatus.Final
+                    ? string.Format(
+                        CultureInfo.CurrentCulture,
+                        AppResources.FinalGameScoreFormat,
+                        scoringSummary.VisitorScore,
+                        scoringSummary.HomeScore
+                    )
+                    : string.Empty,
             IsSelectionVisible = IsRemovingGames,
         };
     }
 
-    private static string GetScheduleStatusText(GameScheduleStatus status) => status switch
-    {
-        GameScheduleStatus.Upcoming => AppResources.UpcomingStatus,
-        GameScheduleStatus.InProgress => AppResources.InProgressStatus,
-        GameScheduleStatus.Final => AppResources.FinalStatus,
-        _ => throw new ArgumentOutOfRangeException(nameof(status)),
-    };
+    private static string GetScheduleStatusText(GameScheduleStatus status) =>
+        status switch
+        {
+            GameScheduleStatus.Upcoming => AppResources.UpcomingStatus,
+            GameScheduleStatus.InProgress => AppResources.InProgressStatus,
+            GameScheduleStatus.Final => AppResources.FinalStatus,
+            _ => throw new ArgumentOutOfRangeException(nameof(status)),
+        };
 
-    private static string GetTeamGameResultText(TeamGameResult? result) => result switch
-    {
-        TeamGameResult.Win => AppResources.WinResultLabel,
-        TeamGameResult.Loss => AppResources.LossResultLabel,
-        TeamGameResult.Tie => AppResources.TieResultLabel,
-        null => string.Empty,
-        _ => throw new ArgumentOutOfRangeException(nameof(result)),
-    };
+    private static string GetTeamGameResultText(TeamGameResult? result) =>
+        result switch
+        {
+            TeamGameResult.Win => AppResources.WinResultLabel,
+            TeamGameResult.Loss => AppResources.LossResultLabel,
+            TeamGameResult.Tie => AppResources.TieResultLabel,
+            null => string.Empty,
+            _ => throw new ArgumentOutOfRangeException(nameof(result)),
+        };
 
     private static bool TryParseTeamId(object? value, out int parsedTeamId)
     {
@@ -1142,9 +1247,11 @@ public partial class TeamWorkspaceViewModel : ObservableObject, IQueryAttributab
             return true;
         }
 
-        if (value is string stringValue
+        if (
+            value is string stringValue
             && int.TryParse(stringValue, out var stringTeamId)
-            && stringTeamId > 0)
+            && stringTeamId > 0
+        )
         {
             parsedTeamId = stringTeamId;
             return true;

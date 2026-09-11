@@ -29,7 +29,8 @@ public sealed class GameRepository
             WHERE Game.TeamId = ?
             ORDER BY Game.ScheduledDate, Game.ScheduledTime, Game.Id
             """,
-            teamId);
+            teamId
+        );
     }
 
     public async Task<bool> HasGamesForTeamAsync(int teamId)
@@ -47,7 +48,8 @@ public sealed class GameRepository
             INNER JOIN Team ON Team.Id = Game.TeamId
             WHERE Game.TeamId = ?
             """,
-            teamId);
+            teamId
+        );
 
         return count > 0;
     }
@@ -69,7 +71,8 @@ public sealed class GameRepository
             ORDER BY Game.Id DESC
             LIMIT 1
             """,
-            teamId);
+            teamId
+        );
 
         return games.FirstOrDefault()?.SeasonId;
     }
@@ -82,7 +85,8 @@ public sealed class GameRepository
         }
 
         var connection = await database.GetConnectionAsync();
-        return await connection.Table<Game>()
+        return await connection
+            .Table<Game>()
             .Where(game => game.Id == gameId && game.TeamId == teamId)
             .FirstOrDefaultAsync();
     }
@@ -90,7 +94,8 @@ public sealed class GameRepository
     public async Task<CreateGamesResult> CreateForTeamAsync(
         int teamId,
         Season? season,
-        IReadOnlyCollection<Game>? games)
+        IReadOnlyCollection<Game>? games
+    )
     {
         var requestedGames = games?.ToArray() ?? Array.Empty<Game>();
         if (!HasValidRequest(teamId, season, requestedGames))
@@ -109,7 +114,8 @@ public sealed class GameRepository
         {
             await connection.RunInTransactionAsync(transaction =>
             {
-                var activeTeam = transaction.Table<Team>()
+                var activeTeam = transaction
+                    .Table<Team>()
                     .FirstOrDefault(team => team.Id == teamId && team.IsActive);
                 if (activeTeam is null)
                 {
@@ -120,7 +126,10 @@ public sealed class GameRepository
                 if (season!.Id > 0)
                 {
                     persistedSeason = transaction.Find<Season>(season.Id);
-                    if (persistedSeason?.TeamId != teamId)
+                    if (
+                        persistedSeason?.TeamId != teamId
+                        || persistedSeason.Year != activeTeam.Year
+                    )
                     {
                         return;
                     }
@@ -131,19 +140,26 @@ public sealed class GameRepository
                         transaction,
                         teamId,
                         season.Name,
-                        season.Year);
+                        season.Year
+                    );
                     if (persistedSeason is null)
                     {
                         return;
                     }
                 }
 
-                var existingGames = transaction.Table<Game>()
+                var existingGames = transaction
+                    .Table<Game>()
                     .Where(game => game.TeamId == teamId && game.SeasonId == persistedSeason.Id)
                     .ToList();
-                if (requestedGames.Any(requested => existingGames.Any(existing =>
-                        existing.ScheduledDate.Date == requested.ScheduledDate.Date
-                        && existing.ScheduledTime == requested.ScheduledTime)))
+                if (
+                    requestedGames.Any(requested =>
+                        existingGames.Any(existing =>
+                            existing.ScheduledDate.Date == requested.ScheduledDate.Date
+                            && existing.ScheduledTime == requested.ScheduledTime
+                        )
+                    )
+                )
                 {
                     throw new DuplicateScheduledGameException();
                 }
@@ -163,7 +179,9 @@ public sealed class GameRepository
 
                     if (transaction.Insert(game) != 1)
                     {
-                        throw new InvalidOperationException("Game insertion did not affect one row.");
+                        throw new InvalidOperationException(
+                            "Game insertion did not affect one row."
+                        );
                     }
 
                     createdIds.Add(game.Id);
@@ -173,7 +191,8 @@ public sealed class GameRepository
                     requestedGames.Length,
                     persistedSeason.Id,
                     createdIds,
-                    CreateGamesFailure.None);
+                    CreateGamesFailure.None
+                );
             });
         }
         catch (DuplicateScheduledGameException)
@@ -190,7 +209,8 @@ public sealed class GameRepository
 
     public async Task<RemoveGamesResult> RemoveGamesAsync(
         int teamId,
-        IReadOnlyCollection<int>? gameIds)
+        IReadOnlyCollection<int>? gameIds
+    )
     {
         var requestedIds = gameIds?.Distinct().ToArray() ?? Array.Empty<int>();
         if (teamId <= 0 || requestedIds.Length == 0)
@@ -199,7 +219,8 @@ public sealed class GameRepository
         }
 
         var connection = await database.GetConnectionAsync();
-        var activeTeam = await connection.Table<Team>()
+        var activeTeam = await connection
+            .Table<Team>()
             .Where(team => team.Id == teamId && team.IsActive)
             .FirstOrDefaultAsync();
         if (activeTeam is null)
@@ -233,10 +254,13 @@ public sealed class GameRepository
                     continue;
                 }
 
-                if (transaction.Execute(
+                if (
+                    transaction.Execute(
                         "DELETE FROM Game WHERE Id = ? AND TeamId = ?",
                         gameId,
-                        teamId) == 1)
+                        teamId
+                    ) == 1
+                )
                 {
                     deletedIds.Add(gameId);
                 }
@@ -253,20 +277,30 @@ public sealed class GameRepository
             missingIds,
             wrongTeamIds,
             blockedIds,
-            ignoredIds);
+            ignoredIds
+        );
     }
 
     public async Task<UpdateGameResult> UpdateForTeamAsync(
         int teamId,
         int gameId,
         Season? season,
-        Game? requestedGame)
+        Game? requestedGame
+    )
     {
-        if (teamId <= 0 || gameId <= 0 || season is null || requestedGame is null
+        if (
+            teamId <= 0
+            || gameId <= 0
+            || season is null
+            || requestedGame is null
             || requestedGame.ScheduledDate == default
             || requestedGame.ScheduledTime < TimeSpan.Zero
             || requestedGame.ScheduledTime >= TimeSpan.FromDays(1)
-            || (season.Id <= 0 && !SeasonRepository.HasValidSeasonValues(teamId, season.Name, season.Year)))
+            || (
+                season.Id <= 0
+                && !SeasonRepository.HasValidSeasonValues(teamId, season.Name, season.Year)
+            )
+        )
         {
             return new UpdateGameResult(gameId, 0, UpdateGameFailure.InvalidRequest);
         }
@@ -277,7 +311,10 @@ public sealed class GameRepository
         {
             await connection.RunInTransactionAsync(transaction =>
             {
-                if (transaction.Table<Team>().FirstOrDefault(team => team.Id == teamId && team.IsActive) is null)
+                var activeTeam = transaction
+                    .Table<Team>()
+                    .FirstOrDefault(team => team.Id == teamId && team.IsActive);
+                if (activeTeam is null)
                 {
                     return;
                 }
@@ -292,7 +329,10 @@ public sealed class GameRepository
                 if (season.Id > 0)
                 {
                     persistedSeason = transaction.Find<Season>(season.Id);
-                    if (persistedSeason?.TeamId != teamId)
+                    if (
+                        persistedSeason?.TeamId != teamId
+                        || persistedSeason.Year != activeTeam.Year
+                    )
                     {
                         result = new UpdateGameResult(gameId, 0, UpdateGameFailure.InvalidSeason);
                         return;
@@ -301,7 +341,11 @@ public sealed class GameRepository
                 else
                 {
                     persistedSeason = SeasonRepository.ResolveOrCreateForActiveTeam(
-                        transaction, teamId, season.Name, season.Year);
+                        transaction,
+                        teamId,
+                        season.Name,
+                        season.Year
+                    );
                     if (persistedSeason is null)
                     {
                         result = new UpdateGameResult(gameId, 0, UpdateGameFailure.InvalidSeason);
@@ -309,12 +353,15 @@ public sealed class GameRepository
                     }
                 }
 
-                var conflict = transaction.Table<Game>().FirstOrDefault(game =>
-                    game.Id != gameId
-                    && game.TeamId == teamId
-                    && game.SeasonId == persistedSeason.Id
-                    && game.ScheduledDate == requestedGame.ScheduledDate.Date
-                    && game.ScheduledTime == requestedGame.ScheduledTime);
+                var conflict = transaction
+                    .Table<Game>()
+                    .FirstOrDefault(game =>
+                        game.Id != gameId
+                        && game.TeamId == teamId
+                        && game.SeasonId == persistedSeason.Id
+                        && game.ScheduledDate == requestedGame.ScheduledDate.Date
+                        && game.ScheduledTime == requestedGame.ScheduledTime
+                    );
                 if (conflict is not null)
                 {
                     throw new DuplicateScheduledGameException();
@@ -347,13 +394,17 @@ public sealed class GameRepository
 
     private static bool HasValidRequest(int teamId, Season? season, IReadOnlyList<Game> games)
     {
-        if (teamId <= 0
+        if (
+            teamId <= 0
             || season is null
             || games.Count is < 1 or > 2
-            || games.Any(game => game is null
+            || games.Any(game =>
+                game is null
                 || game.ScheduledDate == default
                 || game.ScheduledTime < TimeSpan.Zero
-                || game.ScheduledTime >= TimeSpan.FromDays(1)))
+                || game.ScheduledTime >= TimeSpan.FromDays(1)
+            )
+        )
         {
             return false;
         }
@@ -370,20 +421,17 @@ public sealed class GameRepository
     private static bool HasDuplicateRequestedSchedule(IReadOnlyList<Game> games)
     {
         return games
-            .Select(game => (game.ScheduledDate.Date, game.ScheduledTime))
-            .Distinct()
-            .Count() != games.Count;
+                .Select(game => (game.ScheduledDate.Date, game.ScheduledTime))
+                .Distinct()
+                .Count() != games.Count;
     }
 
     private static CreateGamesResult FailedResult(
         int requestedGameCount,
-        CreateGamesFailure failureReason)
+        CreateGamesFailure failureReason
+    )
     {
-        return new CreateGamesResult(
-            requestedGameCount,
-            0,
-            Array.Empty<int>(),
-            failureReason);
+        return new CreateGamesResult(requestedGameCount, 0, Array.Empty<int>(), failureReason);
     }
 
     private static RemoveGamesResult EmptyRemovalResult(IReadOnlyList<int> requestedIds)
@@ -394,7 +442,8 @@ public sealed class GameRepository
             Array.Empty<int>(),
             Array.Empty<int>(),
             Array.Empty<int>(),
-            requestedIds);
+            requestedIds
+        );
     }
 
     private static bool HasDependentHistory(SQLite.SQLiteConnection transaction, int gameId)

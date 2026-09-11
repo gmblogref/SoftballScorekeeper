@@ -10,6 +10,7 @@ public partial class LandingPageViewModel : ObservableObject
 {
     private readonly TeamRepository teamRepository;
     private readonly TeamRecordRepository teamRecordRepository;
+    private bool hasInitialTeamGroupState;
 
     [ObservableProperty]
     private bool hasTeams;
@@ -33,7 +34,7 @@ public partial class LandingPageViewModel : ObservableObject
         this.teamRecordRepository = teamRecordRepository;
     }
 
-    public ObservableCollection<TeamManagerItem> Teams { get; } = new();
+    public ObservableCollection<TeamManagerYearGroup> TeamYearGroups { get; } = new();
 
     public async Task LoadTeamsAsync()
     {
@@ -50,15 +51,34 @@ public partial class LandingPageViewModel : ObservableObject
                 teams.Select(team => team.Id)
             );
 
-            Teams.Clear();
-            foreach (var team in teams)
+            var previousExpansion = hasInitialTeamGroupState
+                ? TeamYearGroups.ToDictionary(group => group.Year, group => group.IsExpanded)
+                : null;
+            var teamItems = teams.Select(team =>
             {
                 var record = records.GetValueOrDefault(team.Id) ?? new TeamYearRecord(null, 0, 0);
-                Teams.Add(new TeamManagerItem(team, record));
+                return new TeamManagerItem(team, record);
+            }).ToArray();
+            var newestYear = teamItems.Select(item => item.Team.Year).DefaultIfEmpty().Max();
+
+            TeamYearGroups.Clear();
+            foreach (var yearGroup in teamItems
+                .GroupBy(item => item.Team.Year)
+                .OrderByDescending(group => group.Key))
+            {
+                var isExpanded = previousExpansion is not null
+                    && previousExpansion.TryGetValue(yearGroup.Key, out var priorExpansion)
+                        ? priorExpansion
+                        : yearGroup.Key == newestYear;
+                TeamYearGroups.Add(new TeamManagerYearGroup(
+                    yearGroup.Key,
+                    yearGroup.ToArray(),
+                    isExpanded));
             }
 
-            HasTeams = Teams.Count > 0;
+            HasTeams = TeamYearGroups.Count > 0;
             HasNoTeams = !HasTeams;
+            hasInitialTeamGroupState = HasTeams;
         }
         finally
         {

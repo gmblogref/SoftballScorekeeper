@@ -25,6 +25,16 @@
                 Text="{Binding TeamName, Mode=TwoWay}"
                 Placeholder="{x:Static strings:AppResources.TeamNamePlaceholder}" />
 
+            <Label
+                Text="{x:Static strings:AppResources.TeamYearLabel}"
+                SemanticProperties.HeadingLevel="Level2" />
+
+            <Entry
+                Text="{Binding TeamYearText, Mode=TwoWay}"
+                Placeholder="{x:Static strings:AppResources.TeamYearPlaceholder}"
+                Keyboard="Numeric"
+                MaxLength="4" />
+
             <Label Text="{Binding ValidationMessage}">
                 <Label.Triggers>
                     <DataTrigger

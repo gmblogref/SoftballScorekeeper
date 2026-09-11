@@ -16,6 +16,14 @@ public partial class EditTeamViewModel : ObservableObject, IQueryAttributable
     [ObservableProperty]
     private string teamName = string.Empty;
 
+    private int teamYear;
+
+    public int TeamYear
+    {
+        get => teamYear;
+        private set => SetProperty(ref teamYear, value);
+    }
+
     [ObservableProperty]
     private string validationMessage = string.Empty;
 
@@ -42,8 +50,10 @@ public partial class EditTeamViewModel : ObservableObject, IQueryAttributable
     {
         ResetTeamState();
 
-        if (!query.TryGetValue(AppShell.TeamIdQueryParameter, out var value)
-            || !TryParseTeamId(value, out var parsedTeamId))
+        if (
+            !query.TryGetValue(AppShell.TeamIdQueryParameter, out var value)
+            || !TryParseTeamId(value, out var parsedTeamId)
+        )
         {
             ValidationMessage = AppResources.TeamNotFound;
             return;
@@ -83,6 +93,7 @@ public partial class EditTeamViewModel : ObservableObject, IQueryAttributable
 
             loadedTeam = team;
             TeamName = team.Name;
+            TeamYear = team.Year;
             ValidationMessage = string.Empty;
             IsTeamLoaded = true;
         }
@@ -116,15 +127,15 @@ public partial class EditTeamViewModel : ObservableObject, IQueryAttributable
                 return;
             }
 
-            if (await teamRepository.ActiveNameExistsAsync(trimmedName, loadedTeam.Id))
+            if (
+                await teamRepository.NameYearExistsAsync(
+                    trimmedName,
+                    loadedTeam.Year,
+                    loadedTeam.Id
+                )
+            )
             {
                 ValidationMessage = AppResources.DuplicateTeamName;
-                return;
-            }
-
-            if (await teamRepository.InactiveNameExistsAsync(trimmedName, loadedTeam.Id))
-            {
-                ValidationMessage = AppResources.InactiveTeamNameExists;
                 return;
             }
 
@@ -237,6 +248,7 @@ public partial class EditTeamViewModel : ObservableObject, IQueryAttributable
         hasValidTeamId = false;
         loadedTeam = null;
         TeamName = string.Empty;
+        TeamYear = 0;
         ValidationMessage = string.Empty;
         IsTeamLoaded = false;
     }
@@ -249,9 +261,11 @@ public partial class EditTeamViewModel : ObservableObject, IQueryAttributable
             return true;
         }
 
-        if (value is string stringValue
+        if (
+            value is string stringValue
             && int.TryParse(stringValue, out var stringTeamId)
-            && stringTeamId > 0)
+            && stringTeamId > 0
+        )
         {
             parsedTeamId = stringTeamId;
             return true;

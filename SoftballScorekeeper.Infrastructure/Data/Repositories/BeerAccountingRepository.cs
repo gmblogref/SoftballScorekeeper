@@ -11,7 +11,8 @@ public sealed class BeerAccountingRepository(AppDatabase database)
             return null;
 
         var connection = await database.GetConnectionAsync();
-        if (await connection.FindAsync<Team>(teamId) is null)
+        var team = await connection.FindAsync<Team>(teamId);
+        if (team is null)
             return null;
 
         var memberships = await connection
@@ -29,12 +30,30 @@ public sealed class BeerAccountingRepository(AppDatabase database)
             .ToHashSet();
         var players = (await connection.Table<Player>().ToListAsync())
             .Where(item => playerIds.Contains(item.Id))
-            .OrderBy(item => item.LastName ?? string.Empty, StringComparer.OrdinalIgnoreCase)
-            .ThenBy(item => item.FirstName, StringComparer.OrdinalIgnoreCase)
-            .ThenBy(item => item.Id)
             .ToArray();
+        var activeRosterPlayerIds = team.IsActive
+            ? memberships.Where(item => item.IsActive).Select(item => item.PlayerId).ToHashSet()
+            : [];
+        var summariesByPlayerId = players.ToDictionary(
+            player => player.Id,
+            player => BuildSummary(player, entries)
+        );
 
-        return players.Select(player => BuildSummary(player, entries)).ToArray();
+        var currentRoster = OrderPlayers(
+            players.Where(player => player.IsActive && activeRosterPlayerIds.Contains(player.Id))
+        );
+        var currentRosterPlayerIds = currentRoster.Select(player => player.Id).ToHashSet();
+        var nonRosterBalanceHolders = OrderPlayers(
+            players.Where(player =>
+                !currentRosterPlayerIds.Contains(player.Id)
+                && summariesByPlayerId[player.Id].Owed != 0
+            )
+        );
+
+        return currentRoster
+            .Concat(nonRosterBalanceHolders)
+            .Select(player => summariesByPlayerId[player.Id])
+            .ToArray();
     }
 
     public Task<BeerAccountingUpdateResult> SetEffectiveRuleCountAsync(
@@ -243,7 +262,7 @@ public sealed class BeerAccountingRepository(AppDatabase database)
         return BeerAccountingUpdateResult.Success;
     }
 
-    private static TeamBeerPlayerSummary BuildSummary(
+    internal static TeamBeerPlayerSummary BuildSummary(
         Player player,
         IReadOnlyList<BeerLedgerEntry> teamEntries
     )
@@ -284,6 +303,9 @@ public sealed class BeerAccountingRepository(AppDatabase database)
         var brought = playerEntries
             .Where(item => item.Origin == BeerLedgerEntryOrigin.BroughtCredit && item.Amount >= 0)
             .Sum(item => (long)item.Amount);
+        var carryForward = playerEntries
+            .Where(item => item.Origin == BeerLedgerEntryOrigin.CarryForward)
+            .Sum(item => item.Amount);
         var displayName = string.Join(
             " ",
             new[] { player.FirstName, player.LastName }
@@ -301,9 +323,15 @@ public sealed class BeerAccountingRepository(AppDatabase database)
             counts[BeerRuleType.Strikeout],
             counts[BeerRuleType.LowMan],
             brought,
-            obligation - brought
+            carryForward + obligation - brought
         );
     }
+
+    private static IOrderedEnumerable<Player> OrderPlayers(IEnumerable<Player> players) =>
+        players
+            .OrderBy(item => item.LastName ?? string.Empty, StringComparer.OrdinalIgnoreCase)
+            .ThenBy(item => item.FirstName, StringComparer.OrdinalIgnoreCase)
+            .ThenBy(item => item.Id);
 
     private static BeerAccountingUpdateResult Failure(BeerAccountingUpdateFailure failure) =>
         new(failure);

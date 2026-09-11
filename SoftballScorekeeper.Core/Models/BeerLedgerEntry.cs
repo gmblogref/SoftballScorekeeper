@@ -19,6 +19,9 @@ public sealed class BeerLedgerEntry
     [Indexed]
     public int PlayerId { get; set; }
 
+    [Indexed]
+    public int? SourceTeamId { get; set; }
+
     public BeerRuleType? RuleType { get; set; }
 
     public BeerLedgerEntryOrigin Origin { get; set; }
@@ -29,7 +32,7 @@ public sealed class BeerLedgerEntry
 
     public int? RuleCountAdjustment { get; set; }
 
-    public int Amount { get; set; }
+    public long Amount { get; set; }
 }
 
 public enum BeerRuleType
@@ -48,4 +51,5 @@ public enum BeerLedgerEntryOrigin
     AutomaticScoring = 1,
     ManualAdjustment = 2,
     BroughtCredit = 3,
+    CarryForward = 4,
 }
