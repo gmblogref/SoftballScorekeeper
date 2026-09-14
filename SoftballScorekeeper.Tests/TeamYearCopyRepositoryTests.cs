@@ -37,6 +37,9 @@ public sealed class TeamYearCopyRepositoryTests
         first.TeamLineageId = Guid.NewGuid();
         Assert.Equal(0, await repository.UpdateAsync(first));
         first.TeamLineageId = originalLineage;
+        first.IsYearOver = true;
+        Assert.Equal(0, await repository.UpdateAsync(first));
+        first.IsYearOver = false;
         first.Name = "Renamed";
         Assert.Equal(1, await repository.UpdateAsync(first));
         nextYear.Name = "Renamed";
@@ -69,12 +72,45 @@ public sealed class TeamYearCopyRepositoryTests
         Assert.All(teams, item => Assert.NotEqual(Guid.Empty, item.TeamLineageId));
         Assert.Equal(3, teams.Select(item => item.TeamLineageId).Distinct().Count());
         Assert.All(teams, item => Assert.Null(item.PreviousTeamId));
+        Assert.All(teams, item => Assert.False(item.IsYearOver));
         Assert.Equal(
             [2024, 2026],
             (await db.GetSeasonsAsync()).Where(item => item.TeamId == 3).Select(item => item.Year)
         );
         Assert.Equal(
-            1,
+            2,
+            await db.UseConnectionAsync(connection =>
+                connection.ExecuteScalarAsync<int>("PRAGMA user_version")
+            )
+        );
+    }
+
+    [Fact]
+    public async Task Version_one_adds_unfinished_year_state_without_inference()
+    {
+        await using var db = await TemporaryTestDatabase.CreateUninitializedAsync();
+        await db.ExecuteAsync(
+            "CREATE TABLE Team (Id INTEGER PRIMARY KEY AUTOINCREMENT, Name TEXT NOT NULL, Year INTEGER NOT NULL, TeamLineageId TEXT NOT NULL, PreviousTeamId INTEGER NULL, IsActive INTEGER NOT NULL)"
+        );
+        await db.ExecuteAsync(
+            $"INSERT INTO Team (Name, Year, TeamLineageId, PreviousTeamId, IsActive) VALUES ('Legacy', 2025, '{Guid.NewGuid()}', NULL, 0)"
+        );
+        await db.ExecuteAsync("PRAGMA user_version = 1");
+
+        await db.Database.InitializeAsync();
+
+        Assert.Contains(
+            await db.UseConnectionAsync(connection => connection.GetTableInfoAsync("Team")),
+            column => column.Name == nameof(Team.IsYearOver)
+        );
+        Assert.Equal(
+            0,
+            await db.UseConnectionAsync(connection =>
+                connection.ExecuteScalarAsync<int>("SELECT IsYearOver FROM Team WHERE Id = 1")
+            )
+        );
+        Assert.Equal(
+            2,
             await db.UseConnectionAsync(connection =>
                 connection.ExecuteScalarAsync<int>("PRAGMA user_version")
             )
@@ -203,6 +239,7 @@ public sealed class TeamYearCopyRepositoryTests
                 destination.PreviousTeamId
             )
         );
+        Assert.False(destination.IsYearOver);
         var destinationRoster = (await db.GetTeamPlayersAsync())
             .Where(item => item.TeamId == destination.Id)
             .ToArray();
@@ -285,8 +322,36 @@ public sealed class TeamYearCopyRepositoryTests
                 persistedSource.IsActive
             )
         );
-        Assert.True(await db.CreateTeamRepository().HasSuccessorAsync(source.Id));
-        Assert.False(await db.CreateTeamRepository().HasSuccessorAsync(destination.Id));
+        var sourceEligibility = Assert.IsType<TeamYearSummaryEligibility>(
+            await db.CreateTeamRepository().GetYearSummaryEligibilityAsync(source.Id)
+        );
+        var destinationEligibility = Assert.IsType<TeamYearSummaryEligibility>(
+            await db.CreateTeamRepository().GetYearSummaryEligibilityAsync(destination.Id)
+        );
+        Assert.True(sourceEligibility.CanViewSummary);
+        Assert.False(sourceEligibility.CanMarkYearOver);
+        Assert.False(destinationEligibility.CanViewSummary);
+        Assert.True(destinationEligibility.CanMarkYearOver);
+    }
+
+    [Fact]
+    public async Task Explicitly_over_team_cannot_be_copied()
+    {
+        await using var db = await TemporaryTestDatabase.CreateAsync();
+        var source = await CreateTeamAsync(db, "Later Copy", 2026);
+        Assert.True(await db.CreateTeamRepository().MarkYearOverAsync(source.Id));
+
+        var result = await db.CreateTeamYearCopyRepository().CopyAsync(source.Id);
+
+        Assert.False(result.IsSuccess);
+        Assert.Equal(CopyTeamToNewYearFailure.SourceYearFinalized, result.FailureReason);
+        var persistedSource = Assert.IsType<Team>(
+            await db.CreateTeamRepository().GetActiveByIdAsync(source.Id)
+        );
+        Assert.True(persistedSource.IsYearOver);
+        Assert.Null(result.DestinationTeam);
+        Assert.DoesNotContain((await db.CreateTeamRepository().GetActiveAsync()),
+            item => item.PreviousTeamId == source.Id);
     }
 
     [Fact]

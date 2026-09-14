@@ -36,6 +36,8 @@ public sealed class TeamRepository
             || team.Year != persisted.Year
             || team.TeamLineageId != persisted.TeamLineageId
             || team.PreviousTeamId != persisted.PreviousTeamId
+            || team.IsYearOver != persisted.IsYearOver
+            || persisted.IsYearOver
             || await NameYearExistsAsync(connection, team.Name, team.Year, team.Id)
         )
             return 0;
@@ -110,6 +112,53 @@ public sealed class TeamRepository
             .Table<Team>()
             .Where(team => team.PreviousTeamId == teamId)
             .CountAsync() > 0;
+    }
+
+    public async Task<TeamYearSummaryEligibility?> GetYearSummaryEligibilityAsync(int teamId)
+    {
+        if (teamId <= 0)
+            return null;
+
+        var connection = await database.GetConnectionAsync();
+        var team = await connection.FindAsync<Team>(teamId);
+        if (team is null)
+            return null;
+
+        var hasSuccessor = await connection
+            .Table<Team>()
+            .Where(item => item.PreviousTeamId == teamId)
+            .CountAsync() > 0;
+        return new(hasSuccessor, team.IsYearOver);
+    }
+
+    public async Task<bool> MarkYearOverAsync(int teamId)
+    {
+        if (teamId <= 0)
+            return false;
+
+        var connection = await database.GetConnectionAsync();
+        var marked = false;
+        await connection.RunInTransactionAsync(transaction =>
+        {
+            var team = transaction.Find<Team>(teamId);
+            if (team is null)
+                return;
+            if (team.IsYearOver)
+            {
+                marked = true;
+                return;
+            }
+            if (transaction.Table<Team>().Any(item => item.PreviousTeamId == teamId))
+                return;
+
+            marked = transaction.Execute(
+                "UPDATE Team SET IsYearOver = ? WHERE Id = ? AND IsYearOver = ?",
+                true,
+                teamId,
+                false
+            ) == 1;
+        });
+        return marked;
     }
 
     public Task<bool> ActiveNameExistsAsync(string name)

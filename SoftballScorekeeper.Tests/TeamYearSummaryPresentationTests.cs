@@ -31,18 +31,98 @@ public sealed class TeamYearSummaryPresentationTests
     }
 
     [Fact]
-    public void Workspace_menu_uses_successor_existence_for_year_summary_availability()
+    public void Workspace_menu_uses_centralized_year_summary_eligibility()
     {
         var viewModel = Read("ViewModels", "TeamWorkspaceViewModel.cs");
-        Assert.Contains("var hasSuccessor = await teamRepository.HasSuccessorAsync(TeamId);",
+        Assert.Contains("await teamRepository.GetYearSummaryEligibilityAsync(TeamId)",
             viewModel);
-        Assert.Contains("IsTeamYearSummaryAvailable = hasSuccessor;", viewModel);
-        Assert.Contains("IsTeamYearSummaryAvailable = false;", viewModel);
+        Assert.Contains("IsTeamYearSummaryAvailable = eligibility?.CanViewSummary == true;",
+            viewModel);
+        Assert.Contains("IsMarkTeamYearOverAvailable = eligibility?.CanMarkYearOver == true;",
+            viewModel);
 
-        var repository = Read("..", "SoftballScorekeeper.Infrastructure", "Data",
-            "Repositories", "TeamRepository.cs");
-        Assert.Contains("team.PreviousTeamId == teamId", repository);
-        Assert.DoesNotContain("DateTime", repository);
+        var eligibility = Read("..", "SoftballScorekeeper.Core", "Models",
+            "TeamYearSummaryEligibility.cs");
+        Assert.Contains("HasSuccessor || IsYearOver", eligibility);
+        Assert.Contains("!HasSuccessor && !IsYearOver", eligibility);
+
+        var summaryRepository = Read("..", "SoftballScorekeeper.Infrastructure", "Data",
+            "Repositories", "TeamYearSummaryRepository.cs");
+        Assert.Contains("eligibility?.CanViewSummary != true", summaryRepository);
+    }
+
+    [Fact]
+    public void Workspace_mark_year_over_action_is_conditional_confirmed_and_resource_backed()
+    {
+        var workspace = LoadXaml("Views", "TeamWorkspacePage.xaml");
+        var button = workspace.Descendants().Single(item =>
+            item.Attribute("AutomationId")?.Value == "MarkTeamYearOverButton");
+        Assert.Equal("{x:Static strings:AppResources.MarkTeamYearOverButton}",
+            button.Attribute("Text")?.Value);
+        Assert.Equal("{Binding IsMarkTeamYearOverAvailable}",
+            button.Attribute("IsVisible")?.Value);
+        Assert.Equal("OnMarkTeamYearOverClicked", button.Attribute("Clicked")?.Value);
+
+        var codeBehind = Read("Views", "TeamWorkspacePage.xaml.cs");
+        Assert.Contains("MarkTeamYearOverConfirmationRequested = ConfirmMarkTeamYearOverAsync",
+            codeBehind);
+        Assert.Contains("AppResources.MarkTeamYearOverConfirmationMessage", codeBehind);
+        Assert.Contains("AppResources.MarkTeamYearOverConfirmButton", codeBehind);
+        Assert.Contains("AppResources.MarkTeamYearOverFinalConfirmationTitle", codeBehind);
+        Assert.Contains("AppResources.MarkTeamYearOverFinalConfirmationMessage", codeBehind);
+        Assert.Contains("AppResources.MarkTeamYearOverFinalConfirmButton", codeBehind);
+        Assert.Contains("if (!continued)", codeBehind);
+        Assert.Contains("if (confirmed && viewModel.ConfirmMarkTeamYearOverCommand.CanExecute(null))",
+            codeBehind);
+        Assert.Contains("ConfirmMarkTeamYearOverCommand.ExecuteAsync", codeBehind);
+
+        var resources = XDocument.Load(Path.Combine(RepositoryRoot, "SoftballScorekeeper",
+            "Resources", "Strings", "AppResources.resx"));
+        var message = resources.Descendants("data").Single(item =>
+            item.Attribute("name")?.Value == "MarkTeamYearOverConfirmationMessage")
+            .Element("value")!.Value;
+        Assert.Contains("permanently finalize", message);
+        Assert.Contains("no longer be able", message);
+        var finalMessage = resources.Descendants("data").Single(item =>
+            item.Attribute("name")?.Value == "MarkTeamYearOverFinalConfirmationMessage")
+            .Element("value")!.Value;
+        Assert.Contains("cannot be undone", finalMessage);
+        Assert.Contains("read-only forever", finalMessage);
+
+        Assert.Equal("2", button.Attribute("BorderWidth")?.Value);
+        var workspaceText = workspace.ToString();
+        Assert.True(workspaceText.IndexOf("MarkTeamYearOverButton", StringComparison.Ordinal)
+            < workspaceText.IndexOf("DeactivateTeamMenuItem", StringComparison.Ordinal));
+        Assert.Contains("IsVisible=\"{Binding IsTeamYearOpen}\"", workspaceText);
+    }
+
+    [Fact]
+    public void Finalized_year_mutation_actions_are_hidden_or_disabled_while_viewing_remains()
+    {
+        var workspace = LoadXaml("Views", "TeamWorkspacePage.xaml");
+        var workspaceText = workspace.ToString();
+        Assert.Contains("IsTeamYearOpen", workspaceText);
+        Assert.Equal("{Binding IsTeamYearOpen}", workspace.Descendants().Single(item =>
+            item.Attribute("AutomationId")?.Value == "CopyTeamToNewYearButton")
+            .Attribute("IsVisible")?.Value);
+        Assert.Equal("{Binding IsTeamYearOpen}", workspace.Descendants().Single(item =>
+            item.Attribute("AutomationId")?.Value == "TeamBeerRulesButton")
+            .Attribute("IsVisible")?.Value);
+        Assert.DoesNotContain("IsTeamYearOpen", workspace.Descendants().Single(item =>
+            item.Attribute("AutomationId")?.Value == "TeamStatsButton").ToString());
+        Assert.DoesNotContain("IsTeamYearOpen", workspace.Descendants().Single(item =>
+            item.Attribute("AutomationId")?.Value == "TeamBeerTotalsButton").ToString());
+
+        var workspaceViewModel = Read("ViewModels", "TeamWorkspaceViewModel.cs");
+        Assert.Contains("CanMutateTeamYear() => CanManageTeam() && IsTeamYearOpen",
+            workspaceViewModel);
+        var gameWorkspace = Read("ViewModels", "GameWorkspaceViewModel.cs");
+        Assert.Contains("ShowResumeGame => IsLoaded && IsTeamYearOpen", gameWorkspace);
+        Assert.Contains("ShowResetGame => IsLoaded && IsTeamYearOpen", gameWorkspace);
+        Assert.Contains("IsTeamYearOpen = !team.IsYearOver", gameWorkspace);
+        var beerTotals = Read("ViewModels", "TeamBeerTotalsViewModel.cs");
+        Assert.Contains("CanEdit => IsLoaded && IsTeamYearOpen", beerTotals);
+        Assert.Contains("CanCalculateLowMan => IsLoaded && IsTeamYearOpen", beerTotals);
     }
 
     [Fact]

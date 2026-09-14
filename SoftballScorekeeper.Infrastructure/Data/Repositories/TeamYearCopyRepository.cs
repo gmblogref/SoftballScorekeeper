@@ -22,6 +22,11 @@ public sealed class TeamYearCopyRepository(AppDatabase database)
                     result = new(CopyTeamToNewYearFailure.SourceNotFound);
                     return;
                 }
+                if (source.IsYearOver)
+                {
+                    result = new(CopyTeamToNewYearFailure.SourceYearFinalized);
+                    return;
+                }
                 if (source.Year is < 1 or >= 9999 || source.TeamLineageId == Guid.Empty)
                 {
                     result = new(CopyTeamToNewYearFailure.InvalidSourceYear);
@@ -57,6 +62,7 @@ public sealed class TeamYearCopyRepository(AppDatabase database)
                     Year = destinationYear,
                     TeamLineageId = source.TeamLineageId,
                     PreviousTeamId = source.Id,
+                    IsYearOver = false,
                     IsActive = true,
                 };
                 RequireInsert(transaction, destination, "destination Team");

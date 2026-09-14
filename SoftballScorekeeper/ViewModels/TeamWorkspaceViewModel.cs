@@ -23,6 +23,8 @@ public partial class TeamWorkspaceViewModel : ObservableObject, IQueryAttributab
     private bool hasInitialScheduleState;
     private bool hasValidTeamId;
     private bool isConfirmationPending;
+    private bool isMarkTeamYearOverAvailable;
+    private bool isTeamYearOpen;
     private bool isRemovingGames;
     private bool isTeamYearSummaryAvailable;
     private IReadOnlyList<int> pendingGameIds = Array.Empty<int>();
@@ -118,14 +120,15 @@ public partial class TeamWorkspaceViewModel : ObservableObject, IQueryAttributab
 
     public async Task<IReadOnlyList<BeerRuleSetting>?> LoadBeerRulesAsync()
     {
-        if (!IsTeamLoaded || beerRuleConfigurationRepository is null)
+        if (!IsTeamLoaded || !IsTeamYearOpen || beerRuleConfigurationRepository is null)
             return null;
         return await beerRuleConfigurationRepository.GetTeamAsync(TeamId);
     }
 
     public async Task<bool> SaveBeerRulesAsync(IReadOnlyList<BeerRuleSetting> settings)
     {
-        if (!IsTeamLoaded || IsBusy || beerRuleConfigurationRepository is null)
+        if (!IsTeamLoaded || !IsTeamYearOpen || IsBusy
+            || beerRuleConfigurationRepository is null)
             return false;
         IsBusy = true;
         try
@@ -152,6 +155,8 @@ public partial class TeamWorkspaceViewModel : ObservableObject, IQueryAttributab
     public Func<int, Task>? RemoveGamesConfirmationRequested { get; set; }
 
     public Func<string, int, int, Task>? CopyTeamConfirmationRequested { get; set; }
+
+    public Func<string, int, Task>? MarkTeamYearOverConfirmationRequested { get; set; }
 
     public int SelectedGameCount
     {
@@ -231,6 +236,29 @@ public partial class TeamWorkspaceViewModel : ObservableObject, IQueryAttributab
         private set => SetProperty(ref isTeamYearSummaryAvailable, value);
     }
 
+    public bool IsMarkTeamYearOverAvailable
+    {
+        get => isMarkTeamYearOverAvailable;
+        private set
+        {
+            if (SetProperty(ref isMarkTeamYearOverAvailable, value))
+            {
+                RequestMarkTeamYearOverCommand.NotifyCanExecuteChanged();
+                ConfirmMarkTeamYearOverCommand.NotifyCanExecuteChanged();
+            }
+        }
+    }
+
+    public bool IsTeamYearOpen
+    {
+        get => isTeamYearOpen;
+        private set
+        {
+            if (SetProperty(ref isTeamYearOpen, value))
+                NotifyCommandStates();
+        }
+    }
+
     public TeamWorkspaceSection SelectedSection
     {
         get => selectedSection;
@@ -298,12 +326,12 @@ public partial class TeamWorkspaceViewModel : ObservableObject, IQueryAttributab
             var team = await teamRepository.GetActiveByIdAsync(TeamId);
             if (team is null)
             {
-                IsTeamYearSummaryAvailable = false;
+                ApplyTeamYearSummaryEligibility(null);
                 ValidationMessage = AppResources.TeamNotFound;
                 return;
             }
 
-            var hasSuccessor = await teamRepository.HasSuccessorAsync(TeamId);
+            var eligibility = await teamRepository.GetYearSummaryEligibilityAsync(TeamId);
             var players = await teamPlayerRepository.GetActiveRosterForTeamAsync(TeamId);
             var games = await gameRepository.GetForTeamAsync(TeamId);
             var seasons = await seasonRepository.GetForTeamAsync(TeamId);
@@ -317,7 +345,7 @@ public partial class TeamWorkspaceViewModel : ObservableObject, IQueryAttributab
             loadedTeam = team;
             TeamName = team.Name;
             EditableTeamName = team.Name;
-            IsTeamYearSummaryAvailable = hasSuccessor;
+            ApplyTeamYearSummaryEligibility(eligibility);
             RosterPlayers.Clear();
             foreach (var player in players)
             {
@@ -431,6 +459,62 @@ public partial class TeamWorkspaceViewModel : ObservableObject, IQueryAttributab
         IsEditingTeamName = false;
     }
 
+    [RelayCommand(CanExecute = nameof(CanRequestMarkTeamYearOver))]
+    private async Task RequestMarkTeamYearOverAsync()
+    {
+        if (!CanRequestMarkTeamYearOver())
+            return;
+
+        isConfirmationPending = true;
+        NotifyCommandStates();
+        try
+        {
+            var confirmation = MarkTeamYearOverConfirmationRequested;
+            if (confirmation is not null)
+                await confirmation(loadedTeam!.Name, loadedTeam.Year);
+        }
+        finally
+        {
+            isConfirmationPending = false;
+            NotifyCommandStates();
+        }
+    }
+
+    [RelayCommand(CanExecute = nameof(CanConfirmMarkTeamYearOver))]
+    private async Task ConfirmMarkTeamYearOverAsync()
+    {
+        if (!CanConfirmMarkTeamYearOver())
+            return;
+
+        IsBusy = true;
+        try
+        {
+            if (!await teamRepository.MarkYearOverAsync(loadedTeam!.Id))
+            {
+                ValidationMessage = AppResources.MarkTeamYearOverFailed;
+                return;
+            }
+
+            loadedTeam.IsYearOver = true;
+            ExitRemovePlayersMode();
+            ExitRemoveGamesMode();
+            var eligibility = await teamRepository.GetYearSummaryEligibilityAsync(loadedTeam.Id);
+            if (eligibility is null)
+            {
+                InvalidateTeam();
+                ValidationMessage = AppResources.TeamNotFound;
+                return;
+            }
+
+            ApplyTeamYearSummaryEligibility(eligibility);
+            ValidationMessage = string.Empty;
+        }
+        finally
+        {
+            IsBusy = false;
+        }
+    }
+
     [RelayCommand(CanExecute = nameof(CanRequestDeactivateTeam))]
     private async Task RequestDeactivateTeamAsync()
     {
@@ -465,6 +549,7 @@ public partial class TeamWorkspaceViewModel : ObservableObject, IQueryAttributab
             || !IsTeamLoaded
             || loadedTeam is null
             || teamYearCopyRepository is null
+            || !IsTeamYearOpen
         )
             return;
         isConfirmationPending = true;
@@ -483,7 +568,8 @@ public partial class TeamWorkspaceViewModel : ObservableObject, IQueryAttributab
     [RelayCommand]
     private async Task ConfirmCopyTeamAsync()
     {
-        if (IsBusy || !IsTeamLoaded || loadedTeam is null || teamYearCopyRepository is null)
+        if (IsBusy || !IsTeamLoaded || !IsTeamYearOpen
+            || loadedTeam is null || teamYearCopyRepository is null)
             return;
         IsBusy = true;
         try
@@ -865,18 +951,34 @@ public partial class TeamWorkspaceViewModel : ObservableObject, IQueryAttributab
 
     private bool CanBeginTeamNameEdit()
     {
-        return CanManageTeam() && !IsEditingTeamName;
+        return CanMutateTeamYear() && !IsEditingTeamName;
     }
 
     private bool CanEditTeamName()
     {
-        return CanManageTeam() && IsEditingTeamName;
+        return CanMutateTeamYear() && IsEditingTeamName;
     }
 
     private bool CanRequestDeactivateTeam()
     {
         return CanManageTeam() && !IsEditingTeamName && !isConfirmationPending;
     }
+
+    private bool CanRequestMarkTeamYearOver() =>
+        CanManageTeam()
+        && IsMarkTeamYearOverAvailable
+        && !IsEditingTeamName
+        && !IsRemovingPlayers
+        && !IsRemovingGames
+        && !isConfirmationPending;
+
+    private bool CanConfirmMarkTeamYearOver() =>
+        CanManageTeam()
+        && IsMarkTeamYearOverAvailable
+        && !IsEditingTeamName
+        && !IsRemovingPlayers
+        && !IsRemovingGames
+        && isConfirmationPending;
 
     private bool CanConfirmDeactivateTeam()
     {
@@ -885,7 +987,7 @@ public partial class TeamWorkspaceViewModel : ObservableObject, IQueryAttributab
 
     private bool CanManageRoster()
     {
-        return CanManageTeam()
+        return CanMutateTeamYear()
             && !IsEditingTeamName
             && !IsRemovingPlayers
             && !IsRemovingGames
@@ -898,7 +1000,7 @@ public partial class TeamWorkspaceViewModel : ObservableObject, IQueryAttributab
     private bool CanBeginRemovePlayers() => CanManageRoster() && HasPlayers;
 
     private bool CanAddGame() =>
-        CanManageTeam()
+        CanMutateTeamYear()
         && !IsEditingTeamName
         && !IsRemovingPlayers
         && !IsRemovingGames
@@ -906,7 +1008,7 @@ public partial class TeamWorkspaceViewModel : ObservableObject, IQueryAttributab
         && IsGamesSectionSelected;
 
     private bool CanBeginRemoveGames() =>
-        CanManageTeam()
+        CanMutateTeamYear()
         && !IsEditingTeamName
         && !IsRemovingPlayers
         && !IsRemovingGames
@@ -915,20 +1017,22 @@ public partial class TeamWorkspaceViewModel : ObservableObject, IQueryAttributab
         && HasGames;
 
     private bool CanCancelRemoveGames() =>
-        CanManageTeam() && IsRemovingGames && !isConfirmationPending;
+        CanMutateTeamYear() && IsRemovingGames && !isConfirmationPending;
 
     private bool CanRemoveSelectedGames() => CanCancelRemoveGames() && HasSelectedGames;
 
     private bool CanConfirmRemoveSelectedGames() =>
-        CanManageTeam() && IsRemovingGames && isConfirmationPending && pendingGameIds.Count > 0;
+        CanMutateTeamYear() && IsRemovingGames && isConfirmationPending && pendingGameIds.Count > 0;
 
     private bool CanCancelRemovePlayers() =>
-        CanManageTeam() && IsRemovingPlayers && !isConfirmationPending;
+        CanMutateTeamYear() && IsRemovingPlayers && !isConfirmationPending;
 
     private bool CanRemoveSelectedPlayers() => CanCancelRemovePlayers() && HasSelectedPlayers;
 
     private bool CanConfirmRemoveSelectedPlayers() =>
-        CanManageTeam() && IsRemovingPlayers && isConfirmationPending && pendingPlayerIds.Count > 0;
+        CanMutateTeamYear() && IsRemovingPlayers && isConfirmationPending && pendingPlayerIds.Count > 0;
+
+    private bool CanMutateTeamYear() => CanManageTeam() && IsTeamYearOpen;
 
     private bool CanManageTeam()
     {
@@ -953,6 +1057,8 @@ public partial class TeamWorkspaceViewModel : ObservableObject, IQueryAttributab
         CancelTeamNameEditCommand.NotifyCanExecuteChanged();
         RequestDeactivateTeamCommand.NotifyCanExecuteChanged();
         ConfirmDeactivateTeamCommand.NotifyCanExecuteChanged();
+        RequestMarkTeamYearOverCommand.NotifyCanExecuteChanged();
+        ConfirmMarkTeamYearOverCommand.NotifyCanExecuteChanged();
         AddPlayersCommand.NotifyCanExecuteChanged();
         BeginJerseyNumberEditCommand.NotifyCanExecuteChanged();
         SaveJerseyNumberCommand.NotifyCanExecuteChanged();
@@ -971,7 +1077,7 @@ public partial class TeamWorkspaceViewModel : ObservableObject, IQueryAttributab
     private void InvalidateTeam()
     {
         loadedTeam = null;
-        IsTeamYearSummaryAvailable = false;
+        ApplyTeamYearSummaryEligibility(null);
         IsTeamLoaded = false;
         IsEditingTeamName = false;
     }
@@ -987,7 +1093,7 @@ public partial class TeamWorkspaceViewModel : ObservableObject, IQueryAttributab
         HasPlayers = false;
         HasNoPlayers = false;
         HasGames = false;
-        IsTeamYearSummaryAvailable = false;
+        ApplyTeamYearSummaryEligibility(null);
         hasInitialSectionSelection = false;
         hasInitialScheduleState = false;
         ScheduleMonthGroups.Clear();
@@ -998,6 +1104,13 @@ public partial class TeamWorkspaceViewModel : ObservableObject, IQueryAttributab
         ExitRemoveGamesMode();
         SelectedSection = TeamWorkspaceSection.Roster;
         IsTeamLoaded = false;
+    }
+
+    private void ApplyTeamYearSummaryEligibility(TeamYearSummaryEligibility? eligibility)
+    {
+        IsTeamYearSummaryAvailable = eligibility?.CanViewSummary == true;
+        IsMarkTeamYearOverAvailable = eligibility?.CanMarkYearOver == true;
+        IsTeamYearOpen = eligibility is { IsYearOver: false };
     }
 
     private async Task ReloadRosterAsync(IReadOnlyCollection<int>? idsToReselect = null)

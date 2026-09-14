@@ -10,9 +10,9 @@ Stable product and architecture decisions belong in the project architecture doc
 
 ## Current Project Status
 
-- **Latest completed story:** Story 7.8 — Team Year Summary
-- **Completed stories:** Stories 0.0 through 6.9.5 and Stories 7.0 through 7.8 except Story 7.6; Story 6.9.4 and Story 7.7 retain their recorded physical Android acceptance status, and Stories 3.2 through 3.4 retain their recorded validation status
-- **Current story:** Story 7.8 — Team Year Summary; implementation and automated validation complete, physical acceptance pending
+- **Latest completed story:** Story 7.9 — Mark Team Year Over
+- **Completed stories:** Stories 0.0 through 6.9.5 and Stories 7.0 through 7.9 except Story 7.6; Story 6.9.4 and Story 7.7 retain their recorded physical Android acceptance status, and Stories 3.2 through 3.4 retain their recorded validation status
+- **Current story:** Story 7.9 — Mark Team Year Over; implementation, automated validation, physical/manual acceptance, and targeted Android/Appium acceptance complete
 - **Current phase:** Beer Rules
 - **Foundation status:** Complete
 
@@ -3175,6 +3175,25 @@ Dedicated Double Play/Triple Play presentation, sacrifice results, HR-limit/dead
 #### Intended Commit Message
 
 `Add Team Year Summary`
+
+### Story 7.9 — Mark Team Year Over (Complete — physical and targeted Android acceptance passed)
+
+#### Irreversible Team-Year Finalization and Eligibility
+
+- `Team.IsYearOver` remains the sole persisted explicit finalization state. Schema version 2 adds the non-null SQLite column with default false, preserves existing Teams without heuristic completion, and advances both new and upgraded databases through the established initialization path. `TeamRepository.MarkYearOverAsync` is atomic and idempotent, changes only that column, and rejects a source that already has a successor because successor-based completion needs no explicit finalization.
+- Team Year Summary eligibility remains centralized in `TeamYearSummaryEligibility` and is available exactly when the Team has a successor or is explicitly marked over. Team Workspace and `TeamYearSummaryRepository` consume the same result without consulting activity, dates, Games, Seasons, schedules, or Beer state. No yearly aggregate entity or Team Year Summary snapshot is created.
+- Explicit Year Over is now an irreversible, permanent read-only boundary. A focused Infrastructure guard is applied inside the established Team, Player-for-Team, roster, Season, Game, lineup, scoring, Beer configuration/accounting, Low Man, and copy workflows. Finalized years reject Team name and roster changes; Game add/edit/remove; scoring start, pending decisions, commits, inning changes, rules edits, completion, Undo/Redo, and reset; Beer settings, manual rule counts, BROUGHT, and Low Man recalculation; and Copy Team to New Year. Global Player records and Team deactivate/reactivate remain independent.
+- Team Workspace keeps Mark Team Year Over adjacent to Deactivate Team in the overflow menu with the same destructive red/bordered treatment. Two resource-backed confirmations are required: the first explains permanent finalization and retained read access, and the second states that the operation cannot be undone. Canceling either makes no change. After finalization, Mark, Copy, Beer Rules, Team/roster editing, and Game add/remove actions are unavailable; Game Workspace hides edit, lineup, score/resume, and reset actions; Beer Totals remains readable while editing and Low Man controls are disabled.
+- Copy Team must occur before explicit finalization. A copied-forward source receives successor-based Team Year Summary access without being marked over, while the unfinished destination has no successor, keeps `IsYearOver = false`, hides Team Year Summary, and remains eligible for normal future copy/finalization behavior. Marking never changes Team year, lineage, predecessor/successor relationships, activity, historical rows, CarryForward, Low Man, BROUGHT, or any existing scoring/statistics/Beer data.
+
+#### Tests, Validation, and Acceptance Status
+
+- Added and revised focused migration, repository, scoring, copy, summary, lifecycle, no-side-effect, readability, and presentation-source coverage for the permanent lock and double-confirmation workflow. The focused Story 7.9 selection passed 46 of 46, and the complete emulator-independent suite passed 965 of 965, both with zero failures or skips. The normal solution build succeeded for Android and Windows with zero errors and 150 existing nullable, MVVM Toolkit AOT, and XAML binding warnings; final target-specific builds also succeeded with zero errors, with 10 existing warnings on Android and 150 on Windows. An initially mis-scoped solution `-f net9.0-android` validation command failed because it incorrectly applied the MAUI target framework to the Core, Infrastructure, Tests, and Android UI test projects; the repository-appropriate solution and target-project builds then passed.
+- Physical/manual Android acceptance passed with no reported Story 7.9 defect. The single authorized pinpoint Android/Appium scenario, `Team_year_over_requires_confirmation_and_finalizes_team_menu`, passed 1 of 1 in 28 seconds with zero failures, skips, or retries on the dedicated `softball_tablet_ui_tests_api_35` AVD. It verified initial Summary/Mark/Copy menu eligibility; Mark placement and dimensions beside Deactivate; permanent/read-only first-confirmation language; cannot-be-undone second-confirmation language; second-confirmation cancellation without mutation; successful double-confirmation finalization; removal of Mark and Copy; newly available and loadable Team Year Summary; and retention of the active, viewable Team with Deactivate still available. The copied-source/latest-destination eligibility pair was not repeated in this focused seed because the existing Story 7.8 pinpoint scenario already covers it. The embedded Android build succeeded with zero errors and 10 existing warnings; no production defect was exposed, no production code changed during Android acceptance, no unrelated Android test ran, and the runner cleanly stopped its owned Appium process and dedicated emulator.
+
+#### Intended Commit Message
+
+`Finalize Team Year as permanently read-only`
 
 ## Maintenance Rules
 

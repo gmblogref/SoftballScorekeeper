@@ -22,6 +22,9 @@ public sealed class TeamYearSummaryRepositoryTests
         await GameAsync(db, team.Id, spring.Id, null, 0, 0);
         await GameAsync(db, team.Id, legacy.Id, GameScoringStatus.Completed, 9, 0);
 
+        Assert.Null(await db.CreateTeamYearSummaryRepository().GetAsync(team.Id));
+        Assert.True(await db.CreateTeamRepository().MarkYearOverAsync(team.Id));
+
         var summary = await db.CreateTeamYearSummaryRepository().GetAsync(team.Id);
 
         Assert.NotNull(summary);
@@ -55,6 +58,7 @@ public sealed class TeamYearSummaryRepositoryTests
             player, BatterResult.HomeRun);
         player.IsActive = false;
         await db.UseConnectionAsync(connection => connection.UpdateAsync(player));
+        Assert.True(await db.CreateTeamRepository().MarkYearOverAsync(current.Id));
 
         var summary = (await db.CreateTeamYearSummaryRepository().GetAsync(current.Id))!;
         var teamStats = (await db.CreateTeamBattingStatisticsRepository().GetAsync(current.Id))!;
@@ -113,6 +117,7 @@ public sealed class TeamYearSummaryRepositoryTests
             SourceTeamId = 42,
             Amount = -4,
         }));
+        Assert.True(await db.CreateTeamRepository().MarkYearOverAsync(team.Id));
 
         var summary = (await db.CreateTeamYearSummaryRepository().GetAsync(team.Id))!;
 
@@ -137,6 +142,7 @@ public sealed class TeamYearSummaryRepositoryTests
     {
         await using var db = await TemporaryTestDatabase.CreateAsync();
         var empty = await TeamAsync(db, "Empty", 2027);
+        Assert.True(await db.CreateTeamRepository().MarkYearOverAsync(empty.Id));
         var emptySummary = (await db.CreateTeamYearSummaryRepository().GetAsync(empty.Id))!;
         Assert.Equal((0, 0, 0, 0),
             (emptySummary.Record.GamesPlayed, emptySummary.Record.Wins,
@@ -157,20 +163,21 @@ public sealed class TeamYearSummaryRepositoryTests
         Assert.Empty(carried.Batting.Players);
         Assert.Equal(5, Assert.Single(carried.Beer).Owed);
 
-        var season = await SeasonAsync(db, empty.Id, "Spring", 2027);
-        var (_, appearanceId) = await GameAsync(db, empty.Id, season.Id,
+        var mutable = await TeamAsync(db, "Live", 2027);
+        var season = await SeasonAsync(db, mutable.Id, "Spring", 2027);
+        var (_, appearanceId) = await GameAsync(db, mutable.Id, season.Id,
             GameScoringStatus.Completed, 1, 0, player, BatterResult.Out);
+        Assert.True(await db.CreateTeamRepository().MarkYearOverAsync(mutable.Id));
         var firstLoad = (await db.CreateTeamYearSummaryRepository().GetAsync(empty.Id))!;
-        Assert.Equal(0, Assert.Single(firstLoad.Batting.Players).BattingStatistics.Hits);
-        Assert.Equal(1, await db.ExecuteAsync(
-            "UPDATE GamePlateAppearance SET Result = ? WHERE Id = ?",
-            BatterResult.HomeRun, appearanceId));
-        Assert.True((await db.CreateBeerAccountingRepository()
-            .SetBroughtAsync(empty.Id, player.Id, 2)).IsSuccess);
+        Assert.Empty(firstLoad.Batting.Players);
+        Assert.NotEqual(0, appearanceId);
+        var brought = await db.CreateBeerAccountingRepository()
+            .SetBroughtAsync(mutable.Id, player.Id, 2);
+        Assert.Equal(BeerAccountingUpdateFailure.TeamYearFinalized, brought.FailureReason);
 
-        var reloaded = (await db.CreateTeamYearSummaryRepository().GetAsync(empty.Id))!;
-        Assert.Equal(1, Assert.Single(reloaded.Batting.Players).BattingStatistics.HomeRuns);
-        Assert.Equal(3, Assert.Single(reloaded.Beer).Owed);
+        var reloaded = (await db.CreateTeamYearSummaryRepository().GetAsync(mutable.Id))!;
+        Assert.Equal(0, Assert.Single(reloaded.Batting.Players).BattingStatistics.Hits);
+        Assert.Empty(reloaded.Beer);
     }
 
     private static async Task<Team> TeamAsync(

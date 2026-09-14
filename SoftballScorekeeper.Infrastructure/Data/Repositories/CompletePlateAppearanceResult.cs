@@ -10,6 +10,7 @@ public enum CompletePlateAppearanceFailure
     GameCompleted,
     PendingPlayNotFound,
     InvalidScoringState,
+    TeamYearFinalized,
     Persistence,
 }
 

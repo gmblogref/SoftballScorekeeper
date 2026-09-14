@@ -27,6 +27,7 @@ public partial class GameWorkspaceViewModel : ObservableObject, IQueryAttributab
     [ObservableProperty] private bool hasLineup;
     [ObservableProperty] private bool hasScoringSession;
     [ObservableProperty] private bool isScoringCompleted;
+    [ObservableProperty] private bool isTeamYearOpen;
     private string completedVisitorName = string.Empty;
     private int completedVisitorScore;
     private string completedHomeName = string.Empty;
@@ -76,10 +77,12 @@ public partial class GameWorkspaceViewModel : ObservableObject, IQueryAttributab
     public BattingStatisticsTableViewModel CompletedBattingStatistics { get; } = new();
     public bool ShowStandardWorkspace => IsLoaded && !IsScoringCompleted;
     public bool ShowCompletedGame => IsLoaded && IsScoringCompleted;
-    public bool ShowLineupAction => IsLoaded && !HasScoringSession;
-    public bool ShowScoreGame => IsLoaded && HasLineup && !HasScoringSession;
-    public bool ShowResumeGame => IsLoaded && HasScoringSession && !IsScoringCompleted;
-    public bool ShowResetGame => IsLoaded && HasScoringSession && !IsScoringCompleted;
+    public bool ShowLineupAction => IsLoaded && IsTeamYearOpen && !HasScoringSession;
+    public bool ShowScoreGame => IsLoaded && IsTeamYearOpen && HasLineup && !HasScoringSession;
+    public bool ShowResumeGame => IsLoaded && IsTeamYearOpen
+        && HasScoringSession && !IsScoringCompleted;
+    public bool ShowResetGame => IsLoaded && IsTeamYearOpen
+        && HasScoringSession && !IsScoringCompleted;
 
     public void ApplyQueryAttributes(IDictionary<string, object> query)
     {
@@ -142,6 +145,7 @@ public partial class GameWorkspaceViewModel : ObservableObject, IQueryAttributab
             }
 
             TeamName = team.Name;
+            IsTeamYearOpen = !team.IsYearOver;
             OpponentDisplay = DisplayOrTbd(game.Opponent);
             DateDisplay = game.ScheduledDate.ToString("D", CultureInfo.CurrentCulture);
             TimeDisplay = DateTime.Today.Add(game.ScheduledTime).ToString("t", CultureInfo.CurrentCulture);
@@ -192,7 +196,7 @@ public partial class GameWorkspaceViewModel : ObservableObject, IQueryAttributab
         await Shell.Current.GoToAsync(AppShell.EditGameRoute, parameters);
     }
 
-    private bool CanEditGame() => !IsBusy && IsLoaded && hasValidContext;
+    private bool CanEditGame() => !IsBusy && IsLoaded && IsTeamYearOpen && hasValidContext;
 
     [RelayCommand(CanExecute = nameof(CanSetLineup))]
     private Task SetLineupAsync() => Shell.Current.GoToAsync(AppShell.SetLineupRoute, new ShellNavigationQueryParameters
@@ -201,12 +205,12 @@ public partial class GameWorkspaceViewModel : ObservableObject, IQueryAttributab
         [AppShell.GameIdQueryParameter] = GameId,
     });
 
-    private bool CanSetLineup() => !IsBusy && IsLoaded && hasValidContext;
+    private bool CanSetLineup() => !IsBusy && IsLoaded && IsTeamYearOpen && hasValidContext;
 
     public async Task<bool> InitializeScoringAsync(Core.Models.TeamGameSide teamSide,
         int homeRunLimit, bool isOneUpEnabled)
     {
-        if (IsBusy || !IsLoaded || !hasValidContext) return false;
+        if (IsBusy || !IsLoaded || !IsTeamYearOpen || !hasValidContext) return false;
         IsBusy = true;
         try
         {
@@ -272,6 +276,12 @@ public partial class GameWorkspaceViewModel : ObservableObject, IQueryAttributab
     partial void OnHasScoringSessionChanged(bool value) => NotifyStateChanged();
     partial void OnIsScoringCompletedChanged(bool value) => NotifyStateChanged();
     partial void OnIsLoadedChanged(bool value) => NotifyStateChanged();
+    partial void OnIsTeamYearOpenChanged(bool value)
+    {
+        EditGameCommand.NotifyCanExecuteChanged();
+        SetLineupCommand.NotifyCanExecuteChanged();
+        NotifyStateChanged();
+    }
 
     private void NotifyStateChanged()
     {
@@ -294,6 +304,7 @@ public partial class GameWorkspaceViewModel : ObservableObject, IQueryAttributab
         HasLineup = false;
         HasScoringSession = false;
         IsScoringCompleted = false;
+        IsTeamYearOpen = false;
         ClearCompletedGame();
         IsLoaded = false;
         hasValidContext = false;

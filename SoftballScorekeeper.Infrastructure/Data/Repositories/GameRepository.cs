@@ -116,7 +116,8 @@ public sealed class GameRepository
             {
                 var activeTeam = transaction
                     .Table<Team>()
-                    .FirstOrDefault(team => team.Id == teamId && team.IsActive);
+                    .FirstOrDefault(team =>
+                        team.Id == teamId && team.IsActive && !team.IsYearOver);
                 if (activeTeam is null)
                 {
                     return;
@@ -223,7 +224,7 @@ public sealed class GameRepository
             .Table<Team>()
             .Where(team => team.Id == teamId && team.IsActive)
             .FirstOrDefaultAsync();
-        if (activeTeam is null)
+        if (activeTeam is null || activeTeam.IsYearOver)
         {
             return EmptyRemovalResult(requestedIds);
         }
@@ -246,6 +247,8 @@ public sealed class GameRepository
 
         await connection.RunInTransactionAsync(transaction =>
         {
+            if (!TeamYearWriteGuard.IsOpen(transaction, teamId))
+                return;
             foreach (var gameId in eligibleIds)
             {
                 if (HasDependentHistory(transaction, gameId))
@@ -313,7 +316,8 @@ public sealed class GameRepository
             {
                 var activeTeam = transaction
                     .Table<Team>()
-                    .FirstOrDefault(team => team.Id == teamId && team.IsActive);
+                    .FirstOrDefault(team =>
+                        team.Id == teamId && team.IsActive && !team.IsYearOver);
                 if (activeTeam is null)
                 {
                     return;

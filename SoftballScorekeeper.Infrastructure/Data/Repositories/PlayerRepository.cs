@@ -37,7 +37,7 @@ public sealed class PlayerRepository
             await connection.RunInTransactionAsync(transaction =>
             {
                 var team = transaction.Find<Team>(teamId);
-                if (team is null || !team.IsActive)
+                if (team is null || !team.IsActive || team.IsYearOver)
                 {
                     result = new(0, CreatePlayerFailure.InvalidTeam);
                     return;

@@ -84,8 +84,63 @@ public sealed class TeamRepositoryTests
 
         Assert.Equal(1, await repository.DeactivateAsync(destination.Id));
         Assert.True(await repository.HasSuccessorAsync(source.Id));
+        Assert.False(await repository.MarkYearOverAsync(source.Id));
+        Assert.False(Assert.IsType<TeamYearSummaryEligibility>(
+            await repository.GetYearSummaryEligibilityAsync(source.Id)).IsYearOver);
         Assert.False(await repository.HasSuccessorAsync(0));
         Assert.False(await repository.HasSuccessorAsync(-1));
+    }
+
+    [Fact]
+    public async Task YearSummaryEligibility_MarkingAndActivityRemainExplicitIndependentAndIdempotent()
+    {
+        await using var testDatabase = await TemporaryTestDatabase.CreateAsync();
+        var repository = testDatabase.CreateTeamRepository();
+        var team = await CreateTeamAsync(repository, "Explicit", year: 2026);
+        var unrelated = await CreateTeamAsync(repository, "Unrelated", year: 2026);
+
+        var unfinished = Assert.IsType<TeamYearSummaryEligibility>(
+            await repository.GetYearSummaryEligibilityAsync(team.Id)
+        );
+        Assert.False(unfinished.CanViewSummary);
+        Assert.True(unfinished.CanMarkYearOver);
+
+        Assert.True(await repository.MarkYearOverAsync(team.Id));
+        Assert.True(await repository.MarkYearOverAsync(team.Id));
+        var marked = Assert.IsType<TeamYearSummaryEligibility>(
+            await repository.GetYearSummaryEligibilityAsync(team.Id)
+        );
+        Assert.True(marked.IsYearOver);
+        Assert.True(marked.CanViewSummary);
+        Assert.False(marked.CanMarkYearOver);
+        Assert.True(Assert.IsType<Team>(await repository.GetActiveByIdAsync(team.Id)).IsActive);
+
+        var unrelatedEligibility = Assert.IsType<TeamYearSummaryEligibility>(
+            await repository.GetYearSummaryEligibilityAsync(unrelated.Id)
+        );
+        Assert.False(unrelatedEligibility.IsYearOver);
+        Assert.True(unrelatedEligibility.CanMarkYearOver);
+
+        Assert.Equal(1, await repository.DeactivateAsync(team.Id));
+        var inactiveMarked = Assert.Single(
+            (await repository.GetInactiveAsync()).Where(item => item.Id == team.Id)
+        );
+        Assert.True(inactiveMarked.IsYearOver);
+        Assert.Equal(1, await repository.ReactivateAsync(team.Id));
+        Assert.True(Assert.IsType<Team>(await repository.GetActiveByIdAsync(team.Id)).IsYearOver);
+
+        Assert.Equal(1, await repository.DeactivateAsync(unrelated.Id));
+        Assert.False(
+            Assert.Single((await repository.GetInactiveAsync())
+                .Where(item => item.Id == unrelated.Id)).IsYearOver
+        );
+        Assert.Empty(await testDatabase.GetSeasonsAsync());
+        Assert.Empty(await testDatabase.GetGamesAsync());
+        Assert.Empty(await testDatabase.GetTeamPlayersAsync());
+        Assert.Empty(await testDatabase.GetTeamBeerRuleConfigurationsAsync());
+        Assert.Empty(await testDatabase.GetBeerLedgerEntriesAsync());
+        Assert.False(await repository.MarkYearOverAsync(0));
+        Assert.False(await repository.MarkYearOverAsync(int.MaxValue));
     }
 
     [Fact]

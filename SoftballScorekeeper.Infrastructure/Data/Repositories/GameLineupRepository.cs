@@ -83,6 +83,11 @@ public sealed class GameLineupRepository
             await connection.RunInTransactionAsync(transaction =>
             {
                 if (transaction.Find<Game>(gameId) is null) return;
+                if (TeamYearWriteGuard.IsGameFinalized(transaction, gameId))
+                {
+                    result = new(gameId, requestedIds, [], positiveIds, ignoredIds, true);
+                    return;
+                }
                 if (HasScoringSession(transaction, gameId))
                 {
                     result = new(gameId, requestedIds, [], positiveIds, ignoredIds, true);
@@ -141,7 +146,9 @@ public sealed class GameLineupRepository
         {
             await connection.RunInTransactionAsync(transaction =>
             {
-                if (transaction.Find<Game>(gameId) is null) return;
+                if (transaction.Find<Game>(gameId) is null
+                    || TeamYearWriteGuard.IsGameFinalized(transaction, gameId))
+                    return;
                 if (HasScoringSession(transaction, gameId))
                 {
                     result = ReorderFailure(gameId, ReorderGameLineupFailure.ScoringStarted);
@@ -246,6 +253,8 @@ public sealed class GameLineupRepository
                     result = Failure(gameId, SaveGameLineupFailure.TeamMismatch);
                     return;
                 }
+                if (!TeamYearWriteGuard.IsOpen(transaction, teamId))
+                    return;
                 if (HasScoringSession(transaction, gameId))
                 {
                     result = Failure(gameId, SaveGameLineupFailure.ScoringStarted);
@@ -300,7 +309,8 @@ public sealed class GameLineupRepository
 
         var team = transaction.Find<Team>(teamId);
         var targetGame = transaction.Find<Game>(targetGameId);
-        if (team is null || !team.IsActive || targetGame is null || targetGame.TeamId != teamId)
+        if (team is null || !team.IsActive || team.IsYearOver
+            || targetGame is null || targetGame.TeamId != teamId)
             return PreviousFailure(targetGameId, UsePreviousLineupFailure.InvalidContext);
         if (HasScoringSession(transaction, targetGameId))
             return PreviousFailure(targetGameId, UsePreviousLineupFailure.ScoringStarted);

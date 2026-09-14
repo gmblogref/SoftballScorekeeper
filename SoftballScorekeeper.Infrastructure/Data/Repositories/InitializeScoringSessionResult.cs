@@ -9,6 +9,7 @@ public enum InitializeScoringSessionFailure
     InvalidTeamOrGame,
     InvalidLineup,
     GameCompleted,
+    TeamYearFinalized,
     Persistence,
 }
 

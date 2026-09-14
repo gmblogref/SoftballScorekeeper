@@ -1179,6 +1179,14 @@ namespace SoftballScorekeeper.Resources.Strings {
         public static string CollapsedTeamYearHeaderFormat { get { return ResourceManager.GetString("CollapsedTeamYearHeaderFormat", resourceCulture); } }
         public static string TeamYearSummaryTitle { get { return ResourceManager.GetString("TeamYearSummaryTitle", resourceCulture); } }
         public static string TeamYearSummaryButton { get { return ResourceManager.GetString("TeamYearSummaryButton", resourceCulture); } }
+        public static string MarkTeamYearOverButton { get { return ResourceManager.GetString("MarkTeamYearOverButton", resourceCulture); } }
+        public static string MarkTeamYearOverConfirmationTitle { get { return ResourceManager.GetString("MarkTeamYearOverConfirmationTitle", resourceCulture); } }
+        public static string MarkTeamYearOverConfirmationMessage { get { return ResourceManager.GetString("MarkTeamYearOverConfirmationMessage", resourceCulture); } }
+        public static string MarkTeamYearOverConfirmButton { get { return ResourceManager.GetString("MarkTeamYearOverConfirmButton", resourceCulture); } }
+        public static string MarkTeamYearOverFinalConfirmationTitle { get { return ResourceManager.GetString("MarkTeamYearOverFinalConfirmationTitle", resourceCulture); } }
+        public static string MarkTeamYearOverFinalConfirmationMessage { get { return ResourceManager.GetString("MarkTeamYearOverFinalConfirmationMessage", resourceCulture); } }
+        public static string MarkTeamYearOverFinalConfirmButton { get { return ResourceManager.GetString("MarkTeamYearOverFinalConfirmButton", resourceCulture); } }
+        public static string MarkTeamYearOverFailed { get { return ResourceManager.GetString("MarkTeamYearOverFailed", resourceCulture); } }
         public static string TeamYearSummaryHeaderFormat { get { return ResourceManager.GetString("TeamYearSummaryHeaderFormat", resourceCulture); } }
         public static string TeamYearSummaryLoadFailed { get { return ResourceManager.GetString("TeamYearSummaryLoadFailed", resourceCulture); } }
         public static string TeamYearResultSummaryHeading { get { return ResourceManager.GetString("TeamYearResultSummaryHeading", resourceCulture); } }

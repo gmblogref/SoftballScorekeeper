@@ -18,5 +18,7 @@ public sealed class Team
 
     public int? PreviousTeamId { get; set; }
 
+    public bool IsYearOver { get; set; }
+
     public bool IsActive { get; set; } = true;
 }

@@ -73,7 +73,7 @@ public sealed class TeamPlayerRepository
         var activeTeam = await connection.Table<Team>()
             .Where(team => team.Id == teamId && team.IsActive)
             .FirstOrDefaultAsync();
-        if (activeTeam is null)
+        if (activeTeam is null || activeTeam.IsYearOver)
         {
             return 0;
         }
@@ -116,7 +116,7 @@ public sealed class TeamPlayerRepository
             .Where(team => team.Id == teamId && team.IsActive)
             .FirstOrDefaultAsync();
 
-        if (activeTeam is null)
+        if (activeTeam is null || activeTeam.IsYearOver)
         {
             return Array.Empty<Player>();
         }
@@ -153,7 +153,7 @@ public sealed class TeamPlayerRepository
             .Where(team => team.Id == teamId && team.IsActive)
             .FirstOrDefaultAsync();
 
-        if (activeTeam is null)
+        if (activeTeam is null || activeTeam.IsYearOver)
         {
             return EmptyAddResult(requestedIds);
         }
@@ -307,7 +307,7 @@ public sealed class TeamPlayerRepository
         var activeTeam = await connection.Table<Team>()
             .Where(team => team.Id == teamId && team.IsActive)
             .FirstOrDefaultAsync();
-        if (activeTeam is null)
+        if (activeTeam is null || activeTeam.IsYearOver)
         {
             return EmptyRemoveResult(requestedIds);
         }

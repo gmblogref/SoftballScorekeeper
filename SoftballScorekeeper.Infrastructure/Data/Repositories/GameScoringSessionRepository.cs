@@ -180,6 +180,8 @@ public sealed class GameScoringSessionRepository
         var availability = new ScoringUndoRedoAvailability(false, false);
         await connection.RunInTransactionAsync(transaction =>
         {
+            if (TeamYearWriteGuard.IsGameFinalized(transaction, gameId))
+                return;
             var session = transaction.Table<GameScoringSession>()
                 .FirstOrDefault(item => item.GameId == gameId);
             availability = GetUndoRedoAvailability(transaction, session);
@@ -206,6 +208,11 @@ public sealed class GameScoringSessionRepository
         {
             await connection.RunInTransactionAsync(transaction =>
             {
+                if (TeamYearWriteGuard.IsGameFinalized(transaction, gameId))
+                {
+                    result = new(false, ScoringUndoRedoFailure.TeamYearFinalized, unavailable);
+                    return;
+                }
                 var session = transaction.Table<GameScoringSession>()
                     .FirstOrDefault(item => item.GameId == gameId);
                 if (session is null) return;
@@ -277,6 +284,11 @@ public sealed class GameScoringSessionRepository
         {
             await connection.RunInTransactionAsync(transaction =>
             {
+                if (TeamYearWriteGuard.IsGameFinalized(transaction, gameId))
+                {
+                    result = new(null, GameScoringLifecycleFailure.TeamYearFinalized);
+                    return;
+                }
                 var session = transaction.Table<GameScoringSession>()
                     .FirstOrDefault(item => item.GameId == gameId);
                 if (session is null) return;
@@ -311,6 +323,11 @@ public sealed class GameScoringSessionRepository
         {
             await connection.RunInTransactionAsync(transaction =>
             {
+                if (TeamYearWriteGuard.IsGameFinalized(transaction, gameId))
+                {
+                    result = new(null, GameScoringLifecycleFailure.TeamYearFinalized);
+                    return;
+                }
                 var session = transaction.Table<GameScoringSession>()
                     .FirstOrDefault(item => item.GameId == gameId);
                 if (session is null) return;
@@ -355,6 +372,11 @@ public sealed class GameScoringSessionRepository
         {
             await connection.RunInTransactionAsync(transaction =>
             {
+                if (TeamYearWriteGuard.IsGameFinalized(transaction, gameId))
+                {
+                    result = new(GameScoringLifecycleFailure.TeamYearFinalized);
+                    return;
+                }
                 var session = transaction.Table<GameScoringSession>()
                     .FirstOrDefault(item => item.GameId == gameId);
                 if (session is null) return;
@@ -432,6 +454,8 @@ public sealed class GameScoringSessionRepository
         {
             await connection.RunInTransactionAsync(transaction =>
             {
+                if (TeamYearWriteGuard.IsGameFinalized(transaction, gameId))
+                    return;
                 var session = transaction.Table<GameScoringSession>()
                     .FirstOrDefault(item => item.GameId == gameId);
                 var halfInning = transaction.Find<GameScoringHalfInning>(halfInningId);
@@ -481,6 +505,12 @@ public sealed class GameScoringSessionRepository
         {
             await connection.RunInTransactionAsync(transaction =>
             {
+                if (TeamYearWriteGuard.IsGameFinalized(transaction, gameId))
+                {
+                    result = new(null, false,
+                        OpponentHalfInningEntryFailure.TeamYearFinalized);
+                    return;
+                }
                 stage = "load scoring session";
                 var session = transaction.Table<GameScoringSession>()
                     .FirstOrDefault(item => item.GameId == gameId);
@@ -937,6 +967,11 @@ public sealed class GameScoringSessionRepository
         {
             await connection.RunInTransactionAsync(transaction =>
             {
+                if (TeamYearWriteGuard.IsGameFinalized(transaction, gameId))
+                {
+                    response = PendingFailure(PendingPlayFailure.TeamYearFinalized);
+                    return;
+                }
                 var session = transaction.Table<GameScoringSession>()
                     .FirstOrDefault(item => item.GameId == gameId);
                 if (session is null) return;
@@ -1093,6 +1128,8 @@ public sealed class GameScoringSessionRepository
         {
             await connection.RunInTransactionAsync(transaction =>
             {
+                if (TeamYearWriteGuard.IsGameFinalized(transaction, gameId))
+                    return;
                 var session = transaction.Table<GameScoringSession>()
                     .FirstOrDefault(item => item.GameId == gameId);
                 if (session is null || session.Status != GameScoringStatus.InProgress) return;
@@ -1329,6 +1366,11 @@ public sealed class GameScoringSessionRepository
         {
             await connection.RunInTransactionAsync(transaction =>
             {
+                if (TeamYearWriteGuard.IsGameFinalized(transaction, gameId))
+                {
+                    result = Failure(InitializeScoringSessionFailure.TeamYearFinalized);
+                    return;
+                }
                 var existing = transaction.Table<GameScoringSession>()
                     .FirstOrDefault(session => session.GameId == gameId);
                 if (existing is not null)
@@ -1890,12 +1932,17 @@ public sealed class GameScoringSessionRepository
         {
             CompletePlateAppearanceFailure.SessionNotFound => PendingPlayFailure.SessionNotFound,
             CompletePlateAppearanceFailure.GameCompleted => PendingPlayFailure.GameCompleted,
+            CompletePlateAppearanceFailure.TeamYearFinalized =>
+                PendingPlayFailure.TeamYearFinalized,
             _ => PendingPlayFailure.InvalidScoringState,
         };
 
     private static CompletionContext LoadCompletionContext(SQLite.SQLiteConnection transaction,
         int gameId)
     {
+        if (TeamYearWriteGuard.IsGameFinalized(transaction, gameId))
+            return new(CompletePlateAppearanceFailure.TeamYearFinalized,
+                null, null, null, null, -1);
         var session = transaction.Table<GameScoringSession>()
             .FirstOrDefault(item => item.GameId == gameId);
         if (session is null)

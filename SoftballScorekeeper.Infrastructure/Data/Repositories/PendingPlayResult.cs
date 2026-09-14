@@ -10,6 +10,7 @@ public enum PendingPlayFailure
     GameCompleted,
     InvalidScoringState,
     DuplicateDestination,
+    TeamYearFinalized,
     Persistence,
 }
 

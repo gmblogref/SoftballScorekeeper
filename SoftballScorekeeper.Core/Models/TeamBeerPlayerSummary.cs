@@ -38,6 +38,7 @@ public enum BeerAccountingUpdateFailure
     PlayerNotAssociatedWithTeam = 5,
     ValueTooLarge = 6,
     PersistenceError = 7,
+    TeamYearFinalized = 8,
 }
 
 public sealed record BeerAccountingUpdateResult(BeerAccountingUpdateFailure FailureReason)

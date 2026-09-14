@@ -33,6 +33,7 @@ public enum LowManCalculationFailure
     TeamNotFound = 2,
     InvalidCompletedGameData = 3,
     PersistenceError = 4,
+    TeamYearFinalized = 5,
 }
 
 public sealed class LowManCalculationRepository(AppDatabase database)
@@ -117,9 +118,15 @@ public sealed class LowManCalculationRepository(AppDatabase database)
         {
             await connection.RunInTransactionAsync(transaction =>
             {
-                if (transaction.Find<Team>(teamId) is null)
+                var team = transaction.Find<Team>(teamId);
+                if (team is null)
                 {
                     result = Failure(LowManCalculationFailure.TeamNotFound, date);
+                    return;
+                }
+                if (team.IsYearOver)
+                {
+                    result = Failure(LowManCalculationFailure.TeamYearFinalized, date);
                     return;
                 }
 

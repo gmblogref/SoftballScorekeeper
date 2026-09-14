@@ -6,6 +6,7 @@ public enum CopyTeamToNewYearFailure
 {
     None,
     SourceNotFound,
+    SourceYearFinalized,
     InvalidSourceYear,
     DestinationExists,
     PersistenceError,
