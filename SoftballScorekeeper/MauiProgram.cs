@@ -1,7 +1,9 @@
 ﻿using Microsoft.Extensions.Logging;
 using SoftballScorekeeper.Configuration;
+using SoftballScorekeeper.Infrastructure.Backup;
 using SoftballScorekeeper.Infrastructure.Data;
 using SoftballScorekeeper.Infrastructure.Data.Repositories;
+using SoftballScorekeeper.Services;
 using SoftballScorekeeper.ViewModels;
 using SoftballScorekeeper.Views;
 #if DEBUG
@@ -29,6 +31,8 @@ namespace SoftballScorekeeper
 
             builder.Services.AddSingleton<AppShell>();
             builder.Services.AddSingleton<ApplicationSettings>();
+            builder.Services.AddSingleton(TimeProvider.System);
+            builder.Services.AddSingleton<IBackupPlatform, MauiBackupPlatform>();
             builder.Services.AddSingleton(serviceProvider =>
             {
                 var settings = serviceProvider.GetRequiredService<ApplicationSettings>();
@@ -72,6 +76,7 @@ namespace SoftballScorekeeper
             builder.Services.AddSingleton<TeamRecordRepository>();
             builder.Services.AddSingleton<TeamBattingStatisticsRepository>();
             builder.Services.AddSingleton<TeamYearSummaryRepository>();
+            builder.Services.AddSingleton<BackupPackageService>();
 #if DEBUG
             builder.Services.AddSingleton<AndroidUiTestDataInitializer>();
 #endif

@@ -10,10 +10,10 @@ Stable product and architecture decisions belong in the project architecture doc
 
 ## Current Project Status
 
-- **Latest completed story:** Story 7.9 — Mark Team Year Over
-- **Completed stories:** Stories 0.0 through 6.9.5 and Stories 7.0 through 7.9 except Story 7.6; Story 6.9.4 and Story 7.7 retain their recorded physical Android acceptance status, and Stories 3.2 through 3.4 retain their recorded validation status
-- **Current story:** Story 7.9 — Mark Team Year Over; implementation, automated validation, physical/manual acceptance, and targeted Android/Appium acceptance complete
-- **Current phase:** Beer Rules
+- **Latest completed story:** Story 8.0 — Backup / Restore Foundation
+- **Completed stories:** Stories 0.0 through 6.9.5, Stories 7.0 through 7.9 except Story 7.6, and Story 8.0; Story 6.9.4 and Story 7.7 retain their recorded physical Android acceptance status, and Stories 3.2 through 3.4 retain their recorded validation status
+- **Current story:** Story 8.0 — Backup / Restore Foundation; infrastructure implementation and emulator-independent validation complete
+- **Current phase:** Backup / Restore
 - **Foundation status:** Complete
 
 The repository contains a five-project .NET 9 solution: the Android- and Windows-targeted .NET MAUI application, platform-independent Core, Infrastructure, the emulator-independent automated test project, and the opt-in Android UI test project. Its implemented foundation includes repository guidance, pragmatic layered dependencies, CommunityToolkit.Mvvm, MAUI dependency injection, device-local SQLite initialization, centralized user-facing resources, strongly typed application settings, and isolated xUnit repository integration tests. Team Workspace contains local Games and Roster sections, supports adding or removing existing active Players, and supports creating a global Player with immediate TeamPlayer membership from the Team-scoped Add Players workflow. Player Workspace shows active Team memberships, and Player Manager retains bulk lifecycle actions; Game schedule management and other later softball workflows remain deferred.
@@ -3194,6 +3194,31 @@ Dedicated Double Play/Triple Play presentation, sacrifice results, HR-limit/dead
 #### Intended Commit Message
 
 `Finalize Team Year as permanently read-only`
+
+### Story 8.0 — Backup / Restore Foundation (Complete)
+
+#### Consistent Portable Backup Package
+
+- Added an Infrastructure-owned `BackupPackageService` that uses sqlite-net-pcl's provider-native `BackupAsync` wrapper over SQLite's online backup API. It snapshots the live singleton database through the established pooled connection, producing one coherent SQLite file without raw file-copy assumptions, journal/WAL checkpoint logic, sidecars, or entity-by-entity serialization. The source database remains online and logically unchanged.
+- Backup format version 1 is a ZIP containing exactly `metadata.json` and `database.sqlite3`. `BackupMetadata` records independent `BackupFormatVersion`, runtime MAUI `AppVersion`, SQLite `DatabaseVersion`, and UTC `CreatedAt`. No device ID, account, source path, content URI, settings export, or cloud dependency is included. `MauiBackupPlatform` supplies `FileSystem.CacheDirectory` and `AppInfo.Current.VersionString` behind an Infrastructure contract, and the service plus `TimeProvider.System` are registered as singletons without adding a UI or NuGet dependency.
+- Creation and inspection use unique application-private cache workspaces. Creation removes its raw database/JSON working files before returning a disposable final ZIP artifact; disposing the artifact removes its owned workspace. Handled creation and inspection failures clean their workspaces. The existing Visual Studio conversion `Backup*/` ignore rule required one narrow `.gitignore` exception for the Infrastructure backup source directory.
+
+#### Validation, Compatibility, and Restore Preparation
+
+- Inspection requires the exact two-entry package, strictly parses metadata, accepts only backup format 1, extracts privately, opens the embedded database independently and read-only, requires `PRAGMA quick_check` success and recognizable core tables, and compares metadata database version with `PRAGMA user_version`. It never initializes or migrates the embedded file and never reads or changes the current application database as part of validation.
+- Centralized database compatibility uses the repository's actual migration range: schema 2 is current; versions 0 and 1 are accepted as supported older schemas for normal migration after a future replacement; versions above 2 are rejected and never downgraded. `AppDatabase` now exposes the current/minimum schema constants, schema query, and online snapshot operation.
+- `AppDatabase.SuspendAccessAsync` and `ReinitializeAccessAsync` establish the Story 8.2 lifecycle boundary: future restore can stop new repository acquisition, close the pooled connection, replace the file under an application-level exclusive workflow, and initialize a fresh connection. Existing `CloseAsync` retains its prior lazy-reopen semantics. Destructive restore is not implemented. Story 8.2 must validate/extract first, quiesce UI/database access, preserve a same-directory safety copy, replace the database and controlled sidecars, initialize the replacement, and roll back the safety copy if replacement initialization fails. Restore remains replacement, never merge/import/deduplication.
+- The SQLite database contains all portable authoritative state across 19 tables, including Teams/Years/lineage/PreviousTeamId/Year Over/activity, Players and rosters, Seasons and Games, scheduled and frozen lineups, In Progress scoring/session/committed/pending/base/half-inning state, persisted Undo/Redo cursor and JSON snapshots, Team Beer settings, Game Beer snapshots, automatic/manual/BROUGHT/CarryForward ledger rows, and Low Man rows. Existing 21-day cleanup of Undo/Redo for old completed Games remains unchanged; backup introduces no canonical-history retention or purge. Repository inspection found no authoritative portable settings outside SQLite; database filenames, transient UI state, and Debug test markers are excluded.
+
+#### Tests and Validation
+
+- Added 14 focused cases covering a readable coherent snapshot; exact metadata/package contents; all 19 persisted tables and representative Team-Year, In Progress scoring, pending play, Undo/Redo, Beer configuration/snapshot/ledger/Low Man data; source immutability; current and supported-older schemas; newer schema, version mismatch, unsupported format, missing/extra content, corrupt ZIP, and invalid SQLite rejection; success/failure cleanup; and suspend/reinitialize persistence. The final focused backup plus adjacent temporary-database/migration selection passed 26 of 26 with zero failures or skips.
+- The first full suite run exposed one existing test that intentionally closes and lazily reuses the same `AppDatabase`; separating normal `CloseAsync` from explicit restore suspension corrected the lifecycle compatibility issue. The targeted regression selection then passed 15 of 15, and the final complete emulator-independent suite passed 979 of 979 in 1 minute 9 seconds with zero failures or skips.
+- Infrastructure built with zero warnings or errors. The Windows app build passed with zero errors and 150 existing nullable, MVVM Toolkit AOT, and XAML binding warnings. The final normal solution build passed for Android, Windows, Core, Infrastructure, repository tests, and the Android UI test project with zero errors and 160 aggregate existing-category warnings. No Appium/emulator or physical-device run was performed because Story 8.0 adds no UI or platform file-picker workflow.
+
+#### Intended Commit Message
+
+`Add backup and restore foundation`
 
 ## Maintenance Rules
 
