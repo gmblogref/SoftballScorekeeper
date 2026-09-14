@@ -29,7 +29,7 @@ public sealed class BeerRuleConfigurationRepository(AppDatabase database)
         {
             await connection.RunInTransactionAsync(transaction =>
             {
-                if (transaction.Find<Team>(teamId) is null)
+                if (!TeamYearWriteGuard.IsOpen(transaction, teamId))
                     return;
                 UpsertTeamSettings(transaction, teamId, settings!);
                 saved = true;
@@ -76,7 +76,9 @@ public sealed class BeerRuleConfigurationRepository(AppDatabase database)
                 var session = transaction
                     .Table<GameScoringSession>()
                     .FirstOrDefault(item => item.GameId == gameId);
-                if (session is null || session.Status != GameScoringStatus.InProgress)
+                if (session is null
+                    || session.Status != GameScoringStatus.InProgress
+                    || TeamYearWriteGuard.IsGameFinalized(transaction, gameId))
                     return;
                 var existing = transaction
                     .Table<GameScoringBeerRuleConfiguration>()

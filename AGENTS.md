@@ -86,6 +86,14 @@ the next year, shares the lineage, points to the source Team, and cannot branch.
 Team lineage/year and normalized Team name/year are unique across active and
 inactive Teams. Copy collisions never reuse or reactivate an existing Team.
 
+Team activity and Team-Year finalization are independent lifecycle concepts.
+Explicit Year Over is irreversible and makes that Team Year permanently
+read-only. Team Year Summary is available exactly when the Team has a successor
+or its year has been explicitly marked over; never infer completion from
+activity, dates, Games, Seasons, or Beer state. Copy Team to New Year must occur
+before explicit finalization; a source that already has a successor does not
+need to be marked over.
+
 Preferred dependency direction:
 
 ```text

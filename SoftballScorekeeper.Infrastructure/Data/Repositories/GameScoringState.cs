@@ -107,6 +107,7 @@ public enum GameScoringLifecycleFailure
     SessionNotFound,
     GameCompleted,
     UnresolvedScoringState,
+    TeamYearFinalized,
     Persistence,
 }
 
@@ -132,5 +133,6 @@ public enum OpponentHalfInningEntryFailure
     TotalRunsBelowCurrent,
     TotalHomeRunsBelowCurrent,
     InvalidScoringState,
+    TeamYearFinalized,
     PersistenceFailure,
 }

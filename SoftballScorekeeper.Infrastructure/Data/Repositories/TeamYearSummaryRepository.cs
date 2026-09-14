@@ -24,6 +24,9 @@ public sealed class TeamYearSummaryRepository(
         var team = await teamRepository.GetActiveByIdAsync(teamId);
         if (team is null)
             return null;
+        var eligibility = await teamRepository.GetYearSummaryEligibilityAsync(teamId);
+        if (eligibility?.CanViewSummary != true)
+            return null;
 
         var records = await recordRepository.GetForTeamsAsync([teamId]);
         var batting = await battingRepository.GetAsync(teamId);

@@ -106,7 +106,7 @@ public sealed class SeasonRepository
         var activeTeam = connection
             .Table<Team>()
             .FirstOrDefault(team => team.Id == teamId && team.IsActive);
-        if (activeTeam is null || activeTeam.Year != year)
+        if (activeTeam is null || activeTeam.IsYearOver || activeTeam.Year != year)
         {
             return null;
         }

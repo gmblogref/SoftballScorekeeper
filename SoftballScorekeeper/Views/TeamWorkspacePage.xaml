@@ -464,6 +464,9 @@
                 <DataTrigger TargetType="HorizontalStackLayout" Binding="{Binding IsRemovingPlayers}" Value="True">
                     <Setter Property="IsVisible" Value="False" />
                 </DataTrigger>
+                <DataTrigger TargetType="HorizontalStackLayout" Binding="{Binding IsTeamYearOpen}" Value="False">
+                    <Setter Property="IsVisible" Value="False" />
+                </DataTrigger>
             </HorizontalStackLayout.Triggers>
             <Button
                 Text="{x:Static strings:AppResources.AddPlayersButton}"
@@ -486,6 +489,9 @@
             IsVisible="{Binding IsGamesSectionSelected}">
             <HorizontalStackLayout.Triggers>
                 <DataTrigger TargetType="HorizontalStackLayout" Binding="{Binding IsRemovingGames}" Value="True">
+                    <Setter Property="IsVisible" Value="False" />
+                </DataTrigger>
+                <DataTrigger TargetType="HorizontalStackLayout" Binding="{Binding IsTeamYearOpen}" Value="False">
                     <Setter Property="IsVisible" Value="False" />
                 </DataTrigger>
             </HorizontalStackLayout.Triggers>
@@ -573,6 +579,7 @@
                     AutomationId="TeamBeerRulesButton"
                     Text="{x:Static strings:AppResources.TeamBeerRulesButton}"
                     Clicked="OnBeerRulesClicked"
+                    IsVisible="{Binding IsTeamYearOpen}"
                     MinimumHeightRequest="52"
                     HorizontalOptions="Fill"
                     BackgroundColor="Transparent"
@@ -581,10 +588,22 @@
                     AutomationId="CopyTeamToNewYearButton"
                     Text="{x:Static strings:AppResources.CopyTeamToNewYearButton}"
                     Clicked="OnCopyTeamClicked"
+                    IsVisible="{Binding IsTeamYearOpen}"
                     MinimumHeightRequest="52"
                     HorizontalOptions="Fill"
                     BackgroundColor="Transparent"
                     TextColor="{AppThemeBinding Light={StaticResource Black}, Dark={StaticResource White}}" />
+                <Button
+                    AutomationId="MarkTeamYearOverButton"
+                    Text="{x:Static strings:AppResources.MarkTeamYearOverButton}"
+                    Clicked="OnMarkTeamYearOverClicked"
+                    IsVisible="{Binding IsMarkTeamYearOverAvailable}"
+                    MinimumHeightRequest="52"
+                    HorizontalOptions="Fill"
+                    BackgroundColor="Transparent"
+                    BorderColor="{AppThemeBinding Light=#B3261E, Dark=#FFB4AB}"
+                    BorderWidth="2"
+                    TextColor="{AppThemeBinding Light=#B3261E, Dark=#FFB4AB}" />
                 <Button
                     AutomationId="DeactivateTeamMenuItem"
                     Text="{x:Static strings:AppResources.DeactivateTeamButton}"

@@ -18,5 +18,6 @@ public enum ScoringUndoRedoFailure
     NothingToUndo,
     NothingToRedo,
     InvalidHistory,
+    TeamYearFinalized,
     Persistence,
 }

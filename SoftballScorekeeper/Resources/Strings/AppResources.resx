@@ -760,6 +760,14 @@
   <data name="CollapsedTeamYearHeaderFormat" xml:space="preserve"><value>{0} ▶</value></data>
   <data name="TeamYearSummaryTitle" xml:space="preserve"><value>Team Year Summary</value></data>
   <data name="TeamYearSummaryButton" xml:space="preserve"><value>Team Year Summary</value></data>
+  <data name="MarkTeamYearOverButton" xml:space="preserve"><value>Mark Team Year Over</value></data>
+  <data name="MarkTeamYearOverConfirmationTitle" xml:space="preserve"><value>Mark Team Year Over?</value></data>
+  <data name="MarkTeamYearOverConfirmationMessage" xml:space="preserve"><value>Mark {1} {0} Year Over? This will permanently finalize this Team Year. You will still be able to view its Games, Stats, Beer Totals, and Team Year Summary, but you will no longer be able to add Games or change scoring, statistics, roster, or Beer data.</value></data>
+  <data name="MarkTeamYearOverConfirmButton" xml:space="preserve"><value>Continue</value></data>
+  <data name="MarkTeamYearOverFinalConfirmationTitle" xml:space="preserve"><value>Are you absolutely sure?</value></data>
+  <data name="MarkTeamYearOverFinalConfirmationMessage" xml:space="preserve"><value>This action cannot be undone. All current Team Year data will be kept as-is and this Team Year will become read-only forever.</value></data>
+  <data name="MarkTeamYearOverFinalConfirmButton" xml:space="preserve"><value>Permanently Mark Year Over</value></data>
+  <data name="MarkTeamYearOverFailed" xml:space="preserve"><value>The Team Year could not be marked over.</value></data>
   <data name="TeamYearSummaryHeaderFormat" xml:space="preserve"><value>{0} — {1} Year Summary</value></data>
   <data name="TeamYearSummaryLoadFailed" xml:space="preserve"><value>Team Year Summary could not be loaded.</value></data>
   <data name="TeamYearResultSummaryHeading" xml:space="preserve"><value>Team Result Summary</value></data>

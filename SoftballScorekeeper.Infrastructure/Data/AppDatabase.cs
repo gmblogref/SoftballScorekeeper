@@ -95,6 +95,10 @@ public sealed class AppDatabase
                 nameof(BeerLedgerEntry.PlayingDate),
                 "DATETIME"
             );
+            await AddColumnIfMissingAsync<Team>(
+                nameof(Team.IsYearOver),
+                "INTEGER NOT NULL DEFAULT 0"
+            );
             await connection.ExecuteAsync(
                 """
                 CREATE UNIQUE INDEX IF NOT EXISTS UX_BeerLedgerEntry_LowMan_Source
@@ -105,6 +109,7 @@ public sealed class AppDatabase
             await connection.RunInTransactionAsync(transaction =>
             {
                 UpgradeStory77TeamYearsAndLineage(transaction);
+                UpgradeStory79TeamYearCompletion(transaction);
                 if (legacyScoringRules)
                     transaction.Execute(
                         "UPDATE GameScoringSession SET HomeRunLimit = ?",
@@ -149,6 +154,14 @@ public sealed class AppDatabase
     private sealed class SqliteTable
     {
         public string Name { get; set; } = string.Empty;
+    }
+
+    private static void UpgradeStory79TeamYearCompletion(SQLiteConnection transaction)
+    {
+        if (transaction.ExecuteScalar<int>("PRAGMA user_version") >= 2)
+            return;
+
+        transaction.Execute("PRAGMA user_version = 2");
     }
 
     private static void UpgradeStory77TeamYearsAndLineage(SQLiteConnection transaction)

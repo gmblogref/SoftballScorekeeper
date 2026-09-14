@@ -16,6 +16,7 @@ public partial class TeamWorkspacePage : ContentPage
         viewModel.RemovePlayersConfirmationRequested = ConfirmPlayerRemovalAsync;
         viewModel.RemoveGamesConfirmationRequested = ConfirmGameRemovalAsync;
         viewModel.CopyTeamConfirmationRequested = ConfirmTeamCopyAsync;
+        viewModel.MarkTeamYearOverConfirmationRequested = ConfirmMarkTeamYearOverAsync;
         BindingContext = viewModel;
     }
 
@@ -130,6 +131,13 @@ public partial class TeamWorkspacePage : ContentPage
         );
     }
 
+    private void OnMarkTeamYearOverClicked(object sender, EventArgs e)
+    {
+        TeamActionMenu.IsVisible = false;
+        if (viewModel.RequestMarkTeamYearOverCommand.CanExecute(null))
+            viewModel.RequestMarkTeamYearOverCommand.Execute(null);
+    }
+
     private void OnDeactivateTeamClicked(object sender, EventArgs e)
     {
         TeamActionMenu.IsVisible = false;
@@ -163,6 +171,33 @@ public partial class TeamWorkspacePage : ContentPage
         );
         if (confirmed && viewModel.ConfirmCopyTeamCommand.CanExecute(null))
             await viewModel.ConfirmCopyTeamCommand.ExecuteAsync(null);
+    }
+
+    private async Task ConfirmMarkTeamYearOverAsync(string teamName, int teamYear)
+    {
+        var message = string.Format(
+            CultureInfo.CurrentCulture,
+            AppResources.MarkTeamYearOverConfirmationMessage,
+            teamName,
+            teamYear
+        );
+        var continued = await DisplayAlert(
+            AppResources.MarkTeamYearOverConfirmationTitle,
+            message,
+            AppResources.MarkTeamYearOverConfirmButton,
+            AppResources.CancelButton
+        );
+        if (!continued)
+            return;
+
+        var confirmed = await DisplayAlert(
+            AppResources.MarkTeamYearOverFinalConfirmationTitle,
+            AppResources.MarkTeamYearOverFinalConfirmationMessage,
+            AppResources.MarkTeamYearOverFinalConfirmButton,
+            AppResources.CancelButton
+        );
+        if (confirmed && viewModel.ConfirmMarkTeamYearOverCommand.CanExecute(null))
+            await viewModel.ConfirmMarkTeamYearOverCommand.ExecuteAsync(null);
     }
 
     private async Task ConfirmTeamDeactivationAsync(string teamName)

@@ -129,8 +129,11 @@ public sealed class BeerAccountingRepository(AppDatabase database)
         int playerId
     )
     {
-        if (transaction.Find<Team>(teamId) is null)
+        var team = transaction.Find<Team>(teamId);
+        if (team is null)
             return Failure(BeerAccountingUpdateFailure.TeamNotFound);
+        if (team.IsYearOver)
+            return Failure(BeerAccountingUpdateFailure.TeamYearFinalized);
         if (transaction.Find<Player>(playerId) is null)
             return Failure(BeerAccountingUpdateFailure.PlayerNotFound);
         var isAssociated = transaction

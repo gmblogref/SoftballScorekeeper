@@ -24,6 +24,12 @@ public partial class TeamBeerTotalsViewModel : ObservableObject, IQueryAttributa
     [NotifyPropertyChangedFor(nameof(CanEdit))]
     [NotifyPropertyChangedFor(nameof(CanCalculateLowMan))]
     [NotifyPropertyChangedFor(nameof(CanSelectGameNight))]
+    private bool isTeamYearOpen;
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(CanEdit))]
+    [NotifyPropertyChangedFor(nameof(CanCalculateLowMan))]
+    [NotifyPropertyChangedFor(nameof(CanSelectGameNight))]
     private bool isBusy;
 
     [ObservableProperty]
@@ -68,11 +74,12 @@ public partial class TeamBeerTotalsViewModel : ObservableObject, IQueryAttributa
 
     public ObservableCollection<LowManGameNightViewModel> GameNights { get; } = new();
 
-    public bool CanEdit => IsLoaded && !IsBusy;
+    public bool CanEdit => IsLoaded && IsTeamYearOpen && !IsBusy;
 
-    public bool CanCalculateLowMan => IsLoaded && !IsBusy && SelectedGameNight is not null;
+    public bool CanCalculateLowMan => IsLoaded && IsTeamYearOpen
+        && !IsBusy && SelectedGameNight is not null;
 
-    public bool CanSelectGameNight => IsLoaded && !IsBusy && HasGameNights;
+    public bool CanSelectGameNight => IsLoaded && IsTeamYearOpen && !IsBusy && HasGameNights;
 
     public bool HasCalculatedLowMan
     {
@@ -261,6 +268,7 @@ public partial class TeamBeerTotalsViewModel : ObservableObject, IQueryAttributa
             }
 
             TeamName = team.Name;
+            IsTeamYearOpen = !team.IsYearOver;
             if (!await LoadGameNightsAsync())
             {
                 SetLoadFailure();
@@ -420,6 +428,7 @@ public partial class TeamBeerTotalsViewModel : ObservableObject, IQueryAttributa
     {
         TeamId = 0;
         TeamName = string.Empty;
+        IsTeamYearOpen = false;
         hasValidTeamId = false;
         LowManStatusMessage = string.Empty;
         SetLoadFailure();
