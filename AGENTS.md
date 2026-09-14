@@ -94,6 +94,16 @@ activity, dates, Games, Seasons, or Beer state. Copy Team to New Year must occur
 before explicit finalization; a source that already has a successor does not
 need to be marked over.
 
+The local SQLite database is the complete authoritative portable application
+state. A backup must contain a SQLite-consistent snapshot plus independently
+versioned backup metadata; the backup format version and database schema version
+are separate compatibility boundaries. Restore replaces local application state
+and is never merge, import, or deduplication. Never downgrade a backup from a
+newer unsupported database schema, bind a backup to source-device identity, or
+auto-purge canonical history for backup/storage concerns. Document and cloud
+providers may store user-selected backup artifacts but are not application data
+dependencies.
+
 Preferred dependency direction:
 
 ```text

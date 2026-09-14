@@ -5,10 +5,14 @@ namespace SoftballScorekeeper.Infrastructure.Data;
 
 public sealed class AppDatabase
 {
+    public const int MinimumSupportedSchemaVersion = 0;
+    public const int CurrentSchemaVersion = 2;
+
     internal static readonly TimeSpan ScoringHistoryRetention = TimeSpan.FromDays(21);
-    private readonly SQLiteAsyncConnection connection;
+    private SQLiteAsyncConnection connection;
     private readonly SemaphoreSlim initializationLock = new(1, 1);
     private volatile bool isInitialized;
+    private volatile bool isAccessSuspended;
 
     public AppDatabase(string databasePath)
     {
@@ -21,22 +25,25 @@ public sealed class AppDatabase
         }
 
         DatabasePath = databasePath;
-        connection = new SQLiteAsyncConnection(
-            DatabasePath,
-            SQLiteOpenFlags.ReadWrite | SQLiteOpenFlags.Create | SQLiteOpenFlags.SharedCache
-        );
+        connection = CreateConnection();
     }
 
     public string DatabasePath { get; }
 
     internal async Task<SQLiteAsyncConnection> GetConnectionAsync()
     {
+        if (isAccessSuspended)
+            throw new InvalidOperationException("Database access is suspended.");
         await InitializeAsync();
+        if (isAccessSuspended)
+            throw new InvalidOperationException("Database access is suspended.");
         return connection;
     }
 
     public async Task InitializeAsync()
     {
+        if (isAccessSuspended)
+            throw new InvalidOperationException("Database access is suspended.");
         if (isInitialized)
         {
             return;
@@ -45,6 +52,8 @@ public sealed class AppDatabase
         await initializationLock.WaitAsync();
         try
         {
+            if (isAccessSuspended)
+                throw new InvalidOperationException("Database access is suspended.");
             if (isInitialized)
             {
                 return;
@@ -158,10 +167,10 @@ public sealed class AppDatabase
 
     private static void UpgradeStory79TeamYearCompletion(SQLiteConnection transaction)
     {
-        if (transaction.ExecuteScalar<int>("PRAGMA user_version") >= 2)
+        if (transaction.ExecuteScalar<int>("PRAGMA user_version") >= CurrentSchemaVersion)
             return;
 
-        transaction.Execute("PRAGMA user_version = 2");
+        transaction.Execute($"PRAGMA user_version = {CurrentSchemaVersion}");
     }
 
     private static void UpgradeStory77TeamYearsAndLineage(SQLiteConnection transaction)
@@ -235,9 +244,83 @@ public sealed class AppDatabase
         }
     }
 
-    public Task CloseAsync()
+    public async Task<int> GetSchemaVersionAsync()
     {
-        return connection.CloseAsync();
+        var activeConnection = await GetConnectionAsync();
+        return await activeConnection.ExecuteScalarAsync<int>("PRAGMA user_version");
+    }
+
+    public async Task CreateSnapshotAsync(string destinationDatabasePath)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(destinationDatabasePath);
+        var activeConnection = await GetConnectionAsync();
+        await activeConnection.BackupAsync(destinationDatabasePath);
+    }
+
+    public async Task SuspendAccessAsync()
+    {
+        await initializationLock.WaitAsync();
+        try
+        {
+            if (isAccessSuspended)
+                return;
+            isAccessSuspended = true;
+            isInitialized = false;
+            await connection.CloseAsync();
+        }
+        finally
+        {
+            initializationLock.Release();
+        }
+    }
+
+    public async Task ReinitializeAccessAsync()
+    {
+        await initializationLock.WaitAsync();
+        try
+        {
+            if (!isAccessSuspended)
+                return;
+            connection = CreateConnection();
+            isAccessSuspended = false;
+        }
+        finally
+        {
+            initializationLock.Release();
+        }
+
+        try
+        {
+            await InitializeAsync();
+        }
+        catch
+        {
+            await SuspendAccessAsync();
+            throw;
+        }
+    }
+
+    public async Task CloseAsync()
+    {
+        await initializationLock.WaitAsync();
+        try
+        {
+            if (isAccessSuspended)
+                return;
+            await connection.CloseAsync();
+        }
+        finally
+        {
+            initializationLock.Release();
+        }
+    }
+
+    private SQLiteAsyncConnection CreateConnection()
+    {
+        return new SQLiteAsyncConnection(
+            DatabasePath,
+            SQLiteOpenFlags.ReadWrite | SQLiteOpenFlags.Create | SQLiteOpenFlags.SharedCache
+        );
     }
 
     private static void UpgradeStory60ScoringSessions(SQLiteConnection transaction)
