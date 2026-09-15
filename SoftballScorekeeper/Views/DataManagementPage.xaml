@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:strings="clr-namespace:SoftballScorekeeper.Resources.Strings"
+             xmlns:viewModels="clr-namespace:SoftballScorekeeper.ViewModels"
+             x:Class="SoftballScorekeeper.Views.DataManagementPage"
+             x:DataType="viewModels:DataManagementViewModel"
+             Title="{x:Static strings:AppResources.DataManagementTitle}">
+    <Grid Padding="40" RowDefinitions="Auto,Auto,Auto,*" RowSpacing="20">
+        <Label
+            Text="{x:Static strings:AppResources.DataManagementTitle}"
+            Style="{StaticResource Headline}"
+            SemanticProperties.HeadingLevel="Level1" />
+        <Label
+            Grid.Row="1"
+            Text="{x:Static strings:AppResources.BackupDataDescription}"
+            FontSize="18" />
+        <HorizontalStackLayout Grid.Row="2" Spacing="16">
+            <Button
+                AutomationId="BackupDataButton"
+                Text="{x:Static strings:AppResources.BackupDataButton}"
+                Command="{Binding BackupDataCommand}"
+                MinimumHeightRequest="56"
+                MinimumWidthRequest="200"
+                Padding="28,14" />
+            <ActivityIndicator
+                AutomationId="BackupDataActivityIndicator"
+                IsRunning="{Binding IsBusy}"
+                IsVisible="{Binding IsBusy}"
+                VerticalOptions="Center" />
+        </HorizontalStackLayout>
+        <Label
+            Grid.Row="3"
+            AutomationId="BackupDataStatus"
+            Text="{Binding StatusMessage}"
+            IsVisible="{Binding HasStatusMessage}"
+            FontSize="18" />
+    </Grid>
+</ContentPage>

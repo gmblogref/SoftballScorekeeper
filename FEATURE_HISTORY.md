@@ -12,7 +12,7 @@ Stable product and architecture decisions belong in the project architecture doc
 
 - **Latest completed story:** Story 8.0 — Backup / Restore Foundation
 - **Completed stories:** Stories 0.0 through 6.9.5, Stories 7.0 through 7.9 except Story 7.6, and Story 8.0; Story 6.9.4 and Story 7.7 retain their recorded physical Android acceptance status, and Stories 3.2 through 3.4 retain their recorded validation status
-- **Current story:** Story 8.0 — Backup / Restore Foundation; infrastructure implementation and emulator-independent validation complete
+- **Current story:** Story 8.1 — Manual Backup; implementation, emulator-independent validation, and targeted Android document-provider acceptance complete, with physical acceptance pending
 - **Current phase:** Backup / Restore
 - **Foundation status:** Complete
 
@@ -3219,6 +3219,25 @@ Dedicated Double Play/Triple Play presentation, sacrifice results, HR-limit/dead
 #### Intended Commit Message
 
 `Add backup and restore foundation`
+
+### Story 8.1 — Manual Backup (Implementation and targeted Android acceptance complete — physical acceptance pending)
+
+#### User-Initiated Portable Backup
+
+- Added an app-level **Data Management** destination in the Shell flyout with a tablet-sized **Backup Data** action, busy indicator, and resource-backed success/failure status. The async command disables itself while running, and the singleton `ManualBackupService` independently rejects concurrent invocations so a double tap cannot create or save a second package.
+- `ManualBackupService` calls the Story 8.0 `BackupPackageService.CreateAsync()` API, then supplies the completed private artifact to an injected destination abstraction. The suggested filename is `SoftballScorekeeper-Backup-YYYY-MM-DD-HHmm.zip`, based on the snapshot's UTC creation time. Success is returned and shown only after the destination stream copy and flush complete; document-picker cancellation returns normally with no success or error; creation and destination failures surface the non-destructive resource-backed failure state.
+- Android uses Storage Access Framework `ACTION_CREATE_DOCUMENT` with ZIP MIME type and writes through the returned content URI. No broad storage permission, Google Drive API/authentication, provider-specific cloud code, or internet dependency was added; any installed document provider, including Google Drive, can participate through the system UI. Windows uses its native `FileSavePicker` through the same destination contract.
+- The Story 8.0 artifact remains application-private until destination selection and writing. Its disposable workspace is removed after success, cancellation, or destination failure, and Story 8.0 continues to clean creation failures. The workflow never copies the live database directly and performs no authoritative-state writes, so it supports an In Progress Game without changing scoring, Undo/Redo, Team/Team Year, Beer, roster, or other application state. Restore, automatic backup, reminders, history, sync, and iOS work remain deferred.
+
+#### Tests, Validation, and Acceptance Status
+
+- Added six workflow integration tests and three presentation/platform source tests. They cover valid destination bytes and package inspection, the filename convention, success/cancellation/failure status boundaries, cleanup after success/cancellation/destination failure/creation failure, duplicate invocation, source immutability, and a representative saved database containing Team Years, Year Over, roster, Season, Completed and In Progress Games, Beer history, BROUGHT, and CarryForward. The focused Story 8.0/8.1 backup selection passed 23 of 23, and the complete emulator-independent suite passed 988 of 988, both with zero failures or skips.
+- The final clean normal solution build succeeded for Android, Windows, Core, Infrastructure, repository tests, and the Android UI test project with zero errors and 163 nullable, MVVM Toolkit AOT, and XAML binding warnings.
+- The single authorized Android/Appium scenario, `Backup_data_saves_valid_portable_package_through_document_provider`, passed 1 of 1 in 25 seconds with zero failures or skips on the already-running dedicated `softball_tablet_ui_tests_api_35` AVD (`emulator-5554`). It navigated through the Shell flyout and Data Management, verified the real Android DocumentsUI save flow and timestamped filename, waited for post-write success, confirmed and pulled the saved file, validated it through Story 8.0 `BackupPackageService.InspectAsync`, confirmed the ZIP contained exactly `metadata.json` and `database.sqlite3`, and verified normal application navigation afterward. No production defect or production correction resulted. Nine earlier targeted test executions failed for environment or automation-only causes, and one runner invocation stopped at test-project compilation; focused harness corrections covered stale MAUI elements, retained DocumentsUI state, API 35 system locators, and unambiguous Downloads-root selection. The passing runner invocation had no automatic retry, reused the existing emulator without startup/lock errors, stopped only its owned Appium process, did not run broader Android regression, and preserved the isolated UI-test database and `SAVE ME` Team. Physical Android tablet acceptance remains pending.
+
+#### Intended Commit Message
+
+`Add manual backup workflow`
 
 ## Maintenance Rules
 

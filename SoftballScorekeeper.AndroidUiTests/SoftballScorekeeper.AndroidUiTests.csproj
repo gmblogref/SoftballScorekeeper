@@ -21,6 +21,10 @@
 	</ItemGroup>
 
 	<ItemGroup>
+		<ProjectReference Include="..\SoftballScorekeeper.Infrastructure\SoftballScorekeeper.Infrastructure.csproj" />
+	</ItemGroup>
+
+	<ItemGroup>
 		<Using Include="Xunit" />
 	</ItemGroup>
 

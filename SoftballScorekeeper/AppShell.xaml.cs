@@ -18,6 +18,7 @@
         public const string GameWorkspaceRoute = "game-workspace";
         public const string SetLineupRoute = "set-lineup";
         public const string ScoringRoute = "scoring";
+        public const string DataManagementRoute = "data-management";
         public const string TeamIdQueryParameter = "teamId";
         public const string PlayerIdQueryParameter = "playerId";
         public const string GameIdQueryParameter = "gameId";
@@ -43,6 +44,7 @@
             Routing.RegisterRoute(GameWorkspaceRoute, typeof(Views.GameWorkspacePage));
             Routing.RegisterRoute(SetLineupRoute, typeof(Views.SetLineupPage));
             Routing.RegisterRoute(ScoringRoute, typeof(Views.ScoringPage));
+            Routing.RegisterRoute(DataManagementRoute, typeof(Views.DataManagementPage));
             MainShellContent.Content = mainPage;
         }
 
@@ -68,6 +70,12 @@
         {
             FlyoutIsPresented = false;
             await GoToAsync(InactivePlayersRoute);
+        }
+
+        private async void OnDataManagementClicked(object sender, EventArgs e)
+        {
+            FlyoutIsPresented = false;
+            await GoToAsync(DataManagementRoute);
         }
     }
 }

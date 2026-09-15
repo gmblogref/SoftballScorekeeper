@@ -77,6 +77,8 @@ namespace SoftballScorekeeper
             builder.Services.AddSingleton<TeamBattingStatisticsRepository>();
             builder.Services.AddSingleton<TeamYearSummaryRepository>();
             builder.Services.AddSingleton<BackupPackageService>();
+            builder.Services.AddSingleton<IBackupDestination, MauiBackupDestination>();
+            builder.Services.AddSingleton<ManualBackupService>();
 #if DEBUG
             builder.Services.AddSingleton<AndroidUiTestDataInitializer>();
 #endif
@@ -98,6 +100,7 @@ namespace SoftballScorekeeper
             builder.Services.AddTransient<GameWorkspaceViewModel>();
             builder.Services.AddTransient<SetLineupViewModel>();
             builder.Services.AddTransient<ScoringViewModel>();
+            builder.Services.AddTransient<DataManagementViewModel>();
             builder.Services.AddTransient<CreateTeamPage>();
             builder.Services.AddTransient<EditTeamPage>();
             builder.Services.AddTransient<InactiveTeamsPage>();
@@ -115,6 +118,7 @@ namespace SoftballScorekeeper
             builder.Services.AddTransient<GameWorkspacePage>();
             builder.Services.AddTransient<SetLineupPage>();
             builder.Services.AddTransient<ScoringPage>();
+            builder.Services.AddTransient<DataManagementPage>();
             builder.Services.AddSingleton<MainPage>();
 
             return builder.Build();
