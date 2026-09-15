@@ -1198,5 +1198,10 @@ namespace SoftballScorekeeper.Resources.Strings {
         public static string TiesLabel { get { return ResourceManager.GetString("TiesLabel", resourceCulture); } }
         public static string TeamYearBattingEmptyState { get { return ResourceManager.GetString("TeamYearBattingEmptyState", resourceCulture); } }
         public static string TeamYearBeerEmptyState { get { return ResourceManager.GetString("TeamYearBeerEmptyState", resourceCulture); } }
+        public static string DataManagementTitle { get { return ResourceManager.GetString("DataManagementTitle", resourceCulture); } }
+        public static string BackupDataButton { get { return ResourceManager.GetString("BackupDataButton", resourceCulture); } }
+        public static string BackupDataDescription { get { return ResourceManager.GetString("BackupDataDescription", resourceCulture); } }
+        public static string BackupDataSucceeded { get { return ResourceManager.GetString("BackupDataSucceeded", resourceCulture); } }
+        public static string BackupDataFailed { get { return ResourceManager.GetString("BackupDataFailed", resourceCulture); } }
     }
 }

@@ -42,4 +42,8 @@
         Text="{x:Static strings:AppResources.ManageInactivePlayersButton}"
         Clicked="OnManageInactivePlayersClicked" />
 
+    <MenuItem
+        Text="{x:Static strings:AppResources.DataManagementTitle}"
+        Clicked="OnDataManagementClicked" />
+
 </Shell>

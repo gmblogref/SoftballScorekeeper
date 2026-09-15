@@ -48,6 +48,9 @@ public sealed class AndroidAppiumFixture : IDisposable
         RunAdb(Configuration, "shell", "cmd", "window", "user-rotation", "lock", rotation);
     }
 
+    internal string ExecuteAdb(params string[] arguments) =>
+        RunAdb(Configuration, arguments);
+
     private static AndroidDriver CreatePreparedDriver(
         AndroidUiTestConfiguration configuration,
         string seedRequestFileName = AndroidAutomationConstants.TestSeedRequestFileName)

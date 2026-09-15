@@ -779,4 +779,9 @@
   <data name="TiesLabel" xml:space="preserve"><value>Ties</value></data>
   <data name="TeamYearBattingEmptyState" xml:space="preserve"><value>No Completed Games are available for this Team Year.</value></data>
   <data name="TeamYearBeerEmptyState" xml:space="preserve"><value>No Beer totals are available for this Team Year.</value></data>
+  <data name="DataManagementTitle" xml:space="preserve"><value>Data Management</value></data>
+  <data name="BackupDataButton" xml:space="preserve"><value>Backup Data</value></data>
+  <data name="BackupDataDescription" xml:space="preserve"><value>Create a portable backup and choose where to save it.</value></data>
+  <data name="BackupDataSucceeded" xml:space="preserve"><value>Backup saved successfully.</value></data>
+  <data name="BackupDataFailed" xml:space="preserve"><value>The backup could not be saved. Your application data was not changed.</value></data>
 </root>
