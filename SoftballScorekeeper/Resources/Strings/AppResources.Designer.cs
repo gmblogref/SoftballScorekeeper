@@ -1203,5 +1203,17 @@ namespace SoftballScorekeeper.Resources.Strings {
         public static string BackupDataDescription { get { return ResourceManager.GetString("BackupDataDescription", resourceCulture); } }
         public static string BackupDataSucceeded { get { return ResourceManager.GetString("BackupDataSucceeded", resourceCulture); } }
         public static string BackupDataFailed { get { return ResourceManager.GetString("BackupDataFailed", resourceCulture); } }
+        public static string RestoreDataButton { get { return ResourceManager.GetString("RestoreDataButton", resourceCulture); } }
+        public static string RestoreDataDescription { get { return ResourceManager.GetString("RestoreDataDescription", resourceCulture); } }
+        public static string RestoreDataConfirmationTitle { get { return ResourceManager.GetString("RestoreDataConfirmationTitle", resourceCulture); } }
+        public static string RestoreDataConfirmationMessage { get { return ResourceManager.GetString("RestoreDataConfirmationMessage", resourceCulture); } }
+        public static string RestoreDataOlderConfirmationMessage { get { return ResourceManager.GetString("RestoreDataOlderConfirmationMessage", resourceCulture); } }
+        public static string RestoreDataConfirmButton { get { return ResourceManager.GetString("RestoreDataConfirmButton", resourceCulture); } }
+        public static string RestoreDataSucceededTitle { get { return ResourceManager.GetString("RestoreDataSucceededTitle", resourceCulture); } }
+        public static string RestoreDataSucceeded { get { return ResourceManager.GetString("RestoreDataSucceeded", resourceCulture); } }
+        public static string RestoreDataInvalid { get { return ResourceManager.GetString("RestoreDataInvalid", resourceCulture); } }
+        public static string RestoreDataUnsupported { get { return ResourceManager.GetString("RestoreDataUnsupported", resourceCulture); } }
+        public static string RestoreDataFailed { get { return ResourceManager.GetString("RestoreDataFailed", resourceCulture); } }
+        public static string RestoreDataRecoveryFailed { get { return ResourceManager.GetString("RestoreDataRecoveryFailed", resourceCulture); } }
     }
 }

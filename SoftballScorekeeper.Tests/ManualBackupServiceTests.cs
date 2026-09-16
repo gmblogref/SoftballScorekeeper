@@ -78,7 +78,8 @@ public sealed class ManualBackupServiceTests
     {
         await using var db = await TemporaryTestDatabase.CreateAsync();
         var destination = new RecordingDestination(db.DirectoryPath);
-        await db.Database.SuspendAccessAsync();
+        await using (var exclusive = await db.Database.BeginExclusiveLifecycleAsync())
+            await db.Database.SuspendAccessAsync();
         try
         {
             await Assert.ThrowsAsync<InvalidOperationException>(() =>
@@ -89,6 +90,7 @@ public sealed class ManualBackupServiceTests
         }
         finally
         {
+            await using var exclusive = await db.Database.BeginExclusiveLifecycleAsync();
             await db.Database.ReinitializeAccessAsync();
         }
     }

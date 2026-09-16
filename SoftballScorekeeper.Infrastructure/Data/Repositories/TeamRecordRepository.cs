@@ -26,7 +26,8 @@ public sealed class TeamRecordRepository
         if (requestedIds.Length == 0)
             return new Dictionary<int, TeamYearRecord>();
 
-        var connection = await database.GetConnectionAsync();
+        await using var operation = await database.BeginOperationAsync();
+        var connection = operation.Connection;
         var placeholders = string.Join(",", requestedIds.Select(_ => "?"));
         var teams = await connection.QueryAsync<Team>(
             $"SELECT * FROM Team WHERE Id IN ({placeholders})",
@@ -71,6 +72,7 @@ public sealed class TeamRecordRepository
             """,
             teamYearSeasonIds.Cast<object>().ToArray()
         );
+        await operation.DisposeAsync();
         var sessions = await scoringSessionRepository.GetForGamesAsync(
             games.Select(game => game.Id)
         );

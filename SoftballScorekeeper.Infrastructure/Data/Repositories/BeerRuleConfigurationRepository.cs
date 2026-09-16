@@ -9,7 +9,8 @@ public sealed class BeerRuleConfigurationRepository(AppDatabase database)
     {
         if (teamId <= 0)
             return null;
-        var connection = await database.GetConnectionAsync();
+        await using var operation = await database.BeginOperationAsync();
+        var connection = operation.Connection;
         if (await connection.FindAsync<Team>(teamId) is null)
             return null;
         var persisted = await connection
@@ -23,7 +24,8 @@ public sealed class BeerRuleConfigurationRepository(AppDatabase database)
     {
         if (teamId <= 0 || !IsValidCompleteSet(settings, BeerRuleConfigurationDefaults.TeamRules))
             return false;
-        var connection = await database.GetConnectionAsync();
+        await using var operation = await database.BeginOperationAsync();
+        var connection = operation.Connection;
         var saved = false;
         try
         {
@@ -46,7 +48,8 @@ public sealed class BeerRuleConfigurationRepository(AppDatabase database)
     {
         if (gameId <= 0)
             return null;
-        var connection = await database.GetConnectionAsync();
+        await using var operation = await database.BeginOperationAsync();
+        var connection = operation.Connection;
         var session = await connection
             .Table<GameScoringSession>()
             .Where(item => item.GameId == gameId)
@@ -67,7 +70,8 @@ public sealed class BeerRuleConfigurationRepository(AppDatabase database)
             || !IsValidCompleteSet(settings, BeerRuleConfigurationDefaults.ScoringRules)
         )
             return false;
-        var connection = await database.GetConnectionAsync();
+        await using var operation = await database.BeginOperationAsync();
+        var connection = operation.Connection;
         var saved = false;
         try
         {

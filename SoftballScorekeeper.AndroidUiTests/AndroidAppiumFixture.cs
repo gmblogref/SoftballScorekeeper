@@ -2,6 +2,7 @@ using System.Diagnostics;
 using OpenQA.Selenium;
 using OpenQA.Selenium.Appium;
 using OpenQA.Selenium.Appium.Android;
+using OpenQA.Selenium.Support.UI;
 
 namespace SoftballScorekeeper.AndroidUiTests;
 
@@ -60,12 +61,7 @@ public sealed class AndroidAppiumFixture : IDisposable
 
         try
         {
-            driver.ExecuteScript(
-                "mobile: activateApp",
-                new Dictionary<string, object>
-                {
-                    ["appId"] = AndroidAutomationConstants.AppPackage,
-                });
+            ActivateApplication(driver);
             return driver;
         }
         catch
@@ -73,6 +69,28 @@ public sealed class AndroidAppiumFixture : IDisposable
             driver.Quit();
             throw;
         }
+    }
+
+    private static void ActivateApplication(AndroidDriver driver)
+    {
+        driver.ExecuteScript(
+            "mobile: terminateApp",
+            new Dictionary<string, object>
+            {
+                ["appId"] = "com.google.android.documentsui",
+            });
+        driver.ExecuteScript(
+            "mobile: activateApp",
+            new Dictionary<string, object>
+            {
+                ["appId"] = AndroidAutomationConstants.AppPackage,
+            });
+
+        var wait = new WebDriverWait(driver, TimeSpan.FromSeconds(20));
+        wait.Until(_ => string.Equals(
+            driver.CurrentPackage,
+            AndroidAutomationConstants.AppPackage,
+            StringComparison.Ordinal));
     }
 
     public string CaptureFailureArtifacts(string testName, Exception exception)

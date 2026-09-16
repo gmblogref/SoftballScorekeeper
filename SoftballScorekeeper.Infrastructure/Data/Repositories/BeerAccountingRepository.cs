@@ -10,7 +10,8 @@ public sealed class BeerAccountingRepository(AppDatabase database)
         if (teamId <= 0)
             return null;
 
-        var connection = await database.GetConnectionAsync();
+        await using var operation = await database.BeginOperationAsync();
+        var connection = operation.Connection;
         var team = await connection.FindAsync<Team>(teamId);
         if (team is null)
             return null;
@@ -105,7 +106,8 @@ public sealed class BeerAccountingRepository(AppDatabase database)
         if (playerId <= 0)
             return Failure(BeerAccountingUpdateFailure.PlayerNotFound);
 
-        var connection = await database.GetConnectionAsync();
+        await using var operation = await database.BeginOperationAsync();
+        var connection = operation.Connection;
         var result = Failure(BeerAccountingUpdateFailure.PersistenceError);
         try
         {

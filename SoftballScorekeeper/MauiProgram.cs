@@ -79,6 +79,9 @@ namespace SoftballScorekeeper
             builder.Services.AddSingleton<BackupPackageService>();
             builder.Services.AddSingleton<IBackupDestination, MauiBackupDestination>();
             builder.Services.AddSingleton<ManualBackupService>();
+            builder.Services.AddSingleton<IRestoreSource, MauiRestoreSource>();
+            builder.Services.AddSingleton<DatabaseRestoreService>();
+            builder.Services.AddSingleton<ManualRestoreService>();
 #if DEBUG
             builder.Services.AddSingleton<AndroidUiTestDataInitializer>();
 #endif

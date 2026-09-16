@@ -81,10 +81,19 @@ public sealed class BackupPackageService(
 
     public async Task<BackupInspectionResult> InspectAsync(string packagePath)
     {
+        var preparation = await PrepareRestoreAsync(packagePath);
+        if (preparation.Artifact is not null)
+            await preparation.Artifact.DisposeAsync();
+        return preparation.Inspection;
+    }
+
+    public async Task<PrepareRestoreResult> PrepareRestoreAsync(string packagePath)
+    {
         if (string.IsNullOrWhiteSpace(packagePath) || !File.Exists(packagePath))
-            return BackupInspectionResult.Invalid(BackupInspectionFailure.FileNotFound);
+            return InvalidPreparation(BackupInspectionFailure.FileNotFound);
 
         string? workspacePath = null;
+        var preserveWorkspace = false;
         try
         {
             workspacePath = CreateWorkspace(RequireDirectory(platform.CacheDirectory), "inspect");
@@ -94,7 +103,7 @@ public sealed class BackupPackageService(
                     entry.FullName.Contains('/') || entry.FullName.Contains('\\')
                 )
             )
-                return BackupInspectionResult.Invalid(BackupInspectionFailure.InvalidPackage);
+                return InvalidPreparation(BackupInspectionFailure.InvalidPackage);
 
             var metadataEntries = archive
                 .Entries.Where(entry => entry.FullName == MetadataEntryName)
@@ -103,11 +112,11 @@ public sealed class BackupPackageService(
                 .Entries.Where(entry => entry.FullName == DatabaseEntryName)
                 .ToArray();
             if (metadataEntries.Length != 1 || databaseEntries.Length != 1)
-                return BackupInspectionResult.Invalid(
+                return InvalidPreparation(
                     BackupInspectionFailure.MissingRequiredContent
                 );
             if (archive.Entries.Count != 2)
-                return BackupInspectionResult.Invalid(BackupInspectionFailure.InvalidPackage);
+                return InvalidPreparation(BackupInspectionFailure.InvalidPackage);
 
             BackupMetadata? metadata;
             await using (var metadataStream = metadataEntries[0].Open())
@@ -118,9 +127,9 @@ public sealed class BackupPackageService(
                 );
             }
             if (!IsValidMetadata(metadata))
-                return BackupInspectionResult.Invalid(BackupInspectionFailure.InvalidMetadata);
+                return InvalidPreparation(BackupInspectionFailure.InvalidMetadata);
             if (metadata!.BackupFormatVersion != CurrentBackupFormatVersion)
-                return BackupInspectionResult.Invalid(
+                return InvalidPreparation(
                     BackupInspectionFailure.UnsupportedBackupFormat
                 );
 
@@ -140,16 +149,16 @@ public sealed class BackupPackageService(
 
             var databaseCheck = await InspectDatabaseAsync(extractedDatabasePath);
             if (!databaseCheck.IsRecognizable)
-                return BackupInspectionResult.Invalid(BackupInspectionFailure.InvalidDatabase);
+                return InvalidPreparation(BackupInspectionFailure.InvalidDatabase);
             if (databaseCheck.Version != metadata.DatabaseVersion)
-                return BackupInspectionResult.Invalid(
+                return InvalidPreparation(
                     BackupInspectionFailure.DatabaseVersionMismatch
                 );
             if (
                 databaseCheck.Version < AppDatabase.MinimumSupportedSchemaVersion
                 || databaseCheck.Version > AppDatabase.CurrentSchemaVersion
             )
-                return BackupInspectionResult.Invalid(
+                return InvalidPreparation(
                     BackupInspectionFailure.UnsupportedDatabaseVersion
                 );
 
@@ -157,30 +166,41 @@ public sealed class BackupPackageService(
                 databaseCheck.Version == AppDatabase.CurrentSchemaVersion
                     ? BackupDatabaseCompatibility.Current
                     : BackupDatabaseCompatibility.OlderSupported;
-            return BackupInspectionResult.Valid(metadata, compatibility);
+            var inspection = BackupInspectionResult.Valid(metadata, compatibility);
+            var artifact = new PreparedRestoreArtifact(
+                extractedDatabasePath,
+                workspacePath,
+                metadata,
+                compatibility
+            );
+            preserveWorkspace = true;
+            return new PrepareRestoreResult(inspection, artifact);
         }
         catch (JsonException)
         {
-            return BackupInspectionResult.Invalid(BackupInspectionFailure.InvalidMetadata);
+            return InvalidPreparation(BackupInspectionFailure.InvalidMetadata);
         }
         catch (InvalidDataException)
         {
-            return BackupInspectionResult.Invalid(BackupInspectionFailure.InvalidPackage);
+            return InvalidPreparation(BackupInspectionFailure.InvalidPackage);
         }
         catch (SQLiteException)
         {
-            return BackupInspectionResult.Invalid(BackupInspectionFailure.InvalidDatabase);
+            return InvalidPreparation(BackupInspectionFailure.InvalidDatabase);
         }
         catch (IOException)
         {
-            return BackupInspectionResult.Invalid(BackupInspectionFailure.InvalidPackage);
+            return InvalidPreparation(BackupInspectionFailure.InvalidPackage);
         }
         finally
         {
-            if (workspacePath is not null)
+            if (workspacePath is not null && !preserveWorkspace)
                 DeleteWorkspace(workspacePath);
         }
     }
+
+    private static PrepareRestoreResult InvalidPreparation(BackupInspectionFailure failure) =>
+        new(BackupInspectionResult.Invalid(failure), null);
 
     internal static void DeleteWorkspace(string workspacePath)
     {

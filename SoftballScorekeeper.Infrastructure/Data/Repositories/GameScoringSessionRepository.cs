@@ -35,7 +35,8 @@ public sealed class GameScoringSessionRepository
     public async Task<GameScoringSession?> GetForGameAsync(int gameId)
     {
         if (gameId <= 0) return null;
-        var connection = await database.GetConnectionAsync();
+        await using var operation = await database.BeginOperationAsync();
+        var connection = operation.Connection;
         return await connection.Table<GameScoringSession>()
             .Where(session => session.GameId == gameId)
             .FirstOrDefaultAsync();
@@ -48,7 +49,8 @@ public sealed class GameScoringSessionRepository
         if (requestedIds.Length == 0)
             return new Dictionary<int, GameScoringSession>();
 
-        var connection = await database.GetConnectionAsync();
+        await using var operation = await database.BeginOperationAsync();
+        var connection = operation.Connection;
         var placeholders = string.Join(",", requestedIds.Select(_ => "?"));
         var sessions = await connection.QueryAsync<GameScoringSession>(
             $"SELECT * FROM GameScoringSession WHERE GameId IN ({placeholders})",
@@ -63,7 +65,8 @@ public sealed class GameScoringSessionRepository
     {
         if (gameId <= 0) return null;
 
-        var connection = await database.GetConnectionAsync();
+        await using var operation = await database.BeginOperationAsync();
+        var connection = operation.Connection;
         var session = await connection.Table<GameScoringSession>()
             .Where(item => item.GameId == gameId
                 && item.Status == GameScoringStatus.Completed)
@@ -105,7 +108,8 @@ public sealed class GameScoringSessionRepository
     {
         if (gameId <= 0) return null;
 
-        var connection = await database.GetConnectionAsync();
+        await using var operation = await database.BeginOperationAsync();
+        var connection = operation.Connection;
         var session = await connection.Table<GameScoringSession>()
             .Where(item => item.GameId == gameId
                 && item.Status == GameScoringStatus.InProgress)
@@ -176,7 +180,8 @@ public sealed class GameScoringSessionRepository
     public async Task<ScoringUndoRedoAvailability> GetUndoRedoAvailabilityAsync(int gameId)
     {
         if (gameId <= 0) return new(false, false);
-        var connection = await database.GetConnectionAsync();
+        await using var operation = await database.BeginOperationAsync();
+        var connection = operation.Connection;
         var availability = new ScoringUndoRedoAvailability(false, false);
         await connection.RunInTransactionAsync(transaction =>
         {
@@ -201,7 +206,8 @@ public sealed class GameScoringSessionRepository
         if (gameId <= 0 || direction is not (-1 or 1))
             return new(false, ScoringUndoRedoFailure.InvalidRequest, unavailable);
 
-        var connection = await database.GetConnectionAsync();
+        await using var operation = await database.BeginOperationAsync();
+        var connection = operation.Connection;
         var result = new ScoringUndoRedoResult(
             false, ScoringUndoRedoFailure.SessionNotFound, unavailable);
         try
@@ -277,7 +283,8 @@ public sealed class GameScoringSessionRepository
     {
         if (gameId <= 0 || homeRunLimit < 0)
             return new(null, GameScoringLifecycleFailure.InvalidRequest);
-        var connection = await database.GetConnectionAsync();
+        await using var operation = await database.BeginOperationAsync();
+        var connection = operation.Connection;
         var result = new UpdateGameRulesResult(null,
             GameScoringLifecycleFailure.SessionNotFound);
         try
@@ -316,7 +323,8 @@ public sealed class GameScoringSessionRepository
     {
         if (gameId <= 0)
             return new(null, GameScoringLifecycleFailure.InvalidRequest);
-        var connection = await database.GetConnectionAsync();
+        await using var operation = await database.BeginOperationAsync();
+        var connection = operation.Connection;
         var result = new GameOverResult(null,
             GameScoringLifecycleFailure.SessionNotFound);
         try
@@ -365,7 +373,8 @@ public sealed class GameScoringSessionRepository
     {
         if (gameId <= 0)
             return new(GameScoringLifecycleFailure.InvalidRequest);
-        var connection = await database.GetConnectionAsync();
+        await using var operation = await database.BeginOperationAsync();
+        var connection = operation.Connection;
         var result = new ResetScoringResult(
             GameScoringLifecycleFailure.SessionNotFound);
         try
@@ -437,7 +446,8 @@ public sealed class GameScoringSessionRepository
         if (gameId <= 0) return null;
         var session = await GetForGameAsync(gameId);
         if (session is null) return null;
-        var connection = await database.GetConnectionAsync();
+        await using var operation = await database.BeginOperationAsync();
+        var connection = operation.Connection;
         return await connection.Table<GameScoringHalfInning>()
             .Where(item => item.GameScoringSessionId == session.Id
                 && !item.OpponentEntryCompleted)
@@ -448,7 +458,8 @@ public sealed class GameScoringSessionRepository
     public async Task<bool> AcknowledgeHalfInningSummaryAsync(int gameId, int halfInningId)
     {
         if (gameId <= 0 || halfInningId <= 0) return false;
-        var connection = await database.GetConnectionAsync();
+        await using var operation = await database.BeginOperationAsync();
+        var connection = operation.Connection;
         var succeeded = false;
         try
         {
@@ -496,7 +507,8 @@ public sealed class GameScoringSessionRepository
             || opponentRuns < 0 || opponentHomeRuns < 0
             || !Enum.IsDefined(runsMode) || !Enum.IsDefined(homeRunsMode))
             return new(null, false, OpponentHalfInningEntryFailure.InvalidValue);
-        var connection = await database.GetConnectionAsync();
+        await using var operation = await database.BeginOperationAsync();
+        var connection = operation.Connection;
         var result = new OpponentHalfInningEntryResult(null, false);
         var stage = "load scoring session";
         int? sessionId = null;
@@ -633,7 +645,8 @@ public sealed class GameScoringSessionRepository
         var session = await GetForGameAsync(gameId);
         if (session is null) return null;
 
-        var connection = await database.GetConnectionAsync();
+        await using var operation = await database.BeginOperationAsync();
+        var connection = operation.Connection;
         var sequence = await connection.Table<GameScoringLineupPlayer>()
             .Where(item => item.GameScoringSessionId == session.Id)
             .OrderBy(item => item.BattingPosition)
@@ -720,7 +733,8 @@ public sealed class GameScoringSessionRepository
             || definition.CompletionBehavior == PlateAppearanceCompletionBehavior.ContextualOut)
             return PendingFailure(PendingPlayFailure.InvalidRequest);
 
-        var connection = await database.GetConnectionAsync();
+        await using var operation = await database.BeginOperationAsync();
+        var connection = operation.Connection;
         var response = PendingFailure(PendingPlayFailure.SessionNotFound);
         try
         {
@@ -853,7 +867,8 @@ public sealed class GameScoringSessionRepository
         if (gameId <= 0 || retirements is null)
             return PendingFailure(PendingPlayFailure.InvalidRequest);
 
-        var connection = await database.GetConnectionAsync();
+        await using var operation = await database.BeginOperationAsync();
+        var connection = operation.Connection;
         var response = PendingFailure(PendingPlayFailure.SessionNotFound);
         try
         {
@@ -961,7 +976,8 @@ public sealed class GameScoringSessionRepository
         if (gameId <= 0 || playerId <= 0 || outcome is null
             || !Enum.IsDefined(outcome.Destination))
             return PendingFailure(PendingPlayFailure.InvalidRequest);
-        var connection = await database.GetConnectionAsync();
+        await using var operation = await database.BeginOperationAsync();
+        var connection = operation.Connection;
         var response = PendingFailure(PendingPlayFailure.SessionNotFound);
         try
         {
@@ -1082,7 +1098,8 @@ public sealed class GameScoringSessionRepository
     {
         if (gameId <= 0 || playerId <= 0)
             return new([], PendingPlayFailure.InvalidRequest);
-        var connection = await database.GetConnectionAsync();
+        await using var operation = await database.BeginOperationAsync();
+        var connection = operation.Connection;
         var session = await connection.Table<GameScoringSession>()
             .Where(item => item.GameId == gameId).FirstOrDefaultAsync();
         if (session is null)
@@ -1122,7 +1139,8 @@ public sealed class GameScoringSessionRepository
     public async Task<bool> ClearPendingPlayAsync(int gameId)
     {
         if (gameId <= 0) return false;
-        var connection = await database.GetConnectionAsync();
+        await using var operation = await database.BeginOperationAsync();
+        var connection = operation.Connection;
         var cleared = false;
         try
         {
@@ -1149,7 +1167,8 @@ public sealed class GameScoringSessionRepository
     {
         if (gameId <= 0)
             return new([], PendingPlayFailure.InvalidRequest);
-        var connection = await database.GetConnectionAsync();
+        await using var operation = await database.BeginOperationAsync();
+        var connection = operation.Connection;
         try
         {
             var result = new RunRulingRequirementsResult(
@@ -1226,7 +1245,8 @@ public sealed class GameScoringSessionRepository
         if (gameId <= 0)
             return CompleteFailure(CompletePlateAppearanceFailure.InvalidRequest);
 
-        var connection = await database.GetConnectionAsync();
+        await using var operation = await database.BeginOperationAsync();
+        var connection = operation.Connection;
         var result = CompleteFailure(CompletePlateAppearanceFailure.SessionNotFound);
         try
         {
@@ -1245,7 +1265,8 @@ public sealed class GameScoringSessionRepository
     {
         if (gameId <= 0)
             return CompleteFailure(CompletePlateAppearanceFailure.InvalidRequest);
-        var connection = await database.GetConnectionAsync();
+        await using var operation = await database.BeginOperationAsync();
+        var connection = operation.Connection;
         var result = CompleteFailure(CompletePlateAppearanceFailure.SessionNotFound);
         try
         {
@@ -1280,7 +1301,8 @@ public sealed class GameScoringSessionRepository
     {
         if (gameId <= 0)
             return PendingFailure(PendingPlayFailure.InvalidRequest);
-        var connection = await database.GetConnectionAsync();
+        await using var operation = await database.BeginOperationAsync();
+        var connection = operation.Connection;
         var response = PendingFailure(PendingPlayFailure.SessionNotFound);
         try
         {
@@ -1320,7 +1342,8 @@ public sealed class GameScoringSessionRepository
     {
         if (gameId <= 0)
             return CompleteFailure(CompletePlateAppearanceFailure.InvalidRequest);
-        var connection = await database.GetConnectionAsync();
+        await using var operation = await database.BeginOperationAsync();
+        var connection = operation.Connection;
         var result = CompleteFailure(CompletePlateAppearanceFailure.SessionNotFound);
         try
         {
@@ -1360,7 +1383,8 @@ public sealed class GameScoringSessionRepository
             || homeRunLimit < 0)
             return Failure(InitializeScoringSessionFailure.InvalidRequest);
 
-        var connection = await database.GetConnectionAsync();
+        await using var operation = await database.BeginOperationAsync();
+        var connection = operation.Connection;
         var result = Failure(InitializeScoringSessionFailure.InvalidTeamOrGame);
         try
         {
@@ -1441,6 +1465,7 @@ public sealed class GameScoringSessionRepository
         }
         catch
         {
+            await operation.DisposeAsync();
             var existing = await GetForGameAsync(gameId);
             if (existing?.Status == GameScoringStatus.InProgress)
                 return new(existing, false, InitializeScoringSessionFailure.None);

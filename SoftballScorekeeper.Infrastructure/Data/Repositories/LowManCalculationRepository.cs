@@ -44,7 +44,8 @@ public sealed class LowManCalculationRepository(AppDatabase database)
         if (teamId <= 0 || playingDate == default)
             return null;
 
-        var connection = await database.GetConnectionAsync();
+        await using var operation = await database.BeginOperationAsync();
+        var connection = operation.Connection;
         if (await connection.FindAsync<Team>(teamId) is null)
             return null;
 
@@ -81,7 +82,8 @@ public sealed class LowManCalculationRepository(AppDatabase database)
         if (teamId <= 0)
             return null;
 
-        var connection = await database.GetConnectionAsync();
+        await using var operation = await database.BeginOperationAsync();
+        var connection = operation.Connection;
         if (await connection.FindAsync<Team>(teamId) is null)
             return null;
 
@@ -112,7 +114,8 @@ public sealed class LowManCalculationRepository(AppDatabase database)
         if (teamId <= 0 || playingDate == default)
             return Failure(LowManCalculationFailure.InvalidRequest, date);
 
-        var connection = await database.GetConnectionAsync();
+        await using var operation = await database.BeginOperationAsync();
+        var connection = operation.Connection;
         var result = Failure(LowManCalculationFailure.PersistenceError, date);
         try
         {
