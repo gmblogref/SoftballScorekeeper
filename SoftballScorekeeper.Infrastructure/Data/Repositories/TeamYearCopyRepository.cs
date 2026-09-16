@@ -10,7 +10,8 @@ public sealed class TeamYearCopyRepository(AppDatabase database)
         if (sourceTeamId <= 0)
             return new(CopyTeamToNewYearFailure.SourceNotFound);
 
-        var connection = await database.GetConnectionAsync();
+        await using var operation = await database.BeginOperationAsync();
+        var connection = operation.Connection;
         var result = new CopyTeamToNewYearResult(CopyTeamToNewYearFailure.PersistenceError);
         try
         {

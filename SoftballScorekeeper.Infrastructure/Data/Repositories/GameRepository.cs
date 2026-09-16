@@ -20,7 +20,8 @@ public sealed class GameRepository
             return [];
         }
 
-        var connection = await database.GetConnectionAsync();
+        await using var operation = await database.BeginOperationAsync();
+        var connection = operation.Connection;
         return await connection.QueryAsync<Game>(
             """
             SELECT Game.*
@@ -40,7 +41,8 @@ public sealed class GameRepository
             return false;
         }
 
-        var connection = await database.GetConnectionAsync();
+        await using var operation = await database.BeginOperationAsync();
+        var connection = operation.Connection;
         var count = await connection.ExecuteScalarAsync<int>(
             """
             SELECT COUNT(*)
@@ -61,7 +63,8 @@ public sealed class GameRepository
             return null;
         }
 
-        var connection = await database.GetConnectionAsync();
+        await using var operation = await database.BeginOperationAsync();
+        var connection = operation.Connection;
         var games = await connection.QueryAsync<Game>(
             """
             SELECT Game.*
@@ -84,7 +87,8 @@ public sealed class GameRepository
             return null;
         }
 
-        var connection = await database.GetConnectionAsync();
+        await using var operation = await database.BeginOperationAsync();
+        var connection = operation.Connection;
         return await connection
             .Table<Game>()
             .Where(game => game.Id == gameId && game.TeamId == teamId)
@@ -108,7 +112,8 @@ public sealed class GameRepository
             return FailedResult(requestedGames.Length, CreateGamesFailure.DuplicateSchedule);
         }
 
-        var connection = await database.GetConnectionAsync();
+        await using var operation = await database.BeginOperationAsync();
+        var connection = operation.Connection;
         var result = FailedResult(requestedGames.Length, CreateGamesFailure.InvalidTeamOrSeason);
         try
         {
@@ -219,7 +224,8 @@ public sealed class GameRepository
             return EmptyRemovalResult(requestedIds);
         }
 
-        var connection = await database.GetConnectionAsync();
+        await using var operation = await database.BeginOperationAsync();
+        var connection = operation.Connection;
         var activeTeam = await connection
             .Table<Team>()
             .Where(team => team.Id == teamId && team.IsActive)
@@ -308,7 +314,8 @@ public sealed class GameRepository
             return new UpdateGameResult(gameId, 0, UpdateGameFailure.InvalidRequest);
         }
 
-        var connection = await database.GetConnectionAsync();
+        await using var operation = await database.BeginOperationAsync();
+        var connection = operation.Connection;
         var result = new UpdateGameResult(gameId, 0, UpdateGameFailure.InvalidTeamOrGame);
         try
         {

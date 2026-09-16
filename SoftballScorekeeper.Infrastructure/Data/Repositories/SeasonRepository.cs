@@ -21,7 +21,8 @@ public sealed class SeasonRepository
             return [];
         }
 
-        var connection = await database.GetConnectionAsync();
+        await using var operation = await database.BeginOperationAsync();
+        var connection = operation.Connection;
         return await connection.QueryAsync<Season>(
             """
             SELECT Season.*
@@ -41,7 +42,8 @@ public sealed class SeasonRepository
             return null;
         }
 
-        var connection = await database.GetConnectionAsync();
+        await using var operation = await database.BeginOperationAsync();
+        var connection = operation.Connection;
         var seasons = await connection.QueryAsync<Season>(
             """
             SELECT Season.*
@@ -64,7 +66,8 @@ public sealed class SeasonRepository
             return false;
         }
 
-        var connection = await database.GetConnectionAsync();
+        await using var operation = await database.BeginOperationAsync();
+        var connection = operation.Connection;
         var count = await connection.ExecuteScalarAsync<int>(
             """
             SELECT COUNT(*)
@@ -85,7 +88,8 @@ public sealed class SeasonRepository
             return null;
         }
 
-        var connection = await database.GetConnectionAsync();
+        await using var operation = await database.BeginOperationAsync();
+        var connection = operation.Connection;
         Season? resolvedSeason = null;
         await connection.RunInTransactionAsync(transaction =>
         {

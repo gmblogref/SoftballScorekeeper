@@ -11,7 +11,8 @@ public sealed class GameLineupRepository
     public async Task<List<Player>> GetEligiblePlayersAsync(int teamId, int gameId)
     {
         if (teamId <= 0 || gameId <= 0) return [];
-        var connection = await database.GetConnectionAsync();
+        await using var operation = await database.BeginOperationAsync();
+        var connection = operation.Connection;
         return await connection.QueryAsync<Player>(
             """
             SELECT Player.* FROM Player
@@ -25,7 +26,8 @@ public sealed class GameLineupRepository
     public async Task<List<GameLineupPlayer>> GetForGameAsync(int gameId)
     {
         if (gameId <= 0) return [];
-        var connection = await database.GetConnectionAsync();
+        await using var operation = await database.BeginOperationAsync();
+        var connection = operation.Connection;
         return await connection.Table<GameLineupPlayer>()
             .Where(item => item.GameId == gameId)
             .OrderBy(item => item.BattingOrder).ToListAsync();
@@ -34,7 +36,8 @@ public sealed class GameLineupRepository
     public async Task<List<Player>> GetPlayersForGameAsync(int gameId)
     {
         if (gameId <= 0) return [];
-        var connection = await database.GetConnectionAsync();
+        await using var operation = await database.BeginOperationAsync();
+        var connection = operation.Connection;
         return await connection.QueryAsync<Player>(
             """
             SELECT Player.* FROM Player
@@ -51,7 +54,8 @@ public sealed class GameLineupRepository
         var requestedIds = (gameIds ?? []).Where(id => id > 0).Distinct().ToArray();
         if (requestedIds.Length == 0) return new HashSet<int>();
 
-        var connection = await database.GetConnectionAsync();
+        await using var operation = await database.BeginOperationAsync();
+        var connection = operation.Connection;
         var placeholders = string.Join(",", requestedIds.Select(_ => "?"));
         var rows = await connection.QueryAsync<GameLineupPlayer>(
             $"SELECT DISTINCT GameId FROM GameLineupPlayer WHERE GameId IN ({placeholders})",
@@ -75,7 +79,8 @@ public sealed class GameLineupRepository
         if (gameId <= 0 || positiveIds.Length == 0)
             return new(gameId, requestedIds, [], positiveIds, ignoredIds, false);
 
-        var connection = await database.GetConnectionAsync();
+        await using var operation = await database.BeginOperationAsync();
+        var connection = operation.Connection;
         var result = new RemoveGameLineupPlayersResult(
             gameId, requestedIds, [], positiveIds, ignoredIds, false);
         try
@@ -140,7 +145,8 @@ public sealed class GameLineupRepository
             || requestedIds.Distinct().Count() != requestedIds.Length)
             return ReorderFailure(gameId, ReorderGameLineupFailure.InvalidRequest);
 
-        var connection = await database.GetConnectionAsync();
+        await using var operation = await database.BeginOperationAsync();
+        var connection = operation.Connection;
         var result = ReorderFailure(gameId, ReorderGameLineupFailure.InvalidGame);
         try
         {
@@ -193,7 +199,8 @@ public sealed class GameLineupRepository
         if (teamId <= 0 || targetGameId <= 0)
             return PreviousFailure(targetGameId, UsePreviousLineupFailure.InvalidContext);
 
-        var connection = await database.GetConnectionAsync();
+        await using var operation = await database.BeginOperationAsync();
+        var connection = operation.Connection;
         var result = PreviousFailure(targetGameId, UsePreviousLineupFailure.InvalidContext);
         await connection.RunInTransactionAsync(transaction =>
         {
@@ -225,7 +232,8 @@ public sealed class GameLineupRepository
     {
         if (teamId <= 0 || targetGameId <= 0) return false;
 
-        var connection = await database.GetConnectionAsync();
+        await using var operation = await database.BeginOperationAsync();
+        var connection = operation.Connection;
         var canUsePrevious = false;
         await connection.RunInTransactionAsync(transaction =>
             canUsePrevious = ResolvePreviousLineup(transaction, teamId, targetGameId).IsSuccess);
@@ -240,7 +248,8 @@ public sealed class GameLineupRepository
     {
         var orderedIds = (playerIds ?? []).Where(id => id > 0).Distinct().ToArray();
         if (orderedIds.Length == 0) return Failure(gameId, SaveGameLineupFailure.EmptySelection);
-        var connection = await database.GetConnectionAsync();
+        await using var operation = await database.BeginOperationAsync();
+        var connection = operation.Connection;
         var result = Failure(gameId, SaveGameLineupFailure.InvalidGame);
         try
         {

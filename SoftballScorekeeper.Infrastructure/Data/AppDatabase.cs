@@ -11,6 +11,7 @@ public sealed class AppDatabase
     internal static readonly TimeSpan ScoringHistoryRetention = TimeSpan.FromDays(21);
     private SQLiteAsyncConnection connection;
     private readonly SemaphoreSlim initializationLock = new(1, 1);
+    private readonly DatabaseLifecycleCoordinator lifecycle = new();
     private volatile bool isInitialized;
     private volatile bool isAccessSuspended;
 
@@ -30,17 +31,45 @@ public sealed class AppDatabase
 
     public string DatabasePath { get; }
 
-    internal async Task<SQLiteAsyncConnection> GetConnectionAsync()
+    public async Task<DatabaseOperationLease> BeginOperationAsync(
+        CancellationToken cancellationToken = default
+    )
     {
-        if (isAccessSuspended)
-            throw new InvalidOperationException("Database access is suspended.");
-        await InitializeAsync();
-        if (isAccessSuspended)
-            throw new InvalidOperationException("Database access is suspended.");
-        return connection;
+        await lifecycle.EnterOperationAsync(cancellationToken);
+        try
+        {
+            if (isAccessSuspended)
+                throw new InvalidOperationException("Database access is suspended.");
+            await InitializeCoreAsync();
+            if (isAccessSuspended)
+                throw new InvalidOperationException("Database access is suspended.");
+            return new DatabaseOperationLease(lifecycle, connection);
+        }
+        catch
+        {
+            lifecycle.ExitOperation();
+            throw;
+        }
     }
 
+    public async Task<DatabaseExclusiveLifecycleLease> BeginExclusiveLifecycleAsync(
+        CancellationToken cancellationToken = default
+    )
+    {
+        await lifecycle.EnterExclusiveAsync(cancellationToken);
+        return new DatabaseExclusiveLifecycleLease(lifecycle);
+    }
+
+    internal int ActiveOperationCount => lifecycle.ActiveOperationCount;
+
+    internal bool IsExclusiveLifecyclePending => lifecycle.IsExclusivePending;
+
     public async Task InitializeAsync()
+    {
+        await using var operation = await BeginOperationAsync();
+    }
+
+    private async Task InitializeCoreAsync()
     {
         if (isAccessSuspended)
             throw new InvalidOperationException("Database access is suspended.");
@@ -246,19 +275,24 @@ public sealed class AppDatabase
 
     public async Task<int> GetSchemaVersionAsync()
     {
-        var activeConnection = await GetConnectionAsync();
-        return await activeConnection.ExecuteScalarAsync<int>("PRAGMA user_version");
+        await using var operation = await BeginOperationAsync();
+        return await operation.Connection.ExecuteScalarAsync<int>("PRAGMA user_version");
     }
 
     public async Task CreateSnapshotAsync(string destinationDatabasePath)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(destinationDatabasePath);
-        var activeConnection = await GetConnectionAsync();
-        await activeConnection.BackupAsync(destinationDatabasePath);
+        await using var operation = await BeginOperationAsync();
+        await operation.Connection.BackupAsync(destinationDatabasePath);
     }
 
     public async Task SuspendAccessAsync()
     {
+        if (!lifecycle.IsExclusiveActive)
+            throw new InvalidOperationException(
+                "Database access can be suspended only during an exclusive lifecycle lease."
+            );
+
         await initializationLock.WaitAsync();
         try
         {
@@ -276,6 +310,11 @@ public sealed class AppDatabase
 
     public async Task ReinitializeAccessAsync()
     {
+        if (!lifecycle.IsExclusiveActive)
+            throw new InvalidOperationException(
+                "Database access can be reinitialized only during an exclusive lifecycle lease."
+            );
+
         await initializationLock.WaitAsync();
         try
         {
@@ -291,7 +330,7 @@ public sealed class AppDatabase
 
         try
         {
-            await InitializeAsync();
+            await InitializeCoreAsync();
         }
         catch
         {
@@ -302,6 +341,7 @@ public sealed class AppDatabase
 
     public async Task CloseAsync()
     {
+        await using var exclusive = await BeginExclusiveLifecycleAsync();
         await initializationLock.WaitAsync();
         try
         {

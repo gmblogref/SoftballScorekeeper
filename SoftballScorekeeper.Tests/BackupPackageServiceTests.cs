@@ -215,7 +215,8 @@ public sealed class BackupPackageServiceTests
     {
         await using var db = await TemporaryTestDatabase.CreateAsync();
         var existingDirectories = Directory.EnumerateDirectories(db.DirectoryPath).ToHashSet();
-        await db.Database.SuspendAccessAsync();
+        await using (var exclusive = await db.Database.BeginExclusiveLifecycleAsync())
+            await db.Database.SuspendAccessAsync();
         try
         {
             await Assert.ThrowsAsync<InvalidOperationException>(() =>
@@ -228,6 +229,7 @@ public sealed class BackupPackageServiceTests
         }
         finally
         {
+            await using var exclusive = await db.Database.BeginExclusiveLifecycleAsync();
             await db.Database.ReinitializeAccessAsync();
         }
     }
@@ -240,10 +242,13 @@ public sealed class BackupPackageServiceTests
         var team = new Team { Name = "Lifecycle Team", Year = 2026 };
         Assert.Equal(1, await repository.CreateAsync(team));
 
+        var exclusive = await db.Database.BeginExclusiveLifecycleAsync();
         await db.Database.SuspendAccessAsync();
+        await exclusive.DisposeAsync();
         await Assert.ThrowsAsync<InvalidOperationException>(() => repository.GetActiveAsync());
 
-        await db.Database.ReinitializeAccessAsync();
+        await using (var reinitialize = await db.Database.BeginExclusiveLifecycleAsync())
+            await db.Database.ReinitializeAccessAsync();
 
         var reloaded = Assert.Single(await repository.GetActiveAsync());
         Assert.Equal(team.Id, reloaded.Id);

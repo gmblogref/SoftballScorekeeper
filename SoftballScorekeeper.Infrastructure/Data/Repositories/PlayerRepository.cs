@@ -15,7 +15,8 @@ public sealed class PlayerRepository
 
     public async Task<int> CreateAsync(Player player)
     {
-        var connection = await database.GetConnectionAsync();
+        await using var operation = await database.BeginOperationAsync();
+        var connection = operation.Connection;
         return await connection.InsertAsync(player);
     }
 
@@ -30,7 +31,8 @@ public sealed class PlayerRepository
         if (teamId <= 0) return new(0, CreatePlayerFailure.InvalidTeam);
         if (gameId is <= 0) return new(0, CreatePlayerFailure.InvalidGame);
 
-        var connection = await database.GetConnectionAsync();
+        await using var operation = await database.BeginOperationAsync();
+        var connection = operation.Connection;
         var result = new CreatePlayerResult(0, CreatePlayerFailure.Persistence);
         try
         {
@@ -114,7 +116,8 @@ public sealed class PlayerRepository
 
     public async Task<int> UpdateAsync(Player player)
     {
-        var connection = await database.GetConnectionAsync();
+        await using var operation = await database.BeginOperationAsync();
+        var connection = operation.Connection;
         return await connection.ExecuteAsync(
             "UPDATE Player SET FirstName = ?, LastName = ? WHERE Id = ? AND IsActive = ?",
             player.FirstName,
@@ -144,7 +147,8 @@ public sealed class PlayerRepository
         var parameters = new object[] { false, true }
             .Concat(validPlayerIds.Cast<object>())
             .ToArray();
-        var connection = await database.GetConnectionAsync();
+        await using var operation = await database.BeginOperationAsync();
+        var connection = operation.Connection;
 
         return await connection.ExecuteAsync(
             $"UPDATE Player SET IsActive = ? WHERE IsActive = ? AND Id IN ({placeholders})",
@@ -172,7 +176,8 @@ public sealed class PlayerRepository
         var parameters = new object[] { true, false }
             .Concat(validPlayerIds.Cast<object>())
             .ToArray();
-        var connection = await database.GetConnectionAsync();
+        await using var operation = await database.BeginOperationAsync();
+        var connection = operation.Connection;
 
         return await connection.ExecuteAsync(
             $"UPDATE Player SET IsActive = ? WHERE IsActive = ? AND Id IN ({placeholders})",
@@ -181,7 +186,8 @@ public sealed class PlayerRepository
 
     public async Task<List<Player>> GetActiveAsync()
     {
-        var connection = await database.GetConnectionAsync();
+        await using var operation = await database.BeginOperationAsync();
+        var connection = operation.Connection;
         var activePlayers = await connection.Table<Player>()
             .Where(player => player.IsActive)
             .ToListAsync();
@@ -194,7 +200,8 @@ public sealed class PlayerRepository
 
     public async Task<List<Player>> GetInactiveAsync()
     {
-        var connection = await database.GetConnectionAsync();
+        await using var operation = await database.BeginOperationAsync();
+        var connection = operation.Connection;
         var inactivePlayers = await connection.Table<Player>()
             .Where(player => !player.IsActive)
             .ToListAsync();
@@ -207,7 +214,8 @@ public sealed class PlayerRepository
 
     public async Task<Player?> GetActiveByIdAsync(int id)
     {
-        var connection = await database.GetConnectionAsync();
+        await using var operation = await database.BeginOperationAsync();
+        var connection = operation.Connection;
         return await connection.Table<Player>()
             .Where(player => player.Id == id && player.IsActive)
             .FirstOrDefaultAsync();

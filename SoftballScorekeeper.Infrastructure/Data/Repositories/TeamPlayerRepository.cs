@@ -27,7 +27,8 @@ public sealed class TeamPlayerRepository
             return Array.Empty<TeamRosterMember>();
         }
 
-        var connection = await database.GetConnectionAsync();
+        await using var operation = await database.BeginOperationAsync();
+        var connection = operation.Connection;
         var activeTeam = await connection.Table<Team>()
             .Where(team => team.Id == teamId && team.IsActive)
             .FirstOrDefaultAsync();
@@ -69,7 +70,8 @@ public sealed class TeamPlayerRepository
             return 0;
         }
 
-        var connection = await database.GetConnectionAsync();
+        await using var operation = await database.BeginOperationAsync();
+        var connection = operation.Connection;
         var activeTeam = await connection.Table<Team>()
             .Where(team => team.Id == teamId && team.IsActive)
             .FirstOrDefaultAsync();
@@ -111,7 +113,8 @@ public sealed class TeamPlayerRepository
             return Array.Empty<Player>();
         }
 
-        var connection = await database.GetConnectionAsync();
+        await using var operation = await database.BeginOperationAsync();
+        var connection = operation.Connection;
         var activeTeam = await connection.Table<Team>()
             .Where(team => team.Id == teamId && team.IsActive)
             .FirstOrDefaultAsync();
@@ -148,7 +151,8 @@ public sealed class TeamPlayerRepository
             return EmptyAddResult(requestedIds);
         }
 
-        var connection = await database.GetConnectionAsync();
+        await using var operation = await database.BeginOperationAsync();
+        var connection = operation.Connection;
         var activeTeam = await connection.Table<Team>()
             .Where(team => team.Id == teamId && team.IsActive)
             .FirstOrDefaultAsync();
@@ -264,7 +268,8 @@ public sealed class TeamPlayerRepository
             return Array.Empty<Team>();
         }
 
-        var connection = await database.GetConnectionAsync();
+        await using var operation = await database.BeginOperationAsync();
+        var connection = operation.Connection;
         var activePlayer = await connection.Table<Player>()
             .Where(player => player.Id == playerId && player.IsActive)
             .FirstOrDefaultAsync();
@@ -303,7 +308,8 @@ public sealed class TeamPlayerRepository
             return EmptyRemoveResult(requestedIds);
         }
 
-        var connection = await database.GetConnectionAsync();
+        await using var operation = await database.BeginOperationAsync();
+        var connection = operation.Connection;
         var activeTeam = await connection.Table<Team>()
             .Where(team => team.Id == teamId && team.IsActive)
             .FirstOrDefaultAsync();

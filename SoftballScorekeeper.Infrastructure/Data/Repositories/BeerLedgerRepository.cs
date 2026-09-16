@@ -8,7 +8,8 @@ public sealed class BeerLedgerRepository(AppDatabase database)
     {
         if (gameId <= 0)
             return [];
-        var connection = await database.GetConnectionAsync();
+        await using var operation = await database.BeginOperationAsync();
+        var connection = operation.Connection;
         return await connection
             .Table<BeerLedgerEntry>()
             .Where(item => item.GameId == gameId)
@@ -20,7 +21,8 @@ public sealed class BeerLedgerRepository(AppDatabase database)
     {
         if (teamId <= 0)
             return [];
-        var connection = await database.GetConnectionAsync();
+        await using var operation = await database.BeginOperationAsync();
+        var connection = operation.Connection;
         return await connection
             .Table<BeerLedgerEntry>()
             .Where(item => item.TeamId == teamId)

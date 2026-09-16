@@ -6,34 +6,46 @@
              x:Class="SoftballScorekeeper.Views.DataManagementPage"
              x:DataType="viewModels:DataManagementViewModel"
              Title="{x:Static strings:AppResources.DataManagementTitle}">
-    <Grid Padding="40" RowDefinitions="Auto,Auto,Auto,*" RowSpacing="20">
-        <Label
-            Text="{x:Static strings:AppResources.DataManagementTitle}"
-            Style="{StaticResource Headline}"
-            SemanticProperties.HeadingLevel="Level1" />
-        <Label
-            Grid.Row="1"
-            Text="{x:Static strings:AppResources.BackupDataDescription}"
-            FontSize="18" />
-        <HorizontalStackLayout Grid.Row="2" Spacing="16">
-            <Button
-                AutomationId="BackupDataButton"
-                Text="{x:Static strings:AppResources.BackupDataButton}"
-                Command="{Binding BackupDataCommand}"
-                MinimumHeightRequest="56"
-                MinimumWidthRequest="200"
-                Padding="28,14" />
+    <ScrollView>
+        <VerticalStackLayout Padding="40" Spacing="20">
+            <Label
+                Text="{x:Static strings:AppResources.DataManagementTitle}"
+                Style="{StaticResource Headline}"
+                SemanticProperties.HeadingLevel="Level1" />
             <ActivityIndicator
                 AutomationId="BackupDataActivityIndicator"
                 IsRunning="{Binding IsBusy}"
                 IsVisible="{Binding IsBusy}"
-                VerticalOptions="Center" />
-        </HorizontalStackLayout>
-        <Label
-            Grid.Row="3"
-            AutomationId="BackupDataStatus"
-            Text="{Binding StatusMessage}"
-            IsVisible="{Binding HasStatusMessage}"
-            FontSize="18" />
-    </Grid>
+                HorizontalOptions="Start" />
+            <Label
+                Text="{x:Static strings:AppResources.BackupDataDescription}"
+                FontSize="18" />
+            <HorizontalStackLayout Spacing="16">
+                <Button
+                    AutomationId="BackupDataButton"
+                    Text="{x:Static strings:AppResources.BackupDataButton}"
+                    Command="{Binding BackupDataCommand}"
+                    MinimumHeightRequest="56"
+                    MinimumWidthRequest="200"
+                    Padding="28,14" />
+            </HorizontalStackLayout>
+            <BoxView HeightRequest="1" Margin="0,12" />
+            <Label
+                Text="{x:Static strings:AppResources.RestoreDataDescription}"
+                FontSize="18" />
+            <Button
+                AutomationId="RestoreDataButton"
+                Text="{x:Static strings:AppResources.RestoreDataButton}"
+                Command="{Binding RestoreDataCommand}"
+                MinimumHeightRequest="56"
+                MinimumWidthRequest="200"
+                HorizontalOptions="Start"
+                Padding="28,14" />
+            <Label
+                AutomationId="BackupDataStatus"
+                Text="{Binding StatusMessage}"
+                IsVisible="{Binding HasStatusMessage}"
+                FontSize="18" />
+        </VerticalStackLayout>
+    </ScrollView>
 </ContentPage>

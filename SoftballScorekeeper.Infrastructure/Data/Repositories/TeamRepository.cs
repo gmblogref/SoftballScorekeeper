@@ -17,7 +17,8 @@ public sealed class TeamRepository
     {
         if (!HasValidIdentity(team.Name, team.Year) || team.PreviousTeamId is not null)
             return 0;
-        var connection = await database.GetConnectionAsync();
+        await using var operation = await database.BeginOperationAsync();
+        var connection = operation.Connection;
         if (await NameYearExistsAsync(connection, team.Name, team.Year, null))
             return 0;
         team.Name = team.Name.Trim();
@@ -28,7 +29,8 @@ public sealed class TeamRepository
 
     public async Task<int> UpdateAsync(Team team)
     {
-        var connection = await database.GetConnectionAsync();
+        await using var operation = await database.BeginOperationAsync();
+        var connection = operation.Connection;
         var persisted = await connection.FindAsync<Team>(team.Id);
         if (
             persisted is null
@@ -47,13 +49,15 @@ public sealed class TeamRepository
 
     public async Task<bool> NameYearExistsAsync(string name, int year, int? excludedTeamId = null)
     {
-        var connection = await database.GetConnectionAsync();
+        await using var operation = await database.BeginOperationAsync();
+        var connection = operation.Connection;
         return await NameYearExistsAsync(connection, name, year, excludedTeamId);
     }
 
     public async Task<int> DeactivateAsync(int id)
     {
-        var connection = await database.GetConnectionAsync();
+        await using var operation = await database.BeginOperationAsync();
+        var connection = operation.Connection;
         return await connection.ExecuteAsync(
             "UPDATE Team SET IsActive = ? WHERE Id = ? AND IsActive = ?",
             false,
@@ -64,7 +68,8 @@ public sealed class TeamRepository
 
     public async Task<int> ReactivateAsync(int id)
     {
-        var connection = await database.GetConnectionAsync();
+        await using var operation = await database.BeginOperationAsync();
+        var connection = operation.Connection;
         return await connection.ExecuteAsync(
             "UPDATE Team SET IsActive = ? WHERE Id = ? AND IsActive = ?",
             true,
@@ -75,7 +80,8 @@ public sealed class TeamRepository
 
     public async Task<List<Team>> GetActiveAsync()
     {
-        var connection = await database.GetConnectionAsync();
+        await using var operation = await database.BeginOperationAsync();
+        var connection = operation.Connection;
         return await connection
             .Table<Team>()
             .Where(team => team.IsActive)
@@ -85,7 +91,8 @@ public sealed class TeamRepository
 
     public async Task<List<Team>> GetInactiveAsync()
     {
-        var connection = await database.GetConnectionAsync();
+        await using var operation = await database.BeginOperationAsync();
+        var connection = operation.Connection;
         return await connection
             .Table<Team>()
             .Where(team => !team.IsActive)
@@ -95,7 +102,8 @@ public sealed class TeamRepository
 
     public async Task<Team?> GetActiveByIdAsync(int id)
     {
-        var connection = await database.GetConnectionAsync();
+        await using var operation = await database.BeginOperationAsync();
+        var connection = operation.Connection;
         return await connection
             .Table<Team>()
             .Where(team => team.Id == id && team.IsActive)
@@ -107,7 +115,8 @@ public sealed class TeamRepository
         if (teamId <= 0)
             return false;
 
-        var connection = await database.GetConnectionAsync();
+        await using var operation = await database.BeginOperationAsync();
+        var connection = operation.Connection;
         return await connection
             .Table<Team>()
             .Where(team => team.PreviousTeamId == teamId)
@@ -119,7 +128,8 @@ public sealed class TeamRepository
         if (teamId <= 0)
             return null;
 
-        var connection = await database.GetConnectionAsync();
+        await using var operation = await database.BeginOperationAsync();
+        var connection = operation.Connection;
         var team = await connection.FindAsync<Team>(teamId);
         if (team is null)
             return null;
@@ -136,7 +146,8 @@ public sealed class TeamRepository
         if (teamId <= 0)
             return false;
 
-        var connection = await database.GetConnectionAsync();
+        await using var operation = await database.BeginOperationAsync();
+        var connection = operation.Connection;
         var marked = false;
         await connection.RunInTransactionAsync(transaction =>
         {
@@ -184,7 +195,8 @@ public sealed class TeamRepository
     private async Task<bool> ActiveNameExistsAsync(string name, int? excludedTeamId)
     {
         var normalizedName = name.Trim();
-        var connection = await database.GetConnectionAsync();
+        await using var operation = await database.BeginOperationAsync();
+        var connection = operation.Connection;
         var activeTeams = await connection.Table<Team>().Where(team => team.IsActive).ToListAsync();
 
         return activeTeams.Any(team =>
@@ -196,7 +208,8 @@ public sealed class TeamRepository
     private async Task<bool> InactiveNameExistsAsync(string name, int? excludedTeamId)
     {
         var normalizedName = name.Trim();
-        var connection = await database.GetConnectionAsync();
+        await using var operation = await database.BeginOperationAsync();
+        var connection = operation.Connection;
         var inactiveTeams = await connection
             .Table<Team>()
             .Where(team => !team.IsActive)

@@ -73,7 +73,8 @@ public sealed class TeamBattingStatisticsRepository(AppDatabase database)
         if (teamId <= 0)
             return null;
 
-        var connection = await database.GetConnectionAsync();
+        await using var operation = await database.BeginOperationAsync();
+        var connection = operation.Connection;
         var team = await connection.FindAsync<Team>(teamId);
         if (team is null)
             return null;

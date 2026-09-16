@@ -18,6 +18,8 @@ public sealed class AndroidUiTestDataInitializer
     internal const string TeamYearCopyRequestFileName = "android-ui-test-team-year-copy";
     internal const string TeamYearSummaryRequestFileName =
         "android-ui-test-team-year-summary";
+    internal const string ManualRestoreRequestFileName =
+        "android-ui-test-manual-restore";
     private static readonly string[] RequestFileNames =
     [
         RequestFileName,
@@ -28,6 +30,7 @@ public sealed class AndroidUiTestDataInitializer
         TeamStatsRequestFileName,
         TeamYearCopyRequestFileName,
         TeamYearSummaryRequestFileName,
+        ManualRestoreRequestFileName,
     ];
 
     private readonly AppDatabase database;
@@ -73,6 +76,8 @@ public sealed class AndroidUiTestDataInitializer
             FileSystem.AppDataDirectory, TeamYearCopyRequestFileName);
         var teamYearSummaryRequestPath = Path.Combine(
             FileSystem.AppDataDirectory, TeamYearSummaryRequestFileName);
+        var manualRestoreRequestPath = Path.Combine(
+            FileSystem.AppDataDirectory, ManualRestoreRequestFileName);
         var useMissingGame = File.Exists(missingGameRequestPath);
         var useCompletedStatisticsSorting = File.Exists(
             completedStatisticsSortingRequestPath);
@@ -81,9 +86,11 @@ public sealed class AndroidUiTestDataInitializer
         var useTeamStats = File.Exists(teamStatsRequestPath);
         var useTeamYearCopy = File.Exists(teamYearCopyRequestPath);
         var useTeamYearSummary = File.Exists(teamYearSummaryRequestPath);
+        var useManualRestore = File.Exists(manualRestoreRequestPath);
         if (!File.Exists(requestPath) && !useMissingGame
             && !useCompletedStatisticsSorting && !useTeamRecord && !useBeerTotals
-            && !useTeamStats && !useTeamYearCopy && !useTeamYearSummary) return null;
+            && !useTeamStats && !useTeamYearCopy && !useTeamYearSummary
+            && !useManualRestore) return null;
 
         if (File.Exists(requestPath)) File.Delete(requestPath);
         if (useMissingGame) File.Delete(missingGameRequestPath);
@@ -94,6 +101,9 @@ public sealed class AndroidUiTestDataInitializer
         if (useTeamStats) File.Delete(teamStatsRequestPath);
         if (useTeamYearCopy) File.Delete(teamYearCopyRequestPath);
         if (useTeamYearSummary) File.Delete(teamYearSummaryRequestPath);
+        if (useManualRestore) File.Delete(manualRestoreRequestPath);
+
+        if (useManualRestore) return await SeedManualRestoreAsync();
 
         if (useTeamYearSummary) return await SeedTeamYearSummaryAsync();
 
@@ -166,6 +176,18 @@ public sealed class AndroidUiTestDataInitializer
 
     internal static bool IsInitializationRequested(string appDataDirectory) =>
         RequestFileNames.Any(fileName => File.Exists(Path.Combine(appDataDirectory, fileName)));
+
+    private async Task<AndroidUiTestContext> SeedManualRestoreAsync()
+    {
+        var team = new Team
+        {
+            Name = "RESTORE DESTINATION ONLY",
+            Year = 2026,
+            IsActive = true,
+        };
+        EnsureSingleRow(await teamRepository.CreateAsync(team), "manual-restore destination Team");
+        return new AndroidUiTestContext(team.Id, 0, true);
+    }
 
     private async Task<AndroidUiTestContext> SeedBeerTotalsAsync()
     {
@@ -269,11 +291,9 @@ public sealed class AndroidUiTestDataInitializer
             BatterResult.Walk,
         };
         var scores = new[] { (8, 3), (2, 5), (6, 6) };
-        var connection = new SQLiteAsyncConnection(
-            database.DatabasePath,
-            SQLiteOpenFlags.ReadWrite | SQLiteOpenFlags.SharedCache);
-        try
         {
+            await using var operation = await database.BeginOperationAsync();
+            var connection = operation.Connection;
             for (var index = 0; index < games.Length; index++)
             {
                 var session = new GameScoringSession
@@ -319,12 +339,8 @@ public sealed class AndroidUiTestDataInitializer
                 PreviousTeamId = team.Id,
                 IsActive = true,
             }), "Team-year-summary successor Team");
-        }
-        finally
-        {
-            await connection.CloseAsync();
-        }
 
+        }
         EnsureBeerUpdate(await beerAccountingRepository.SetEffectiveRuleCountAsync(
             team.Id, playerIds[0], BeerRuleType.Dbo, 1));
         EnsureBeerUpdate(await beerAccountingRepository.SetEffectiveRuleCountAsync(
@@ -379,11 +395,9 @@ public sealed class AndroidUiTestDataInitializer
             EnsureSingleRow(await playerRepository.CreateAsync(player),
                 "Team-year-copy non-roster Player");
 
-        var connection = new SQLiteAsyncConnection(
-            database.DatabasePath,
-            SQLiteOpenFlags.ReadWrite | SQLiteOpenFlags.SharedCache);
-        try
         {
+            await using var operation = await database.BeginOperationAsync();
+            var connection = operation.Connection;
             var memberships = await connection.Table<TeamPlayer>()
                 .Where(item => item.TeamId == team.Id)
                 .OrderBy(item => item.Id)
@@ -437,10 +451,7 @@ public sealed class AndroidUiTestDataInitializer
                 Origin = BeerLedgerEntryOrigin.BroughtCredit,
                 Amount = 2,
             }), "Team-year-copy negative Beer balance");
-        }
-        finally
-        {
-            await connection.CloseAsync();
+
         }
 
         return new AndroidUiTestContext(team.Id, 0, true);
@@ -500,11 +511,9 @@ public sealed class AndroidUiTestDataInitializer
             BatterResult.HomeRun,
             BatterResult.Walk,
         };
-        var connection = new SQLiteAsyncConnection(
-            database.DatabasePath,
-            SQLiteOpenFlags.ReadWrite | SQLiteOpenFlags.SharedCache);
-        try
         {
+            await using var operation = await database.BeginOperationAsync();
+            var connection = operation.Connection;
             for (var index = 0; index < completedGameIds.Length; index++)
             {
                 await InsertTeamStatsSessionAsync(
@@ -520,10 +529,7 @@ public sealed class AndroidUiTestDataInitializer
                 playerIds,
                 GameScoringStatus.InProgress,
                 BatterResult.HomeRun);
-        }
-        finally
-        {
-            await connection.CloseAsync();
+
         }
 
         return new AndroidUiTestContext(team.Id, 0, true);
@@ -609,11 +615,9 @@ public sealed class AndroidUiTestDataInitializer
             throw new InvalidOperationException("Could not seed the Low Man Game Night.");
 
         var gameId = gameResult.CreatedGameIds.Single();
-        var connection = new SQLiteAsyncConnection(
-            database.DatabasePath,
-            SQLiteOpenFlags.ReadWrite | SQLiteOpenFlags.SharedCache);
-        try
         {
+            await using var operation = await database.BeginOperationAsync();
+            var connection = operation.Connection;
             var session = new GameScoringSession
             {
                 GameId = gameId,
@@ -643,10 +647,6 @@ public sealed class AndroidUiTestDataInitializer
                     Result = index == 0 ? BatterResult.Out : BatterResult.Single,
                 }), "Low Man plate appearance");
             }
-        }
-        finally
-        {
-            await connection.CloseAsync();
         }
     }
 
@@ -714,11 +714,9 @@ public sealed class AndroidUiTestDataInitializer
                     "Could not seed an Android Team-record Game lineup.");
         }
 
-        var connection = new SQLiteAsyncConnection(
-            database.DatabasePath,
-            SQLiteOpenFlags.ReadWrite | SQLiteOpenFlags.SharedCache);
-        try
         {
+            await using var operation = await database.BeginOperationAsync();
+            var connection = operation.Connection;
             await InsertCompletedSessionAsync(
                 connection, oldGameId, playerResult.PlayerId, TeamGameSide.Home, 12, 1);
             await InsertCompletedSessionAsync(
@@ -737,10 +735,7 @@ public sealed class AndroidUiTestDataInitializer
                 TeamGameSide.Home,
                 6,
                 6);
-        }
-        finally
-        {
-            await connection.CloseAsync();
+
         }
 
         return new AndroidUiTestContext(team.Id, 0, true);
@@ -825,11 +820,9 @@ public sealed class AndroidUiTestDataInitializer
             (playerIds[2], 3, BatterResult.Walk),
             (playerIds[2], 3, BatterResult.Walk),
         };
-        var connection = new SQLiteAsyncConnection(
-            database.DatabasePath,
-            SQLiteOpenFlags.ReadWrite | SQLiteOpenFlags.SharedCache);
-        try
         {
+            await using var operation = await database.BeginOperationAsync();
+            var connection = operation.Connection;
             for (var index = 0; index < appearances.Length; index++)
             {
                 var (playerId, battingPosition, result) = appearances[index];
@@ -843,12 +836,8 @@ public sealed class AndroidUiTestDataInitializer
                     Result = result,
                 }), "statistics-sorting plate appearance");
             }
-        }
-        finally
-        {
-            await connection.CloseAsync();
-        }
 
+        }
         if (!(await scoringRepository.CompleteGameAsync(gameId)).IsSuccess)
             throw new InvalidOperationException(
                 "Could not complete the Android statistics-sorting Game.");

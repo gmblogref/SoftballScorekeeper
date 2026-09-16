@@ -784,4 +784,16 @@
   <data name="BackupDataDescription" xml:space="preserve"><value>Create a portable backup and choose where to save it.</value></data>
   <data name="BackupDataSucceeded" xml:space="preserve"><value>Backup saved successfully.</value></data>
   <data name="BackupDataFailed" xml:space="preserve"><value>The backup could not be saved. Your application data was not changed.</value></data>
+  <data name="RestoreDataButton" xml:space="preserve"><value>Restore Data</value></data>
+  <data name="RestoreDataDescription" xml:space="preserve"><value>Replace all application data with a Softball Scorekeeper backup.</value></data>
+  <data name="RestoreDataConfirmationTitle" xml:space="preserve"><value>Restore This Backup?</value></data>
+  <data name="RestoreDataConfirmationMessage" xml:space="preserve"><value>This backup was created {0:g} by app version {1}. Restoring permanently replaces all current Teams, Players, Games, scoring, statistics, and Beer data. This cannot be undone.</value></data>
+  <data name="RestoreDataOlderConfirmationMessage" xml:space="preserve"><value>This backup was created {0:g} by app version {1} and uses an older supported database version. It will be upgraded after restore. Restoring permanently replaces all current Teams, Players, Games, scoring, statistics, and Beer data. This cannot be undone.</value></data>
+  <data name="RestoreDataConfirmButton" xml:space="preserve"><value>Restore Data</value></data>
+  <data name="RestoreDataSucceededTitle" xml:space="preserve"><value>Restore Complete</value></data>
+  <data name="RestoreDataSucceeded" xml:space="preserve"><value>The backup was restored successfully. The Teams page will now reload the restored data.</value></data>
+  <data name="RestoreDataInvalid" xml:space="preserve"><value>The selected file is not a valid Softball Scorekeeper backup. Your application data was not changed.</value></data>
+  <data name="RestoreDataUnsupported" xml:space="preserve"><value>This backup version is not supported by the installed app. Update the app and try again. Your application data was not changed.</value></data>
+  <data name="RestoreDataFailed" xml:space="preserve"><value>The backup could not be restored. Your previous application data was recovered.</value></data>
+  <data name="RestoreDataRecoveryFailed" xml:space="preserve"><value>The backup could not be restored, and the previous data could not be reopened. Close the app and contact support before making more changes.</value></data>
 </root>
