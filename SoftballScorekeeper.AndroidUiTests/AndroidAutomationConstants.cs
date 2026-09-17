@@ -20,6 +20,8 @@ internal static class AndroidAutomationConstants
         "android-ui-test-team-year-summary";
     public const string ManualRestoreTestSeedRequestFileName =
         "android-ui-test-manual-restore";
+    public const string DeviceMigrationTestSeedRequestFileName =
+        "android-ui-test-device-migration";
     public static readonly IReadOnlyList<string> TestSeedRequestFileNames =
     [
         TestSeedRequestFileName,
@@ -31,6 +33,7 @@ internal static class AndroidAutomationConstants
         TeamYearCopyTestSeedRequestFileName,
         TeamYearSummaryTestSeedRequestFileName,
         ManualRestoreTestSeedRequestFileName,
+        DeviceMigrationTestSeedRequestFileName,
     ];
     public const string FirstBatterName = "Alex Automation";
     public const string SecondBatterName = "Blake Automation";

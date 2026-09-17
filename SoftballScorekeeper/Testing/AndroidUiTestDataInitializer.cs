@@ -20,6 +20,8 @@ public sealed class AndroidUiTestDataInitializer
         "android-ui-test-team-year-summary";
     internal const string ManualRestoreRequestFileName =
         "android-ui-test-manual-restore";
+    internal const string DeviceMigrationRequestFileName =
+        "android-ui-test-device-migration";
     private static readonly string[] RequestFileNames =
     [
         RequestFileName,
@@ -31,6 +33,7 @@ public sealed class AndroidUiTestDataInitializer
         TeamYearCopyRequestFileName,
         TeamYearSummaryRequestFileName,
         ManualRestoreRequestFileName,
+        DeviceMigrationRequestFileName,
     ];
 
     private readonly AppDatabase database;
@@ -78,6 +81,8 @@ public sealed class AndroidUiTestDataInitializer
             FileSystem.AppDataDirectory, TeamYearSummaryRequestFileName);
         var manualRestoreRequestPath = Path.Combine(
             FileSystem.AppDataDirectory, ManualRestoreRequestFileName);
+        var deviceMigrationRequestPath = Path.Combine(
+            FileSystem.AppDataDirectory, DeviceMigrationRequestFileName);
         var useMissingGame = File.Exists(missingGameRequestPath);
         var useCompletedStatisticsSorting = File.Exists(
             completedStatisticsSortingRequestPath);
@@ -87,10 +92,11 @@ public sealed class AndroidUiTestDataInitializer
         var useTeamYearCopy = File.Exists(teamYearCopyRequestPath);
         var useTeamYearSummary = File.Exists(teamYearSummaryRequestPath);
         var useManualRestore = File.Exists(manualRestoreRequestPath);
+        var useDeviceMigration = File.Exists(deviceMigrationRequestPath);
         if (!File.Exists(requestPath) && !useMissingGame
             && !useCompletedStatisticsSorting && !useTeamRecord && !useBeerTotals
             && !useTeamStats && !useTeamYearCopy && !useTeamYearSummary
-            && !useManualRestore) return null;
+            && !useManualRestore && !useDeviceMigration) return null;
 
         if (File.Exists(requestPath)) File.Delete(requestPath);
         if (useMissingGame) File.Delete(missingGameRequestPath);
@@ -102,6 +108,9 @@ public sealed class AndroidUiTestDataInitializer
         if (useTeamYearCopy) File.Delete(teamYearCopyRequestPath);
         if (useTeamYearSummary) File.Delete(teamYearSummaryRequestPath);
         if (useManualRestore) File.Delete(manualRestoreRequestPath);
+        if (useDeviceMigration) File.Delete(deviceMigrationRequestPath);
+
+        if (useDeviceMigration) return await SeedDeviceMigrationAsync();
 
         if (useManualRestore) return await SeedManualRestoreAsync();
 
@@ -187,6 +196,240 @@ public sealed class AndroidUiTestDataInitializer
         };
         EnsureSingleRow(await teamRepository.CreateAsync(team), "manual-restore destination Team");
         return new AndroidUiTestContext(team.Id, 0, true);
+    }
+
+    private async Task<AndroidUiTestContext> SeedDeviceMigrationAsync()
+    {
+        var sourceTeam = new Team
+        {
+            Name = "MIGRATION HISTORY",
+            Year = 2026,
+            IsActive = true,
+        };
+        EnsureSingleRow(await teamRepository.CreateAsync(sourceTeam),
+            "device-migration source Team");
+
+        var currentTeam = new Team
+        {
+            Name = "MIGRATION CURRENT",
+            Year = 2027,
+            TeamLineageId = sourceTeam.TeamLineageId,
+            PreviousTeamId = sourceTeam.Id,
+            IsActive = true,
+        };
+        var finalizedTeam = new Team
+        {
+            Name = "MIGRATION FINALIZED",
+            Year = 2025,
+            TeamLineageId = Guid.NewGuid(),
+            IsYearOver = true,
+            IsActive = true,
+        };
+
+        var playerIds = new List<int>();
+        foreach (var firstName in new[] { "Alex", "Blake", "Casey", "Drew", "Evan", "Flynn" })
+        {
+            var result = await playerRepository.CreateForTeamAsync(
+                new Player
+                {
+                    FirstName = firstName,
+                    LastName = "Migration",
+                    IsActive = true,
+                },
+                sourceTeam.Id);
+            if (!result.IsSuccess)
+                throw new InvalidOperationException(
+                    "Could not seed a device-migration Player.");
+            playerIds.Add(result.PlayerId);
+        }
+
+        await using (var operation = await database.BeginOperationAsync())
+        {
+            var connection = operation.Connection;
+            EnsureSingleRow(await connection.InsertAsync(currentTeam),
+                "device-migration current Team");
+            EnsureSingleRow(await connection.InsertAsync(finalizedTeam),
+                "device-migration finalized Team");
+            for (var index = 0; index < playerIds.Count; index++)
+            {
+                EnsureSingleRow(await connection.InsertAsync(new TeamPlayer
+                {
+                    TeamId = currentTeam.Id,
+                    PlayerId = playerIds[index],
+                    JerseyNumber = (index + 1) * 11,
+                    IsActive = true,
+                }), "device-migration current roster Player");
+            }
+        }
+
+        var completedGames = await gameRepository.CreateForTeamAsync(
+            sourceTeam.Id,
+            new Season { Name = "Spring Migration", Year = sourceTeam.Year },
+            [new Game
+            {
+                ScheduledDate = new DateTime(2026, 5, 12),
+                ScheduledTime = new TimeSpan(18, 30, 0),
+                Opponent = "Completed Migration Opponent",
+                Field = "History Field",
+            }]);
+        var currentGames = await gameRepository.CreateForTeamAsync(
+            currentTeam.Id,
+            new Season { Name = "Summer Migration", Year = currentTeam.Year },
+            [new Game
+            {
+                ScheduledDate = new DateTime(2027, 7, 20),
+                ScheduledTime = new TimeSpan(19, 0, 0),
+                Opponent = "Resume Migration Opponent",
+                Field = "Migration Field",
+            }]);
+        if (!completedGames.IsCompleteSuccess || !currentGames.IsCompleteSuccess)
+            throw new InvalidOperationException(
+                "Could not seed device-migration Seasons and Games.");
+
+        await using (var operation = await database.BeginOperationAsync())
+        {
+            var connection = operation.Connection;
+            var completedSession = new GameScoringSession
+            {
+                GameId = completedGames.CreatedGameIds.Single(),
+                Status = GameScoringStatus.Completed,
+                TeamSide = TeamGameSide.Home,
+                HomeScore = 8,
+                VisitorScore = 3,
+                CurrentBatterPosition = 1,
+                CurrentInning = 7,
+                CompletedAtUtc = new DateTime(2026, 5, 13, 1, 0, 0, DateTimeKind.Utc),
+            };
+            EnsureSingleRow(await connection.InsertAsync(completedSession),
+                "device-migration completed scoring session");
+            for (var index = 0; index < playerIds.Count; index++)
+            {
+                EnsureSingleRow(await connection.InsertAsync(new GameScoringLineupPlayer
+                {
+                    GameScoringSessionId = completedSession.Id,
+                    PlayerId = playerIds[index],
+                    BattingPosition = index + 1,
+                }), "device-migration completed frozen lineup Player");
+                EnsureSingleRow(await connection.InsertAsync(new GamePlateAppearance
+                {
+                    GameScoringSessionId = completedSession.Id,
+                    PlayerId = playerIds[index],
+                    BattingPosition = index + 1,
+                    PlateAppearanceNumber = index + 1,
+                    Inning = 1,
+                    Result = index switch
+                    {
+                        0 => BatterResult.Single,
+                        1 => BatterResult.Double,
+                        2 => BatterResult.Walk,
+                        _ => BatterResult.Out,
+                    },
+                }), "device-migration completed plate appearance");
+            }
+
+            var currentSession = new GameScoringSession
+            {
+                GameId = currentGames.CreatedGameIds.Single(),
+                Status = GameScoringStatus.InProgress,
+                TeamSide = TeamGameSide.Away,
+                HomeScore = 2,
+                VisitorScore = 4,
+                CurrentBatterPosition = 4,
+                CurrentInning = 3,
+                CurrentOuts = 1,
+            };
+            EnsureSingleRow(await connection.InsertAsync(currentSession),
+                "device-migration in-progress scoring session");
+            for (var index = 0; index < playerIds.Count; index++)
+            {
+                EnsureSingleRow(await connection.InsertAsync(new GameScoringLineupPlayer
+                {
+                    GameScoringSessionId = currentSession.Id,
+                    PlayerId = playerIds[index],
+                    BattingPosition = index + 1,
+                }), "device-migration in-progress frozen lineup Player");
+            }
+            EnsureSingleRow(await connection.InsertAsync(new GamePlateAppearance
+            {
+                GameScoringSessionId = currentSession.Id,
+                PlayerId = playerIds[0],
+                BattingPosition = 1,
+                PlateAppearanceNumber = 1,
+                Inning = 3,
+                Result = BatterResult.Single,
+            }), "device-migration committed first plate appearance");
+            EnsureSingleRow(await connection.InsertAsync(new GamePlateAppearance
+            {
+                GameScoringSessionId = currentSession.Id,
+                PlayerId = playerIds[1],
+                BattingPosition = 2,
+                PlateAppearanceNumber = 2,
+                Inning = 3,
+                Result = BatterResult.Single,
+            }), "device-migration committed second plate appearance");
+            EnsureSingleRow(await connection.InsertAsync(new GamePlateAppearance
+            {
+                GameScoringSessionId = currentSession.Id,
+                PlayerId = playerIds[2],
+                BattingPosition = 3,
+                PlateAppearanceNumber = 3,
+                Inning = 3,
+                Result = BatterResult.Out,
+            }), "device-migration committed third plate appearance");
+            EnsureSingleRow(await connection.InsertAsync(new GameScoringBaseRunner
+            {
+                GameScoringSessionId = currentSession.Id,
+                PlayerId = playerIds[1],
+                Base = ScoringBase.First,
+            }), "device-migration first-base runner");
+            EnsureSingleRow(await connection.InsertAsync(new GameScoringBaseRunner
+            {
+                GameScoringSessionId = currentSession.Id,
+                PlayerId = playerIds[0],
+                Base = ScoringBase.Second,
+            }), "device-migration second-base runner");
+
+            var beerRows = new[]
+            {
+                new BeerLedgerEntry
+                {
+                    TeamId = currentTeam.Id, PlayerId = playerIds[0],
+                    SourceTeamId = sourceTeam.Id,
+                    Origin = BeerLedgerEntryOrigin.CarryForward, Amount = 3,
+                },
+                new BeerLedgerEntry
+                {
+                    TeamId = currentTeam.Id, PlayerId = playerIds[0],
+                    RuleType = BeerRuleType.Dbo,
+                    Origin = BeerLedgerEntryOrigin.AutomaticScoring,
+                    RuleCountAdjustment = 1, Amount = 1,
+                },
+                new BeerLedgerEntry
+                {
+                    TeamId = currentTeam.Id, PlayerId = playerIds[0],
+                    RuleType = BeerRuleType.LowMan,
+                    Origin = BeerLedgerEntryOrigin.AutomaticScoring,
+                    PlayingDate = new DateTime(2027, 7, 20),
+                    Amount = 2,
+                },
+                new BeerLedgerEntry
+                {
+                    TeamId = currentTeam.Id, PlayerId = playerIds[0],
+                    Origin = BeerLedgerEntryOrigin.BroughtCredit, Amount = 2,
+                },
+                new BeerLedgerEntry
+                {
+                    TeamId = currentTeam.Id, PlayerId = playerIds[1],
+                    SourceTeamId = sourceTeam.Id,
+                    Origin = BeerLedgerEntryOrigin.CarryForward, Amount = -2,
+                },
+            };
+            foreach (var beerRow in beerRows)
+                EnsureSingleRow(await connection.InsertAsync(beerRow),
+                    "device-migration Beer ledger row");
+        }
+
+        return new AndroidUiTestContext(currentTeam.Id, 0, true);
     }
 
     private async Task<AndroidUiTestContext> SeedBeerTotalsAsync()
