@@ -10,9 +10,9 @@ Stable product and architecture decisions belong in the project architecture doc
 
 ## Current Project Status
 
-- **Latest completed story:** Story 8.0 — Backup / Restore Foundation
-- **Completed stories:** Stories 0.0 through 6.9.5, Stories 7.0 through 7.9 except Story 7.6, and Story 8.0; Story 6.9.4 and Story 7.7 retain their recorded physical Android acceptance status, and Stories 3.2 through 3.4 retain their recorded validation status
-- **Current story:** Story 8.1 — Manual Backup; implementation, emulator-independent validation, and targeted Android document-provider acceptance complete, with physical acceptance pending
+- **Latest completed story:** Story 8.3 — Device Migration Acceptance
+- **Completed stories:** Stories 0.0 through 6.9.5, Stories 7.0 through 7.9 except Story 7.6, and Stories 8.0 through 8.3; Story 6.9.4 and Story 7.7 retain their recorded physical Android acceptance status, and Stories 3.2 through 3.4 retain their recorded validation status
+- **Current story:** Story 8.3 complete; physical-device migration acceptance remains pending
 - **Current phase:** Backup / Restore
 - **Foundation status:** Complete
 
@@ -3259,6 +3259,25 @@ Dedicated Double Play/Triple Play presentation, sacrifice results, HR-limit/dead
 #### Intended Commit Message
 
 `Add manual restore workflow`
+
+### Story 8.3 — Device Migration Acceptance (Complete — targeted Android emulator acceptance passed)
+
+#### Complete-State Migration Scenario
+
+- Added one opt-in Android/Appium acceptance scenario and a dedicated Debug seed request for a self-contained source-device state. The seed spans Team Years 2025–2027; shared lineage and `PreviousTeamId`; an explicitly finalized historical Team; six Players with memberships and jersey numbers; Spring and Summer League Seasons; a completed 1–0 Game with derived Team Stats and TEAM TOTAL; automatic Beer, Low Man, BROUGHT, positive and negative CarryForward/OWED state; Team Year Summary eligibility; and a recognizable In Progress Game at Top 3, visitor 4–home 2, one out, Drew batting, Blake on first, Alex on second, and three committed plate appearances.
+- The scenario verifies the recognizable source state, creates a real backup through Data Management and Android DocumentsUI, replaces the isolated database with unmistakable `RESTORE DESTINATION ONLY` state, and restores through the real picker and destructive confirmation. It proves replacement by verifying destination-only state disappears while source roster, Seasons, completed record, statistics, Beer accounting, Team Year Summary, finalization, and In Progress scoring state return.
+- After restore, the scenario resumes the Game, commits one normal Single, verifies Evan becomes the batter with Drew/Blake/Alex on first/second/third and the 4–2 score preserved, exits and resumes to prove the new state persisted, creates a second real backup, and inspects that package read-only. The final database assertions cover lineage/predecessor, seasons, memberships/jerseys, completed and in-progress sessions, the fourth committed plate appearance, three runners, CarryForward source/value pairs, automatic Low Man, and BROUGHT. No production behavior or application database code changed.
+- Added narrow test reliability handling for post-navigation year expansion/collapse, vertically scrolled year groups, slow restored statistics/summary page readiness, MAUI accessibility-based TEAM TOTAL cells, swallowed Android back/drawer taps, and sqlite-net-compatible scalar query captures. The Android runner now invokes the test host with single-node MSBuild (`-m:1`) to avoid a reproducible local parallel workload-SDK resolver failure; test selection, dedicated-AVD enforcement, database isolation, and runner-owned process cleanup are unchanged.
+
+#### Validation and Acceptance Status
+
+- Recovery after the interrupted emulator failure found and stopped only stale Story 8.3 runner/Appium/build and dedicated-emulator processes. The dedicated `softball_tablet_ui_tests_api_35` AVD cold-booted as `emulator-5554`, reached a clean awake/unlocked Android state without a crash overlay, exposed the isolated `SoftballScorekeeper.AndroidUiTests.db3`, launched the app normally, and accepted fresh Appium sessions. The normal development AVD, normal application database, and `SAVE ME` Team were not used or modified. The prior “red errors” remain classified as an emulator/environment issue.
+- Intermediate pinpoint failures were classified before correction: sandboxed Appium `adb` spawn denial and silent parallel MSBuild resolution were environment/tooling issues; Low Man count setup, post-navigation synchronization, viewport scrolling, TEAM TOTAL locator choice, swallowed navigation taps, and indexed sqlite-net query captures were test/test-data defects. Diagnostics showed no reproducible production defect, so production code remained unchanged.
+- The exact targeted command `& .\scripts\run-android-ui-tests.ps1 -AvdName 'softball_tablet_ui_tests_api_35' -TestFilter 'FullyQualifiedName=SoftballScorekeeper.AndroidUiTests.DeviceMigrationTests.Backup_restore_migrates_complete_state_resumes_game_and_remains_backup_capable'` passed 1 of 1 in 2 minutes 4 seconds with zero failures or skips. Its embedded Android build and APK install succeeded with zero errors and 10 existing `CS8602`/`XC0025` warnings; the runner stopped only its owned Appium process. No broader Android suite or unrelated scenario ran. Physical-device migration acceptance remains pending.
+
+#### Intended Commit Message
+
+`Add device migration acceptance coverage`
 
 ## Maintenance Rules
 

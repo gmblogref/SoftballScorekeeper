@@ -599,7 +599,7 @@ try {
     $env:SOFTBALL_RUN_ANDROID_UI_TESTS = '1'
 
     $testProject = Join-Path $repositoryRoot 'SoftballScorekeeper.AndroidUiTests\SoftballScorekeeper.AndroidUiTests.csproj'
-    $testArguments = @('test', $testProject)
+    $testArguments = @('test', $testProject, '-m:1')
     if (-not [string]::IsNullOrWhiteSpace($TestFilter)) {
         $testArguments += @('--filter', $TestFilter)
         Write-Stage "Running Android UI tests with filter: $TestFilter"
