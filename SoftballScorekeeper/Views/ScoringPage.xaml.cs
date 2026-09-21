@@ -10,12 +10,27 @@ public partial class ScoringPage : ContentPage
     private bool isExiting;
     private bool isHandlingInningTransition;
     private bool isProcessingPlayResolution;
+    private string? appliedLayoutState;
 
     public ScoringPage(ScoringViewModel viewModel)
     {
         InitializeComponent();
         this.viewModel = viewModel;
         BindingContext = viewModel;
+    }
+
+    protected override void OnSizeAllocated(double width, double height)
+    {
+        base.OnSizeAllocated(width, height);
+        if (width <= 0 || height <= 0) return;
+
+        var layoutState = width > height
+            ? "LandscapeScoreboard"
+            : "PortraitScoreboard";
+        if (layoutState == appliedLayoutState) return;
+
+        VisualStateManager.GoToState(RootGrid, layoutState);
+        appliedLayoutState = layoutState;
     }
 
     protected override async void OnAppearing()
@@ -110,7 +125,7 @@ public partial class ScoringPage : ContentPage
                 AppResources.OkButton);
     }
 
-    private async void OnBatterTapped(object sender, TappedEventArgs e)
+    private async void OnBatterClicked(object sender, EventArgs e)
         => await ShowBatterResultMenuAsync();
 
     private async Task ShowBatterResultMenuAsync()

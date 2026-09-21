@@ -2,6 +2,8 @@ namespace SoftballScorekeeper.AndroidUiTests;
 
 internal static class AndroidAutomationConstants
 {
+    public const string TestModeFileName = "android-ui-test-mode";
+    public const string ProductTestDatabaseFileName = "SoftballScorekeeper.Test.db3";
     public const string PlatformName = "Android";
     public const string AutomationName = "UiAutomator2";
     public const string AppPackage = "com.companyname.softballscorekeeper";
@@ -22,6 +24,10 @@ internal static class AndroidAutomationConstants
         "android-ui-test-manual-restore";
     public const string DeviceMigrationTestSeedRequestFileName =
         "android-ui-test-device-migration";
+    public const string ManualFindingsReproductionTestSeedRequestFileName =
+        "android-ui-test-manual-findings-reproduction";
+    public const string ScheduleGamesTestSeedRequestFileName =
+        "android-ui-test-schedule-games";
     public static readonly IReadOnlyList<string> TestSeedRequestFileNames =
     [
         TestSeedRequestFileName,
@@ -34,6 +40,8 @@ internal static class AndroidAutomationConstants
         TeamYearSummaryTestSeedRequestFileName,
         ManualRestoreTestSeedRequestFileName,
         DeviceMigrationTestSeedRequestFileName,
+        ManualFindingsReproductionTestSeedRequestFileName,
+        ScheduleGamesTestSeedRequestFileName,
     ];
     public const string FirstBatterName = "Alex Automation";
     public const string SecondBatterName = "Blake Automation";

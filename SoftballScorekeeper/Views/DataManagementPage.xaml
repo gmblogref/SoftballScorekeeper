@@ -18,6 +18,12 @@
                 IsVisible="{Binding IsBusy}"
                 HorizontalOptions="Start" />
             <Label
+                AutomationId="PortableDataProductionOnlyMessage"
+                Text="{x:Static strings:AppResources.PortableDataProductionOnlyMessage}"
+                IsVisible="{Binding IsTestMode}"
+                FontAttributes="Bold"
+                TextColor="{StaticResource Error}" />
+            <Label
                 Text="{x:Static strings:AppResources.BackupDataDescription}"
                 FontSize="18" />
             <HorizontalStackLayout Spacing="16">

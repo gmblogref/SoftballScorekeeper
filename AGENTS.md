@@ -104,6 +104,16 @@ auto-purge canonical history for backup/storage concerns. Document and cloud
 providers may store user-selected backup artifacts but are not application data
 dependencies.
 
+Product Test Mode uses a physically separate SQLite database and must never be
+implemented through row tagging or repository-specific test branches. Database
+mode switching requires exclusive ownership of the existing database lifecycle,
+and every successful switch resets navigation and application state to the Teams
+root. Product Test cleanup may target only the dedicated known Test database and
+its explicit SQLite sidecars; the Production and Android UI-test databases are
+never valid cleanup targets. Portable Backup and Restore are Production-only.
+While Test Mode is active, a clear TEST MODE indicator must remain visible
+throughout normal application navigation.
+
 Preferred dependency direction:
 
 ```text

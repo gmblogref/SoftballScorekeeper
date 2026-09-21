@@ -4,7 +4,9 @@ public sealed record CreateGamesResult(
     int RequestedGameCount,
     int SeasonId,
     IReadOnlyList<int> CreatedGameIds,
-    CreateGamesFailure FailureReason)
+    CreateGamesFailure FailureReason,
+    string? ExceptionType = null,
+    string? ExceptionMessage = null)
 {
     public bool IsCompleteSuccess =>
         RequestedGameCount > 0
@@ -18,6 +20,8 @@ public enum CreateGamesFailure
     None,
     InvalidRequest,
     InvalidTeamOrSeason,
+    TeamYearMismatch,
+    TeamYearFinalized,
     DuplicateSchedule,
     Persistence,
 }

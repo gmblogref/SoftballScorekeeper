@@ -16,27 +16,23 @@
     </ContentPage.Resources>
     <Grid x:Name="ScoringOverlayGrid">
     <Grid x:Name="RootGrid"
-          Padding="40" RowDefinitions="Auto,Auto,Auto,Auto,*" RowSpacing="14">
+          Padding="40" RowDefinitions="Auto,Auto,Auto,*" RowSpacing="14">
         <VisualStateManager.VisualStateGroups>
             <VisualStateGroup x:Name="ScoreboardLayoutStates">
                 <VisualState x:Name="PortraitScoreboard">
-                    <VisualState.StateTriggers>
-                        <AdaptiveTrigger MinWindowWidth="0" />
-                    </VisualState.StateTriggers>
                 </VisualState>
                 <VisualState x:Name="LandscapeScoreboard">
-                    <VisualState.StateTriggers>
-                        <AdaptiveTrigger MinWindowWidth="900" />
-                    </VisualState.StateTriggers>
                     <VisualState.Setters>
-                        <Setter TargetName="RootGrid" Property="Padding" Value="20,12" />
-                        <Setter TargetName="RootGrid" Property="RowSpacing" Value="8" />
+                        <Setter TargetName="RootGrid" Property="Padding" Value="20,8" />
+                        <Setter TargetName="RootGrid" Property="RowSpacing" Value="6" />
                         <Setter TargetName="ScoringMenu" Property="Margin" Value="20,64,0,0" />
-                        <Setter TargetName="ScoreboardBorder" Property="Padding" Value="12,4" />
+                        <Setter TargetName="ScoreboardBorder" Property="Padding" Value="10,2" />
                         <Setter TargetName="ScoreboardGrid" Property="ColumnDefinitions" Value="*,1,Auto,1,*" />
                         <Setter TargetName="ScoreboardGrid" Property="RowDefinitions" Value="Auto" />
                         <Setter TargetName="ScoreboardGrid" Property="RowSpacing" Value="2" />
                         <Setter TargetName="HomeScoreboard" Property="Grid.Column" Value="4" />
+                        <Setter TargetName="HomeScoreboard" Property="RowDefinitions" Value="Auto,Auto,Auto" />
+                        <Setter TargetName="VisitorScoreboard" Property="RowDefinitions" Value="Auto,Auto,Auto" />
                         <Setter TargetName="HomeScoreboard" Property="RowSpacing" Value="0" />
                         <Setter TargetName="VisitorScoreboard" Property="RowSpacing" Value="0" />
                         <Setter TargetName="ScoreboardRightDivider" Property="IsVisible" Value="True" />
@@ -44,33 +40,40 @@
                         <Setter TargetName="GameStatusPanel" Property="Grid.Row" Value="0" />
                         <Setter TargetName="GameStatusPanel" Property="Grid.Column" Value="2" />
                         <Setter TargetName="GameStatusPanel" Property="Grid.ColumnSpan" Value="1" />
-                        <Setter TargetName="GameStatusPanel" Property="Padding" Value="12,0" />
+                        <Setter TargetName="GameStatusPanel" Property="Padding" Value="10,0" />
                         <Setter TargetName="InningOutLabel" Property="IsVisible" Value="False" />
                         <Setter TargetName="LandscapeInningLabel" Property="IsVisible" Value="True" />
                         <Setter TargetName="LandscapeOutsLabel" Property="IsVisible" Value="True" />
-                        <Setter TargetName="HomeHeading" Property="Label.FontSize" Value="16" />
-                        <Setter TargetName="VisitorHeading" Property="Label.FontSize" Value="16" />
-                        <Setter TargetName="HomeTeamName" Property="Label.FontSize" Value="19" />
-                        <Setter TargetName="VisitorTeamName" Property="Label.FontSize" Value="19" />
-                        <Setter TargetName="HomeScoreValue" Property="Label.FontSize" Value="44" />
-                        <Setter TargetName="VisitorScoreValue" Property="Label.FontSize" Value="44" />
+                        <Setter TargetName="HomeHeading" Property="Label.FontSize" Value="14" />
+                        <Setter TargetName="VisitorHeading" Property="Label.FontSize" Value="14" />
+                        <Setter TargetName="HomeTeamName" Property="Label.FontSize" Value="16" />
+                        <Setter TargetName="VisitorTeamName" Property="Label.FontSize" Value="16" />
+                        <Setter TargetName="HomeScoreValue" Property="Label.FontSize" Value="34" />
+                        <Setter TargetName="VisitorScoreValue" Property="Label.FontSize" Value="34" />
                         <Setter TargetName="HomeScoreValue" Property="Grid.Row" Value="0" />
                         <Setter TargetName="VisitorScoreValue" Property="Grid.Row" Value="0" />
                         <Setter TargetName="HomeScoreValue" Property="Grid.Column" Value="1" />
                         <Setter TargetName="VisitorScoreValue" Property="Grid.Column" Value="1" />
                         <Setter TargetName="HomeScoreValue" Property="Grid.RowSpan" Value="2" />
                         <Setter TargetName="VisitorScoreValue" Property="Grid.RowSpan" Value="2" />
-                        <Setter TargetName="InningOutLabel" Property="Label.FontSize" Value="16" />
+                        <Setter TargetName="HomeHomeRunLabel" Property="Grid.Row" Value="2" />
+                        <Setter TargetName="VisitorHomeRunLabel" Property="Grid.Row" Value="2" />
+                        <Setter TargetName="HomeHomeRunLabel" Property="Label.FontSize" Value="13" />
+                        <Setter TargetName="VisitorHomeRunLabel" Property="Label.FontSize" Value="13" />
+                        <Setter TargetName="LandscapeInningLabel" Property="Label.FontSize" Value="14" />
+                        <Setter TargetName="LandscapeOutsLabel" Property="Label.FontSize" Value="14" />
                         <Setter TargetName="ScoringContentLayout" Property="ColumnDefinitions" Value="210,1,*,1,240" />
-                        <Setter TargetName="ScoringContentLayout" Property="RowDefinitions" Value="Auto" />
+                        <Setter TargetName="ScoringContentLayout" Property="RowDefinitions" Value="*" />
                         <Setter TargetName="FieldSection" Property="Grid.Row" Value="0" />
                         <Setter TargetName="FieldSection" Property="Grid.Column" Value="2" />
+                        <Setter TargetName="FieldSection" Property="RowDefinitions" Value="Auto,Auto" />
+                        <Setter TargetName="FieldSection" Property="VerticalOptions" Value="Center" />
                         <Setter TargetName="PortraitInfoPanels" Property="Grid.Row" Value="0" />
                         <Setter TargetName="PortraitInfoPanels" Property="Grid.Column" Value="0" />
                         <Setter TargetName="PortraitInfoPanels" Property="Grid.ColumnSpan" Value="5" />
                         <Setter TargetName="PortraitInfoPanels" Property="ColumnDefinitions" Value="210,*,240" />
                         <Setter TargetName="PortraitInfoPanels" Property="RowDefinitions" Value="Auto,*,Auto" />
-                        <Setter TargetName="PortraitInfoPanels" Property="Margin" Value="0,34,0,0" />
+                        <Setter TargetName="PortraitInfoPanels" Property="Margin" Value="0" />
                         <Setter TargetName="PortraitInfoPanels" Property="VerticalOptions" Value="Fill" />
                         <Setter TargetName="OutsInfoPanel" Property="Grid.Column" Value="2" />
                         <Setter TargetName="UndoScoringButton" Property="Grid.Row" Value="2" />
@@ -83,6 +86,7 @@
                         <Setter TargetName="ScoredDivider" Property="Grid.Column" Value="3" />
                         <Setter TargetName="ScoredDivider" Property="IsVisible" Value="True" />
                         <Setter TargetName="LandscapeScoredArea" Property="IsVisible" Value="True" />
+                        <Setter TargetName="FieldGrid" Property="RowDefinitions" Value="Auto,Auto,Auto,Auto" />
                         <Setter TargetName="FieldGrid" Property="RowSpacing" Value="6" />
                         <Setter TargetName="NextBatterButton" Property="MinimumWidthRequest" Value="210" />
                         <Setter TargetName="NextBatterButton" Property="MinimumHeightRequest" Value="52" />
@@ -90,11 +94,13 @@
                         <Setter TargetName="CurrentBatterBorder" Property="Grid.Row" Value="3" />
                         <Setter TargetName="CurrentBatterBorder" Property="Grid.Column" Value="1" />
                         <Setter TargetName="CurrentBatterBorder" Property="Grid.ColumnSpan" Value="1" />
-                        <Setter TargetName="CurrentBatterBorder" Property="MinimumWidthRequest" Value="260" />
+                        <Setter TargetName="CurrentBatterBorder" Property="WidthRequest" Value="260" />
+                        <Setter TargetName="CurrentBatterBorder" Property="Margin" Value="0" />
                         <Setter TargetName="CurrentBatterBorder" Property="Padding" Value="12,6" />
                         <Setter TargetName="CurrentBatterName" Property="Label.FontSize" Value="22" />
                         <Setter TargetName="RunsOnPlayLabel" Property="Grid.Row" Value="3" />
                         <Setter TargetName="RunsOnPlayLabel" Property="Grid.Column" Value="2" />
+                        <Setter TargetName="PortraitScoredArea" Property="Grid.Row" Value="3" />
                         <Setter TargetName="PortraitScoredArea" Property="IsVisible" Value="False" />
                     </VisualState.Setters>
                 </VisualState>
@@ -150,7 +156,8 @@
                            FontSize="64"
                            FontAttributes="Bold"
                            HorizontalTextAlignment="Center" />
-                    <Label Grid.Row="3" Text="{Binding HomeHomeRunDisplay}"
+                    <Label x:Name="HomeHomeRunLabel"
+                           Grid.Row="3" Text="{Binding HomeHomeRunDisplay}"
                            FontSize="16" FontAttributes="Bold"
                            HorizontalTextAlignment="Center" />
                 </Grid>
@@ -185,7 +192,8 @@
                            FontSize="64"
                            FontAttributes="Bold"
                            HorizontalTextAlignment="Center" />
-                    <Label Grid.Row="3" Text="{Binding VisitorHomeRunDisplay}"
+                    <Label x:Name="VisitorHomeRunLabel"
+                           Grid.Row="3" Text="{Binding VisitorHomeRunDisplay}"
                            FontSize="16" FontAttributes="Bold"
                            HorizontalTextAlignment="Center" />
                 </Grid>
@@ -215,14 +223,18 @@
                 </VerticalStackLayout>
             </Grid>
         </Border>
-        <ScrollView Grid.Row="3" Grid.RowSpan="2" IsVisible="{Binding IsLoaded}">
-            <Grid x:Name="ScoringContentLayout"
-                  RowDefinitions="Auto,Auto" ColumnDefinitions="*"
-                  RowSpacing="12">
-                <VerticalStackLayout x:Name="FieldSection" Spacing="10">
+        <Grid x:Name="ScoringContentLayout"
+              Grid.Row="3"
+              IsVisible="{Binding IsLoaded}"
+              RowDefinitions="Auto,Auto" ColumnDefinitions="*"
+              RowSpacing="12">
+                <Grid x:Name="FieldSection"
+                      RowDefinitions="Auto,Auto"
+                      RowSpacing="10">
                     <Label Text="{x:Static strings:AppResources.BasesHeading}"
                            FontAttributes="Bold" HorizontalTextAlignment="Center" />
                     <Grid x:Name="FieldGrid"
+                          Grid.Row="1"
                           ColumnDefinitions="*,Auto,*"
                           RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto"
                           RowSpacing="12">
@@ -328,35 +340,44 @@
                                IsVisible="{Binding HasNoScoredPlayers}"
                                HorizontalTextAlignment="Center" />
                     </VerticalStackLayout>
-                    <Border x:Name="CurrentBatterBorder"
-                            Grid.Row="5" Grid.Column="0" Grid.ColumnSpan="3"
-                            IsVisible="{Binding IsCurrentBatterVisible}"
-                            Stroke="{StaticResource Primary}"
-                            StrokeThickness="2"
-                            StrokeShape="RoundRectangle 12"
-                            Padding="18,10"
-                            HorizontalOptions="Center"
-                            MinimumWidthRequest="360">
-                        <VerticalStackLayout Spacing="8">
-                            <VerticalStackLayout.GestureRecognizers>
-                                <TapGestureRecognizer Tapped="OnBatterTapped" />
-                            </VerticalStackLayout.GestureRecognizers>
-                            <Label Text="{x:Static strings:AppResources.CurrentBatterHeading}"
-                                   FontAttributes="Bold"
-                                   TextColor="{StaticResource Primary}"
-                                   HorizontalTextAlignment="Center" />
-                            <Label x:Name="CurrentBatterName" AutomationId="CurrentBatter"
-                                   Text="{Binding CurrentBatterDisplayName}"
-                                   FontSize="28"
-                                   FontAttributes="Bold"
-                                   HorizontalTextAlignment="Center" />
-                            <Label Text="{x:Static strings:AppResources.TapBatterHint}"
-                                   FontSize="13"
-                                   HorizontalTextAlignment="Center" />
-                        </VerticalStackLayout>
-                    </Border>
+                    <Grid x:Name="CurrentBatterBorder"
+                          Grid.Row="5" Grid.Column="0" Grid.ColumnSpan="3"
+                          IsVisible="{Binding IsCurrentBatterVisible}"
+                          HorizontalOptions="Center"
+                          WidthRequest="360">
+                        <Border Stroke="{StaticResource Primary}"
+                                StrokeThickness="2"
+                                StrokeShape="RoundRectangle 12"
+                                Padding="18,10"
+                                HorizontalOptions="Fill"
+                                InputTransparent="True">
+                            <VerticalStackLayout Spacing="8">
+                                <Label Text="{x:Static strings:AppResources.CurrentBatterHeading}"
+                                       FontAttributes="Bold"
+                                       TextColor="{StaticResource Primary}"
+                                       HorizontalTextAlignment="Center" />
+                                <Label x:Name="CurrentBatterName" AutomationId="CurrentBatter"
+                                       Text="{Binding CurrentBatterDisplayName}"
+                                       FontSize="28"
+                                       FontAttributes="Bold"
+                                       HorizontalTextAlignment="Center" />
+                                <Label Text="{x:Static strings:AppResources.TapBatterHint}"
+                                       FontSize="13"
+                                       HorizontalTextAlignment="Center" />
+                            </VerticalStackLayout>
+                        </Border>
+                        <Button AutomationId="CurrentBatterButton"
+                                Text="{Binding CurrentBatterDisplayName}"
+                                TextColor="Transparent"
+                                BackgroundColor="Transparent"
+                                BorderColor="Transparent"
+                                BorderWidth="0"
+                                Padding="0"
+                                HorizontalOptions="Fill"
+                                Clicked="OnBatterClicked" />
                     </Grid>
-                </VerticalStackLayout>
+                    </Grid>
+                </Grid>
                 <Grid x:Name="PortraitInfoPanels"
                       Grid.Row="1"
                       RowDefinitions="Auto,Auto"
@@ -372,7 +393,8 @@
                         <Grid RowDefinitions="Auto,Auto,Auto"
                               ColumnDefinitions="Auto,*"
                               RowSpacing="5" ColumnSpacing="14">
-                            <Label Grid.ColumnSpan="2"
+                            <Label AutomationId="UpcomingBattersHeading"
+                                   Grid.ColumnSpan="2"
                                    Text="{x:Static strings:AppResources.UpcomingHeading}"
                                    FontAttributes="Bold"
                                    TextColor="{StaticResource Primary}"
@@ -405,7 +427,8 @@
                             StrokeShape="RoundRectangle 10"
                             Padding="14,8">
                         <VerticalStackLayout Spacing="5">
-                            <Label Text="{x:Static strings:AppResources.OutsThisInningHeading}"
+                            <Label AutomationId="OutsThisInningHeading"
+                                   Text="{x:Static strings:AppResources.OutsThisInningHeading}"
                                    FontAttributes="Bold"
                                    TextColor="{StaticResource Primary}"
                                    HorizontalTextAlignment="Center" />
@@ -466,8 +489,7 @@
                          Grid.Row="0" Grid.Column="0"
                          IsVisible="False"
                          BackgroundColor="{AppThemeBinding Light={StaticResource Gray300}, Dark={StaticResource Gray600}}" />
-            </Grid>
-        </ScrollView>
+        </Grid>
     </Grid>
     <Border x:Name="ScoringMenu"
             IsVisible="False"

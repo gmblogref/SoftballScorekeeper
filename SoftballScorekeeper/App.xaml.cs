@@ -8,58 +8,67 @@ namespace SoftballScorekeeper;
 
 public partial class App : Application
 {
-	private readonly AppShell appShell;
-	private readonly AppDatabase appDatabase;
+    public static DatabaseModeState CurrentDatabaseModeState { get; private set; } = null!;
+
+    private readonly AppShell appShell;
+    private readonly AppDatabase appDatabase;
 #if DEBUG
-	private readonly AndroidUiTestDataInitializer androidUiTestDataInitializer;
+    private readonly AndroidUiTestDataInitializer androidUiTestDataInitializer;
 #endif
 
-	public App(IServiceProvider serviceProvider, AppDatabase appDatabase
+    public App(
+        IServiceProvider serviceProvider,
+        AppDatabase appDatabase,
+        DatabaseModeState databaseModeState
 #if DEBUG
-		, AndroidUiTestDataInitializer androidUiTestDataInitializer
+        ,
+        AndroidUiTestDataInitializer androidUiTestDataInitializer
 #endif
-		)
-	{
-		InitializeComponent();
+    )
+    {
+        CurrentDatabaseModeState = databaseModeState;
+        InitializeComponent();
+        Resources["DatabaseModeState"] = databaseModeState;
 
-		appShell = serviceProvider.GetRequiredService<AppShell>();
-		this.appDatabase = appDatabase;
+        appShell = serviceProvider.GetRequiredService<AppShell>();
+        this.appDatabase = appDatabase;
 #if DEBUG
-		this.androidUiTestDataInitializer = androidUiTestDataInitializer;
+        this.androidUiTestDataInitializer = androidUiTestDataInitializer;
 #endif
-	}
+    }
 
-	protected override Window CreateWindow(IActivationState? activationState)
-	{
-		var window = new Window(appShell);
-		window.Created += OnWindowCreated;
+    protected override Window CreateWindow(IActivationState? activationState)
+    {
+        var window = new Window(appShell);
+        window.Created += OnWindowCreated;
 
-		return window;
-	}
+        return window;
+    }
 
-	private async void OnWindowCreated(object? sender, EventArgs e)
-	{
-		await appDatabase.InitializeAsync();
+    private async void OnWindowCreated(object? sender, EventArgs e)
+    {
+        await appDatabase.InitializeAsync();
 #if DEBUG && ANDROID
-		var context = await androidUiTestDataInitializer.InitializeIfRequestedAsync();
-		if (context is not null)
-		{
-			if (context.OpenTeamManager)
-			{
-				await Shell.Current.GoToAsync(AppShell.PlayersSectionRoute);
-				await Shell.Current.GoToAsync(AppShell.TeamsSectionRoute);
-			}
-			else
-			{
-				await Shell.Current.GoToAsync(
-					AppShell.GameWorkspaceRoute,
-					new ShellNavigationQueryParameters
-					{
-						[AppShell.TeamIdQueryParameter] = context.TeamId,
-						[AppShell.GameIdQueryParameter] = context.GameId,
-					});
-			}
-		}
+        var context = await androidUiTestDataInitializer.InitializeIfRequestedAsync();
+        if (context is not null)
+        {
+            if (context.OpenTeamManager)
+            {
+                await Shell.Current.GoToAsync(AppShell.PlayersSectionRoute);
+                await Shell.Current.GoToAsync(AppShell.TeamsSectionRoute);
+            }
+            else
+            {
+                await Shell.Current.GoToAsync(
+                    AppShell.GameWorkspaceRoute,
+                    new ShellNavigationQueryParameters
+                    {
+                        [AppShell.TeamIdQueryParameter] = context.TeamId,
+                        [AppShell.GameIdQueryParameter] = context.GameId,
+                    }
+                );
+            }
+        }
 #endif
-	}
+    }
 }

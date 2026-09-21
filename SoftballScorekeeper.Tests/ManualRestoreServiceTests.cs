@@ -9,23 +9,15 @@ namespace SoftballScorekeeper.Tests;
 
 public sealed class ManualRestoreServiceTests
 {
-    private static readonly DateTimeOffset CreatedAt = new(
-        2026,
-        9,
-        16,
-        14,
-        15,
-        0,
-        TimeSpan.Zero
-    );
+    private static readonly DateTimeOffset CreatedAt = new(2026, 9, 16, 14, 15, 0, TimeSpan.Zero);
 
     [Fact]
     public async Task Confirmed_restore_replaces_all_data_and_keeps_existing_repositories_usable()
     {
         await using var sourceDb = await TemporaryTestDatabase.CreateAsync();
-        await sourceDb.CreateTeamRepository().CreateAsync(
-            new Team { Name = "Restored Team", Year = 2025 }
-        );
+        await sourceDb
+            .CreateTeamRepository()
+            .CreateAsync(new Team { Name = "Restored Team", Year = 2025 });
         await using var backup = await CreatePackageService(sourceDb).CreateAsync();
 
         await using var currentDb = await TemporaryTestDatabase.CreateAsync();
@@ -34,12 +26,14 @@ public sealed class ManualRestoreServiceTests
         var restoreSource = new FileRestoreSource(backup.FilePath, currentDb.DirectoryPath);
         var service = CreateRestoreService(currentDb, restoreSource);
 
-        var result = await service.RunAsync((metadata, compatibility) =>
-        {
-            Assert.Equal(CreatedAt, metadata.CreatedAt);
-            Assert.Equal(BackupDatabaseCompatibility.Current, compatibility);
-            return Task.FromResult(true);
-        });
+        var result = await service.RunAsync(
+            (metadata, compatibility) =>
+            {
+                Assert.Equal(CreatedAt, metadata.CreatedAt);
+                Assert.Equal(BackupDatabaseCompatibility.Current, compatibility);
+                return Task.FromResult(true);
+            }
+        );
 
         Assert.Equal(ManualRestoreStatus.Restored, result.Status);
         var restoredTeam = Assert.Single(await currentRepository.GetActiveAsync());
@@ -53,14 +47,14 @@ public sealed class ManualRestoreServiceTests
     public async Task Cancelled_confirmation_preserves_current_data_and_cleans_private_files()
     {
         await using var sourceDb = await TemporaryTestDatabase.CreateAsync();
-        await sourceDb.CreateTeamRepository().CreateAsync(
-            new Team { Name = "Unused Restore", Year = 2025 }
-        );
+        await sourceDb
+            .CreateTeamRepository()
+            .CreateAsync(new Team { Name = "Unused Restore", Year = 2025 });
         await using var backup = await CreatePackageService(sourceDb).CreateAsync();
         await using var currentDb = await TemporaryTestDatabase.CreateAsync();
-        await currentDb.CreateTeamRepository().CreateAsync(
-            new Team { Name = "Current Team", Year = 2026 }
-        );
+        await currentDb
+            .CreateTeamRepository()
+            .CreateAsync(new Team { Name = "Current Team", Year = 2026 });
         var restoreSource = new FileRestoreSource(backup.FilePath, currentDb.DirectoryPath);
 
         var result = await CreateRestoreService(currentDb, restoreSource)
@@ -79,9 +73,9 @@ public sealed class ManualRestoreServiceTests
     public async Task Supported_older_backup_is_identified_and_migrated_after_replacement()
     {
         await using var sourceDb = await TemporaryTestDatabase.CreateAsync();
-        await sourceDb.CreateTeamRepository().CreateAsync(
-            new Team { Name = "Older Backup Team", Year = 2025 }
-        );
+        await sourceDb
+            .CreateTeamRepository()
+            .CreateAsync(new Team { Name = "Older Backup Team", Year = 2025 });
         await sourceDb.ExecuteAsync("PRAGMA user_version = 1");
         await using var backup = await CreatePackageService(sourceDb).CreateAsync();
         await using var currentDb = await TemporaryTestDatabase.CreateAsync();
@@ -89,11 +83,13 @@ public sealed class ManualRestoreServiceTests
         BackupDatabaseCompatibility? confirmedCompatibility = null;
 
         var result = await CreateRestoreService(currentDb, source)
-            .RunAsync((_, compatibility) =>
-            {
-                confirmedCompatibility = compatibility;
-                return Task.FromResult(true);
-            });
+            .RunAsync(
+                (_, compatibility) =>
+                {
+                    confirmedCompatibility = compatibility;
+                    return Task.FromResult(true);
+                }
+            );
 
         Assert.Equal(ManualRestoreStatus.Restored, result.Status);
         Assert.Equal(BackupDatabaseCompatibility.OlderSupported, confirmedCompatibility);
@@ -111,20 +107,22 @@ public sealed class ManualRestoreServiceTests
     public async Task Invalid_package_is_rejected_before_confirmation_or_database_suspension()
     {
         await using var currentDb = await TemporaryTestDatabase.CreateAsync();
-        await currentDb.CreateTeamRepository().CreateAsync(
-            new Team { Name = "Current Team", Year = 2026 }
-        );
+        await currentDb
+            .CreateTeamRepository()
+            .CreateAsync(new Team { Name = "Current Team", Year = 2026 });
         var invalidPackage = Path.Combine(currentDb.DirectoryPath, "invalid.zip");
         await File.WriteAllTextAsync(invalidPackage, "not a backup");
         var restoreSource = new FileRestoreSource(invalidPackage, currentDb.DirectoryPath);
         var confirmationCalled = false;
 
         var result = await CreateRestoreService(currentDb, restoreSource)
-            .RunAsync((_, _) =>
-            {
-                confirmationCalled = true;
-                return Task.FromResult(true);
-            });
+            .RunAsync(
+                (_, _) =>
+                {
+                    confirmationCalled = true;
+                    return Task.FromResult(true);
+                }
+            );
 
         Assert.Equal(ManualRestoreStatus.Rejected, result.Status);
         Assert.Equal(BackupInspectionFailure.InvalidPackage, result.InspectionFailure);
@@ -140,9 +138,9 @@ public sealed class ManualRestoreServiceTests
     public async Task Replacement_initialization_failure_rolls_back_same_directory_safety_copy()
     {
         await using var currentDb = await TemporaryTestDatabase.CreateAsync();
-        await currentDb.CreateTeamRepository().CreateAsync(
-            new Team { Name = "Preserved Team", Year = 2026 }
-        );
+        await currentDb
+            .CreateTeamRepository()
+            .CreateAsync(new Team { Name = "Preserved Team", Year = 2026 });
         var invalidReplacement = await CreateMigrationFailureDatabaseAsync(currentDb.DirectoryPath);
 
         await Assert.ThrowsAsync<InvalidOperationException>(() =>
@@ -151,7 +149,10 @@ public sealed class ManualRestoreServiceTests
 
         var preserved = Assert.Single(await currentDb.CreateTeamRepository().GetActiveAsync());
         Assert.Equal("Preserved Team", preserved.Name);
-        Assert.Equal(AppDatabase.CurrentSchemaVersion, await currentDb.Database.GetSchemaVersionAsync());
+        Assert.Equal(
+            AppDatabase.CurrentSchemaVersion,
+            await currentDb.Database.GetSchemaVersionAsync()
+        );
         Assert.Empty(RestoreWorkFiles(currentDb));
     }
 
@@ -159,9 +160,9 @@ public sealed class ManualRestoreServiceTests
     public async Task Duplicate_invocation_is_rejected_while_confirmation_is_pending()
     {
         await using var sourceDb = await TemporaryTestDatabase.CreateAsync();
-        await sourceDb.CreateTeamRepository().CreateAsync(
-            new Team { Name = "Restored Team", Year = 2026 }
-        );
+        await sourceDb
+            .CreateTeamRepository()
+            .CreateAsync(new Team { Name = "Restored Team", Year = 2026 });
         await using var backup = await CreatePackageService(sourceDb).CreateAsync();
         await using var currentDb = await TemporaryTestDatabase.CreateAsync();
         var source = new FileRestoreSource(backup.FilePath, currentDb.DirectoryPath);
@@ -173,12 +174,14 @@ public sealed class ManualRestoreServiceTests
             TaskCreationOptions.RunContinuationsAsynchronously
         );
 
-        var first = service.RunAsync(async (_, _) =>
-        {
-            confirmationStarted.TrySetResult();
-            await continueConfirmation.Task;
-            return false;
-        });
+        var first = service.RunAsync(
+            async (_, _) =>
+            {
+                confirmationStarted.TrySetResult();
+                await continueConfirmation.Task;
+                return false;
+            }
+        );
         await confirmationStarted.Task.WaitAsync(TimeSpan.FromSeconds(10));
         var duplicate = await service.RunAsync((_, _) => Task.FromResult(true));
         continueConfirmation.TrySetResult();
@@ -188,15 +191,29 @@ public sealed class ManualRestoreServiceTests
         Assert.Equal(1, source.CallCount);
     }
 
+    [Fact]
+    public async Task Test_mode_is_rejected_before_source_selection()
+    {
+        await using var currentDb = await TemporaryTestDatabase.CreateAsync();
+        var source = new CountingRestoreSource();
+        var service = new ManualRestoreService(
+            CreatePackageService(currentDb),
+            new DatabaseRestoreService(currentDb.Database),
+            source,
+            new DatabaseModeState(DatabaseMode.Test),
+            new ApplicationWorkflowCoordinator()
+        );
+
+        var result = await service.RunAsync((_, _) => Task.FromResult(true));
+
+        Assert.Equal(ManualRestoreStatus.UnavailableInTestMode, result.Status);
+        Assert.Equal(0, source.CallCount);
+    }
+
     private static ManualRestoreService CreateRestoreService(
         TemporaryTestDatabase db,
         IRestoreSource source
-    ) =>
-        new(
-            CreatePackageService(db),
-            new DatabaseRestoreService(db.Database),
-            source
-        );
+    ) => new(CreatePackageService(db), new DatabaseRestoreService(db.Database), source);
 
     private static BackupPackageService CreatePackageService(TemporaryTestDatabase db) =>
         new(
@@ -222,8 +239,22 @@ public sealed class ManualRestoreServiceTests
             await connection.CreateTableAsync<TeamPlayer>();
             await connection.CreateTableAsync<Season>();
             await connection.CreateTableAsync<Game>();
-            await connection.InsertAsync(new Team { Id = 1, Name = "Duplicate", Year = 2024 });
-            await connection.InsertAsync(new Team { Id = 2, Name = "Duplicate", Year = 2025 });
+            await connection.InsertAsync(
+                new Team
+                {
+                    Id = 1,
+                    Name = "Duplicate",
+                    Year = 2024,
+                }
+            );
+            await connection.InsertAsync(
+                new Team
+                {
+                    Id = 2,
+                    Name = "Duplicate",
+                    Year = 2025,
+                }
+            );
             await connection.ExecuteAsync("PRAGMA user_version = 0");
         }
         finally
@@ -246,10 +277,8 @@ public sealed class ManualRestoreServiceTests
         : IRestoreSource
     {
         public int CallCount { get; private set; }
-        public string WorkspacePath { get; } = Path.Combine(
-            parentDirectory,
-            $"restore-source-{Guid.NewGuid():N}"
-        );
+        public string WorkspacePath { get; } =
+            Path.Combine(parentDirectory, $"restore-source-{Guid.NewGuid():N}");
 
         public async Task<RestoreSourceArtifact?> SelectAsync(
             CancellationToken cancellationToken = default
@@ -262,6 +291,19 @@ public sealed class ManualRestoreServiceTests
             await using var destination = File.Create(selectedPath);
             await source.CopyToAsync(destination, cancellationToken);
             return new RestoreSourceArtifact(selectedPath, WorkspacePath);
+        }
+    }
+
+    private sealed class CountingRestoreSource : IRestoreSource
+    {
+        public int CallCount { get; private set; }
+
+        public Task<RestoreSourceArtifact?> SelectAsync(
+            CancellationToken cancellationToken = default
+        )
+        {
+            CallCount++;
+            return Task.FromResult<RestoreSourceArtifact?>(null);
         }
     }
 }

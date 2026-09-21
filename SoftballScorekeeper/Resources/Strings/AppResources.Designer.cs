@@ -638,6 +638,42 @@ namespace SoftballScorekeeper.Resources.Strings {
             }
         }
 
+        public static string GameCreationInvalidTeamOrSeason {
+            get {
+                return ResourceManager.GetString("GameCreationInvalidTeamOrSeason", resourceCulture);
+            }
+        }
+
+        public static string GameCreationTeamYearMismatch {
+            get {
+                return ResourceManager.GetString("GameCreationTeamYearMismatch", resourceCulture);
+            }
+        }
+
+        public static string GameCreationTeamYearFinalized {
+            get {
+                return ResourceManager.GetString("GameCreationTeamYearFinalized", resourceCulture);
+            }
+        }
+
+        public static string GameCreationInvalidRequest {
+            get {
+                return ResourceManager.GetString("GameCreationInvalidRequest", resourceCulture);
+            }
+        }
+
+        public static string GameCreationPersistenceFailed {
+            get {
+                return ResourceManager.GetString("GameCreationPersistenceFailed", resourceCulture);
+            }
+        }
+
+        public static string GameCreationUnexpectedError {
+            get {
+                return ResourceManager.GetString("GameCreationUnexpectedError", resourceCulture);
+            }
+        }
+
         public static string DuplicateGameSchedule {
             get {
                 return ResourceManager.GetString("DuplicateGameSchedule", resourceCulture);
@@ -1215,5 +1251,21 @@ namespace SoftballScorekeeper.Resources.Strings {
         public static string RestoreDataUnsupported { get { return ResourceManager.GetString("RestoreDataUnsupported", resourceCulture); } }
         public static string RestoreDataFailed { get { return ResourceManager.GetString("RestoreDataFailed", resourceCulture); } }
         public static string RestoreDataRecoveryFailed { get { return ResourceManager.GetString("RestoreDataRecoveryFailed", resourceCulture); } }
+        public static string TestModeIndicator { get { return ResourceManager.GetString("TestModeIndicator", resourceCulture); } }
+        public static string EnterTestModeMenuItem { get { return ResourceManager.GetString("EnterTestModeMenuItem", resourceCulture); } }
+        public static string ExitTestModeMenuItem { get { return ResourceManager.GetString("ExitTestModeMenuItem", resourceCulture); } }
+        public static string EnterTestModeConfirmationTitle { get { return ResourceManager.GetString("EnterTestModeConfirmationTitle", resourceCulture); } }
+        public static string EnterTestModeConfirmationMessage { get { return ResourceManager.GetString("EnterTestModeConfirmationMessage", resourceCulture); } }
+        public static string EnterTestModeConfirmButton { get { return ResourceManager.GetString("EnterTestModeConfirmButton", resourceCulture); } }
+        public static string ExitTestModeChoiceTitle { get { return ResourceManager.GetString("ExitTestModeChoiceTitle", resourceCulture); } }
+        public static string DeleteTestDataChoice { get { return ResourceManager.GetString("DeleteTestDataChoice", resourceCulture); } }
+        public static string KeepTestDataChoice { get { return ResourceManager.GetString("KeepTestDataChoice", resourceCulture); } }
+        public static string TestModeChangeFailedTitle { get { return ResourceManager.GetString("TestModeChangeFailedTitle", resourceCulture); } }
+        public static string TestModeChangeFailedMessage { get { return ResourceManager.GetString("TestModeChangeFailedMessage", resourceCulture); } }
+        public static string TestModeRecoveryFailedTitle { get { return ResourceManager.GetString("TestModeRecoveryFailedTitle", resourceCulture); } }
+        public static string TestModeRecoveryFailedMessage { get { return ResourceManager.GetString("TestModeRecoveryFailedMessage", resourceCulture); } }
+        public static string ApplicationWorkflowBusyTitle { get { return ResourceManager.GetString("ApplicationWorkflowBusyTitle", resourceCulture); } }
+        public static string ApplicationWorkflowBusyMessage { get { return ResourceManager.GetString("ApplicationWorkflowBusyMessage", resourceCulture); } }
+        public static string PortableDataProductionOnlyMessage { get { return ResourceManager.GetString("PortableDataProductionOnlyMessage", resourceCulture); } }
     }
 }

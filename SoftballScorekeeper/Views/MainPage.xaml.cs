@@ -16,6 +16,8 @@ public partial class MainPage : ContentPage
     protected override async void OnAppearing()
     {
         base.OnAppearing();
-        await viewModel.LoadTeamsAsync();
+        await ReloadAsync();
     }
+
+    public Task ReloadAsync() => viewModel.LoadTeamsAsync();
 }

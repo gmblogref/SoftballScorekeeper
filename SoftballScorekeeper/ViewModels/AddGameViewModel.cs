@@ -2,6 +2,7 @@ using System.Collections.ObjectModel;
 using System.Globalization;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using Microsoft.Extensions.Logging;
 using SoftballScorekeeper.Core.Models;
 using SoftballScorekeeper.Infrastructure.Data.Repositories;
 using SoftballScorekeeper.Resources.Strings;
@@ -14,6 +15,7 @@ public partial class AddGameViewModel : ObservableObject, IQueryAttributable
     private readonly TeamRepository teamRepository;
     private readonly SeasonRepository seasonRepository;
     private readonly GameRepository gameRepository;
+    private readonly ILogger<AddGameViewModel> logger;
     private bool hasValidTeamId;
     private bool isUpdatingSeasonYear;
     private bool isUpdatingSecondGameTime;
@@ -68,16 +70,19 @@ public partial class AddGameViewModel : ObservableObject, IQueryAttributable
     public AddGameViewModel(
         TeamRepository teamRepository,
         SeasonRepository seasonRepository,
-        GameRepository gameRepository
+        GameRepository gameRepository,
+        ILogger<AddGameViewModel> logger
     )
     {
         ArgumentNullException.ThrowIfNull(teamRepository);
         ArgumentNullException.ThrowIfNull(seasonRepository);
         ArgumentNullException.ThrowIfNull(gameRepository);
+        ArgumentNullException.ThrowIfNull(logger);
 
         this.teamRepository = teamRepository;
         this.seasonRepository = seasonRepository;
         this.gameRepository = gameRepository;
+        this.logger = logger;
 
         scheduledTime = DefaultGameTime;
         secondGameTime = AddOneHour(scheduledTime);
@@ -261,10 +266,20 @@ public partial class AddGameViewModel : ObservableObject, IQueryAttributable
             var result = await gameRepository.CreateForTeamAsync(TeamId, season, games);
             if (!result.IsCompleteSuccess)
             {
-                ValidationMessage =
-                    result.FailureReason == CreateGamesFailure.DuplicateSchedule
-                        ? AppResources.DuplicateGameSchedule
-                        : AppResources.GameCreationFailed;
+                logger.LogWarning(
+                    "Add Game save failed with {FailureReason}. TeamId {TeamId}, SeasonId {SeasonId}, TeamYear {TeamYear}, ScheduledDate {ScheduledDate}, ScheduledTime {ScheduledTime}, AddSecondGame {AddSecondGame}, SecondGameTime {SecondGameTime}, ExceptionType {ExceptionType}, ExceptionMessage {ExceptionMessage}.",
+                    result.FailureReason,
+                    TeamId,
+                    season.Id,
+                    teamYear,
+                    ScheduledDate,
+                    ScheduledTime,
+                    AddSecondGame,
+                    SecondGameTime,
+                    result.ExceptionType,
+                    result.ExceptionMessage
+                );
+                ValidationMessage = GetFailureMessage(result.FailureReason);
                 return;
             }
 
@@ -276,15 +291,39 @@ public partial class AddGameViewModel : ObservableObject, IQueryAttributable
 
             await Shell.Current.GoToAsync("..");
         }
-        catch
+        catch (Exception exception)
         {
-            ValidationMessage = AppResources.GameCreationFailed;
+            logger.LogError(
+                exception,
+                "Unexpected Add Game save failure. TeamId {TeamId}, SeasonId {SeasonId}, TeamYear {TeamYear}, ScheduledDate {ScheduledDate}, ScheduledTime {ScheduledTime}, AddSecondGame {AddSecondGame}, SecondGameTime {SecondGameTime}.",
+                TeamId,
+                season.Id,
+                teamYear,
+                ScheduledDate,
+                ScheduledTime,
+                AddSecondGame,
+                SecondGameTime
+            );
+            ValidationMessage = AppResources.GameCreationUnexpectedError;
         }
         finally
         {
             IsBusy = false;
         }
     }
+
+    private static string GetFailureMessage(CreateGamesFailure failureReason) =>
+        failureReason switch
+        {
+            CreateGamesFailure.DuplicateSchedule => AppResources.DuplicateGameSchedule,
+            CreateGamesFailure.InvalidTeamOrSeason =>
+                AppResources.GameCreationInvalidTeamOrSeason,
+            CreateGamesFailure.TeamYearMismatch => AppResources.GameCreationTeamYearMismatch,
+            CreateGamesFailure.TeamYearFinalized => AppResources.GameCreationTeamYearFinalized,
+            CreateGamesFailure.InvalidRequest => AppResources.GameCreationInvalidRequest,
+            CreateGamesFailure.Persistence => AppResources.GameCreationPersistenceFailed,
+            _ => AppResources.GameCreationUnexpectedError,
+        };
 
     [RelayCommand(CanExecute = nameof(CanCancel))]
     private async Task CancelAsync()
