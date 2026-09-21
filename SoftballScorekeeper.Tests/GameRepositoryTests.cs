@@ -272,6 +272,47 @@ public sealed class GameRepositoryTests
     }
 
     [Fact]
+    public async Task CreateForTeamAsync_ExistingSeasonDoubleheaderWithBlankOptionalValues_Succeeds()
+    {
+        await using var testDatabase = await TemporaryTestDatabase.CreateAsync();
+        var team = await CreateTeamAsync(testDatabase);
+        var season = await CreateSeasonAsync(testDatabase, team, "Summer 2", 2026);
+        var scheduledDate = new DateTime(2026, 9, 18);
+
+        var result = await testDatabase.CreateGameRepository().CreateForTeamAsync(
+            team.Id,
+            season,
+            [
+                new Game
+                {
+                    ScheduledDate = scheduledDate,
+                    ScheduledTime = new TimeSpan(18, 30, 0),
+                    Opponent = string.Empty,
+                    Field = string.Empty,
+                },
+                new Game
+                {
+                    ScheduledDate = scheduledDate,
+                    ScheduledTime = new TimeSpan(19, 30, 0),
+                    Opponent = string.Empty,
+                    Field = string.Empty,
+                },
+            ]);
+
+        Assert.True(result.IsCompleteSuccess);
+        var games = await testDatabase.CreateGameRepository().GetForTeamAsync(team.Id);
+        Assert.Equal(
+            [new TimeSpan(18, 30, 0), new TimeSpan(19, 30, 0)],
+            games.Select(game => game.ScheduledTime));
+        Assert.All(games, game =>
+        {
+            Assert.Equal(scheduledDate, game.ScheduledDate);
+            Assert.Null(game.Opponent);
+            Assert.Null(game.Field);
+        });
+    }
+
+    [Fact]
     public async Task CreateForTeamAsync_InvalidTeamOrSeasonOwnership_InsertsNothing()
     {
         await using var testDatabase = await TemporaryTestDatabase.CreateAsync();
@@ -282,11 +323,66 @@ public sealed class GameRepositoryTests
         var game = ValidGame();
         var repository = testDatabase.CreateGameRepository();
 
-        Assert.False((await repository.CreateForTeamAsync(0, otherSeason, [game])).IsCompleteSuccess);
-        Assert.False((await repository.CreateForTeamAsync(int.MaxValue, otherSeason, [game])).IsCompleteSuccess);
-        Assert.False((await repository.CreateForTeamAsync(selectedTeam.Id, otherSeason, [game])).IsCompleteSuccess);
-        Assert.False((await repository.CreateForTeamAsync(selectedTeam.Id, missingSeason, [game])).IsCompleteSuccess);
+        Assert.Equal(
+            CreateGamesFailure.InvalidRequest,
+            (await repository.CreateForTeamAsync(0, otherSeason, [game])).FailureReason);
+        Assert.Equal(
+            CreateGamesFailure.InvalidTeamOrSeason,
+            (await repository.CreateForTeamAsync(int.MaxValue, otherSeason, [game])).FailureReason);
+        Assert.Equal(
+            CreateGamesFailure.InvalidTeamOrSeason,
+            (await repository.CreateForTeamAsync(selectedTeam.Id, otherSeason, [game]))
+                .FailureReason);
+        Assert.Equal(
+            CreateGamesFailure.InvalidTeamOrSeason,
+            (await repository.CreateForTeamAsync(selectedTeam.Id, missingSeason, [game]))
+                .FailureReason);
         Assert.Empty(await testDatabase.GetGamesAsync());
+    }
+
+    [Fact]
+    public async Task CreateForTeamAsync_SeasonYearMismatch_ReturnsSpecificFailure()
+    {
+        await using var testDatabase = await TemporaryTestDatabase.CreateAsync();
+        var team = await CreateTeamAsync(testDatabase);
+        var legacySeason = await CreateSeasonAsync(testDatabase, team, "Legacy", 2025);
+
+        var result = await testDatabase.CreateGameRepository()
+            .CreateForTeamAsync(team.Id, legacySeason, [ValidGame()]);
+
+        Assert.Equal(CreateGamesFailure.TeamYearMismatch, result.FailureReason);
+        Assert.Empty(await testDatabase.GetGamesAsync());
+    }
+
+    [Fact]
+    public async Task CreateForTeamAsync_FinalizedTeamYear_ReturnsSpecificFailure()
+    {
+        await using var testDatabase = await TemporaryTestDatabase.CreateAsync();
+        var team = await CreateTeamAsync(testDatabase);
+        var season = await CreateSeasonAsync(testDatabase, team, "Summer", 2026);
+        Assert.True(await testDatabase.CreateTeamRepository().MarkYearOverAsync(team.Id));
+
+        var result = await testDatabase.CreateGameRepository()
+            .CreateForTeamAsync(team.Id, season, [ValidGame()]);
+
+        Assert.Equal(CreateGamesFailure.TeamYearFinalized, result.FailureReason);
+        Assert.Empty(await testDatabase.GetGamesAsync());
+    }
+
+    [Fact]
+    public async Task CreateForTeamAsync_DatabaseFailure_ReturnsPersistenceFailure()
+    {
+        await using var testDatabase = await TemporaryTestDatabase.CreateAsync();
+        var team = await CreateTeamAsync(testDatabase);
+        var season = await CreateSeasonAsync(testDatabase, team, "Summer", 2026);
+        Assert.Equal(0, await testDatabase.ExecuteAsync("DROP TABLE Game"));
+
+        var result = await testDatabase.CreateGameRepository()
+            .CreateForTeamAsync(team.Id, season, [ValidGame()]);
+
+        Assert.Equal(CreateGamesFailure.Persistence, result.FailureReason);
+        Assert.Equal("SQLite.SQLiteException", result.ExceptionType);
+        Assert.False(string.IsNullOrWhiteSpace(result.ExceptionMessage));
     }
 
     [Fact]
@@ -300,7 +396,7 @@ public sealed class GameRepositoryTests
         var result = await testDatabase.CreateGameRepository()
             .CreateForTeamAsync(team.Id, season, [ValidGame()]);
 
-        Assert.False(result.IsCompleteSuccess);
+        Assert.Equal(CreateGamesFailure.InvalidTeamOrSeason, result.FailureReason);
         Assert.Empty(await testDatabase.GetGamesAsync());
     }
 
@@ -338,7 +434,7 @@ public sealed class GameRepositoryTests
         var result = await testDatabase.CreateGameRepository()
             .CreateForTeamAsync(team.Id, newSeason, [ValidGame(), invalidSecondGame]);
 
-        Assert.False(result.IsCompleteSuccess);
+        Assert.Equal(CreateGamesFailure.InvalidRequest, result.FailureReason);
         Assert.Empty(await testDatabase.GetGamesAsync());
         Assert.Empty(await testDatabase.GetSeasonsAsync());
     }

@@ -121,10 +121,17 @@ public sealed class GameRepository
             {
                 var activeTeam = transaction
                     .Table<Team>()
-                    .FirstOrDefault(team =>
-                        team.Id == teamId && team.IsActive && !team.IsYearOver);
+                    .FirstOrDefault(team => team.Id == teamId && team.IsActive);
                 if (activeTeam is null)
                 {
+                    return;
+                }
+                if (activeTeam.IsYearOver)
+                {
+                    result = FailedResult(
+                        requestedGames.Length,
+                        CreateGamesFailure.TeamYearFinalized
+                    );
                     return;
                 }
 
@@ -132,16 +139,29 @@ public sealed class GameRepository
                 if (season!.Id > 0)
                 {
                     persistedSeason = transaction.Find<Season>(season.Id);
-                    if (
-                        persistedSeason?.TeamId != teamId
-                        || persistedSeason.Year != activeTeam.Year
-                    )
+                    if (persistedSeason?.TeamId != teamId)
                     {
+                        return;
+                    }
+                    if (persistedSeason.Year != activeTeam.Year)
+                    {
+                        result = FailedResult(
+                            requestedGames.Length,
+                            CreateGamesFailure.TeamYearMismatch
+                        );
                         return;
                     }
                 }
                 else
                 {
+                    if (season.Year != activeTeam.Year)
+                    {
+                        result = FailedResult(
+                            requestedGames.Length,
+                            CreateGamesFailure.TeamYearMismatch
+                        );
+                        return;
+                    }
                     persistedSeason = SeasonRepository.ResolveOrCreateForActiveTeam(
                         transaction,
                         teamId,
@@ -150,7 +170,9 @@ public sealed class GameRepository
                     );
                     if (persistedSeason is null)
                     {
-                        return;
+                        throw new InvalidOperationException(
+                            "Season persistence did not resolve a valid Season."
+                        );
                     }
                 }
 
@@ -205,9 +227,13 @@ public sealed class GameRepository
         {
             return FailedResult(requestedGames.Length, CreateGamesFailure.DuplicateSchedule);
         }
-        catch
+        catch (Exception exception)
         {
-            return FailedResult(requestedGames.Length, CreateGamesFailure.Persistence);
+            return FailedResult(
+                requestedGames.Length,
+                CreateGamesFailure.Persistence,
+                exception
+            );
         }
 
         return result;
@@ -439,10 +465,18 @@ public sealed class GameRepository
 
     private static CreateGamesResult FailedResult(
         int requestedGameCount,
-        CreateGamesFailure failureReason
+        CreateGamesFailure failureReason,
+        Exception? exception = null
     )
     {
-        return new CreateGamesResult(requestedGameCount, 0, Array.Empty<int>(), failureReason);
+        return new CreateGamesResult(
+            requestedGameCount,
+            0,
+            Array.Empty<int>(),
+            failureReason,
+            exception?.GetType().FullName,
+            exception?.Message
+        );
     }
 
     private static RemoveGamesResult EmptyRemovalResult(IReadOnlyList<int> requestedIds)

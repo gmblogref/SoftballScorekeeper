@@ -348,6 +348,24 @@
   <data name="GameCreationFailed" xml:space="preserve">
     <value>The Game schedule could not be saved. Review the details and try again.</value>
   </data>
+  <data name="GameCreationInvalidTeamOrSeason" xml:space="preserve">
+    <value>The selected Season is no longer valid for this Team. Reopen the page and select the Season again.</value>
+  </data>
+  <data name="GameCreationTeamYearMismatch" xml:space="preserve">
+    <value>The selected Season does not match this Team Year. Reopen the page and select a current Season.</value>
+  </data>
+  <data name="GameCreationTeamYearFinalized" xml:space="preserve">
+    <value>This Team Year is finalized and Games can no longer be added.</value>
+  </data>
+  <data name="GameCreationInvalidRequest" xml:space="preserve">
+    <value>The Game schedule contains invalid information. Review the date and times and try again.</value>
+  </data>
+  <data name="GameCreationPersistenceFailed" xml:space="preserve">
+    <value>The Game schedule could not be saved because of a database error. Try again.</value>
+  </data>
+  <data name="GameCreationUnexpectedError" xml:space="preserve">
+    <value>The Game schedule could not be saved because of an unexpected error.</value>
+  </data>
   <data name="DuplicateGameSchedule" xml:space="preserve">
     <value>A Game is already scheduled for this Team, Season, date, and time. Change the date or time and try again.</value>
   </data>
@@ -796,4 +814,20 @@
   <data name="RestoreDataUnsupported" xml:space="preserve"><value>This backup version is not supported by the installed app. Update the app and try again. Your application data was not changed.</value></data>
   <data name="RestoreDataFailed" xml:space="preserve"><value>The backup could not be restored. Your previous application data was recovered.</value></data>
   <data name="RestoreDataRecoveryFailed" xml:space="preserve"><value>The backup could not be restored, and the previous data could not be reopened. Close the app and contact support before making more changes.</value></data>
+  <data name="TestModeIndicator" xml:space="preserve"><value>TEST MODE</value></data>
+  <data name="EnterTestModeMenuItem" xml:space="preserve"><value>Enter Test Mode</value></data>
+  <data name="ExitTestModeMenuItem" xml:space="preserve"><value>Exit Test Mode</value></data>
+  <data name="EnterTestModeConfirmationTitle" xml:space="preserve"><value>Enter Test Mode?</value></data>
+  <data name="EnterTestModeConfirmationMessage" xml:space="preserve"><value>Test Mode uses separate, disposable data. Your Production data will not be modified. Backup and Restore are unavailable in Test Mode.</value></data>
+  <data name="EnterTestModeConfirmButton" xml:space="preserve"><value>Enter Test Mode</value></data>
+  <data name="ExitTestModeChoiceTitle" xml:space="preserve"><value>Exit Test Mode</value></data>
+  <data name="DeleteTestDataChoice" xml:space="preserve"><value>Delete Test Data</value></data>
+  <data name="KeepTestDataChoice" xml:space="preserve"><value>Keep Test Data</value></data>
+  <data name="TestModeChangeFailedTitle" xml:space="preserve"><value>Test Mode Change Failed</value></data>
+  <data name="TestModeChangeFailedMessage" xml:space="preserve"><value>The database mode could not be changed safely. Your prior mode remains active.</value></data>
+  <data name="TestModeRecoveryFailedTitle" xml:space="preserve"><value>Database Unavailable</value></data>
+  <data name="TestModeRecoveryFailedMessage" xml:space="preserve"><value>The database mode could not be changed or safely recovered. Close the app before making more changes.</value></data>
+  <data name="ApplicationWorkflowBusyTitle" xml:space="preserve"><value>Operation In Progress</value></data>
+  <data name="ApplicationWorkflowBusyMessage" xml:space="preserve"><value>Finish the current Backup, Restore, or Test Mode operation before trying again.</value></data>
+  <data name="PortableDataProductionOnlyMessage" xml:space="preserve"><value>Backup and Restore are available only in Production Mode.</value></data>
 </root>

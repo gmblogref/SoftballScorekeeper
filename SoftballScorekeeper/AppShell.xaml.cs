@@ -2,6 +2,10 @@
 {
     public partial class AppShell : Shell
     {
+        private readonly Infrastructure.Data.DatabaseModeService databaseModeService;
+        private readonly Infrastructure.Data.DatabaseModeState databaseModeState;
+        private readonly Views.MainPage mainPage;
+
         public const string CreateTeamRoute = "create-team";
         public const string EditTeamRoute = "edit-team";
         public const string InactiveTeamsRoute = "inactive-teams";
@@ -25,9 +29,18 @@
         public const string TeamsSectionRoute = "//teams/team-manager";
         public const string PlayersSectionRoute = "//players/player-manager";
 
-        public AppShell(Views.MainPage mainPage)
+        public AppShell(
+            Views.MainPage mainPage,
+            Infrastructure.Data.DatabaseModeState databaseModeState,
+            Infrastructure.Data.DatabaseModeService databaseModeService
+        )
         {
             InitializeComponent();
+            BindingContext = databaseModeState;
+            this.databaseModeState = databaseModeState;
+            this.mainPage = mainPage;
+            this.databaseModeService = databaseModeService;
+            UpdateModeMenuVisibility();
             Routing.RegisterRoute(CreateTeamRoute, typeof(Views.CreateTeamPage));
             Routing.RegisterRoute(EditTeamRoute, typeof(Views.EditTeamPage));
             Routing.RegisterRoute(InactiveTeamsRoute, typeof(Views.InactiveTeamsPage));
@@ -76,6 +89,132 @@
         {
             FlyoutIsPresented = false;
             await GoToAsync(DataManagementRoute);
+        }
+
+        private async void OnEnterTestModeClicked(object sender, EventArgs e)
+        {
+            FlyoutIsPresented = false;
+            var result = await databaseModeService.EnterTestModeAsync(() =>
+                DisplayAlert(
+                    global::SoftballScorekeeper
+                        .Resources
+                        .Strings
+                        .AppResources
+                        .EnterTestModeConfirmationTitle,
+                    global::SoftballScorekeeper
+                        .Resources
+                        .Strings
+                        .AppResources
+                        .EnterTestModeConfirmationMessage,
+                    global::SoftballScorekeeper
+                        .Resources
+                        .Strings
+                        .AppResources
+                        .EnterTestModeConfirmButton,
+                    global::SoftballScorekeeper.Resources.Strings.AppResources.CancelButton
+                )
+            );
+            await CompleteModeChangeAsync(result);
+        }
+
+        private async void OnExitTestModeClicked(object sender, EventArgs e)
+        {
+            FlyoutIsPresented = false;
+            var result = await databaseModeService.ExitTestModeAsync(async () =>
+            {
+                var selection = await DisplayActionSheet(
+                    global::SoftballScorekeeper
+                        .Resources
+                        .Strings
+                        .AppResources
+                        .ExitTestModeChoiceTitle,
+                    global::SoftballScorekeeper.Resources.Strings.AppResources.CancelButton,
+                    null,
+                    global::SoftballScorekeeper.Resources.Strings.AppResources.DeleteTestDataChoice,
+                    global::SoftballScorekeeper.Resources.Strings.AppResources.KeepTestDataChoice
+                );
+                if (
+                    selection
+                    == global::SoftballScorekeeper
+                        .Resources
+                        .Strings
+                        .AppResources
+                        .DeleteTestDataChoice
+                )
+                    return Infrastructure.Data.TestModeExitChoice.DeleteTestData;
+                if (
+                    selection
+                    == global::SoftballScorekeeper.Resources.Strings.AppResources.KeepTestDataChoice
+                )
+                    return Infrastructure.Data.TestModeExitChoice.KeepTestData;
+                return Infrastructure.Data.TestModeExitChoice.Cancel;
+            });
+            await CompleteModeChangeAsync(result);
+        }
+
+        private async Task CompleteModeChangeAsync(
+            Infrastructure.Data.DatabaseModeChangeResult result
+        )
+        {
+            if (result == Infrastructure.Data.DatabaseModeChangeResult.Changed)
+            {
+                UpdateModeMenuVisibility();
+                await mainPage.ReloadAsync();
+                await GoToAsync(TeamsSectionRoute);
+                return;
+            }
+
+            if (result == Infrastructure.Data.DatabaseModeChangeResult.RecoveryFailed)
+                await DisplayAlert(
+                    global::SoftballScorekeeper
+                        .Resources
+                        .Strings
+                        .AppResources
+                        .TestModeRecoveryFailedTitle,
+                    global::SoftballScorekeeper
+                        .Resources
+                        .Strings
+                        .AppResources
+                        .TestModeRecoveryFailedMessage,
+                    global::SoftballScorekeeper.Resources.Strings.AppResources.OkButton
+                );
+            else if (result == Infrastructure.Data.DatabaseModeChangeResult.Failed)
+                await DisplayAlert(
+                    global::SoftballScorekeeper
+                        .Resources
+                        .Strings
+                        .AppResources
+                        .TestModeChangeFailedTitle,
+                    global::SoftballScorekeeper
+                        .Resources
+                        .Strings
+                        .AppResources
+                        .TestModeChangeFailedMessage,
+                    global::SoftballScorekeeper.Resources.Strings.AppResources.OkButton
+                );
+            else if (result == Infrastructure.Data.DatabaseModeChangeResult.AlreadyInProgress)
+                await DisplayAlert(
+                    global::SoftballScorekeeper
+                        .Resources
+                        .Strings
+                        .AppResources
+                        .ApplicationWorkflowBusyTitle,
+                    global::SoftballScorekeeper
+                        .Resources
+                        .Strings
+                        .AppResources
+                        .ApplicationWorkflowBusyMessage,
+                    global::SoftballScorekeeper.Resources.Strings.AppResources.OkButton
+                );
+        }
+
+        private void UpdateModeMenuVisibility()
+        {
+            Shell.SetFlyoutItemIsVisible(
+                EnterTestModeMenuItem,
+                databaseModeState.IsProductionMode
+            );
+            Shell.SetFlyoutItemIsVisible(ExitTestModeMenuItem, databaseModeState.IsTestMode);
         }
     }
 }

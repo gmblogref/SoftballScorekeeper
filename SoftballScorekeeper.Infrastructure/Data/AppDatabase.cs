@@ -12,6 +12,9 @@ public sealed class AppDatabase
     private SQLiteAsyncConnection connection;
     private readonly SemaphoreSlim initializationLock = new(1, 1);
     private readonly DatabaseLifecycleCoordinator lifecycle = new();
+    private readonly AppDatabasePaths? modePaths;
+    private string databasePath;
+    private DatabaseMode activeMode;
     private volatile bool isInitialized;
     private volatile bool isAccessSuspended;
 
@@ -25,11 +28,23 @@ public sealed class AppDatabase
             );
         }
 
-        DatabasePath = databasePath;
+        this.databasePath = Path.GetFullPath(databasePath);
+        activeMode = DatabaseMode.Production;
         connection = CreateConnection();
     }
 
-    public string DatabasePath { get; }
+    public AppDatabase(AppDatabasePaths paths, DatabaseMode initialMode)
+    {
+        ArgumentNullException.ThrowIfNull(paths);
+        modePaths = paths;
+        activeMode = initialMode;
+        databasePath = paths.GetPath(initialMode);
+        connection = CreateConnection();
+    }
+
+    public string DatabasePath => databasePath;
+
+    public DatabaseMode ActiveMode => activeMode;
 
     public async Task<DatabaseOperationLease> BeginOperationAsync(
         CancellationToken cancellationToken = default
@@ -339,6 +354,72 @@ public sealed class AppDatabase
         }
     }
 
+    public async Task SwitchModeAsync(DatabaseMode targetMode)
+    {
+        EnsureModeSwitchConfigured();
+        EnsureExclusiveLifecycle();
+        if (activeMode == targetMode && !isAccessSuspended)
+            return;
+
+        var previousMode = activeMode;
+        var previousPath = databasePath;
+        await SuspendAccessAsync();
+        databasePath = modePaths!.GetPath(targetMode);
+
+        try
+        {
+            await ReinitializeAccessAsync();
+            activeMode = targetMode;
+        }
+        catch (Exception switchFailure)
+        {
+            databasePath = previousPath;
+            try
+            {
+                await ReinitializeAccessAsync();
+                activeMode = previousMode;
+            }
+            catch (Exception rollbackFailure)
+            {
+                throw new DatabaseModeRecoveryException(switchFailure, rollbackFailure);
+            }
+
+            throw;
+        }
+    }
+
+    public async Task ResetTestDatabaseAsync()
+    {
+        EnsureModeSwitchConfigured();
+        EnsureExclusiveLifecycle();
+        if (activeMode != DatabaseMode.Test)
+            throw new InvalidOperationException(
+                "The product Test database can be reset only while Test Mode is active."
+            );
+
+        modePaths!.ValidateTestResetTarget();
+        await SwitchModeAsync(DatabaseMode.Production);
+
+        try
+        {
+            DeleteTestDatabaseArtifacts();
+        }
+        catch (Exception deleteFailure)
+        {
+            try
+            {
+                await SwitchModeAsync(DatabaseMode.Test);
+            }
+            catch (Exception rollbackFailure)
+            {
+                await SuspendAccessAsync();
+                throw new DatabaseModeRecoveryException(deleteFailure, rollbackFailure);
+            }
+
+            throw;
+        }
+    }
+
     public async Task CloseAsync()
     {
         await using var exclusive = await BeginExclusiveLifecycleAsync();
@@ -361,6 +442,33 @@ public sealed class AppDatabase
             DatabasePath,
             SQLiteOpenFlags.ReadWrite | SQLiteOpenFlags.Create | SQLiteOpenFlags.SharedCache
         );
+    }
+
+    private void EnsureModeSwitchConfigured()
+    {
+        if (modePaths is null)
+            throw new InvalidOperationException(
+                "This AppDatabase instance was not configured for database mode switching."
+            );
+    }
+
+    private void EnsureExclusiveLifecycle()
+    {
+        if (!lifecycle.IsExclusiveActive)
+            throw new InvalidOperationException(
+                "The database mode can be changed only during an exclusive lifecycle lease."
+            );
+    }
+
+    private void DeleteTestDatabaseArtifacts()
+    {
+        modePaths!.ValidateTestResetTarget();
+        foreach (var suffix in new[] { "", "-journal", "-wal", "-shm" })
+        {
+            var artifactPath = modePaths.TestDatabasePath + suffix;
+            if (File.Exists(artifactPath))
+                File.Delete(artifactPath);
+        }
     }
 
     private static void UpgradeStory60ScoringSessions(SQLiteConnection transaction)
@@ -482,4 +590,13 @@ public sealed class AppDatabase
         && lineup
             .Select(item => item.BattingOrder)
             .SequenceEqual(Enumerable.Range(1, lineup.Count));
+}
+
+public sealed class DatabaseModeRecoveryException : Exception
+{
+    internal DatabaseModeRecoveryException(Exception switchFailure, Exception rollbackFailure)
+        : base(
+            "The database mode change failed and the previous database could not be reopened.",
+            new AggregateException(switchFailure, rollbackFailure)
+        ) { }
 }

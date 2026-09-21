@@ -31,36 +31,58 @@ namespace SoftballScorekeeper
 
             builder.Services.AddSingleton<AppShell>();
             builder.Services.AddSingleton<ApplicationSettings>();
+            builder.Services.AddSingleton<IDatabaseModePreferenceStore>(_ =>
+            {
+                var preferenceStore = new MauiDatabaseModePreferenceStore();
+#if DEBUG && ANDROID
+                if (
+                    AndroidUiTestDataInitializer.IsInitializationRequested(
+                        FileSystem.AppDataDirectory
+                    )
+                )
+                    preferenceStore.Save(DatabaseMode.Production);
+#endif
+                return preferenceStore;
+            });
+            builder.Services.AddSingleton<ApplicationWorkflowCoordinator>();
+            builder.Services.AddSingleton(serviceProvider =>
+            {
+                var preferenceStore =
+                    serviceProvider.GetRequiredService<IDatabaseModePreferenceStore>();
+                return new DatabaseModeState(preferenceStore.Load());
+            });
             builder.Services.AddSingleton(TimeProvider.System);
             builder.Services.AddSingleton<IBackupPlatform, MauiBackupPlatform>();
             builder.Services.AddSingleton(serviceProvider =>
             {
                 var settings = serviceProvider.GetRequiredService<ApplicationSettings>();
+                var databaseModeState = serviceProvider.GetRequiredService<DatabaseModeState>();
                 var useAndroidUiTestDatabase = false;
+                var resetAndroidUiTestDatabase = false;
 #if DEBUG && ANDROID
-                useAndroidUiTestDatabase = AndroidUiTestDataInitializer.IsInitializationRequested(
+                useAndroidUiTestDatabase = AndroidUiTestDataInitializer.IsUiTestModeRequested(
                     FileSystem.AppDataDirectory
                 );
+                resetAndroidUiTestDatabase =
+                    AndroidUiTestDataInitializer.IsInitializationRequested(
+                        FileSystem.AppDataDirectory
+                    );
 #endif
-                var normalDatabasePath = AppDatabaseFileIsolation.ResolveDatabasePath(
+                var paths = new AppDatabasePaths(
                     FileSystem.AppDataDirectory,
                     settings.DatabaseFileName,
-                    settings.AndroidUiTestDatabaseFileName,
-                    useAndroidUiTestDatabase: false
-                );
-                var databasePath = AppDatabaseFileIsolation.ResolveDatabasePath(
-                    FileSystem.AppDataDirectory,
-                    settings.DatabaseFileName,
+                    settings.TestDatabaseFileName,
                     settings.AndroidUiTestDatabaseFileName,
                     useAndroidUiTestDatabase
                 );
-                if (useAndroidUiTestDatabase)
+                if (resetAndroidUiTestDatabase)
                     AppDatabaseFileIsolation.ResetAndroidUiTestDatabase(
-                        normalDatabasePath,
-                        databasePath
+                        paths.ProductionDatabasePath,
+                        paths.AndroidUiTestDatabasePath
                     );
-                return new AppDatabase(databasePath);
+                return new AppDatabase(paths, databaseModeState.CurrentMode);
             });
+            builder.Services.AddSingleton<DatabaseModeService>();
             builder.Services.AddSingleton<TeamRepository>();
             builder.Services.AddSingleton<TeamYearCopyRepository>();
             builder.Services.AddSingleton<PlayerRepository>();

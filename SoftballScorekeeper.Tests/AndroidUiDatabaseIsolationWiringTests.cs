@@ -12,9 +12,11 @@ public sealed class AndroidUiDatabaseIsolationWiringTests
         Assert.Contains("SoftballScorekeeper.db3", settings);
         Assert.Contains("SoftballScorekeeper.AndroidUiTests.db3", settings);
         Assert.Contains("IsInitializationRequested", composition);
-        Assert.Contains("AppDatabaseFileIsolation.ResolveDatabasePath", composition);
+        Assert.Contains("new AppDatabasePaths", composition);
+        Assert.Contains("IsUiTestModeRequested", composition);
         Assert.Contains("AppDatabaseFileIsolation.ResetAndroidUiTestDatabase", composition);
         Assert.Contains("RequestFileNames.Any", initializer);
+        Assert.Contains("ModeFileName", initializer);
     }
 
     [Fact]
@@ -25,7 +27,8 @@ public sealed class AndroidUiDatabaseIsolationWiringTests
         Assert.Contains("RequestDeterministicSeed", fixture);
         Assert.DoesNotContain("\"pm\", \"clear\"", fixture);
         Assert.Contains("TestSeedRequestFileNames", fixture);
-        Assert.Contains("\"touch\", $\"files/{seedRequestFileName}\"", fixture);
+        Assert.Contains("$\"files/{seedRequestFileName}\"", fixture);
+        Assert.Contains("TestModeFileName", fixture);
     }
 
     [Fact]

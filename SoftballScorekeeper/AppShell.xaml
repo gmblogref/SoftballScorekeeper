@@ -3,8 +3,10 @@
     x:Class="SoftballScorekeeper.AppShell"
     xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:data="clr-namespace:SoftballScorekeeper.Infrastructure.Data;assembly=SoftballScorekeeper.Infrastructure"
     xmlns:strings="clr-namespace:SoftballScorekeeper.Resources.Strings"
     xmlns:views="clr-namespace:SoftballScorekeeper.Views"
+    x:DataType="data:DatabaseModeState"
     Shell.FlyoutBehavior="Flyout"
     Title="{x:Static strings:AppResources.ShellTitle}">
 
@@ -45,5 +47,16 @@
     <MenuItem
         Text="{x:Static strings:AppResources.DataManagementTitle}"
         Clicked="OnDataManagementClicked" />
+
+    <MenuItem
+        x:Name="EnterTestModeMenuItem"
+        AutomationId="EnterTestModeMenuItem"
+        Text="{x:Static strings:AppResources.EnterTestModeMenuItem}"
+        Clicked="OnEnterTestModeClicked" />
+    <MenuItem
+        x:Name="ExitTestModeMenuItem"
+        AutomationId="ExitTestModeMenuItem"
+        Text="{x:Static strings:AppResources.ExitTestModeMenuItem}"
+        Clicked="OnExitTestModeClicked" />
 
 </Shell>

@@ -8,6 +8,7 @@ namespace SoftballScorekeeper.Testing;
 
 public sealed class AndroidUiTestDataInitializer
 {
+    internal const string ModeFileName = "android-ui-test-mode";
     internal const string RequestFileName = "android-ui-test-seed";
     internal const string MissingGameRequestFileName = "android-ui-test-missing-game";
     internal const string CompletedStatisticsSortingRequestFileName =
@@ -22,6 +23,9 @@ public sealed class AndroidUiTestDataInitializer
         "android-ui-test-manual-restore";
     internal const string DeviceMigrationRequestFileName =
         "android-ui-test-device-migration";
+    internal const string ManualFindingsReproductionRequestFileName =
+        "android-ui-test-manual-findings-reproduction";
+    internal const string ScheduleGamesRequestFileName = "android-ui-test-schedule-games";
     private static readonly string[] RequestFileNames =
     [
         RequestFileName,
@@ -34,6 +38,8 @@ public sealed class AndroidUiTestDataInitializer
         TeamYearSummaryRequestFileName,
         ManualRestoreRequestFileName,
         DeviceMigrationRequestFileName,
+        ManualFindingsReproductionRequestFileName,
+        ScheduleGamesRequestFileName,
     ];
 
     private readonly AppDatabase database;
@@ -83,6 +89,10 @@ public sealed class AndroidUiTestDataInitializer
             FileSystem.AppDataDirectory, ManualRestoreRequestFileName);
         var deviceMigrationRequestPath = Path.Combine(
             FileSystem.AppDataDirectory, DeviceMigrationRequestFileName);
+        var manualFindingsReproductionRequestPath = Path.Combine(
+            FileSystem.AppDataDirectory, ManualFindingsReproductionRequestFileName);
+        var scheduleGamesRequestPath = Path.Combine(
+            FileSystem.AppDataDirectory, ScheduleGamesRequestFileName);
         var useMissingGame = File.Exists(missingGameRequestPath);
         var useCompletedStatisticsSorting = File.Exists(
             completedStatisticsSortingRequestPath);
@@ -93,10 +103,14 @@ public sealed class AndroidUiTestDataInitializer
         var useTeamYearSummary = File.Exists(teamYearSummaryRequestPath);
         var useManualRestore = File.Exists(manualRestoreRequestPath);
         var useDeviceMigration = File.Exists(deviceMigrationRequestPath);
+        var useManualFindingsReproduction = File.Exists(
+            manualFindingsReproductionRequestPath);
+        var useScheduleGames = File.Exists(scheduleGamesRequestPath);
         if (!File.Exists(requestPath) && !useMissingGame
             && !useCompletedStatisticsSorting && !useTeamRecord && !useBeerTotals
             && !useTeamStats && !useTeamYearCopy && !useTeamYearSummary
-            && !useManualRestore && !useDeviceMigration) return null;
+            && !useManualRestore && !useDeviceMigration
+            && !useManualFindingsReproduction && !useScheduleGames) return null;
 
         if (File.Exists(requestPath)) File.Delete(requestPath);
         if (useMissingGame) File.Delete(missingGameRequestPath);
@@ -109,6 +123,14 @@ public sealed class AndroidUiTestDataInitializer
         if (useTeamYearSummary) File.Delete(teamYearSummaryRequestPath);
         if (useManualRestore) File.Delete(manualRestoreRequestPath);
         if (useDeviceMigration) File.Delete(deviceMigrationRequestPath);
+        if (useManualFindingsReproduction)
+            File.Delete(manualFindingsReproductionRequestPath);
+        if (useScheduleGames) File.Delete(scheduleGamesRequestPath);
+
+        if (useScheduleGames) return await SeedScheduleGamesAsync();
+
+        if (useManualFindingsReproduction)
+            return await SeedManualFindingsReproductionAsync();
 
         if (useDeviceMigration) return await SeedDeviceMigrationAsync();
 
@@ -183,8 +205,87 @@ public sealed class AndroidUiTestDataInitializer
             team.Id, useMissingGame ? gameId + 1 : gameId, false);
     }
 
+    private async Task<AndroidUiTestContext> SeedManualFindingsReproductionAsync()
+    {
+        var team = new Team
+        {
+            Name = "MANUAL FINDINGS REPRODUCTION",
+            Year = 2026,
+            IsActive = true,
+        };
+        EnsureSingleRow(await teamRepository.CreateAsync(team), "manual-findings Team");
+
+        var playerIds = new List<int>();
+        foreach (var firstName in new[] { "First", "Second", "Third" })
+        {
+            var result = await playerRepository.CreateForTeamAsync(
+                new Player
+                {
+                    FirstName = firstName,
+                    LastName = "Reproduction",
+                    IsActive = true,
+                },
+                team.Id);
+            if (!result.IsSuccess)
+                throw new InvalidOperationException(
+                    $"Could not seed manual-findings Player {firstName}.");
+            playerIds.Add(result.PlayerId);
+        }
+
+        var gameResult = await gameRepository.CreateForTeamAsync(
+            team.Id,
+            new Season { Name = "Reproduction", Year = team.Year },
+            [new Game
+            {
+                ScheduledDate = new DateTime(2026, 9, 18),
+                ScheduledTime = new TimeSpan(18, 30, 0),
+                Opponent = "Reproduction Opponent",
+                Field = "Reproduction Field",
+            }]);
+        if (!gameResult.IsCompleteSuccess)
+            throw new InvalidOperationException(
+                "Could not seed the manual-findings Game.");
+
+        var gameId = gameResult.CreatedGameIds.Single();
+        var lineupResult = await lineupRepository.SaveInitialAsync(
+            team.Id, gameId, playerIds);
+        if (!lineupResult.IsSuccess)
+            throw new InvalidOperationException(
+                "Could not seed the manual-findings lineup.");
+
+        return new AndroidUiTestContext(team.Id, gameId, false);
+    }
+
+    private async Task<AndroidUiTestContext> SeedScheduleGamesAsync()
+    {
+        var team = new Team
+        {
+            Name = "SCHEDULE GAMES REPRODUCTION",
+            Year = 2026,
+            IsActive = true,
+        };
+        EnsureSingleRow(await teamRepository.CreateAsync(team), "schedule-games Team");
+
+        var seasonResult = await gameRepository.CreateForTeamAsync(
+            team.Id,
+            new Season { Name = "Summer 2", Year = team.Year },
+            [new Game
+            {
+                ScheduledDate = new DateTime(2026, 9, 11),
+                ScheduledTime = new TimeSpan(17, 0, 0),
+            }]);
+        if (!seasonResult.IsCompleteSuccess)
+            throw new InvalidOperationException(
+                "Could not seed the schedule-games Season.");
+
+        return new AndroidUiTestContext(team.Id, 0, true);
+    }
+
     internal static bool IsInitializationRequested(string appDataDirectory) =>
         RequestFileNames.Any(fileName => File.Exists(Path.Combine(appDataDirectory, fileName)));
+
+    internal static bool IsUiTestModeRequested(string appDataDirectory) =>
+        File.Exists(Path.Combine(appDataDirectory, ModeFileName));
 
     private async Task<AndroidUiTestContext> SeedManualRestoreAsync()
     {

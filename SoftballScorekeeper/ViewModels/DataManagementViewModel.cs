@@ -1,16 +1,28 @@
+using System.ComponentModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using SoftballScorekeeper.Infrastructure.Backup;
+using SoftballScorekeeper.Infrastructure.Data;
 using SoftballScorekeeper.Resources.Strings;
 
 namespace SoftballScorekeeper.ViewModels;
 
 public partial class DataManagementViewModel(
     ManualBackupService manualBackupService,
-    ManualRestoreService manualRestoreService
-)
-    : ObservableObject
+    ManualRestoreService manualRestoreService,
+    DatabaseModeState databaseModeState
+) : ObservableObject
 {
+    public DataManagementViewModel(
+        ManualBackupService manualBackupService,
+        ManualRestoreService manualRestoreService
+    )
+        : this(
+            manualBackupService,
+            manualRestoreService,
+            new DatabaseModeState(DatabaseMode.Production)
+        ) { }
+
     [ObservableProperty]
     [NotifyCanExecuteChangedFor(nameof(BackupDataCommand))]
     [NotifyCanExecuteChangedFor(nameof(RestoreDataCommand))]
@@ -22,10 +34,15 @@ public partial class DataManagementViewModel(
     [ObservableProperty]
     private bool hasStatusMessage;
 
-    public Func<BackupMetadata, BackupDatabaseCompatibility, Task<bool>>?
-        RestoreConfirmationRequested { get; set; }
+    public Func<
+        BackupMetadata,
+        BackupDatabaseCompatibility,
+        Task<bool>
+    >? RestoreConfirmationRequested { get; set; }
 
     public Func<Task>? RestoreCompletedNotificationRequested { get; set; }
+
+    public bool IsTestMode => databaseModeState.IsTestMode;
 
     [RelayCommand(CanExecute = nameof(CanBackupData))]
     private async Task BackupDataAsync()
@@ -56,7 +73,7 @@ public partial class DataManagementViewModel(
         }
     }
 
-    private bool CanBackupData() => !IsBusy;
+    private bool CanBackupData() => !IsBusy && databaseModeState.CanUsePortableBackupAndRestore;
 
     [RelayCommand(CanExecute = nameof(CanRestoreData))]
     private async Task RestoreDataAsync()
@@ -82,12 +99,11 @@ public partial class DataManagementViewModel(
             }
             else if (result.Status == ManualRestoreStatus.Rejected)
             {
-                StatusMessage =
-                    result.InspectionFailure
-                        is BackupInspectionFailure.UnsupportedBackupFormat
-                            or BackupInspectionFailure.UnsupportedDatabaseVersion
-                        ? AppResources.RestoreDataUnsupported
-                        : AppResources.RestoreDataInvalid;
+                StatusMessage = result.InspectionFailure
+                    is BackupInspectionFailure.UnsupportedBackupFormat
+                        or BackupInspectionFailure.UnsupportedDatabaseVersion
+                    ? AppResources.RestoreDataUnsupported
+                    : AppResources.RestoreDataInvalid;
                 HasStatusMessage = true;
             }
         }
@@ -107,5 +123,30 @@ public partial class DataManagementViewModel(
         }
     }
 
-    private bool CanRestoreData() => !IsBusy;
+    private bool CanRestoreData() => !IsBusy && databaseModeState.CanUsePortableBackupAndRestore;
+
+    public void RefreshModeAvailability()
+    {
+        BackupDataCommand.NotifyCanExecuteChanged();
+        RestoreDataCommand.NotifyCanExecuteChanged();
+    }
+
+    public void BeginObservingMode()
+    {
+        databaseModeState.PropertyChanged -= OnDatabaseModePropertyChanged;
+        databaseModeState.PropertyChanged += OnDatabaseModePropertyChanged;
+        RefreshModeAvailability();
+    }
+
+    public void EndObservingMode() =>
+        databaseModeState.PropertyChanged -= OnDatabaseModePropertyChanged;
+
+    private void OnDatabaseModePropertyChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName == nameof(DatabaseModeState.CanUsePortableBackupAndRestore))
+        {
+            OnPropertyChanged(nameof(IsTestMode));
+            RefreshModeAvailability();
+        }
+    }
 }
