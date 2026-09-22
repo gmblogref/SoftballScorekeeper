@@ -114,6 +114,14 @@ never valid cleanup targets. Portable Backup and Restore are Production-only.
 While Test Mode is active, a clear TEST MODE indicator must remain visible
 throughout normal application navigation.
 
+League Season backup reminders are Production-only and are driven by a
+prospective, schedule-aware completion checkpoint: every scheduled Game must
+be authoritative Completed and the latest playing date must be before the
+current local calendar date. Only a successful final Production backup
+destination write or an explicit Dismiss handles an eligible checkpoint;
+Remind Later is session-only and never creates automatic backup behavior. Test
+Mode must not evaluate or modify Production reminder state.
+
 Preferred dependency direction:
 
 ```text

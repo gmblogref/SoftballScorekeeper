@@ -28,6 +28,8 @@ internal static class AndroidAutomationConstants
         "android-ui-test-manual-findings-reproduction";
     public const string ScheduleGamesTestSeedRequestFileName =
         "android-ui-test-schedule-games";
+    public const string SeasonBackupReminderTestSeedRequestFileName =
+        "android-ui-test-season-backup-reminder";
     public static readonly IReadOnlyList<string> TestSeedRequestFileNames =
     [
         TestSeedRequestFileName,
@@ -42,6 +44,7 @@ internal static class AndroidAutomationConstants
         DeviceMigrationTestSeedRequestFileName,
         ManualFindingsReproductionTestSeedRequestFileName,
         ScheduleGamesTestSeedRequestFileName,
+        SeasonBackupReminderTestSeedRequestFileName,
     ];
     public const string FirstBatterName = "Alex Automation";
     public const string SecondBatterName = "Blake Automation";

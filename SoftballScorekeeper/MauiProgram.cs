@@ -98,9 +98,11 @@ namespace SoftballScorekeeper
             builder.Services.AddSingleton<TeamRecordRepository>();
             builder.Services.AddSingleton<TeamBattingStatisticsRepository>();
             builder.Services.AddSingleton<TeamYearSummaryRepository>();
+            builder.Services.AddSingleton<SeasonBackupReminderRepository>();
             builder.Services.AddSingleton<BackupPackageService>();
             builder.Services.AddSingleton<IBackupDestination, MauiBackupDestination>();
             builder.Services.AddSingleton<ManualBackupService>();
+            builder.Services.AddSingleton<SeasonBackupReminderService>();
             builder.Services.AddSingleton<IRestoreSource, MauiRestoreSource>();
             builder.Services.AddSingleton<DatabaseRestoreService>();
             builder.Services.AddSingleton<ManualRestoreService>();

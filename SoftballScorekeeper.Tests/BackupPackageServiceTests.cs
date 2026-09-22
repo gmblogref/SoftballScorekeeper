@@ -101,7 +101,13 @@ public sealed class BackupPackageServiceTests
     public async Task Inspect_rejects_newer_database_without_changing_source()
     {
         await using var db = await TemporaryTestDatabase.CreateAsync();
-        var packagePath = await CreatePackageWithVersionsAsync(db, 1, 3, 3);
+        var newerVersion = AppDatabase.CurrentSchemaVersion + 1;
+        var packagePath = await CreatePackageWithVersionsAsync(
+            db,
+            1,
+            newerVersion,
+            newerVersion
+        );
 
         var result = await CreateService(db).InspectAsync(packagePath);
 
@@ -354,6 +360,7 @@ public sealed class BackupPackageServiceTests
             "BeerLedgerEntry",
             "TeamBeerRuleConfiguration",
             "GameScoringBeerRuleConfiguration",
+            "SeasonBackupReminderCheckpoint",
         };
         var connection = new SQLiteAsyncConnection(
             databasePath,
@@ -420,6 +427,14 @@ public sealed class BackupPackageServiceTests
                 item =>
                     item.RuleType == BeerRuleType.LowMan
                     && item.PlayingDate == new DateTime(2026, 7, 10)
+            );
+            var reminderCheckpoint = Assert.Single(
+                await connection.Table<SeasonBackupReminderCheckpoint>().ToListAsync()
+            );
+            Assert.Equal("representative-checkpoint", reminderCheckpoint.CheckpointId);
+            Assert.Equal(
+                SeasonBackupReminderCheckpointDisposition.Dismissed,
+                reminderCheckpoint.Disposition
             );
         }
         finally
@@ -690,6 +705,14 @@ public sealed class BackupPackageServiceTests
                     Origin = BeerLedgerEntryOrigin.AutomaticScoring,
                     PlayingDate = new DateTime(2026, 7, 10),
                     Amount = 1,
+                }
+            );
+            await connection.InsertAsync(
+                new SeasonBackupReminderCheckpoint
+                {
+                    CheckpointId = "representative-checkpoint",
+                    SeasonId = 1,
+                    Disposition = SeasonBackupReminderCheckpointDisposition.Dismissed,
                 }
             );
             return 0;
