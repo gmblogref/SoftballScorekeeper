@@ -6,7 +6,7 @@ namespace SoftballScorekeeper.Infrastructure.Data;
 public sealed class AppDatabase
 {
     public const int MinimumSupportedSchemaVersion = 0;
-    public const int CurrentSchemaVersion = 2;
+    public const int CurrentSchemaVersion = 3;
 
     internal static readonly TimeSpan ScoringHistoryRetention = TimeSpan.FromDays(21);
     private SQLiteAsyncConnection connection;
@@ -123,6 +123,7 @@ public sealed class AppDatabase
             await connection.CreateTableAsync<BeerLedgerEntry>();
             await connection.CreateTableAsync<TeamBeerRuleConfiguration>();
             await connection.CreateTableAsync<GameScoringBeerRuleConfiguration>();
+            await connection.CreateTableAsync<SeasonBackupReminderCheckpoint>();
             await AddColumnIfMissingAsync<TeamPlayer>(nameof(TeamPlayer.JerseyNumber), "INTEGER");
             await AddColumnIfMissingAsync<GameScoringSession>(
                 nameof(GameScoringSession.CompletedAtUtc),
@@ -163,6 +164,7 @@ public sealed class AppDatabase
             {
                 UpgradeStory77TeamYearsAndLineage(transaction);
                 UpgradeStory79TeamYearCompletion(transaction);
+                UpgradeStory85SeasonBackupReminders(transaction);
                 if (legacyScoringRules)
                     transaction.Execute(
                         "UPDATE GameScoringSession SET HomeRunLimit = ?",
@@ -211,10 +213,29 @@ public sealed class AppDatabase
 
     private static void UpgradeStory79TeamYearCompletion(SQLiteConnection transaction)
     {
-        if (transaction.ExecuteScalar<int>("PRAGMA user_version") >= CurrentSchemaVersion)
+        if (transaction.ExecuteScalar<int>("PRAGMA user_version") >= 2)
             return;
 
-        transaction.Execute($"PRAGMA user_version = {CurrentSchemaVersion}");
+        transaction.Execute("PRAGMA user_version = 2");
+    }
+
+    private static void UpgradeStory85SeasonBackupReminders(SQLiteConnection transaction)
+    {
+        if (transaction.ExecuteScalar<int>("PRAGMA user_version") >= 3)
+            return;
+
+        var completedSchedules = Repositories.SeasonBackupReminderRepository
+            .FindCompletedCandidates(
+                transaction,
+                DateTime.MaxValue.Date,
+                requirePriorPlayingDate: false
+            );
+        Repositories.SeasonBackupReminderRepository.InsertHandled(
+            transaction,
+            completedSchedules,
+            SeasonBackupReminderCheckpointDisposition.HistoricalBaseline
+        );
+        transaction.Execute("PRAGMA user_version = 3");
     }
 
     private static void UpgradeStory77TeamYearsAndLineage(SQLiteConnection transaction)

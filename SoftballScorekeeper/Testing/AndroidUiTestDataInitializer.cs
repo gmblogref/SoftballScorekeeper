@@ -8,6 +8,8 @@ namespace SoftballScorekeeper.Testing;
 
 public sealed class AndroidUiTestDataInitializer
 {
+    private static int initializationInProgress;
+
     internal const string ModeFileName = "android-ui-test-mode";
     internal const string RequestFileName = "android-ui-test-seed";
     internal const string MissingGameRequestFileName = "android-ui-test-missing-game";
@@ -26,6 +28,8 @@ public sealed class AndroidUiTestDataInitializer
     internal const string ManualFindingsReproductionRequestFileName =
         "android-ui-test-manual-findings-reproduction";
     internal const string ScheduleGamesRequestFileName = "android-ui-test-schedule-games";
+    internal const string SeasonBackupReminderRequestFileName =
+        "android-ui-test-season-backup-reminder";
     private static readonly string[] RequestFileNames =
     [
         RequestFileName,
@@ -40,6 +44,7 @@ public sealed class AndroidUiTestDataInitializer
         DeviceMigrationRequestFileName,
         ManualFindingsReproductionRequestFileName,
         ScheduleGamesRequestFileName,
+        SeasonBackupReminderRequestFileName,
     ];
 
     private readonly AppDatabase database;
@@ -68,7 +73,25 @@ public sealed class AndroidUiTestDataInitializer
         this.beerAccountingRepository = beerAccountingRepository;
     }
 
+    internal static bool IsInitializationInProgress =>
+        Volatile.Read(ref initializationInProgress) == 1;
+
     internal async Task<AndroidUiTestContext?> InitializeIfRequestedAsync()
+    {
+        if (!IsInitializationRequested(FileSystem.AppDataDirectory)) return null;
+
+        Interlocked.Exchange(ref initializationInProgress, 1);
+        try
+        {
+            return await InitializeRequestedAsync();
+        }
+        finally
+        {
+            Interlocked.Exchange(ref initializationInProgress, 0);
+        }
+    }
+
+    private async Task<AndroidUiTestContext?> InitializeRequestedAsync()
     {
         var requestPath = Path.Combine(FileSystem.AppDataDirectory, RequestFileName);
         var missingGameRequestPath = Path.Combine(
@@ -93,6 +116,8 @@ public sealed class AndroidUiTestDataInitializer
             FileSystem.AppDataDirectory, ManualFindingsReproductionRequestFileName);
         var scheduleGamesRequestPath = Path.Combine(
             FileSystem.AppDataDirectory, ScheduleGamesRequestFileName);
+        var seasonBackupReminderRequestPath = Path.Combine(
+            FileSystem.AppDataDirectory, SeasonBackupReminderRequestFileName);
         var useMissingGame = File.Exists(missingGameRequestPath);
         var useCompletedStatisticsSorting = File.Exists(
             completedStatisticsSortingRequestPath);
@@ -106,11 +131,13 @@ public sealed class AndroidUiTestDataInitializer
         var useManualFindingsReproduction = File.Exists(
             manualFindingsReproductionRequestPath);
         var useScheduleGames = File.Exists(scheduleGamesRequestPath);
+        var useSeasonBackupReminder = File.Exists(seasonBackupReminderRequestPath);
         if (!File.Exists(requestPath) && !useMissingGame
             && !useCompletedStatisticsSorting && !useTeamRecord && !useBeerTotals
             && !useTeamStats && !useTeamYearCopy && !useTeamYearSummary
             && !useManualRestore && !useDeviceMigration
-            && !useManualFindingsReproduction && !useScheduleGames) return null;
+            && !useManualFindingsReproduction && !useScheduleGames
+            && !useSeasonBackupReminder) return null;
 
         if (File.Exists(requestPath)) File.Delete(requestPath);
         if (useMissingGame) File.Delete(missingGameRequestPath);
@@ -126,6 +153,9 @@ public sealed class AndroidUiTestDataInitializer
         if (useManualFindingsReproduction)
             File.Delete(manualFindingsReproductionRequestPath);
         if (useScheduleGames) File.Delete(scheduleGamesRequestPath);
+        if (useSeasonBackupReminder) File.Delete(seasonBackupReminderRequestPath);
+
+        if (useSeasonBackupReminder) return await SeedSeasonBackupReminderAsync();
 
         if (useScheduleGames) return await SeedScheduleGamesAsync();
 
@@ -277,6 +307,54 @@ public sealed class AndroidUiTestDataInitializer
         if (!seasonResult.IsCompleteSuccess)
             throw new InvalidOperationException(
                 "Could not seed the schedule-games Season.");
+
+        return new AndroidUiTestContext(team.Id, 0, true);
+    }
+
+    private async Task<AndroidUiTestContext> SeedSeasonBackupReminderAsync()
+    {
+        var latestScheduledDate = DateTime.Today.AddDays(-1);
+        var team = new Team
+        {
+            Name = "BACKUP REMINDER TEAM",
+            Year = latestScheduledDate.Year,
+            IsActive = true,
+        };
+        EnsureSingleRow(await teamRepository.CreateAsync(team), "backup-reminder Team");
+
+        var player = await playerRepository.CreateForTeamAsync(
+            new Player
+            {
+                FirstName = "Backup",
+                LastName = "Reminder",
+                IsActive = true,
+            },
+            team.Id);
+        if (!player.IsSuccess)
+            throw new InvalidOperationException(
+                "Could not seed the backup-reminder Player.");
+
+        var gameResult = await gameRepository.CreateForTeamAsync(
+            team.Id,
+            new Season { Name = "Completed Season", Year = team.Year },
+            [new Game
+            {
+                ScheduledDate = latestScheduledDate,
+                ScheduledTime = new TimeSpan(18, 30, 0),
+                Opponent = "Backup Reminder Opponent",
+            }]);
+        if (!gameResult.IsCompleteSuccess)
+            throw new InvalidOperationException(
+                "Could not seed the backup-reminder Game.");
+
+        await using var operation = await database.BeginOperationAsync();
+        await InsertCompletedSessionAsync(
+            operation.Connection,
+            gameResult.CreatedGameIds.Single(),
+            player.PlayerId,
+            TeamGameSide.Home,
+            homeScore: 1,
+            visitorScore: 0);
 
         return new AndroidUiTestContext(team.Id, 0, true);
     }

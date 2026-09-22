@@ -10,9 +10,9 @@ Stable product and architecture decisions belong in the project architecture doc
 
 ## Current Project Status
 
-- **Latest completed story:** Story 8.4 — Isolated Test Mode (implementation and emulator acceptance complete; physical-device acceptance pending)
-- **Completed stories:** Stories 0.0 through 6.9.5, Stories 7.0 through 7.9 except Story 7.6, and Stories 8.0 through 8.4; Story 6.9.4 and Story 7.7 retain their recorded physical Android acceptance status, and Stories 3.2 through 3.4 retain their recorded validation status
-- **Current story:** Story 8.4 implementation and targeted Android/Appium acceptance complete; physical-device acceptance remains pending
+- **Latest completed story:** Story 8.5 — League Season Backup Reminder (implementation, emulator-independent validation, and targeted Android acceptance complete; physical-device acceptance pending)
+- **Completed stories:** Stories 0.0 through 6.9.5, Stories 7.0 through 7.9 except Story 7.6, and Stories 8.0 through 8.5; Story 6.9.4 and Story 7.7 retain their recorded physical Android acceptance status, and Stories 3.2 through 3.4 retain their recorded validation status
+- **Current story:** Story 8.5 implementation, emulator-independent validation, and targeted Android acceptance complete; physical-device acceptance remains pending
 - **Current phase:** Backup / Restore
 - **Foundation status:** Complete
 
@@ -3307,6 +3307,29 @@ Dedicated Double Play/Triple Play presentation, sacrifice results, HR-limit/dead
 #### Intended Commit Message
 
 `Add isolated Test Mode`
+
+### Story 8.5 — League Season Backup Reminder (Implementation, emulator-independent validation, and targeted Android acceptance complete — physical-device acceptance pending)
+
+#### Prospective Season-Completion Reminders
+
+- Added one Production-only reminder evaluation after the Teams root completes its initial repository reload. A singleton coordinator consumes startup evaluation exactly once per process session, including no-eligible and Test Mode starts, so navigation back to Teams, Remind Later, and a same-session Test-to-Production switch cannot stack or re-open the reminder. Multiple eligible League Seasons across Teams collapse into one resource-backed `OK` / `Remind Later` / `Dismiss` action sheet.
+- Reminder eligibility is derived from authoritative persisted state: the Season must match its owning Team Year, contain at least one Game, every Game must have a `GameScoringSession` with `Completed` status, and the latest `ScheduledDate.Date` must be earlier than `TimeProvider`'s current local date. Same-day completion never reminds, and every Game in a final-date doubleheader must be complete. Team activity, Team Year finalization, age, and successor existence do not infer completion; legacy mismatched Team/Season years are excluded.
+- Added portable SQLite `SeasonBackupReminderCheckpoint` state and advanced the database schema from 2 to 3. Checkpoint identity is a deterministic SHA-256 hash of stable `SeasonId` plus ordered `GameId`/normalized scheduled-date pairs. Adding/removing/moving a Game or changing its playing date creates a different checkpoint; scheduled-time-only, opponent, and field changes do not. Restoring an exact previously handled schedule reuses its handled checkpoint.
+- Schema-0/1/2 migration baselines every already-fully-completed valid Team-Year Season as historical handled state, with no recent-Season exception, preventing retroactive reminders on upgrade or older-backup restore. Brand-new databases naturally baseline nothing. Reminder state is part of the authoritative SQLite snapshot and remains physically isolated with the existing Production/Test database selection.
+- `OK` calls the existing `ManualBackupService.RunAsync()` directly and opens the existing platform save picker; it does not navigate to Data Management or duplicate backup logic. After and only after the destination returns `Saved`, Manual Backup re-evaluates current eligibility and records every then-eligible checkpoint as satisfied, covering both reminder-launched and ordinary Data Management backups. Cancellation, destination/package failure, workflow exclusion, Test unavailability, and a pre-completion backup satisfy nothing. If the final destination write succeeds but checkpoint persistence fails, the saved backup remains truthfully reported as successful and the checkpoint conservatively remains eligible.
+- Remind Later persists nothing and suppresses only the current session. Dismiss persists all checkpoints represented by that dialog without disabling future Seasons. Test Mode returns before reminder evaluation or persistence and cannot touch the physically separate Production checkpoint state.
+
+#### Tests, Builds, and Acceptance Status
+
+- Added 18 focused reminder workflow, repository, migration, mode-isolation, backup-boundary, and presentation-resource cases. Coverage includes empty/incomplete/today/prior-date Seasons; doubleheaders; multiple Seasons and Teams; direct OK invocation; saved/cancelled/failed/manual/pre-completion backups; save-boundary re-evaluation; session-only Remind Later; persisted Dismiss/satisfaction; future Seasons; schedule membership/date/time/metadata changes; cross-Season moves; schema-2 historical baseline; physical Test/Production isolation; root-ready ordering; and resource-backed actions. Backup package coverage now verifies the checkpoint table and representative state, and the future-schema test follows `CurrentSchemaVersion + 1`.
+- The reminder-only selection passed 18 of 18, and the final reminder plus adjacent backup/mode/migration selection passed 61 of 61, both with zero failures or skips. The complete emulator-independent suite passed 1,050 of 1,050 with zero failures or skips using single-node MSBuild. An initial full-suite invocation stalled before discovery under parallel MSBuild/test-host orchestration and was stopped; the single-node rerun completed normally in 1 minute 14 seconds with no product or test failure.
+- The full five-project Android/Windows solution build succeeded with zero errors and 163 existing-category nullable, MVVM Toolkit AOT, and XAML binding warnings. The focused Infrastructure build succeeded with zero warnings or errors, and the Windows app build succeeded with zero errors and 153 existing-category warnings.
+- Added and ran the opt-in Android acceptance `Season_completion_reminder_launches_backup_and_clears_only_after_success` with `& .\scripts\run-android-ui-tests.ps1 -AvdName 'softball_tablet_ui_tests_api_35' -TestFilter 'FullyQualifiedName=SoftballScorekeeper.AndroidUiTests.SeasonBackupReminderTests.Season_completion_reminder_launches_backup_and_clears_only_after_success'`. The final run passed 1 of 1 with zero failures or skips in 49 seconds. It verified one eligible reminder on cold start, direct launch into DocumentsUI rather than Data Management, cancellation leaving the checkpoint eligible across a cold reopen, a real successful DocumentsUI save, and no reminder after the final cold reopen.
+- The passing run used runner-started `softball_tablet_ui_tests_api_35` as `emulator-5554`; the runner started and stopped its own Appium and emulator processes. Earlier failed attempts reused the already-running instance of that same dedicated AVD until it went offline, after which the runner started it. There were five retries before the pass: two sandbox-only Appium/ADB `spawn EPERM` failures before app launch, one Android UI seed-timing failure corrected with a DEBUG/Android-only initialization gate, one dedicated-emulator offline failure during APK installation, and one DocumentsUI cancellation-mechanics failure corrected by reusing the existing Manual Backup bounded back-and-reactivate pattern. All were automation/environment failures; no Story 8.5 production defect was found or fixed, so no emulator-independent tests were rerun. No broader Android suite or Feature 9 regression was run. Physical-device acceptance remains pending.
+
+#### Intended Commit Message
+
+`Add League Season backup reminder`
 
 ## Maintenance Rules
 

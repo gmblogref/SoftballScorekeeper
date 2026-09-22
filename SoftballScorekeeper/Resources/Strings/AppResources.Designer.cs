@@ -1239,6 +1239,9 @@ namespace SoftballScorekeeper.Resources.Strings {
         public static string BackupDataDescription { get { return ResourceManager.GetString("BackupDataDescription", resourceCulture); } }
         public static string BackupDataSucceeded { get { return ResourceManager.GetString("BackupDataSucceeded", resourceCulture); } }
         public static string BackupDataFailed { get { return ResourceManager.GetString("BackupDataFailed", resourceCulture); } }
+        public static string SeasonBackupReminderMessage { get { return ResourceManager.GetString("SeasonBackupReminderMessage", resourceCulture); } }
+        public static string SeasonBackupReminderRemindLater { get { return ResourceManager.GetString("SeasonBackupReminderRemindLater", resourceCulture); } }
+        public static string SeasonBackupReminderDismiss { get { return ResourceManager.GetString("SeasonBackupReminderDismiss", resourceCulture); } }
         public static string RestoreDataButton { get { return ResourceManager.GetString("RestoreDataButton", resourceCulture); } }
         public static string RestoreDataDescription { get { return ResourceManager.GetString("RestoreDataDescription", resourceCulture); } }
         public static string RestoreDataConfirmationTitle { get { return ResourceManager.GetString("RestoreDataConfirmationTitle", resourceCulture); } }

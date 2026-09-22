@@ -802,6 +802,9 @@
   <data name="BackupDataDescription" xml:space="preserve"><value>Create a portable backup and choose where to save it.</value></data>
   <data name="BackupDataSucceeded" xml:space="preserve"><value>Backup saved successfully.</value></data>
   <data name="BackupDataFailed" xml:space="preserve"><value>The backup could not be saved. Your application data was not changed.</value></data>
+  <data name="SeasonBackupReminderMessage" xml:space="preserve"><value>One or more League Seasons have finished. Back up your Softball Scorekeeper data?</value></data>
+  <data name="SeasonBackupReminderRemindLater" xml:space="preserve"><value>Remind Later</value></data>
+  <data name="SeasonBackupReminderDismiss" xml:space="preserve"><value>Dismiss</value></data>
   <data name="RestoreDataButton" xml:space="preserve"><value>Restore Data</value></data>
   <data name="RestoreDataDescription" xml:space="preserve"><value>Replace all application data with a Softball Scorekeeper backup.</value></data>
   <data name="RestoreDataConfirmationTitle" xml:space="preserve"><value>Restore This Backup?</value></data>

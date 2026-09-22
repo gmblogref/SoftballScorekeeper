@@ -1,4 +1,5 @@
 using SoftballScorekeeper.Core.Models;
+using SoftballScorekeeper.Infrastructure.Data;
 using SoftballScorekeeper.Infrastructure.Data.Repositories;
 
 namespace SoftballScorekeeper.Tests;
@@ -78,7 +79,7 @@ public sealed class TeamYearCopyRepositoryTests
             (await db.GetSeasonsAsync()).Where(item => item.TeamId == 3).Select(item => item.Year)
         );
         Assert.Equal(
-            2,
+            AppDatabase.CurrentSchemaVersion,
             await db.UseConnectionAsync(connection =>
                 connection.ExecuteScalarAsync<int>("PRAGMA user_version")
             )
@@ -110,7 +111,7 @@ public sealed class TeamYearCopyRepositoryTests
             )
         );
         Assert.Equal(
-            2,
+            AppDatabase.CurrentSchemaVersion,
             await db.UseConnectionAsync(connection =>
                 connection.ExecuteScalarAsync<int>("PRAGMA user_version")
             )
