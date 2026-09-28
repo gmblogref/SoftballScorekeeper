@@ -46,6 +46,14 @@ public sealed class BeerRulesConfigurationTests
             AssertRule(driver, "Dbo", false, "1");
             AssertRule(driver, "Strikeout", true, "3");
             AssertRule(driver, "LowMan", true, "2");
+
+            SetAmount(driver, "Dbo", "0");
+            AndroidElementWait.UntilAutomationId(driver, "SaveBeerRulesButton").Click();
+            AndroidElementWait.UntilText(
+                driver,
+                "Enter a positive whole-number amount for every Beer rule.");
+            AndroidElementWait.UntilText(driver, TeamTitle);
+            AndroidElementWait.UntilAutomationId(driver, "CancelBeerRulesButton").Click();
         }
         catch (Exception exception)
         {

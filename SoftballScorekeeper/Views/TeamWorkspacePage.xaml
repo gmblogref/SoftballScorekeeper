@@ -35,22 +35,25 @@
 
         <Grid Grid.Row="1"
               IsVisible="{Binding IsTeamLoaded}">
-            <Label
+            <Button
+                AutomationId="EditTeamNameButton"
                 Text="{Binding TeamName}"
-                Style="{StaticResource Headline}"
+                Command="{Binding BeginTeamNameEditCommand}"
+                BackgroundColor="Transparent"
+                BorderWidth="0"
+                Padding="0"
+                FontSize="32"
+                TextColor="{AppThemeBinding Light={StaticResource MidnightBlue}, Dark={StaticResource White}}"
+                HorizontalOptions="Center"
                 MinimumHeightRequest="52"
-                VerticalTextAlignment="Center"
                 SemanticProperties.HeadingLevel="Level1"
                 SemanticProperties.Hint="{x:Static strings:AppResources.TeamNameEditHint}">
-                <Label.GestureRecognizers>
-                    <TapGestureRecognizer Command="{Binding BeginTeamNameEditCommand}" />
-                </Label.GestureRecognizers>
-                <Label.Triggers>
-                    <DataTrigger TargetType="Label" Binding="{Binding IsEditingTeamName}" Value="True">
+                <Button.Triggers>
+                    <DataTrigger TargetType="Button" Binding="{Binding IsEditingTeamName}" Value="True">
                         <Setter Property="IsVisible" Value="False" />
                     </DataTrigger>
-                </Label.Triggers>
-            </Label>
+                </Button.Triggers>
+            </Button>
 
             <Grid ColumnDefinitions="*,Auto,Auto"
                   ColumnSpacing="16"

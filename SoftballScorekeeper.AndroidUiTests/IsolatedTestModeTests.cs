@@ -113,6 +113,79 @@ public sealed class IsolatedTestModeTests(AndroidAppiumFixture fixture)
         );
     }
 
+    [AndroidUiFact]
+    public void Test_mode_scoring_persists_without_changing_production_scoring()
+    {
+        Run(
+            nameof(Test_mode_scoring_persists_without_changing_production_scoring),
+            driver =>
+            {
+                StartScoring(driver);
+                AndroidScoringWorkflow.SelectResult(driver, "Single");
+                AndroidScoringWorkflow.CompletePendingPlay(driver);
+                AndroidScoringWorkflow.ExitAndResume(driver);
+                AndroidScoringWorkflow.AssertBatterInningAndOuts(
+                    driver, AndroidAutomationConstants.SecondBatterName, "Top 1", "0 Outs");
+                AndroidElementWait.UntilAutomationIdText(
+                    driver, "FirstBaseRunnerButton", AndroidAutomationConstants.FirstBatterName);
+                ExitScoring(driver);
+
+                EnterTestMode(driver);
+                AssertTestModeRoot(driver, NormalTeam);
+                CreateTeam(driver, "TEST MODE SCORING TEAM");
+                CreateTestPlayerAndGame(driver);
+
+                AndroidElementWait.UntilText(driver, "TEST SCORING OPPONENT").Click();
+                AndroidElementWait.UntilText(driver, "Set Lineup").Click();
+                AndroidElementWait.UntilText(driver, "Add Players").Click();
+                var player = AndroidElementWait.UntilText(driver, "Test Scorer");
+                PhaseAUiWorkflow.NearestVisibleCheckbox(driver, player).Click();
+                AndroidElementWait.UntilText(driver, "Add Selected").Click();
+                AndroidElementWait.UntilText(driver, "1. Test Scorer");
+                AndroidElementWait.UntilText(driver, "Done").Click();
+
+                StartScoring(driver);
+                AssertTestModeIndicator(driver);
+                AndroidScoringWorkflow.SelectResult(driver, "Single");
+                AndroidScoringWorkflow.CompletePendingPlay(driver);
+                AndroidElementWait.UntilAutomationIdText(
+                    driver, "FirstBaseRunnerButton", "Test Scorer");
+                fixture.SetOrientation(ScreenOrientation.Portrait);
+                AssertTestModeIndicator(driver);
+                fixture.SetOrientation(ScreenOrientation.Landscape);
+                AndroidScoringWorkflow.ExitAndResume(driver);
+                AndroidElementWait.UntilAutomationIdText(
+                    driver, "FirstBaseRunnerButton", "Test Scorer");
+                AssertTestModeIndicator(driver);
+                ExitScoring(driver);
+
+                fixture.RelaunchApplicationWithoutReset();
+                driver = fixture.Driver;
+                AndroidElementWait.UntilText(driver, "TEST MODE SCORING TEAM");
+                AssertTestModeIndicator(driver);
+                AndroidElementWait.UntilAutomationId(driver, "TeamCard-1").Click();
+                AndroidElementWait.UntilAutomationIdText(
+                    driver, "GameScheduleStatus1", "In Progress").Click();
+                AndroidElementWait.UntilAutomationId(driver, "ResumeGameButton").Click();
+                AndroidElementWait.UntilAutomationIdText(
+                    driver, "FirstBaseRunnerButton", "Test Scorer");
+                AssertTestModeIndicator(driver);
+                ExitScoring(driver);
+
+                ReturnToRootAndExitTestMode(driver);
+                AndroidElementWait.UntilAutomationId(driver, "TeamCard-1").Click();
+                AndroidElementWait.UntilAutomationIdText(
+                    driver, "GameScheduleStatus1", "In Progress").Click();
+                AndroidElementWait.UntilAutomationId(driver, "ResumeGameButton").Click();
+                AndroidScoringWorkflow.AssertBatterInningAndOuts(
+                    driver, AndroidAutomationConstants.SecondBatterName, "Top 1", "0 Outs");
+                AndroidElementWait.UntilAutomationIdText(
+                    driver, "FirstBaseRunnerButton", AndroidAutomationConstants.FirstBatterName);
+                AssertIndicatorAbsent(driver);
+            }
+        );
+    }
+
     private void Run(string testName, Action<AndroidDriver> scenario)
     {
         fixture.ResetApplication();
@@ -178,6 +251,72 @@ public sealed class IsolatedTestModeTests(AndroidAppiumFixture fixture)
         entries[1].SendKeys("2026");
         AndroidElementWait.UntilText(driver, "Save").Click();
         AndroidElementWait.UntilText(driver, teamName);
+    }
+
+    private static void CreateTestPlayerAndGame(AndroidDriver driver)
+    {
+        AndroidElementWait.UntilAutomationId(driver, "TeamCard-1").Click();
+        AndroidElementWait.UntilAutomationId(
+            driver, "TeamWorkspaceRosterSectionButton").Click();
+        AndroidElementWait.UntilText(driver, "Add Players").Click();
+        AndroidElementWait.UntilText(driver, "Create New Player").Click();
+        var entries = PhaseAUiWorkflow.VisibleEditTexts(driver);
+        Assert.Equal(2, entries.Length);
+        entries[0].SendKeys("Test");
+        entries[1].SendKeys("Scorer");
+        AndroidElementWait.UntilText(driver, "Save").Click();
+        AndroidElementWait.UntilText(driver, "Test Scorer");
+
+        AndroidElementWait.UntilAutomationId(
+            driver, "TeamWorkspaceGamesSectionButton").Click();
+        AndroidElementWait.UntilText(driver, "Add Game").Click();
+        AndroidElementWait.UntilText(driver, "Schedule Game");
+        EnableCreateNewSeason(driver);
+        AndroidElementWait.UntilText(driver, "Enter Season name")
+            .SendKeys("Test Season");
+        AndroidElementWait.UntilText(driver, "Optional opponent")
+            .SendKeys("TEST SCORING OPPONENT");
+        AndroidElementWait.UntilText(driver, "Save").Click();
+        AndroidElementWait.UntilText(driver, "TEST SCORING OPPONENT");
+    }
+
+    private static void StartScoring(AndroidDriver driver)
+    {
+        AndroidElementWait.UntilAutomationId(driver, "ScoreGameButton").Click();
+        AndroidElementWait.UntilAutomationId(driver, "ConfirmGameRulesButton").Click();
+        AndroidElementWait.UntilAutomationId(driver, "CurrentBatter");
+    }
+
+    private static void ExitScoring(AndroidDriver driver)
+    {
+        AndroidElementWait.UntilAutomationId(driver, "ScoringMenuButton").Click();
+        AndroidElementWait.UntilAutomationId(driver, "ExitGameButton").Click();
+        AndroidElementWait.UntilAutomationId(driver, "ResumeGameButton");
+    }
+
+    private static void EnableCreateNewSeason(AndroidDriver driver)
+    {
+        var nextTapUtc = DateTime.MinValue;
+        PhaseAUiWorkflow.Wait(driver).Until(current =>
+        {
+            if (current.FindElements(By.XPath("//*[@text='Enter Season name']"))
+                .Any(item => item.Displayed))
+                return true;
+            if (DateTime.UtcNow < nextTapUtc)
+                return false;
+
+            var label = current.FindElements(By.XPath("//*[@text='Create New Season']"))
+                .FirstOrDefault(item => item.Displayed);
+            var toggle = current.FindElements(By.XPath("//android.widget.Switch"))
+                .Where(item => item.Displayed)
+                .MinBy(item => label is null ? int.MaxValue : Math.Abs(
+                    item.Location.Y + (item.Size.Height / 2)
+                    - label.Location.Y - (label.Size.Height / 2)));
+            if (toggle is not null)
+                PhaseAUiWorkflow.TapCenter(driver, toggle);
+            nextTapUtc = DateTime.UtcNow.AddSeconds(1);
+            return false;
+        });
     }
 
     private static void AssertTestModeRoot(AndroidDriver driver, string absentTeam)

@@ -23,6 +23,10 @@ public sealed class CompletedGameWorkspaceTests
         try
         {
             AndroidElementWait.UntilAutomationIdText(driver, "CompletedGameStatus", "FINAL");
+            AndroidElementWait.UntilAutomationIdText(
+                driver, "CompletedHomeName", "Automation Opponent");
+            AssertNotDisplayed(driver, "ScoreGameButton");
+            AssertNotDisplayed(driver, "ResumeGameButton");
 
             AssertHeaderAndOrder(driver, "CompletedStatsSortOnBasePercentage",
                 "OBP ▼", 1, 3, 2);
@@ -168,6 +172,7 @@ public sealed class CompletedGameWorkspaceTests
             driver, "CompletedBattingHomeRunsPosition1", "1");
         AndroidElementWait.UntilAutomationIdText(
             driver, "CompletedBattingBattingAveragePosition1", "1.000");
+        ScrollStatisticsToRateColumns(driver);
         AndroidElementWait.UntilAutomationIdText(
             driver, "CompletedBattingOnBasePercentagePosition1", "1.000");
         AndroidElementWait.UntilAutomationIdText(

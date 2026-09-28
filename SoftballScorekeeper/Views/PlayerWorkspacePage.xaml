@@ -18,17 +18,19 @@
                         <Setter Property="IsVisible" Value="False" />
                     </DataTrigger>
                 </Grid.Triggers>
-                <Label
+                <Button
+                    AutomationId="EditPlayerNameButton"
                     Text="{Binding PlayerDisplayName}"
-                    Style="{StaticResource Headline}"
+                    Command="{Binding BeginPlayerNameEditCommand}"
+                    BackgroundColor="Transparent"
+                    BorderWidth="0"
+                    Padding="0"
+                    FontSize="32"
+                    TextColor="{AppThemeBinding Light={StaticResource MidnightBlue}, Dark={StaticResource White}}"
+                    HorizontalOptions="Center"
                     MinimumHeightRequest="52"
-                    VerticalTextAlignment="Center"
                     SemanticProperties.HeadingLevel="Level1"
-                    SemanticProperties.Hint="{x:Static strings:AppResources.PlayerNameEditHint}">
-                    <Label.GestureRecognizers>
-                        <TapGestureRecognizer Command="{Binding BeginPlayerNameEditCommand}" />
-                    </Label.GestureRecognizers>
-                </Label>
+                    SemanticProperties.Hint="{x:Static strings:AppResources.PlayerNameEditHint}" />
                 <Grid
                     Grid.Column="1"
                     SemanticProperties.Description="{x:Static strings:AppResources.PlayerNameEditHint}"
