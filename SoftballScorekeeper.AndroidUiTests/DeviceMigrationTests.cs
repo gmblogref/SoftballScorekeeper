@@ -329,10 +329,10 @@ public sealed class DeviceMigrationTests(AndroidAppiumFixture fixture)
                 ?? driver.FindElement(MobileBy.AndroidUIAutomator(
                     "new UiScrollable(new UiSelector().scrollable(true))"
                         + $".scrollIntoView(new UiSelector().resourceId(\"{yearResourceId}\"))"));
-            header.Click();
+            PhaseAUiWorkflow.TapCenter(driver, header);
             try
             {
-                new WebDriverWait(driver, TimeSpan.FromSeconds(3)).Until(currentDriver =>
+                new WebDriverWait(driver, TimeSpan.FromSeconds(5)).Until(currentDriver =>
                     currentDriver.FindElements(By.Id(teamResourceId))
                         .Any(element => element.Displayed));
                 return;
@@ -353,10 +353,12 @@ public sealed class DeviceMigrationTests(AndroidAppiumFixture fixture)
             if (!driver.FindElements(By.Id(teamResourceId)).Any(element => element.Displayed))
                 return;
 
-            AndroidElementWait.UntilAutomationId(driver, $"TeamYearGroup-{year}").Click();
+            PhaseAUiWorkflow.TapCenter(
+                driver,
+                AndroidElementWait.UntilAutomationId(driver, $"TeamYearGroup-{year}"));
             try
             {
-                new WebDriverWait(driver, TimeSpan.FromSeconds(3)).Until(currentDriver =>
+                new WebDriverWait(driver, TimeSpan.FromSeconds(5)).Until(currentDriver =>
                     !currentDriver.FindElements(By.Id(teamResourceId))
                         .Any(element => element.Displayed));
                 return;

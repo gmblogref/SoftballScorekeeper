@@ -3,10 +3,10 @@
 `SoftballScorekeeper.AndroidUiTests` is the separately runnable Appium suite for Android UI and integration automation. It does not reference or replace `SoftballScorekeeper.Tests`, which remains the fast, emulator-independent repository test suite.
 
 The Android UI tests are opt-in acceptance tests. Ordinary solution, Test Explorer,
-and `SoftballScorekeeper.Tests` runs do not require Appium or an emulator; the fifteen
-Android UI tests are discovered but skipped unless the supported runner explicitly
-enables them. A runner-enabled test still fails normally when an Appium or emulator
-prerequisite is broken.
+and `SoftballScorekeeper.Tests` runs do not require Appium or an emulator; Android UI
+tests are discovered but skipped unless the supported runner explicitly enables them.
+A runner-enabled test still fails normally when an Appium or emulator prerequisite is
+broken.
 
 ## Prerequisites
 
@@ -60,15 +60,14 @@ quiet, while startup and unexpected-exit failures include the recent log output.
 The runner supplies the internal `SOFTBALL_RUN_ANDROID_UI_TESTS=1` opt-in automatically;
 developers do not need to set it for the supported workflow.
 
-The compact suite covers session startup, normal hit/runner movement, runner
-correction, Fielder's Choice and FC-to-Out reconciliation, Sac Fly reconciliation,
-Out Attempting, Double Play, third-Out inning transition, Exit/Resume persistence,
-scoring-state preservation across portrait and landscape, committed-play Undo/Redo,
-pending-play Undo/Redo with visible portrait/landscape controls, and exact Undo/Redo
-of a completed third-Out transition. It also protects Ready, In Progress, completed,
-and failed-load Game Workspace presentation; final Visitor/Home orientation; completed
-batting-stat bindings; and completed presentation across portrait and landscape. It
-intentionally leaves combinatorial scoring-rule coverage to `SoftballScorekeeper.Tests`.
+The suite covers the high-value application workflows: Team and Player lifecycle,
+rosters, scheduling, lineup construction, scoring and correction, statistics, Beer
+Rules and totals, Team-Year copy/finalization/summary, portable backup and restore,
+device migration, physically isolated Product Test Mode, League Season backup
+reminders, and representative portrait/landscape geometry and action reachability.
+It intentionally leaves combinatorial domain-rule coverage to
+`SoftballScorekeeper.Tests` and pixel-perfect visual approval to manual testing on the
+target tablet.
 
 Orientation coverage uses the selected device's physical display size and Android's
 user-rotation lock through the same configured `adb` connection used by the fixture.

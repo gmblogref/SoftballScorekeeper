@@ -129,6 +129,37 @@ public sealed class TeamWorkspaceMenuTests(AndroidAppiumFixture fixture)
             AndroidElementWait.UntilText(driver, "Automation Team");
             AndroidTeamWorkspaceMenu.UntilAvailable(driver).Click();
             Assert.True(AndroidElementWait.UntilText(driver, "Deactivate Team").Displayed);
+            AssertMenuActionHidden(driver, "TeamBeerRulesButton", "Beer Rules");
+            AndroidTeamWorkspaceMenu.UntilAvailable(driver).Click();
+
+            AndroidElementWait.UntilAutomationId(
+                driver, "TeamWorkspaceRosterSectionButton").Click();
+            AssertTextHidden(driver, "Add Players");
+            AssertTextHidden(driver, "Remove Players");
+
+            AndroidElementWait.UntilAutomationId(
+                driver, "TeamWorkspaceGamesSectionButton").Click();
+            AssertTextHidden(driver, "Add Game");
+            AssertTextHidden(driver, "Remove Games");
+            AndroidElementWait.UntilAutomationId(driver, "GameScheduleStatus1").Click();
+            Assert.DoesNotContain(
+                driver.FindElements(By.Id(ResourceId("ScoreGameButton"))),
+                element => element.Displayed);
+            Assert.DoesNotContain(
+                driver.FindElements(By.Id(ResourceId("ResumeGameButton"))),
+                element => element.Displayed);
+            Assert.False(AndroidElementWait.UntilText(driver, "Edit Game").Enabled);
+            AssertTextHidden(driver, "Set Lineup");
+            driver.FindElement(MobileBy.AccessibilityId("Navigate up")).Click();
+
+            AndroidTeamWorkspaceMenu.Select(driver, "Beer Totals");
+            var dbo = AndroidElementWait.UntilAutomationId(driver, "BeerTotalsDbo-1");
+            dbo.Click();
+            Assert.DoesNotContain(
+                driver.FindElements(By.Id(ResourceId("BeerTotalsDboEdit-1"))),
+                element => element.Displayed);
+            Assert.False(AndroidElementWait.UntilAutomationId(
+                driver, "CalculateLowManButton").Enabled);
         }
         catch (Exception exception)
         {
@@ -167,6 +198,14 @@ public sealed class TeamWorkspaceMenuTests(AndroidAppiumFixture fixture)
             element => element.Displayed);
         Assert.DoesNotContain(text, driver.PageSource, StringComparison.Ordinal);
     }
+
+    private static void AssertTextHidden(AppiumDriver driver, string text) =>
+        Assert.DoesNotContain(
+            driver.FindElements(By.XPath($"//*[@text='{text}']")),
+            element => element.Displayed);
+
+    private static string ResourceId(string automationId) =>
+        $"{AndroidAutomationConstants.AppPackage}:id/{automationId}";
 
     private static void AssertWithinViewport(IWebElement element)
     {

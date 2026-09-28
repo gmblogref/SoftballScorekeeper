@@ -1,4 +1,6 @@
 using OpenQA.Selenium.Appium.Android;
+using OpenQA.Selenium;
+using OpenQA.Selenium.Support.UI;
 
 namespace SoftballScorekeeper.AndroidUiTests;
 
@@ -34,9 +36,28 @@ internal static class AndroidScoringWorkflow
     public static void SelectResult(AndroidDriver driver, string result) =>
         Step($"select {result} for the current batter", () =>
         {
-            AndroidElementWait.UntilAutomationId(driver, "CurrentBatter").Click();
+            SelectResultMenu(driver);
             AndroidElementWait.UntilText(driver, result).Click();
         });
+
+    public static void SelectResultMenu(AndroidDriver driver) =>
+        AndroidElementWait.UntilAutomationId(driver, "CurrentBatterButton").Click();
+
+    public static IWebElement[] VisibleEditTexts(AndroidDriver driver) =>
+        VisibleElements(driver, "android.widget.EditText");
+
+    public static IWebElement[] VisibleElements(AndroidDriver driver, string className)
+    {
+        var wait = new WebDriverWait(driver, TimeSpan.FromSeconds(15));
+        return wait.Until(current =>
+        {
+            var entries = current
+                .FindElements(By.XPath($"//*[@class='{className}']"))
+                .Where(item => item.Displayed)
+                .ToArray();
+            return entries.Length > 0 ? entries : null;
+        })!;
+    }
 
     public static void CompletePendingPlay(AndroidDriver driver) =>
         Step("complete the pending plate appearance", () =>

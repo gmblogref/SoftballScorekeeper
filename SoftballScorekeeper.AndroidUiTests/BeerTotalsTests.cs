@@ -20,6 +20,15 @@ public sealed class BeerTotalsTests(AndroidAppiumFixture fixture)
             AndroidElementWait.UntilText(driver, "Beer Totals");
             AndroidElementWait.UntilText(driver, "Automation Beer Team");
             Assert.DoesNotContain("STILL OWED", driver.PageSource, StringComparison.OrdinalIgnoreCase);
+            Assert.DoesNotContain("TEAM TOTAL", driver.PageSource, StringComparison.OrdinalIgnoreCase);
+
+            var alex = AndroidElementWait.UntilText(driver, "Alex Automation");
+            var blake = AndroidElementWait.UntilText(driver, "Blake Automation");
+            var historical = AndroidElementWait.UntilText(driver, "Zulu Historical");
+            Assert.True(alex.Location.Y < blake.Location.Y);
+            Assert.True(blake.Location.Y < historical.Location.Y);
+            Assert.Equal("1", FindByAutomationId(driver, "BeerTotalsDbo-3").Text);
+            Assert.Equal("1", FindByAutomationId(driver, "BeerTotalsOwed-3").Text);
 
             AssertGridReachable(driver, ScreenOrientation.Landscape);
             AssertGridReachable(driver, ScreenOrientation.Portrait);
@@ -58,6 +67,7 @@ public sealed class BeerTotalsTests(AndroidAppiumFixture fixture)
             AndroidElementWait.UntilText(driver, "Enter a non-negative whole number.");
             Assert.True(entry.Displayed);
             Assert.Equal("2", FindByAutomationId(driver, "BeerTotalsStrikeout-1").Text);
+            driver.HideKeyboard();
             Assert.Equal("0", FindByAutomationId(driver, "BeerTotalsStrikeout-2").Text);
         }
         catch (Exception exception)
@@ -81,12 +91,14 @@ public sealed class BeerTotalsTests(AndroidAppiumFixture fixture)
             Assert.Equal("Calculate Low Man",
                 AndroidElementWait.UntilAutomationId(driver, "CalculateLowManButton").Text);
             Assert.Contains("Aug 15, 2026", picker.Text, StringComparison.Ordinal);
-            Assert.Contains("1 of 1 Games completed", picker.Text, StringComparison.Ordinal);
+            Assert.Contains("1 of 2 Games completed", picker.Text, StringComparison.Ordinal);
+            AndroidElementWait.UntilText(
+                driver,
+                "1 incomplete Game(s) will be excluded from this calculation.");
             picker.Click();
             AndroidElementWait.UntilText(
                 driver,
-                "Aug 15, 2026 — 1 of 1 Games completed").Click();
-
+                "Aug 15, 2026 — 1 of 2 Games completed").Click();
             AndroidElementWait.UntilAutomationId(driver, "CalculateLowManButton").Click();
 
             AndroidElementWait.UntilAutomationIdText(driver, "BeerTotalsLowMan-1", "3");
@@ -98,6 +110,12 @@ public sealed class BeerTotalsTests(AndroidAppiumFixture fixture)
                 AndroidElementWait.UntilAutomationId(driver, "CalculateLowManButton").Text);
             Assert.Equal("0", FindByAutomationId(driver, "BeerTotalsLowMan-2").Text);
             Assert.Equal("0", FindByAutomationId(driver, "BeerTotalsOwed-2").Text);
+
+            AndroidElementWait.UntilAutomationId(driver, "CalculateLowManButton").Click();
+            AndroidElementWait.UntilAutomationIdText(driver, "BeerTotalsLowMan-1", "3");
+            AndroidElementWait.UntilAutomationIdText(driver, "BeerTotalsOwed-1", "-1");
+            Assert.Equal("Recalculate Low Man",
+                AndroidElementWait.UntilAutomationId(driver, "CalculateLowManButton").Text);
 
             driver.FindElement(MobileBy.AccessibilityId("Navigate up")).Click();
             AndroidTeamWorkspaceMenu.Select(driver, "Beer Totals");
@@ -116,7 +134,12 @@ public sealed class BeerTotalsTests(AndroidAppiumFixture fixture)
     private void AssertGridReachable(AndroidDriver driver, ScreenOrientation orientation)
     {
         fixture.SetOrientation(orientation);
+        Assert.True(FindByAutomationId(driver, "BeerTotalsDbo-1").Displayed);
+        Assert.True(FindByAutomationId(driver, "BeerTotalsSoloHomeRun-1").Displayed);
+        Assert.True(FindByAutomationId(driver, "BeerTotalsDoublePlay-1").Displayed);
         Assert.True(FindByAutomationId(driver, "BeerTotalsTriplePlay-1").Displayed);
+        Assert.True(FindByAutomationId(driver, "BeerTotalsTwoOuts-1").Displayed);
+        Assert.True(FindByAutomationId(driver, "BeerTotalsStrikeout-1").Displayed);
         Assert.True(FindByAutomationId(driver, "BeerTotalsLowMan-1").Displayed);
         Assert.True(FindByAutomationId(driver, "BeerTotalsOwed-1").Displayed);
         Assert.True(FindByAutomationId(driver, "BeerTotalsBrought-1").Displayed);

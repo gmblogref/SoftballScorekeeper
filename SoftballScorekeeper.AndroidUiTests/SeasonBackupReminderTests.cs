@@ -66,6 +66,45 @@ public sealed class SeasonBackupReminderTests(AndroidAppiumFixture fixture)
         }
     }
 
+    [AndroidUiFact]
+    public void Remind_later_returns_next_startup_while_dismiss_and_test_mode_suppress_prompt()
+    {
+        fixture.ResetApplication(
+            AndroidAutomationConstants.SeasonBackupReminderTestSeedRequestFileName);
+        var driver = fixture.Driver;
+        try
+        {
+            AssertSingleReminder(driver);
+            AndroidElementWait.UntilText(driver, "Remind Later").Click();
+            AndroidElementWait.UntilText(driver, "BACKUP REMINDER TEAM");
+
+            EnterTestMode(driver);
+            AndroidElementWait.UntilAutomationIdText(driver, "TestModeIndicator", "TEST MODE");
+            AssertReminderRemainsAbsent(driver);
+            ExitTestMode(driver);
+
+            fixture.RelaunchApplicationWithoutReset();
+            driver = fixture.Driver;
+            AssertSingleReminder(driver);
+            AndroidElementWait.UntilText(driver, "Dismiss").Click();
+            AndroidElementWait.UntilText(driver, "BACKUP REMINDER TEAM");
+
+            fixture.RelaunchApplicationWithoutReset();
+            driver = fixture.Driver;
+            AndroidElementWait.UntilText(driver, "BACKUP REMINDER TEAM");
+            AssertReminderRemainsAbsent(driver);
+        }
+        catch (Exception exception)
+        {
+            var artifacts = fixture.CaptureFailureArtifacts(
+                nameof(Remind_later_returns_next_startup_while_dismiss_and_test_mode_suppress_prompt),
+                exception);
+            throw new Xunit.Sdk.XunitException(
+                $"Android season backup-reminder branches failed. Diagnostics: {artifacts}"
+                    + $"{Environment.NewLine}{exception}");
+        }
+    }
+
     private static void AssertSingleReminder(AndroidDriver driver)
     {
         AndroidElementWait.UntilText(driver, ReminderMessage, TimeSpan.FromSeconds(30));
@@ -133,6 +172,42 @@ public sealed class SeasonBackupReminderTests(AndroidAppiumFixture fixture)
                 element => element.Displayed);
             Thread.Sleep(250);
         }
+    }
+
+    private static void EnterTestMode(AndroidDriver driver)
+    {
+        OpenShellFlyout(driver);
+        AndroidElementWait.UntilText(driver, "Enter Test Mode").Click();
+        AndroidElementWait.UntilText(driver, "Enter Test Mode?");
+        AndroidElementWait.UntilText(driver, "Enter Test Mode").Click();
+        AndroidElementWait.UntilText(driver, "Create Team");
+    }
+
+    private static void ExitTestMode(AndroidDriver driver)
+    {
+        OpenShellFlyout(driver);
+        AndroidElementWait.UntilText(driver, "Exit Test Mode").Click();
+        AndroidElementWait.UntilText(driver, "Keep Test Data").Click();
+        AndroidElementWait.UntilText(driver, "BACKUP REMINDER TEAM");
+    }
+
+    private static void OpenShellFlyout(AndroidDriver driver)
+    {
+        var wait = CreateWait(driver);
+        wait.Until(current =>
+        {
+            if (current.FindElements(By.XPath("//*[@text='Manage Inactive Teams']"))
+                .Any(element => element.Displayed))
+                return true;
+
+            var drawer = current.FindElements(
+                    MobileBy.AccessibilityId("Open navigation drawer"))
+                .FirstOrDefault(element => element.Displayed);
+            if (drawer is null)
+                return false;
+            drawer.Click();
+            return false;
+        });
     }
 
     private static IWebElement UntilAny(AndroidDriver driver, params By[] selectors)

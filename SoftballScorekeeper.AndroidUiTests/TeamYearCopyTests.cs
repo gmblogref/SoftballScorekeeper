@@ -47,6 +47,24 @@ public sealed class TeamYearCopyTests(AndroidAppiumFixture fixture)
             AndroidElementWait.UntilText(driver, "Spring 2027");
             AndroidElementWait.UntilText(driver, "Summer 2027");
             Assert.DoesNotContain("Legacy 2025", driver.PageSource, StringComparison.Ordinal);
+
+            AndroidElementWait.UntilText(driver, "Cancel").Click();
+            AndroidElementWait.UntilText(driver, "Cancel").Click();
+            AndroidElementWait.UntilAutomationId(
+                driver, "TeamWorkspaceGamesSectionButton");
+            PhaseAUiWorkflow.NavigateSection(driver, "Teams", "Create Team");
+            AndroidElementWait.UntilAutomationId(driver, "TeamYearGroup-2027");
+            ExpandYearAndFindVisibleCard(driver, 2026).Click();
+            AndroidTeamWorkspaceMenu.Select(driver, "Copy Team to New Year");
+            AndroidElementWait.UntilText(driver, "Copy Team to New Year?");
+            AndroidElementWait.UntilText(driver, "Copy Team").Click();
+            AndroidElementWait.UntilText(
+                driver,
+                "The destination Team Year already exists. Use the existing Team or reactivate it separately.");
+            PhaseAUiWorkflow.NavigateSection(driver, "Teams", "Create Team");
+            Assert.DoesNotContain(
+                driver.FindElements(By.Id(ResourceId("TeamYearGroup-2028"))),
+                element => element.Displayed);
         }
         catch (Exception exception)
         {
@@ -138,6 +156,36 @@ public sealed class TeamYearCopyTests(AndroidAppiumFixture fixture)
             $"new UiScrollable(new UiSelector().scrollable(true)).setAsHorizontalList()"
             + $".scrollIntoView(new UiSelector().resourceId(\"{resourceId}\"))"));
     }
+
+    private static IWebElement ExpandYearAndFindVisibleCard(AndroidDriver driver, int year)
+    {
+        var nextTapUtc = DateTime.MinValue;
+        return PhaseAUiWorkflow.Wait(driver).Until(current =>
+        {
+            var yearGroup = current.FindElements(By.Id(ResourceId($"TeamYearGroup-{year}")))
+                .FirstOrDefault(element => element.Displayed);
+            if (yearGroup is null)
+                return null;
+
+            if (!yearGroup.Text.Contains('▶'))
+            {
+                var visibleCard = current.FindElements(By.Id(ResourceId("TeamCard-1")))
+                    .FirstOrDefault(element => element.Displayed);
+                if (visibleCard is not null)
+                    return visibleCard;
+            }
+
+            if (DateTime.UtcNow >= nextTapUtc)
+            {
+                yearGroup.Click();
+                nextTapUtc = DateTime.UtcNow.AddSeconds(1);
+            }
+            return null;
+        })!;
+    }
+
+    private static string ResourceId(string automationId) =>
+        $"{AndroidAutomationConstants.AppPackage}:id/{automationId}";
 
     private void ThrowWithDiagnostics(string testName, Exception exception)
     {

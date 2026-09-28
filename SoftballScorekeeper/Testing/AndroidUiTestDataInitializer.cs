@@ -30,6 +30,7 @@ public sealed class AndroidUiTestDataInitializer
     internal const string ScheduleGamesRequestFileName = "android-ui-test-schedule-games";
     internal const string SeasonBackupReminderRequestFileName =
         "android-ui-test-season-backup-reminder";
+    internal const string PhaseALineupRequestFileName = "android-ui-test-phase-a-lineup";
     private static readonly string[] RequestFileNames =
     [
         RequestFileName,
@@ -45,6 +46,7 @@ public sealed class AndroidUiTestDataInitializer
         ManualFindingsReproductionRequestFileName,
         ScheduleGamesRequestFileName,
         SeasonBackupReminderRequestFileName,
+        PhaseALineupRequestFileName,
     ];
 
     private readonly AppDatabase database;
@@ -54,6 +56,7 @@ public sealed class AndroidUiTestDataInitializer
     private readonly GameLineupRepository lineupRepository;
     private readonly GameScoringSessionRepository scoringRepository;
     private readonly BeerAccountingRepository beerAccountingRepository;
+    private readonly SeasonBackupReminderRepository seasonBackupReminderRepository;
 
     public AndroidUiTestDataInitializer(
         AppDatabase database,
@@ -62,7 +65,8 @@ public sealed class AndroidUiTestDataInitializer
         GameRepository gameRepository,
         GameLineupRepository lineupRepository,
         GameScoringSessionRepository scoringRepository,
-        BeerAccountingRepository beerAccountingRepository)
+        BeerAccountingRepository beerAccountingRepository,
+        SeasonBackupReminderRepository seasonBackupReminderRepository)
     {
         this.database = database;
         this.teamRepository = teamRepository;
@@ -71,6 +75,7 @@ public sealed class AndroidUiTestDataInitializer
         this.lineupRepository = lineupRepository;
         this.scoringRepository = scoringRepository;
         this.beerAccountingRepository = beerAccountingRepository;
+        this.seasonBackupReminderRepository = seasonBackupReminderRepository;
     }
 
     internal static bool IsInitializationInProgress =>
@@ -118,6 +123,8 @@ public sealed class AndroidUiTestDataInitializer
             FileSystem.AppDataDirectory, ScheduleGamesRequestFileName);
         var seasonBackupReminderRequestPath = Path.Combine(
             FileSystem.AppDataDirectory, SeasonBackupReminderRequestFileName);
+        var phaseALineupRequestPath = Path.Combine(
+            FileSystem.AppDataDirectory, PhaseALineupRequestFileName);
         var useMissingGame = File.Exists(missingGameRequestPath);
         var useCompletedStatisticsSorting = File.Exists(
             completedStatisticsSortingRequestPath);
@@ -132,12 +139,13 @@ public sealed class AndroidUiTestDataInitializer
             manualFindingsReproductionRequestPath);
         var useScheduleGames = File.Exists(scheduleGamesRequestPath);
         var useSeasonBackupReminder = File.Exists(seasonBackupReminderRequestPath);
+        var usePhaseALineup = File.Exists(phaseALineupRequestPath);
         if (!File.Exists(requestPath) && !useMissingGame
             && !useCompletedStatisticsSorting && !useTeamRecord && !useBeerTotals
             && !useTeamStats && !useTeamYearCopy && !useTeamYearSummary
             && !useManualRestore && !useDeviceMigration
             && !useManualFindingsReproduction && !useScheduleGames
-            && !useSeasonBackupReminder) return null;
+            && !useSeasonBackupReminder && !usePhaseALineup) return null;
 
         if (File.Exists(requestPath)) File.Delete(requestPath);
         if (useMissingGame) File.Delete(missingGameRequestPath);
@@ -154,6 +162,9 @@ public sealed class AndroidUiTestDataInitializer
             File.Delete(manualFindingsReproductionRequestPath);
         if (useScheduleGames) File.Delete(scheduleGamesRequestPath);
         if (useSeasonBackupReminder) File.Delete(seasonBackupReminderRequestPath);
+        if (usePhaseALineup) File.Delete(phaseALineupRequestPath);
+
+        if (usePhaseALineup) return await SeedPhaseALineupAsync();
 
         if (useSeasonBackupReminder) return await SeedSeasonBackupReminderAsync();
 
@@ -213,17 +224,35 @@ public sealed class AndroidUiTestDataInitializer
         var gameResult = await gameRepository.CreateForTeamAsync(
             team.Id,
             new Season { Name = "Automation", Year = 2026 },
-            [new Game
-            {
-                ScheduledDate = new DateTime(2026, 8, 27),
-                ScheduledTime = new TimeSpan(18, 30, 0),
-                Opponent = "Automation Opponent",
-                Field = "Automation Field",
-            }]);
+            useCompletedStatisticsSorting
+                ?
+                [
+                    new Game
+                    {
+                        ScheduledDate = new DateTime(2026, 8, 27),
+                        ScheduledTime = new TimeSpan(18, 30, 0),
+                        Opponent = "Automation Opponent",
+                        Field = "Automation Field",
+                    },
+                    new Game
+                    {
+                        ScheduledDate = new DateTime(2026, 8, 28),
+                        ScheduledTime = new TimeSpan(18, 30, 0),
+                        Opponent = "Other Automation Opponent",
+                    },
+                ]
+                :
+                [new Game
+                {
+                    ScheduledDate = new DateTime(2026, 8, 27),
+                    ScheduledTime = new TimeSpan(18, 30, 0),
+                    Opponent = "Automation Opponent",
+                    Field = "Automation Field",
+                }]);
         if (!gameResult.IsCompleteSuccess)
             throw new InvalidOperationException("Could not seed the Android UI-test Game.");
 
-        var gameId = gameResult.CreatedGameIds.Single();
+        var gameId = gameResult.CreatedGameIds[0];
         var lineupResult = await lineupRepository.SaveInitialAsync(team.Id, gameId, playerIds);
         if (!lineupResult.IsSuccess)
             throw new InvalidOperationException("Could not seed the Android UI-test lineup.");
@@ -608,6 +637,8 @@ public sealed class AndroidUiTestDataInitializer
                     "device-migration Beer ledger row");
         }
 
+        await DismissEligibleSeasonBackupRemindersAsync();
+
         return new AndroidUiTestContext(currentTeam.Id, 0, true);
     }
 
@@ -640,8 +671,30 @@ public sealed class AndroidUiTestDataInitializer
                     team.Id, player.PlayerId, 5));
             }
         }
+        var historicalPlayer = new Player
+        {
+            FirstName = "Zulu",
+            LastName = "Historical",
+            IsActive = false,
+        };
+        EnsureSingleRow(
+            await playerRepository.CreateAsync(historicalPlayer),
+            "Beer-totals historical Player");
+        await using (var operation = await database.BeginOperationAsync())
+        {
+            EnsureSingleRow(await operation.Connection.InsertAsync(new BeerLedgerEntry
+            {
+                TeamId = team.Id,
+                PlayerId = historicalPlayer.Id,
+                RuleType = BeerRuleType.Dbo,
+                Origin = BeerLedgerEntryOrigin.ManualAdjustment,
+                RuleCountAdjustment = 1,
+                Amount = 1,
+            }), "Beer-totals historical Beer balance");
+        }
 
         await SeedBeerTotalsLowManGameAsync(team.Id, playerIds);
+        await DismissEligibleSeasonBackupRemindersAsync();
 
         return new AndroidUiTestContext(team.Id, 0, true);
     }
@@ -774,6 +827,8 @@ public sealed class AndroidUiTestDataInitializer
         EnsureBeerUpdate(await beerAccountingRepository.SetBroughtAsync(
             team.Id, playerIds[0], 2));
 
+        await DismissEligibleSeasonBackupRemindersAsync();
+
         return new AndroidUiTestContext(team.Id, 0, true);
     }
 
@@ -899,6 +954,16 @@ public sealed class AndroidUiTestDataInitializer
                 throw new InvalidOperationException("Could not seed a Team-stats Player.");
             playerIds.Add(player.PlayerId);
         }
+        var historicalPlayer = new Player
+        {
+            FirstName = "Historic",
+            LastName = "Automation",
+            IsActive = false,
+        };
+        EnsureSingleRow(
+            await playerRepository.CreateAsync(historicalPlayer),
+            "Team-stats historical Player");
+        playerIds.Add(historicalPlayer.Id);
 
         var springGameIds = await CreateTeamStatsGamesAsync(
             team.Id,
@@ -953,6 +1018,8 @@ public sealed class AndroidUiTestDataInitializer
                 BatterResult.HomeRun);
 
         }
+
+        await DismissEligibleSeasonBackupRemindersAsync();
 
         return new AndroidUiTestContext(team.Id, 0, true);
     }
@@ -1027,16 +1094,24 @@ public sealed class AndroidUiTestDataInitializer
         var gameResult = await gameRepository.CreateForTeamAsync(
             teamId,
             new Season { Name = "Automation", Year = 2026 },
-            [new Game
-            {
-                ScheduledDate = new DateTime(2026, 8, 15),
-                ScheduledTime = new TimeSpan(18, 30, 0),
-                Opponent = "Automation Low Man Opponent",
-            }]);
+            [
+                new Game
+                {
+                    ScheduledDate = new DateTime(2026, 8, 15),
+                    ScheduledTime = new TimeSpan(18, 30, 0),
+                    Opponent = "Automation Low Man Opponent",
+                },
+                new Game
+                {
+                    ScheduledDate = new DateTime(2026, 8, 15),
+                    ScheduledTime = new TimeSpan(20, 0, 0),
+                    Opponent = "Automation Incomplete Opponent",
+                },
+            ]);
         if (!gameResult.IsCompleteSuccess)
             throw new InvalidOperationException("Could not seed the Low Man Game Night.");
 
-        var gameId = gameResult.CreatedGameIds.Single();
+        var gameId = gameResult.CreatedGameIds[0];
         {
             await using var operation = await database.BeginOperationAsync();
             var connection = operation.Connection;
@@ -1095,23 +1170,23 @@ public sealed class AndroidUiTestDataInitializer
             throw new InvalidOperationException(
                 "Could not seed the Android Team-record Player.");
 
-        var oldGameId = await CreateTeamRecordGameAsync(
+        var oldGameId = await CreateLegacyTeamRecordGameAsync(
             team.Id, "Fall", 2025, new DateTime(2025, 9, 1));
         var winGameId = await CreateTeamRecordGameAsync(
-            team.Id, "Spring", 2026, new DateTime(2026, 4, 1));
+            team.Id, "Spring", 2026, DateTime.Today);
         var latestGames = await gameRepository.CreateForTeamAsync(
             team.Id,
             new Season { Name = "Summer", Year = 2026 },
             [
                 new Game
                 {
-                    ScheduledDate = new DateTime(2026, 7, 1),
+                    ScheduledDate = DateTime.Today.AddDays(7),
                     ScheduledTime = new TimeSpan(18, 30, 0),
                     Opponent = "Automation Loss Opponent",
                 },
                 new Game
                 {
-                    ScheduledDate = new DateTime(2026, 7, 8),
+                    ScheduledDate = DateTime.Today.AddDays(14),
                     ScheduledTime = new TimeSpan(18, 30, 0),
                     Opponent = "Automation Tie Opponent",
                 },
@@ -1182,6 +1257,100 @@ public sealed class AndroidUiTestDataInitializer
             throw new InvalidOperationException(
                 $"Could not seed the Android Team-record {seasonName} Game.");
         return result.CreatedGameIds.Single();
+    }
+
+    private async Task DismissEligibleSeasonBackupRemindersAsync()
+    {
+        var candidates = await seasonBackupReminderRepository.GetEligibleAsync();
+        await seasonBackupReminderRepository.DismissAsync(candidates);
+    }
+
+    private async Task<AndroidUiTestContext> SeedPhaseALineupAsync()
+    {
+        var team = new Team
+        {
+            Name = "PHASE A LINEUP TEAM",
+            Year = 2026,
+            IsActive = true,
+        };
+        EnsureSingleRow(await teamRepository.CreateAsync(team), "Phase A lineup Team");
+
+        var playerIds = new List<int>();
+        foreach (var firstName in new[] { "Alpha", "Bravo", "Charlie", "Delta" })
+        {
+            var result = await playerRepository.CreateForTeamAsync(
+                new Player
+                {
+                    FirstName = firstName,
+                    LastName = "Lineup",
+                    IsActive = true,
+                },
+                team.Id);
+            if (!result.IsSuccess)
+                throw new InvalidOperationException(
+                    $"Could not seed Phase A lineup Player {firstName}.");
+            playerIds.Add(result.PlayerId);
+        }
+
+        var games = await gameRepository.CreateForTeamAsync(
+            team.Id,
+            new Season { Name = "Phase A League", Year = team.Year },
+            [
+                new Game
+                {
+                    ScheduledDate = DateTime.Today.AddDays(-1),
+                    ScheduledTime = new TimeSpan(18, 30, 0),
+                    Opponent = "Previous Lineup Opponent",
+                },
+                new Game
+                {
+                    ScheduledDate = DateTime.Today.AddDays(1),
+                    ScheduledTime = new TimeSpan(18, 30, 0),
+                    Opponent = "Current Lineup Opponent",
+                },
+            ]);
+        if (!games.IsCompleteSuccess)
+            throw new InvalidOperationException("Could not seed Phase A lineup Games.");
+
+        var previousLineup = await lineupRepository.SaveInitialAsync(
+            team.Id,
+            games.CreatedGameIds[0],
+            playerIds.Take(3).ToArray());
+        if (!previousLineup.IsSuccess)
+            throw new InvalidOperationException("Could not seed the previous Phase A lineup.");
+
+        return new AndroidUiTestContext(team.Id, games.CreatedGameIds[1], false);
+    }
+
+    private async Task<int> CreateLegacyTeamRecordGameAsync(
+        int teamId,
+        string seasonName,
+        int seasonYear,
+        DateTime date)
+    {
+        await using var operation = await database.BeginOperationAsync();
+        var connection = operation.Connection;
+        var season = new Season
+        {
+            TeamId = teamId,
+            Name = seasonName,
+            Year = seasonYear,
+        };
+        EnsureSingleRow(
+            await connection.InsertAsync(season),
+            "legacy Team-record Season");
+        var game = new Game
+        {
+            TeamId = teamId,
+            SeasonId = season.Id,
+            ScheduledDate = date,
+            ScheduledTime = new TimeSpan(18, 30, 0),
+            Opponent = $"Automation {seasonName} Opponent",
+        };
+        EnsureSingleRow(
+            await connection.InsertAsync(game),
+            "legacy Team-record Game");
+        return game.Id;
     }
 
     private static async Task InsertCompletedSessionAsync(

@@ -17,17 +17,18 @@ public sealed class TeamStatsFilteringTests(AndroidAppiumFixture fixture)
         {
             OpenTeamStats(driver);
             Assert.DoesNotContain("Last 2 Games", driver.PageSource, StringComparison.Ordinal);
-            AssertFilterAndPlateAppearances(driver, "All Games", "10");
+            AssertFilterAndPlateAppearances(driver, "All Games", "15");
+            AndroidElementWait.UntilText(driver, "Historic Automation");
 
             FindFilterButton(driver, "TeamStatsLastGameNightFilter").Click();
-            AssertFilterAndPlateAppearances(driver, "Last Game Night", "2");
+            AssertFilterAndPlateAppearances(driver, "Last Game Night", "3");
 
             AndroidElementWait.UntilAutomationId(driver, "CompletedStatsSortPlayer").Click();
             AndroidElementWait.UntilAutomationIdText(
                 driver, "CompletedStatsSortPlayer", "Player ▲");
 
             FindFilterButton(driver, "TeamStatsCurrentLeagueSeasonFilter").Click();
-            AssertFilterAndPlateAppearances(driver, "Current League Season", "6");
+            AssertFilterAndPlateAppearances(driver, "Current League Season", "9");
             AndroidElementWait.UntilAutomationIdText(
                 driver, "CompletedStatsSortPlayer", "Player ▲");
             Assert.DoesNotContain("Team Stats could not be loaded.", driver.PageSource);
@@ -62,7 +63,7 @@ public sealed class TeamStatsFilteringTests(AndroidAppiumFixture fixture)
             FindGameCheckbox(driver, 1).Click();
             FindGameCheckbox(driver, 4).Click();
             AndroidElementWait.UntilAutomationId(driver, "TeamStatsApplyCustom").Click();
-            AssertFilterAndPlateAppearances(driver, "Custom (2 Games)", "4");
+            AssertFilterAndPlateAppearances(driver, "Custom (2 Games)", "6");
 
             FindFilterButton(driver, "TeamStatsCustomFilter").Click();
             AndroidElementWait.UntilAutomationId(driver, "TeamStatsClearAll").Click();
@@ -77,7 +78,7 @@ public sealed class TeamStatsFilteringTests(AndroidAppiumFixture fixture)
 
             driver.FindElement(MobileBy.AccessibilityId("Navigate up")).Click();
             AndroidTeamWorkspaceMenu.Select(driver, "Team Stats");
-            AssertFilterAndPlateAppearances(driver, "All Games", "10");
+            AssertFilterAndPlateAppearances(driver, "All Games", "15");
             Assert.DoesNotContain("Team Stats could not be loaded.", driver.PageSource);
         }
         catch (Exception exception)

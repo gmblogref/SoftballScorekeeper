@@ -142,6 +142,39 @@ public sealed class AdvancedScoringWorkflowTests
     }
 
     [AndroidUiFact]
+    public void Walk_holds_unforced_runners_and_triple_play_advances_the_inning()
+    {
+        AndroidScoringWorkflow.Run(fixture, nameof(
+            Walk_holds_unforced_runners_and_triple_play_advances_the_inning), driver =>
+        {
+            AndroidScoringWorkflow.OpenPreparedScoring(driver);
+            AndroidScoringWorkflow.SelectResult(driver, "Single");
+            AndroidScoringWorkflow.CompletePendingPlay(driver);
+            AndroidScoringWorkflow.SelectResult(driver, "Double");
+            AndroidScoringWorkflow.CompletePendingPlay(driver);
+
+            AndroidScoringWorkflow.SelectResult(driver, "Walk");
+            AndroidScoringWorkflow.AssertRunner(
+                driver, "ThirdBaseRunnerButton", AndroidAutomationConstants.FirstBatterName);
+            AndroidScoringWorkflow.AssertRunner(
+                driver, "SecondBaseRunnerButton", AndroidAutomationConstants.SecondBatterName);
+            AndroidScoringWorkflow.AssertRunner(
+                driver, "FirstBaseRunnerButton", AndroidAutomationConstants.ThirdBatterName);
+
+            AndroidScoringWorkflow.SelectResult(driver, "Triple Play");
+            AndroidElementWait.UntilText(driver, "OK").Click();
+            AndroidElementWait.UntilAutomationId(
+                driver, "OpponentHalfInningSubmitButton").Click();
+
+            AndroidScoringWorkflow.AssertBatterInningAndOuts(
+                driver, "Evan Automation", "Top 2", "0 Outs");
+            AndroidScoringWorkflow.AssertEmptyBase(driver, "FirstBaseRunnerButton");
+            AndroidScoringWorkflow.AssertEmptyBase(driver, "SecondBaseRunnerButton");
+            AndroidScoringWorkflow.AssertEmptyBase(driver, "ThirdBaseRunnerButton");
+        });
+    }
+
+    [AndroidUiFact]
     public void Third_out_acknowledgement_and_opponent_entry_advance_to_next_inning()
     {
         AndroidScoringWorkflow.Run(fixture, nameof(
