@@ -40,10 +40,11 @@
           <Setter Property="BackgroundColor" Value="{AppThemeBinding Light={StaticResource Secondary}, Dark={StaticResource Gray600}}"/>
          </DataTrigger>
         </Border.Triggers>
-        <Grid ColumnDefinitions="*,Auto">
-         <Label Text="{Binding DisplayText}" FontSize="20" VerticalOptions="Center"/>
-         <CheckBox Grid.Column="1" IsChecked="{Binding IsSelected, Mode=TwoWay}" IsVisible="{Binding IsSelectionVisible}" MinimumHeightRequest="48" MinimumWidthRequest="48"/>
-        </Grid>
+         <Grid ColumnDefinitions="*,Auto,Auto">
+          <Label Text="{Binding DisplayText}" FontSize="20" VerticalOptions="Center"/>
+          <Label Grid.Column="1" AutomationId="{Binding OnBasePercentageAutomationId}" Text="{Binding OnBasePercentageDisplay}" FontSize="20" Margin="12,0" VerticalOptions="Center"/>
+          <CheckBox Grid.Column="2" IsChecked="{Binding IsSelected, Mode=TwoWay}" IsVisible="{Binding IsSelectionVisible}" MinimumHeightRequest="48" MinimumWidthRequest="48"/>
+         </Grid>
        </Border>
        <Grid Grid.Row="2" HeightRequest="18" IsVisible="{Binding IsDropGapAfter}">
         <BoxView Margin="12,7" HeightRequest="4" CornerRadius="2" Color="{StaticResource Primary}"/>
@@ -53,18 +54,20 @@
     </CollectionView.ItemTemplate>
    </CollectionView>
   </Grid>
-  <HorizontalStackLayout Grid.Row="3" HorizontalOptions="Center" Spacing="16" IsVisible="{Binding IsNormalMode}">
-   <Button Text="{x:Static strings:AppResources.AddLineupPlayersButton}" Command="{Binding EnterAddModeCommand}" MinimumHeightRequest="52" MinimumWidthRequest="160"/>
-   <Button Text="{x:Static strings:AppResources.RemoveLineupPlayersButton}" Command="{Binding EnterRemovalModeCommand}" MinimumHeightRequest="52" MinimumWidthRequest="160"/>
-   <Button Text="{x:Static strings:AppResources.UsePreviousLineupButton}" Command="{Binding UsePreviousLineupCommand}" MinimumHeightRequest="52" MinimumWidthRequest="190"/>
-   <Button Text="{x:Static strings:AppResources.DoneButton}" Command="{Binding DoneCommand}" MinimumHeightRequest="52" MinimumWidthRequest="140"/>
-  </HorizontalStackLayout>
+   <FlexLayout Grid.Row="3" Direction="Row" Wrap="Wrap" JustifyContent="Center"
+               AlignItems="Center" IsVisible="{Binding IsNormalMode}">
+    <Button Margin="8,4" Text="{x:Static strings:AppResources.AddLineupPlayersButton}" Command="{Binding EnterAddModeCommand}" MinimumHeightRequest="52" MinimumWidthRequest="160"/>
+    <Button Margin="8,4" Text="{x:Static strings:AppResources.RemoveLineupPlayersButton}" Command="{Binding EnterRemovalModeCommand}" MinimumHeightRequest="52" MinimumWidthRequest="160"/>
+    <Button Margin="8,4" Text="{x:Static strings:AppResources.UsePreviousLineupButton}" Command="{Binding UsePreviousLineupCommand}" MinimumHeightRequest="52" MinimumWidthRequest="190"/>
+    <Button Margin="8,4" AutomationId="OrderLineupByObpButton" Text="{x:Static strings:AppResources.OrderLineupByObpButton}" Command="{Binding OrderByObpCommand}" MinimumHeightRequest="52" MinimumWidthRequest="170"/>
+    <Button Margin="8,4" Text="{x:Static strings:AppResources.DoneButton}" Command="{Binding DoneCommand}" MinimumHeightRequest="52" MinimumWidthRequest="140"/>
+   </FlexLayout>
   <Grid Grid.Row="2" RowDefinitions="Auto,*" RowSpacing="8" IsVisible="{Binding IsAddMode}">
    <Label Text="{x:Static strings:AppResources.AddLineupPlayersButton}" Style="{StaticResource SubHeadline}"/>
    <Label Grid.Row="1" Text="{x:Static strings:AppResources.NoEligibleLineupPlayers}" HorizontalTextAlignment="Center" VerticalOptions="Center" IsVisible="{Binding ShowNoEligiblePlayersMessage}"/>
    <Label Grid.Row="1" Text="{x:Static strings:AppResources.NoAdditionalEligibleLineupPlayers}" HorizontalTextAlignment="Center" VerticalOptions="Center" IsVisible="{Binding ShowNoAdditionalPlayersMessage}"/>
    <CollectionView Grid.Row="1" ItemsSource="{Binding Players}" IsVisible="{Binding HasPlayers}" SelectionMode="None">
-    <CollectionView.ItemTemplate><DataTemplate x:DataType="viewModels:PlayerSelectionItem"><Grid Padding="20,12" RowDefinitions="Auto,1" ColumnDefinitions="*,Auto" MinimumHeightRequest="72"><Label Text="{Binding DisplayName}" FontSize="20" VerticalOptions="Center"/><CheckBox Grid.Column="1" IsChecked="{Binding IsSelected, Mode=TwoWay}" MinimumHeightRequest="48" MinimumWidthRequest="48"/><BoxView Grid.Row="1" Grid.ColumnSpan="2" Margin="0,11,0,0" HeightRequest="1" Color="{AppThemeBinding Light={StaticResource Gray200}, Dark={StaticResource Gray500}}"/></Grid></DataTemplate></CollectionView.ItemTemplate>
+    <CollectionView.ItemTemplate><DataTemplate x:DataType="viewModels:PlayerSelectionItem"><Grid Padding="20,12" RowDefinitions="Auto,1" ColumnDefinitions="*,Auto,Auto" MinimumHeightRequest="72"><Label Text="{Binding DisplayName}" FontSize="20" VerticalOptions="Center"/><Label Grid.Column="1" Text="{Binding OnBasePercentageDisplay}" FontSize="20" Margin="12,0" VerticalOptions="Center"/><CheckBox Grid.Column="2" IsChecked="{Binding IsSelected, Mode=TwoWay}" MinimumHeightRequest="48" MinimumWidthRequest="48"/><BoxView Grid.Row="1" Grid.ColumnSpan="3" Margin="0,11,0,0" HeightRequest="1" Color="{AppThemeBinding Light={StaticResource Gray200}, Dark={StaticResource Gray500}}"/></Grid></DataTemplate></CollectionView.ItemTemplate>
    </CollectionView>
   </Grid>
   <HorizontalStackLayout Grid.Row="3" HorizontalOptions="Center" Spacing="16" IsVisible="{Binding IsAddMode}"><Button Text="{x:Static strings:AppResources.CancelButton}" Command="{Binding CancelTemporaryModeCommand}" MinimumHeightRequest="52" MinimumWidthRequest="140"/><Button Text="{x:Static strings:AppResources.CreateNewPlayerButton}" Command="{Binding CreatePlayerCommand}" MinimumHeightRequest="52" MinimumWidthRequest="190"/><Button Text="{x:Static strings:AppResources.AddSelectedLineupPlayersButton}" Command="{Binding AddSelectedCommand}" MinimumHeightRequest="52" MinimumWidthRequest="180"/></HorizontalStackLayout>

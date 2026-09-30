@@ -314,11 +314,65 @@ public sealed class PlayResolutionCoordinatorTests
     }
 
     [Fact]
-    public void Two_out_fielder_choice_still_requires_primary_out_selection()
+    public void Two_out_fielder_choice_force_resolves_automatically()
     {
         Assert.True(PlayContextFactory.TryCreateForNewResult(
             2, 1, BatterResult.FielderChoice,
             [Base(2, ScoringBase.First)], out var context));
+
+        var result = coordinator.Evaluate(context);
+
+        Assert.Equal(PlayResolutionStatus.AutoComplete, result.Status);
+        Assert.Equal(PlayDecisionRequirement.None, result.DecisionRequirement);
+        Assert.Equal(ThirdOutRunRulingRequirement.AutomaticNoRun,
+            result.ThirdOutRulingRequirement);
+    }
+
+    [Fact]
+    public void Resolved_two_out_fielder_choice_force_suppresses_timing_ruling()
+    {
+        var result = coordinator.Evaluate(Context(
+            BatterResult.FielderChoice,
+            2,
+            Participant(3, RunnerStartingLocation.Third, RunnerDestination.Scores),
+            Participant(2, RunnerStartingLocation.First, RunnerDestination.Out),
+            Participant(1, RunnerStartingLocation.Home, RunnerDestination.First)));
+
+        Assert.Equal(PlayResolutionStatus.AutoComplete, result.Status);
+        Assert.Equal(PlayDecisionRequirement.None, result.DecisionRequirement);
+        Assert.Equal(ThirdOutRunRulingRequirement.AutomaticNoRun,
+            result.ThirdOutRulingRequirement);
+    }
+
+    [Fact]
+    public void Two_out_fielder_choice_resolves_forced_runner_without_prompting()
+    {
+        Assert.True(PlayContextFactory.TryCreateForNewResult(
+            2,
+            1,
+            BatterResult.FielderChoice,
+            [Base(2, ScoringBase.First), Base(3, ScoringBase.Second)],
+            out var context));
+
+        var result = coordinator.Evaluate(context);
+
+        Assert.Equal(PlayDecisionRequirement.None, result.DecisionRequirement);
+        Assert.Equal(PlayResolutionStatus.AutoComplete, result.Status);
+        Assert.Equal(RunnerDestination.Out,
+            result.Context!.Participants.Single(item => item.PlayerId == 3).Destination);
+        Assert.Equal(RunnerDestination.First,
+            result.Context.Participants.Single(item => item.PlayerId == 1).Destination);
+    }
+
+    [Fact]
+    public void Two_out_non_force_fielder_choice_preserves_guided_selection()
+    {
+        Assert.True(PlayContextFactory.TryCreateForNewResult(
+            2,
+            1,
+            BatterResult.FielderChoice,
+            [Base(2, ScoringBase.Second)],
+            out var context));
 
         var result = coordinator.Evaluate(context);
 
@@ -329,13 +383,13 @@ public sealed class PlayResolutionCoordinatorTests
     }
 
     [Fact]
-    public void Resolved_two_out_fielder_choice_with_a_scoring_runner_requires_timing()
+    public void Two_out_non_force_fielder_choice_preserves_timing_ruling()
     {
         var result = coordinator.Evaluate(Context(
             BatterResult.FielderChoice,
             2,
             Participant(3, RunnerStartingLocation.Third, RunnerDestination.Scores),
-            Participant(2, RunnerStartingLocation.First, RunnerDestination.Out),
+            Participant(2, RunnerStartingLocation.Second, RunnerDestination.Out),
             Participant(1, RunnerStartingLocation.Home, RunnerDestination.First)));
 
         Assert.Equal(PlayResolutionStatus.AwaitingDecision, result.Status);
@@ -344,28 +398,6 @@ public sealed class PlayResolutionCoordinatorTests
         Assert.Equal(new[] { 3 }, result.DecisionPlayerIds);
         Assert.Equal(ThirdOutRunRulingRequirement.ScorerDecisionRequired,
             result.ThirdOutRulingRequirement);
-    }
-
-    [Fact]
-    public void Two_out_fielder_choice_retirement_candidates_include_the_batter()
-    {
-        Assert.True(PlayContextFactory.TryCreateForNewResult(
-            2,
-            1,
-            BatterResult.FielderChoice,
-            [Base(2, ScoringBase.First), Base(3, ScoringBase.Second)],
-            out var context));
-
-        var result = coordinator.Evaluate(context);
-        var reconciled = coordinator.ApplyRetirementSelection(
-            context, new HashSet<int> { 1 });
-
-        Assert.Equal(PlayDecisionRequirement.RetirementSelection,
-            result.DecisionRequirement);
-        Assert.Equal(1, result.RequiredRetirementCount);
-        Assert.Equal(new[] { 3, 2, 1 }, result.DecisionPlayerIds);
-        Assert.True(reconciled.IsAccepted);
-        Assert.Equal(BatterResult.Out, reconciled.Context!.Result);
     }
 
     [Fact]

@@ -72,8 +72,11 @@ public partial class ScoringPage : ContentPage
         var dialog = new GameRulesDialog(false, viewModel.HomeRunLimit,
             viewModel.IsOneUpEnabled,
             rules => viewModel.UpdateGameRulesAsync(
-                rules.HomeRunLimit, rules.IsOneUpEnabled));
-        await dialog.ShowAsync(Navigation);
+                rules.HomeRunLimit, rules.IsOneUpEnabled, rules.TeamSide),
+            viewModel.CurrentTeamSide, viewModel.CanChangeTeamSide);
+        var result = await dialog.ShowAsync(Navigation);
+        if (result is not null)
+            await HandlePendingInningTransitionAsync();
     }
 
     private async void OnBeerRulesClicked(object sender, EventArgs e)

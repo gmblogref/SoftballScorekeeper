@@ -225,7 +225,7 @@
         </Border>
         <Grid x:Name="ScoringContentLayout"
               Grid.Row="3"
-              IsVisible="{Binding IsLoaded}"
+              IsVisible="{Binding IsOffenseAvailable}"
               RowDefinitions="Auto,Auto" ColumnDefinitions="*"
               RowSpacing="12">
                 <Grid x:Name="FieldSection"

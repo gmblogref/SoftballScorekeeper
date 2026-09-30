@@ -15,6 +15,46 @@ public sealed class CompletedGameWorkspaceTests
     }
 
     [AndroidUiFact]
+    public void Completed_game_plays_expose_canonical_chronological_results()
+    {
+        fixture.ResetApplication(
+            AndroidAutomationConstants.CompletedStatisticsSortingTestSeedRequestFileName);
+        var driver = fixture.Driver;
+        try
+        {
+            AssertViewSelection(driver, statsVisible: true);
+            AndroidElementWait.UntilAutomationId(driver, "GamePlaysButton").Click();
+            AssertViewSelection(driver, statsVisible: false);
+            AndroidElementWait.UntilText(driver, "Top 1 — Automation Team");
+            AndroidElementWait.UntilText(driver, "Alex Automation — Single");
+            AndroidElementWait.UntilText(
+                driver, "SCORE — Automation Team: 0 | Automation Opponent: 0");
+            AndroidElementWait.UntilAutomationId(driver, "GameStatsButton").Click();
+            AssertViewSelection(driver, statsVisible: true);
+            AndroidElementWait.UntilAutomationId(driver, "GamePlaysButton").Click();
+            AssertViewSelection(driver, statsVisible: false);
+
+            fixture.SetOrientation(ScreenOrientation.Portrait);
+            AssertViewSelection(driver, statsVisible: false);
+            AndroidElementWait.UntilAutomationId(driver, "GameStatsButton").Click();
+            AssertViewSelection(driver, statsVisible: true);
+
+            fixture.SetOrientation(ScreenOrientation.Landscape);
+            AssertViewSelection(driver, statsVisible: true);
+            AndroidElementWait.UntilAutomationId(driver, "GamePlaysButton").Click();
+            AssertViewSelection(driver, statsVisible: false);
+        }
+        catch (Exception exception)
+        {
+            var artifacts = fixture.CaptureFailureArtifacts(nameof(
+                Completed_game_plays_expose_canonical_chronological_results), exception);
+            throw new Xunit.Sdk.XunitException(
+                $"Android completed Game Plays workflow failed. Diagnostics: {artifacts}"
+                + $"{Environment.NewLine}{exception}");
+        }
+    }
+
+    [AndroidUiFact]
     public void Completed_statistics_sorting_remains_correct_across_landscape_and_portrait()
     {
         fixture.ResetApplication(
@@ -258,6 +298,19 @@ public sealed class CompletedGameWorkspaceTests
         var resourceId = $"{AndroidAutomationConstants.AppPackage}:id/{automationId}";
         return driver.FindElements(By.Id(resourceId))
             .FirstOrDefault(element => element.Displayed);
+    }
+
+    private static void AssertViewSelection(AndroidDriver driver, bool statsVisible)
+    {
+        if (statsVisible)
+        {
+            AndroidElementWait.UntilAutomationId(driver, "CompletedBattingStats");
+            PhaseAUiWorkflow.AssertTextAbsent(driver, "Top 1 — Automation Team");
+            return;
+        }
+
+        AndroidElementWait.UntilText(driver, "Top 1 — Automation Team");
+        AssertNotDisplayed(driver, "CompletedBattingStats");
     }
 
     private static int CenterX(IWebElement element) =>

@@ -72,6 +72,8 @@
             </CollectionView>
         </Grid>
         <HorizontalStackLayout Grid.Row="6" HorizontalOptions="Center" Spacing="20">
+            <Button Text="{x:Static strings:AppResources.SelectAllButton}" Command="{Binding SelectAllCommand}" MinimumHeightRequest="52" />
+            <Button Text="{x:Static strings:AppResources.ClearAllButton}" Command="{Binding ClearAllCommand}" MinimumHeightRequest="52" />
             <Button
                 Text="{x:Static strings:AppResources.CreateNewPlayerButton}"
                 Command="{Binding CreatePlayerCommand}"

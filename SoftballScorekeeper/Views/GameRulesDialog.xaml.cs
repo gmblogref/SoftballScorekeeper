@@ -12,11 +12,16 @@ public partial class GameRulesDialog : ContentPage
     private bool isSubmitting;
 
     public GameRulesDialog(bool isFirstStart, int homeRunLimit, bool isOneUpEnabled,
-        Func<GameRulesDialogResult, Task<bool>>? saveAsync = null)
+        Func<GameRulesDialogResult, Task<bool>>? saveAsync = null,
+        TeamGameSide teamSide = TeamGameSide.Away,
+        bool canChangeTeamSide = true)
     {
         InitializeComponent();
         this.saveAsync = saveAsync;
-        TeamSideSection.IsVisible = isFirstStart;
+        TeamSideSection.IsVisible = true;
+        TeamSideSection.IsEnabled = isFirstStart || canChangeTeamSide;
+        AwayOption.IsChecked = teamSide == TeamGameSide.Away;
+        HomeOption.IsChecked = teamSide == TeamGameSide.Home;
         TitleLabel.Text = isFirstStart
             ? AppResources.ScoringSetupTitle : AppResources.GameRulesTitle;
         SaveButton.Text = isFirstStart

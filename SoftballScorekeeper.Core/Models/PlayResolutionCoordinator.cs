@@ -93,6 +93,12 @@ public sealed class PlayResolutionCoordinator
             var retirementCandidates = context.Participants
                 .Select(item => item.PlayerId)
                 .ToArray();
+            var forcedThirdOut = context.CurrentOuts == 2
+                ? GetLeadForcedRunner(context)
+                : null;
+            if (forcedThirdOut is not null)
+                return ApplyFielderChoiceRetirementSelection(
+                    context, forcedThirdOut.PlayerId, definition);
             return Accepted(
                 context,
                 PlayResolutionStatus.AwaitingDecision,
@@ -516,6 +522,23 @@ public sealed class PlayResolutionCoordinator
         return completed is null
             ? Rejected(context, PlayResolutionFailure.IllegalArrangement)
             : Evaluate(completed);
+    }
+
+    private static ResolvedPlayParticipantOutcome? GetLeadForcedRunner(
+        PlayContext context)
+    {
+        var occupied = context.OccupiedStartingLocations;
+        var forcedLocation = occupied.Contains(RunnerStartingLocation.First)
+            ? occupied.Contains(RunnerStartingLocation.Second)
+                ? occupied.Contains(RunnerStartingLocation.Third)
+                    ? RunnerStartingLocation.Third
+                    : RunnerStartingLocation.Second
+                : RunnerStartingLocation.First
+            : (RunnerStartingLocation?)null;
+        return forcedLocation is null
+            ? null
+            : context.Participants.Single(item =>
+                item.StartingLocation == forcedLocation.Value);
     }
 
     public IReadOnlyList<RunnerOutcomeChoice> GetAvailableOutcomes(

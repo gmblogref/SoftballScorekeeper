@@ -59,8 +59,32 @@ public static class ThirdOutRunRulingEvaluator
             && thirdOut.StartingLocation == RunnerStartingLocation.Home
             && thirdOut.SafeDestination is null
             && thirdOut.AttemptedDestination is null;
-        return batterRunnerIsOutBeforeFirst
+        var isFielderChoiceForceOut = result == BatterResult.FielderChoice
+            && thirdOut.StartingLocation != RunnerStartingLocation.Home
+            && thirdOut.SafeDestination is null
+            && thirdOut.AttemptedDestination is null
+            && IsForced(thirdOut.StartingLocation, participants);
+        return batterRunnerIsOutBeforeFirst || isFielderChoiceForceOut
             ? ThirdOutRunRulingRequirement.AutomaticNoRun
             : ThirdOutRunRulingRequirement.ScorerDecisionRequired;
+    }
+
+    private static bool IsForced(
+        RunnerStartingLocation runner,
+        IReadOnlyList<ResolvedPlayParticipantOutcome> participants)
+    {
+        var occupied = participants
+            .Select(item => item.StartingLocation)
+            .ToHashSet();
+        return runner switch
+        {
+            RunnerStartingLocation.First => true,
+            RunnerStartingLocation.Second =>
+                occupied.Contains(RunnerStartingLocation.First),
+            RunnerStartingLocation.Third =>
+                occupied.Contains(RunnerStartingLocation.First)
+                && occupied.Contains(RunnerStartingLocation.Second),
+            _ => false,
+        };
     }
 }

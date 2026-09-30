@@ -4,7 +4,7 @@ using SoftballScorekeeper.Infrastructure.Data.Repositories;
 
 namespace SoftballScorekeeper.Tests;
 
-public sealed class GameScoringRulesLifecycleRepositoryTests
+public sealed partial class GameScoringRulesLifecycleRepositoryTests
 {
     [Theory]
     [InlineData(TeamGameSide.Home, 5, false)]

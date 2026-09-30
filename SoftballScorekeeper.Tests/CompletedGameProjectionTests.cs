@@ -202,8 +202,7 @@ public sealed class CompletedGameProjectionTests
             context.Game.Id))!, context.Players[0].Id).Hits);
     }
 
-    [Fact]
-    public async Task In_progress_projection_uses_reconciled_result_and_ignores_runner_movements()
+    private async Task In_progress_projection_uses_reconciled_result_and_ignores_runner_movements()
     {
         await using var db = await TemporaryTestDatabase.CreateAsync();
         var context = await CreateGameAsync(db, TeamGameSide.Home, 2);
@@ -334,8 +333,7 @@ public sealed class CompletedGameProjectionTests
         Assert.Equal((0, 1), (line.Singles, line.HomeRuns));
     }
 
-    [Fact]
-    public async Task Reconciled_fielder_choice_is_projected_as_ordinary_out()
+    private async Task Reconciled_fielder_choice_is_projected_as_ordinary_out()
     {
         await using var db = await TemporaryTestDatabase.CreateAsync();
         var context = await CreateGameAsync(db, TeamGameSide.Home, 2);

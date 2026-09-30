@@ -1003,6 +1003,7 @@ namespace SoftballScorekeeper.Resources.Strings {
         public static string DoubleResultLabel { get { return ResourceManager.GetString("DoubleResultLabel", resourceCulture); } }
         public static string TripleResultLabel { get { return ResourceManager.GetString("TripleResultLabel", resourceCulture); } }
         public static string HomeRunResultLabel { get { return ResourceManager.GetString("HomeRunResultLabel", resourceCulture); } }
+        public static string InTheParkHomeRunResultLabel { get { return ResourceManager.GetString("InTheParkHomeRunResultLabel", resourceCulture); } }
         public static string DeadBallOutResultLabel { get { return ResourceManager.GetString("DeadBallOutResultLabel", resourceCulture); } }
         public static string WalkResultLabel { get { return ResourceManager.GetString("WalkResultLabel", resourceCulture); } }
         public static string FielderChoiceResultLabel { get { return ResourceManager.GetString("FielderChoiceResultLabel", resourceCulture); } }
@@ -1201,6 +1202,28 @@ namespace SoftballScorekeeper.Resources.Strings {
         public static string TeamStatsLoadFailed { get { return ResourceManager.GetString("TeamStatsLoadFailed", resourceCulture); } }
         public static string SelectAllButton { get { return ResourceManager.GetString("SelectAllButton", resourceCulture); } }
         public static string ClearAllButton { get { return ResourceManager.GetString("ClearAllButton", resourceCulture); } }
+        public static string UndefinedBattingRate { get { return ResourceManager.GetString("UndefinedBattingRate", resourceCulture); } }
+        public static string OrderLineupByObpButton { get { return ResourceManager.GetString("OrderLineupByObpButton", resourceCulture); } }
+        public static string GameStatsButton { get { return ResourceManager.GetString("GameStatsButton", resourceCulture); } }
+        public static string GamePlaysButton { get { return ResourceManager.GetString("GamePlaysButton", resourceCulture); } }
+        public static string GamePlaysHalfHeading { get { return ResourceManager.GetString("GamePlaysHalfHeading", resourceCulture); } }
+        public static string GamePlaysTopLabel { get { return ResourceManager.GetString("GamePlaysTopLabel", resourceCulture); } }
+        public static string GamePlaysBottomLabel { get { return ResourceManager.GetString("GamePlaysBottomLabel", resourceCulture); } }
+        public static string GamePlaysBatterResult { get { return ResourceManager.GetString("GamePlaysBatterResult", resourceCulture); } }
+        public static string GamePlaysScore { get { return ResourceManager.GetString("GamePlaysScore", resourceCulture); } }
+        public static string GamePlaysScored { get { return ResourceManager.GetString("GamePlaysScored", resourceCulture); } }
+        public static string GamePlaysRunDidNotCount { get { return ResourceManager.GetString("GamePlaysRunDidNotCount", resourceCulture); } }
+        public static string GamePlaysAdvancedTo { get { return ResourceManager.GetString("GamePlaysAdvancedTo", resourceCulture); } }
+        public static string GamePlaysSafeAt { get { return ResourceManager.GetString("GamePlaysSafeAt", resourceCulture); } }
+        public static string GamePlaysOutAt { get { return ResourceManager.GetString("GamePlaysOutAt", resourceCulture); } }
+        public static string GamePlaysOutAttempting { get { return ResourceManager.GetString("GamePlaysOutAttempting", resourceCulture); } }
+        public static string GamePlaysFirstBase { get { return ResourceManager.GetString("GamePlaysFirstBase", resourceCulture); } }
+        public static string GamePlaysSecondBase { get { return ResourceManager.GetString("GamePlaysSecondBase", resourceCulture); } }
+        public static string GamePlaysThirdBase { get { return ResourceManager.GetString("GamePlaysThirdBase", resourceCulture); } }
+        public static string GamePlaysHome { get { return ResourceManager.GetString("GamePlaysHome", resourceCulture); } }
+        public static string GamePlaysOpponentRuns { get { return ResourceManager.GetString("GamePlaysOpponentRuns", resourceCulture); } }
+        public static string GamePlaysOpponentHomeRuns { get { return ResourceManager.GetString("GamePlaysOpponentHomeRuns", resourceCulture); } }
+        public static string GamePlaysOpponentTotalHomeRuns { get { return ResourceManager.GetString("GamePlaysOpponentTotalHomeRuns", resourceCulture); } }
         public static string ApplyButton { get { return ResourceManager.GetString("ApplyButton", resourceCulture); } }
         public static string TeamYearLabel { get { return ResourceManager.GetString("TeamYearLabel", resourceCulture); } }
         public static string TeamYearPlaceholder { get { return ResourceManager.GetString("TeamYearPlaceholder", resourceCulture); } }

@@ -43,7 +43,8 @@ public partial class ScoringViewModel : ObservableObject, IQueryAttributable
         NotifyPropertyChangedFor(nameof(CanEditParticipantOutcomes))]
     private bool hasPendingPlay;
     private bool isPendingBatterResolved;
-    [ObservableProperty, NotifyPropertyChangedFor(nameof(CanAdvanceToNextBatter))]
+    [ObservableProperty, NotifyPropertyChangedFor(nameof(CanAdvanceToNextBatter)),
+        NotifyPropertyChangedFor(nameof(IsOffenseAvailable))]
     private bool isLoaded;
     [ObservableProperty, NotifyPropertyChangedFor(nameof(CanAdvanceToNextBatter))]
     private bool isCompletingPlateAppearance;
@@ -126,6 +127,10 @@ public partial class ScoringViewModel : ObservableObject, IQueryAttributable
         EmptyBaseRunner(AppResources.ThirdBaseHeadingLabel);
     public bool HasScoredPlayers => ScoredPlayers.Count > 0;
     public bool HasNoScoredPlayers => !HasScoredPlayers;
+    public TeamGameSide CurrentTeamSide => currentTeamSide;
+    public bool CanChangeTeamSide { get; private set; }
+    public bool IsAwaitingOpponentHalfInning { get; private set; }
+    public bool IsOffenseAvailable => IsLoaded && !IsAwaitingOpponentHalfInning;
     public PlayResolutionStatus ResolutionStatus
     {
         get => resolutionStatus;
@@ -284,6 +289,17 @@ public partial class ScoringViewModel : ObservableObject, IQueryAttributable
         VisitorHomeRunDisplay = FormatHomeRunScoreboard(
             state.VisitorHomeRuns, HomeRunLimit, IsOneUpEnabled);
         currentTeamSide = state.Session.TeamSide;
+        CanChangeTeamSide = state.PlateAppearances.Count == 0
+            && state.HalfInnings.All(item => !item.OpponentEntryCompleted);
+        IsAwaitingOpponentHalfInning = state.HalfInnings.Any(item =>
+                !item.OpponentEntryCompleted)
+            || state.Session.TeamSide == TeamGameSide.Home
+                && state.PlateAppearances.Count == 0
+                && state.HalfInnings.Count == 0;
+        OnPropertyChanged(nameof(CurrentTeamSide));
+        OnPropertyChanged(nameof(CanChangeTeamSide));
+        OnPropertyChanged(nameof(IsAwaitingOpponentHalfInning));
+        OnPropertyChanged(nameof(IsOffenseAvailable));
         InningDisplay = FormatInning(state.Session);
         OutsDisplay = FormatOuts(state.Session);
         InningOutDisplay = FormatInningOut(state.Session);
@@ -349,14 +365,15 @@ public partial class ScoringViewModel : ObservableObject, IQueryAttributable
         private set => SetProperty(ref canRedo, value);
     }
 
-    public async Task<bool> UpdateGameRulesAsync(int homeRunLimit, bool isOneUpEnabled)
+    public async Task<bool> UpdateGameRulesAsync(int homeRunLimit, bool isOneUpEnabled,
+        TeamGameSide? teamSide = null)
     {
         if (!IsLoaded || IsCompletingPlateAppearance || homeRunLimit < 0) return false;
         IsCompletingPlateAppearance = true;
         try
         {
             var result = await sessionRepository.UpdateGameRulesAsync(
-                GameId, homeRunLimit, isOneUpEnabled);
+                GameId, homeRunLimit, isOneUpEnabled, teamSide);
             if (!result.IsSuccess)
             {
                 ValidationMessage = AppResources.GameRulesSaveFailed;
@@ -632,6 +649,12 @@ public partial class ScoringViewModel : ObservableObject, IQueryAttributable
         OnPropertyChanged(nameof(AvailableBatterResults));
         currentBatterPlayerId = 0;
         currentTeamSide = default;
+        CanChangeTeamSide = false;
+        IsAwaitingOpponentHalfInning = false;
+        OnPropertyChanged(nameof(CurrentTeamSide));
+        OnPropertyChanged(nameof(CanChangeTeamSide));
+        OnPropertyChanged(nameof(IsAwaitingOpponentHalfInning));
+        OnPropertyChanged(nameof(IsOffenseAvailable));
     }
 
     private void ResolveUpcomingBatters(GameScoringState state)
@@ -751,6 +774,7 @@ public partial class ScoringViewModel : ObservableObject, IQueryAttributable
         BatterResult.Double => AppResources.DoubleResultLabel,
         BatterResult.Triple => AppResources.TripleResultLabel,
         BatterResult.HomeRun => AppResources.HomeRunResultLabel,
+        BatterResult.InTheParkHomeRun => AppResources.InTheParkHomeRunResultLabel,
         BatterResult.DeadBallOut => AppResources.DeadBallOutResultLabel,
         BatterResult.Walk => AppResources.WalkResultLabel,
         BatterResult.FielderChoice => AppResources.FielderChoiceResultLabel,

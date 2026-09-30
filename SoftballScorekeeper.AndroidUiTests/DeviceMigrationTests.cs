@@ -321,20 +321,22 @@ public sealed class DeviceMigrationTests(AndroidAppiumFixture fixture)
         var yearResourceId = ResourceId($"TeamYearGroup-{year}");
         for (var attempt = 0; attempt < 3; attempt++)
         {
-            if (driver.FindElements(By.Id(teamResourceId)).Any(element => element.Displayed))
-                return;
-
             var header = driver.FindElements(By.Id(yearResourceId))
                 .FirstOrDefault(element => element.Displayed)
                 ?? driver.FindElement(MobileBy.AndroidUIAutomator(
                     "new UiScrollable(new UiSelector().scrollable(true))"
                         + $".scrollIntoView(new UiSelector().resourceId(\"{yearResourceId}\"))"));
-            PhaseAUiWorkflow.TapCenter(driver, header);
+            if (!header.Text.Contains('▼'))
+                PhaseAUiWorkflow.TapCenter(driver, header);
+
             try
             {
                 new WebDriverWait(driver, TimeSpan.FromSeconds(5)).Until(currentDriver =>
-                    currentDriver.FindElements(By.Id(teamResourceId))
-                        .Any(element => element.Displayed));
+                    currentDriver.FindElements(By.Id(yearResourceId))
+                        .Any(element => element.Displayed && element.Text.Contains('▼')));
+                driver.FindElement(MobileBy.AndroidUIAutomator(
+                    "new UiScrollable(new UiSelector().scrollable(true))"
+                        + $".scrollIntoView(new UiSelector().resourceId(\"{teamResourceId}\"))"));
                 return;
             }
             catch (WebDriverTimeoutException) when (attempt < 2)
@@ -347,20 +349,18 @@ public sealed class DeviceMigrationTests(AndroidAppiumFixture fixture)
 
     private static void CollapseTeamYear(AndroidDriver driver, int year, int teamId)
     {
-        var teamResourceId = ResourceId($"TeamCard-{teamId}");
+        var yearResourceId = ResourceId($"TeamYearGroup-{year}");
         for (var attempt = 0; attempt < 3; attempt++)
         {
-            if (!driver.FindElements(By.Id(teamResourceId)).Any(element => element.Displayed))
-                return;
+            var header = AndroidElementWait.UntilAutomationId(driver, $"TeamYearGroup-{year}");
+            if (!header.Text.Contains('▶'))
+                PhaseAUiWorkflow.TapCenter(driver, header);
 
-            PhaseAUiWorkflow.TapCenter(
-                driver,
-                AndroidElementWait.UntilAutomationId(driver, $"TeamYearGroup-{year}"));
             try
             {
                 new WebDriverWait(driver, TimeSpan.FromSeconds(5)).Until(currentDriver =>
-                    !currentDriver.FindElements(By.Id(teamResourceId))
-                        .Any(element => element.Displayed));
+                    currentDriver.FindElements(By.Id(yearResourceId))
+                        .Any(element => element.Displayed && element.Text.Contains('▶')));
                 return;
             }
             catch (WebDriverTimeoutException) when (attempt < 2)

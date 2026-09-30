@@ -1319,6 +1319,41 @@ public sealed class AndroidUiTestDataInitializer
         if (!previousLineup.IsSuccess)
             throw new InvalidOperationException("Could not seed the previous Phase A lineup.");
 
+        var completed = await scoringRepository.InitializeAsync(
+            team.Id, games.CreatedGameIds[0], TeamGameSide.Away);
+        if (!completed.IsSuccess)
+            throw new InvalidOperationException(
+                "Could not initialize the completed Phase A lineup Game.");
+        var appearances = new[]
+        {
+            (playerIds[0], 1, BatterResult.Single),
+            (playerIds[0], 1, BatterResult.Out),
+            (playerIds[1], 2, BatterResult.Single),
+            (playerIds[1], 2, BatterResult.Out),
+            (playerIds[1], 2, BatterResult.Out),
+            (playerIds[2], 3, BatterResult.Out),
+        };
+        await using (var operation = await database.BeginOperationAsync())
+        {
+            for (var index = 0; index < appearances.Length; index++)
+            {
+                var (playerId, battingPosition, result) = appearances[index];
+                EnsureSingleRow(await operation.Connection.InsertAsync(
+                    new GamePlateAppearance
+                    {
+                        GameScoringSessionId = completed.Session!.Id,
+                        PlayerId = playerId,
+                        BattingPosition = battingPosition,
+                        PlateAppearanceNumber = index + 1,
+                        Inning = 1,
+                        Result = result,
+                    }), "Phase A lineup plate appearance");
+            }
+        }
+        if (!(await scoringRepository.CompleteGameAsync(games.CreatedGameIds[0])).IsSuccess)
+            throw new InvalidOperationException(
+                "Could not complete the Phase A lineup statistics Game.");
+
         return new AndroidUiTestContext(team.Id, games.CreatedGameIds[1], false);
     }
 

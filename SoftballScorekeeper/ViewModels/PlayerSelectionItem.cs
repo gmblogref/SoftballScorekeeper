@@ -1,5 +1,7 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using SoftballScorekeeper.Core.Models;
+using SoftballScorekeeper.Core.Statistics;
+using SoftballScorekeeper.Resources.Strings;
 
 namespace SoftballScorekeeper.ViewModels;
 
@@ -10,15 +12,21 @@ public partial class PlayerSelectionItem : ObservableObject
 
     public PlayerSelectionItem(
         Player player,
-        Action<PlayerSelectionItem>? selectionChanged = null)
+        Action<PlayerSelectionItem>? selectionChanged = null,
+        decimal? onBasePercentage = null)
     {
         ArgumentNullException.ThrowIfNull(player);
 
         Player = player;
         this.selectionChanged = selectionChanged;
+        OnBasePercentage = onBasePercentage;
     }
 
     public Player Player { get; }
+    public decimal? OnBasePercentage { get; }
+    public string OnBasePercentageDisplay => OnBasePercentage is decimal value
+        ? BattingRateFormatter.Format(value)
+        : AppResources.UndefinedBattingRate;
 
     public bool IsSelected
     {

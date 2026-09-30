@@ -17,6 +17,7 @@ public enum LineupManagerMode
 public partial class SetLineupViewModel : ObservableObject, IQueryAttributable
 {
     private readonly GameLineupRepository repository;
+    private readonly TeamBattingStatisticsRepository? statisticsRepository;
     private readonly List<int> selectionOrder = [];
     private bool canUsePreviousLineup;
     private bool hasContext;
@@ -33,7 +34,12 @@ public partial class SetLineupViewModel : ObservableObject, IQueryAttributable
     [ObservableProperty] private string validationMessage = string.Empty;
     [ObservableProperty] private bool isBusy;
 
-    public SetLineupViewModel(GameLineupRepository repository) => this.repository = repository;
+    public SetLineupViewModel(GameLineupRepository repository,
+        TeamBattingStatisticsRepository? statisticsRepository = null)
+    {
+        this.repository = repository;
+        this.statisticsRepository = statisticsRepository;
+    }
     public ObservableCollection<PlayerSelectionItem> Players { get; } = [];
     public ObservableCollection<LineupPlayerSelectionItem> ExistingLineupPlayers { get; } = [];
     public Func<int, Task>? RemovalConfirmationRequested { get; set; }
@@ -92,12 +98,23 @@ public partial class SetLineupViewModel : ObservableObject, IQueryAttributable
     {
         var existingRows = await repository.GetForGameAsync(GameId);
         var existingPlayers = await repository.GetPlayersForGameAsync(GameId);
+        var statistics = statisticsRepository is null
+            ? null
+            : await statisticsRepository.GetAsync(TeamId);
+        var rates = statistics?.Players.ToDictionary(
+            item => item.PlayerId,
+            item => item.BattingStatistics.AtBats + item.BattingStatistics.Walks
+                + item.BattingStatistics.SacrificeFlies > 0
+                    ? (decimal?)item.BattingStatistics.OnBasePercentage
+                    : null)
+            ?? new Dictionary<int, decimal?>();
         HasExistingLineup = existingRows.Count > 0;
         CanUsePreviousLineup = await repository.CanUsePreviousAsync(TeamId, GameId);
         Players.Clear(); ExistingLineupPlayers.Clear(); selectionOrder.Clear();
         for (var index = 0; index < existingPlayers.Count; index++)
         {
-            var item = new LineupPlayerSelectionItem(existingRows[index], existingPlayers[index], RemovalSelectionChanged)
+            var item = new LineupPlayerSelectionItem(existingRows[index], existingPlayers[index],
+                RemovalSelectionChanged, rates.GetValueOrDefault(existingPlayers[index].Id))
             {
                 IsSelectionVisible = IsRemovalMode,
             };
@@ -106,7 +123,8 @@ public partial class SetLineupViewModel : ObservableObject, IQueryAttributable
         }
         var existingIds = existingRows.Select(item => item.PlayerId).ToHashSet();
         foreach (var player in await repository.GetEligiblePlayersAsync(TeamId, GameId))
-            if (!existingIds.Contains(player.Id)) Players.Add(new PlayerSelectionItem(player, AddSelectionChanged));
+            if (!existingIds.Contains(player.Id)) Players.Add(new PlayerSelectionItem(
+                player, AddSelectionChanged, rates.GetValueOrDefault(player.Id)));
         HasPlayers = Players.Count > 0;
         HasNoPlayers = !HasPlayers;
         SelectedPlayerCount = 0;
@@ -215,6 +233,37 @@ public partial class SetLineupViewModel : ObservableObject, IQueryAttributable
         finally { IsBusy = false; }
     }
 
+    [RelayCommand(CanExecute = nameof(CanOrderByObp))]
+    private async Task OrderByObpAsync()
+    {
+        var orderedIds = HasExistingLineup
+            ? ExistingLineupPlayers
+                .Select((item, index) => (item, index))
+                .OrderByDescending(entry => entry.item.OnBasePercentage.HasValue)
+                .ThenByDescending(entry => entry.item.OnBasePercentage)
+                .ThenBy(entry => entry.index)
+                .Select(entry => entry.item.Player.Id)
+                .ToArray()
+            : Players
+                .Select((item, index) => (item, index))
+                .OrderByDescending(entry => entry.item.OnBasePercentage.HasValue)
+                .ThenByDescending(entry => entry.item.OnBasePercentage)
+                .ThenBy(entry => entry.index)
+                .Select(entry => entry.item.Player.Id)
+                .ToArray();
+        if (orderedIds.Length == 0) return;
+        IsBusy = true;
+        try
+        {
+            var succeeded = HasExistingLineup
+                ? (await repository.ReorderAsync(GameId, orderedIds)).IsSuccess
+                : (await repository.AppendAsync(TeamId, GameId, orderedIds)).IsSuccess;
+            await ReloadAsync();
+            ValidationMessage = succeeded ? string.Empty : AppResources.LineupReorderFailed;
+        }
+        finally { IsBusy = false; }
+    }
+
     [RelayCommand(CanExecute = nameof(CanExecuteUsePreviousLineup))]
     private async Task UsePreviousLineupAsync()
     {
@@ -282,6 +331,8 @@ public partial class SetLineupViewModel : ObservableObject, IQueryAttributable
         && !isConfirmationPending && hasContext && CanUsePreviousLineup;
     private bool CanConfirmRemoval() => !IsBusy && IsRemovalMode && isConfirmationPending && pendingRemovalIds.Count > 0;
     private bool CanDone() => !IsBusy && IsNormalMode && !isConfirmationPending;
+    private bool CanOrderByObp() => !IsBusy && IsNormalMode && !isConfirmationPending
+        && (ExistingLineupPlayers.Count > 0 || Players.Count > 0);
     partial void OnIsBusyChanged(bool value) { OnPropertyChanged(nameof(CanReorderLineup)); NotifyCommands(); }
     partial void OnModeChanged(LineupManagerMode value)
     {
@@ -291,7 +342,7 @@ public partial class SetLineupViewModel : ObservableObject, IQueryAttributable
     }
     partial void OnHasExistingLineupChanged(bool value) { OnPropertyChanged(nameof(HasEmptyLineup)); OnPropertyChanged(nameof(ShowNoEligiblePlayersMessage)); OnPropertyChanged(nameof(ShowNoAdditionalPlayersMessage)); NotifyCommands(); }
     partial void OnHasNoPlayersChanged(bool value) { OnPropertyChanged(nameof(ShowNoEligiblePlayersMessage)); OnPropertyChanged(nameof(ShowNoAdditionalPlayersMessage)); }
-    private void NotifyCommands() { AddSelectedCommand.NotifyCanExecuteChanged(); CreatePlayerCommand.NotifyCanExecuteChanged(); EnterAddModeCommand.NotifyCanExecuteChanged(); EnterRemovalModeCommand.NotifyCanExecuteChanged(); CancelTemporaryModeCommand.NotifyCanExecuteChanged(); RequestRemovalCommand.NotifyCanExecuteChanged(); ConfirmRemovalCommand.NotifyCanExecuteChanged(); UsePreviousLineupCommand.NotifyCanExecuteChanged(); DoneCommand.NotifyCanExecuteChanged(); }
+    private void NotifyCommands() { AddSelectedCommand.NotifyCanExecuteChanged(); CreatePlayerCommand.NotifyCanExecuteChanged(); EnterAddModeCommand.NotifyCanExecuteChanged(); EnterRemovalModeCommand.NotifyCanExecuteChanged(); CancelTemporaryModeCommand.NotifyCanExecuteChanged(); RequestRemovalCommand.NotifyCanExecuteChanged(); ConfirmRemovalCommand.NotifyCanExecuteChanged(); UsePreviousLineupCommand.NotifyCanExecuteChanged(); OrderByObpCommand.NotifyCanExecuteChanged(); DoneCommand.NotifyCanExecuteChanged(); }
     private void ClearSelections() { foreach (var item in Players) item.IsSelected = false; foreach (var item in ExistingLineupPlayers) item.IsSelected = false; selectionOrder.Clear(); SelectedPlayerCount = 0; UpdateRemovalSelection(); }
     private void ExitTemporaryMode() { ClearSelections(); Mode = LineupManagerMode.Normal; }
     private void Reset() { TeamId = GameId = 0; hasContext = false; CanUsePreviousLineup = false; Players.Clear(); ExistingLineupPlayers.Clear(); selectionOrder.Clear(); SelectedPlayerCount = 0; SelectedRemovalCount = 0; Mode = LineupManagerMode.Normal; }
