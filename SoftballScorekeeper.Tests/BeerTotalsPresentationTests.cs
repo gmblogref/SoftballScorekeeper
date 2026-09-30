@@ -27,6 +27,8 @@ public sealed class BeerTotalsPresentationTests
         Assert.Equal(new[]
         {
             "{x:Static strings:AppResources.BeerTotalsPlayerHeader}",
+            "{x:Static strings:AppResources.BeerTotalsOwedHeader}",
+            "{x:Static strings:AppResources.BeerTotalsBroughtHeader}",
             "{x:Static strings:AppResources.BeerTotalsDboHeader}",
             "{x:Static strings:AppResources.BeerTotalsSoloHomeRunHeader}",
             "{x:Static strings:AppResources.BeerTotalsDoublePlayHeader}",
@@ -34,15 +36,13 @@ public sealed class BeerTotalsPresentationTests
             "{x:Static strings:AppResources.BeerTotalsTwoOutsHeader}",
             "{x:Static strings:AppResources.BeerTotalsStrikeoutHeader}",
             "{x:Static strings:AppResources.BeerTotalsLowManHeader}",
-            "{x:Static strings:AppResources.BeerTotalsBroughtHeader}",
-            "{x:Static strings:AppResources.BeerTotalsOwedHeader}",
         }, header.Elements(ns + "Label").Select(item => item.Attribute("Text")?.Value));
         Assert.DoesNotContain("StillOwed", grid.ToString(), StringComparison.OrdinalIgnoreCase);
         Assert.DoesNotContain("TeamTotal", grid.ToString(), StringComparison.OrdinalIgnoreCase);
     }
 
     [Fact]
-    public void Editable_cells_are_neutral_and_owed_is_read_only_yellow_bold_and_last()
+    public void Editable_cells_are_neutral_and_owed_is_read_only_yellow_bold_and_first()
     {
         var grid = LoadXaml("Views", "Controls", "BeerTotalsGrid.xaml");
         var ns = grid.Root!.Name.Namespace;
@@ -78,10 +78,10 @@ public sealed class BeerTotalsPresentationTests
             item.Attribute("Text")?.Value == "{Binding PlayerDisplayName}");
         Assert.Contains(row.Elements(ns + "Label"), item =>
             item.Attribute("Text")?.Value == "{Binding Owed}"
-            && item.Attribute("Grid.Column")?.Value == "10"
+            && item.Attribute("Grid.Column")?.Value == "2"
             && item.Attribute("Style")?.Value == "{StaticResource BeerTotalOwedValue}");
         Assert.Contains(buttons, item => item.Attribute("Text")?.Value == "{Binding Brought}"
-            && item.Parent?.Attribute("Grid.Column")?.Value == "9");
+            && item.Parent?.Attribute("Grid.Column")?.Value == "3");
         Assert.All(entries, entry =>
         {
             Assert.EndsWith("Editing}", entry.Attribute("IsVisible")?.Value);

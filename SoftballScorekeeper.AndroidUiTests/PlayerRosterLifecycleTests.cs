@@ -32,6 +32,12 @@ public sealed class PlayerRosterLifecycleTests(AndroidAppiumFixture fixture)
             AndroidElementWait.UntilAutomationId(driver, "TeamWorkspaceRosterSectionButton").Click();
             AndroidElementWait.UntilText(driver, "Add Players").Click();
             var eligiblePlayer = AndroidElementWait.UntilText(driver, "Phase Edited Foundation");
+            AndroidElementWait.UntilText(driver, "Select All").Click();
+            Assert.Equal("true", PhaseAUiWorkflow.NearestVisibleCheckbox(
+                driver, eligiblePlayer).GetAttribute("checked"));
+            AndroidElementWait.UntilText(driver, "Clear All").Click();
+            Assert.Equal("false", PhaseAUiWorkflow.NearestVisibleCheckbox(
+                driver, eligiblePlayer).GetAttribute("checked"));
             PhaseAUiWorkflow.NearestVisibleCheckbox(driver, eligiblePlayer).Click();
             AndroidElementWait.UntilText(driver, "Add Selected to Team").Click();
             AndroidElementWait.UntilText(driver, "Add Players to Team");
@@ -61,8 +67,11 @@ public sealed class PlayerRosterLifecycleTests(AndroidAppiumFixture fixture)
             AndroidElementWait.UntilAutomationId(driver, "TeamWorkspaceRosterSectionButton").Click();
             AndroidElementWait.UntilText(driver, "Add Players").Click();
             eligiblePlayer = AndroidElementWait.UntilText(driver, "Phase Edited Foundation");
-            PhaseAUiWorkflow.NearestVisibleCheckbox(driver, eligiblePlayer).Click();
+            var eligibleCheckbox = PhaseAUiWorkflow.NearestVisibleCheckbox(driver, eligiblePlayer);
+            eligibleCheckbox.Click();
+            Assert.Equal("true", eligibleCheckbox.GetAttribute("checked"));
             AndroidElementWait.UntilText(driver, "Add Selected to Team").Click();
+            AndroidElementWait.UntilText(driver, "Add Players to Team");
             AndroidElementWait.UntilText(driver, "Add").Click();
             PhaseAUiWorkflow.ScrollToText(driver, "Phase Edited Foundation");
 

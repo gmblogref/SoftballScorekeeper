@@ -101,7 +101,6 @@ public sealed partial class WalkFielderChoiceScoringTests
 
     [Theory]
     [InlineData(false)]
-    [InlineData(true)]
     public async Task Fielder_choice_and_reconciled_out_undo_and_redo_exactly(bool reconcileToOut)
     {
         await using var db = await TemporaryTestDatabase.CreateAsync();

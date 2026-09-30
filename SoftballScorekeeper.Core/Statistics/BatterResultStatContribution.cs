@@ -30,6 +30,8 @@ public static class BatterResultStatContributions
             totalBases: 3, onBaseNumerator: 1, onBaseDenominator: 1),
         Define(BatterResult.HomeRun, atBats: 1, hits: 1, homeRuns: 1,
             totalBases: 4, onBaseNumerator: 1, onBaseDenominator: 1),
+        Define(BatterResult.InTheParkHomeRun, atBats: 1, hits: 1, homeRuns: 1,
+            totalBases: 4, onBaseNumerator: 1, onBaseDenominator: 1),
         Define(BatterResult.Out, atBats: 1, onBaseDenominator: 1),
         Define(BatterResult.Walk, walks: 1,
             onBaseNumerator: 1, onBaseDenominator: 1),

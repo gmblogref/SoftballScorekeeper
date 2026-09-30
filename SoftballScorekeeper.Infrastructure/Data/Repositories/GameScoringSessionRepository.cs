@@ -279,9 +279,11 @@ public sealed class GameScoringSessionRepository
     }
 
     public async Task<UpdateGameRulesResult> UpdateGameRulesAsync(
-        int gameId, int homeRunLimit, bool isOneUpEnabled)
+        int gameId, int homeRunLimit, bool isOneUpEnabled,
+        TeamGameSide? teamSide = null)
     {
-        if (gameId <= 0 || homeRunLimit < 0)
+        if (gameId <= 0 || homeRunLimit < 0
+            || teamSide is not null && !Enum.IsDefined(teamSide.Value))
             return new(null, GameScoringLifecycleFailure.InvalidRequest);
         await using var operation = await database.BeginOperationAsync();
         var connection = operation.Connection;
@@ -304,11 +306,34 @@ public sealed class GameScoringSessionRepository
                     result = new(session, GameScoringLifecycleFailure.GameCompleted);
                     return;
                 }
+                var requestedTeamSide = teamSide ?? session.TeamSide;
+                var teamSideChanged = requestedTeamSide != session.TeamSide;
+                if (teamSideChanged)
+                {
+                    var hasCommittedHistory = transaction.Table<GamePlateAppearance>()
+                            .Any(item => item.GameScoringSessionId == session.Id)
+                        || transaction.Table<GameScoringHalfInning>()
+                            .Any(item => item.GameScoringSessionId == session.Id
+                                && item.OpponentEntryCompleted);
+                    if (hasCommittedHistory)
+                    {
+                        result = new(session,
+                            GameScoringLifecycleFailure.ScoringHistoryExists);
+                        return;
+                    }
+
+                    RewindPendingHistory(transaction, session.Id);
+                    ClearPending(transaction, session.Id);
+                    session.TeamSide = requestedTeamSide;
+                    SynchronizeInitialOpponentHalfInning(transaction, session);
+                }
                 session.HomeRunLimit = homeRunLimit;
                 session.IsOneUpEnabled = isOneUpEnabled;
                 if (transaction.Update(session) != 1)
                     throw new InvalidOperationException(
                         "Game-rules update did not affect one scoring session.");
+                if (teamSideChanged)
+                    ReplaceCurrentHistorySnapshot(transaction, session.Id);
                 result = new(session, GameScoringLifecycleFailure.None);
             });
         }
@@ -444,15 +469,33 @@ public sealed class GameScoringSessionRepository
     public async Task<GameScoringHalfInning?> GetPendingHalfInningTransitionAsync(int gameId)
     {
         if (gameId <= 0) return null;
-        var session = await GetForGameAsync(gameId);
-        if (session is null) return null;
         await using var operation = await database.BeginOperationAsync();
         var connection = operation.Connection;
-        return await connection.Table<GameScoringHalfInning>()
-            .Where(item => item.GameScoringSessionId == session.Id
-                && !item.OpponentEntryCompleted)
-            .OrderBy(item => item.Inning)
-            .FirstOrDefaultAsync();
+        GameScoringHalfInning? pending = null;
+        await connection.RunInTransactionAsync(transaction =>
+        {
+            var session = transaction.Table<GameScoringSession>()
+                .FirstOrDefault(item => item.GameId == gameId);
+            if (session is null) return;
+            pending = transaction.Table<GameScoringHalfInning>()
+                .Where(item => item.GameScoringSessionId == session.Id
+                    && !item.OpponentEntryCompleted)
+                .OrderBy(item => item.Inning)
+                .FirstOrDefault();
+            if (pending is null && session.TeamSide == TeamGameSide.Home
+                && !transaction.Table<GamePlateAppearance>().Any(item =>
+                    item.GameScoringSessionId == session.Id)
+                && !transaction.Table<GameScoringHalfInning>().Any(item =>
+                    item.GameScoringSessionId == session.Id))
+            {
+                SynchronizeInitialOpponentHalfInning(transaction, session);
+                ReplaceCurrentHistorySnapshot(transaction, session.Id);
+                pending = transaction.Table<GameScoringHalfInning>()
+                    .First(item => item.GameScoringSessionId == session.Id
+                        && item.Inning == 0);
+            }
+        });
+        return pending;
     }
 
     public async Task<bool> AcknowledgeHalfInningSummaryAsync(int gameId, int halfInningId)
@@ -610,7 +653,10 @@ public sealed class GameScoringSessionRepository
                 if (transaction.Update(halfInning) != 1)
                     throw new InvalidOperationException(
                         "Opponent entry did not update one completed half-inning.");
-                ReplaceCurrentHistorySnapshot(transaction, session.Id);
+                if (halfInning.Inning == 0)
+                    AdvanceHistory(transaction, session.Id);
+                else
+                    ReplaceCurrentHistorySnapshot(transaction, session.Id);
                 result = new(halfInning, true);
             });
         }
@@ -1943,6 +1989,132 @@ public sealed class GameScoringSessionRepository
         if (transaction.Insert(halfInning) != 1)
             throw new InvalidOperationException(
                 "Completed half-inning insertion did not affect one row.");
+    }
+
+    public async Task<CompletedGamePlaysProjection?> GetCompletedGamePlaysAsync(int gameId)
+    {
+        if (gameId <= 0) return null;
+        await using var operation = await database.BeginOperationAsync();
+        var connection = operation.Connection;
+        var session = await connection.Table<GameScoringSession>()
+            .Where(item => item.GameId == gameId
+                && item.Status == GameScoringStatus.Completed)
+            .FirstOrDefaultAsync();
+        if (session is null) return null;
+        var game = await connection.FindAsync<Game>(gameId)
+            ?? throw new InvalidOperationException("The completed scoring session has no Game.");
+        var team = await connection.FindAsync<Team>(game.TeamId)
+            ?? throw new InvalidOperationException("The completed Game has no Team.");
+        var appearances = await connection.Table<GamePlateAppearance>()
+            .Where(item => item.GameScoringSessionId == session.Id)
+            .OrderBy(item => item.PlateAppearanceNumber)
+            .ToListAsync();
+        var appearanceIds = appearances.Select(item => item.Id).ToHashSet();
+        var movements = (await connection.Table<GamePlateAppearanceRunnerMovement>()
+                .ToListAsync())
+            .Where(item => appearanceIds.Contains(item.GamePlateAppearanceId))
+            .ToArray();
+        var halves = await connection.Table<GameScoringHalfInning>()
+            .Where(item => item.GameScoringSessionId == session.Id
+                && item.OpponentEntryCompleted)
+            .ToListAsync();
+        var playerIds = appearances.Select(item => item.PlayerId)
+            .Concat(movements.Select(item => item.PlayerId)).Distinct().ToHashSet();
+        var players = (await connection.Table<Player>().ToListAsync())
+            .Where(item => playerIds.Contains(item.Id))
+            .ToDictionary(item => item.Id);
+        if (playerIds.Any(id => !players.ContainsKey(id)))
+            throw new InvalidOperationException("Completed Game Plays could not resolve a Player.");
+
+        var opponentByDisplayInning = halves.ToDictionary(
+            item => session.TeamSide == TeamGameSide.Home ? item.Inning + 1 : item.Inning);
+        var maximumInning = appearances.Select(item => item.Inning)
+            .Concat(opponentByDisplayInning.Keys).DefaultIfEmpty(0).Max();
+        var groups = new List<CompletedGameHalfInningGroup>();
+        var teamScore = 0;
+        var opponentScore = 0;
+        var opponentHomeRuns = 0;
+        for (var inning = 1; inning <= maximumInning; inning++)
+        {
+            AddHalf(CompletedGameHalf.Top, inning);
+            AddHalf(CompletedGameHalf.Bottom, inning);
+        }
+        return new(team.Name.Trim(), game.Opponent?.Trim() ?? string.Empty,
+            session.TeamSide, groups);
+
+        void AddHalf(CompletedGameHalf half, int inning)
+        {
+            var isTeamOffense = session.TeamSide == TeamGameSide.Away
+                ? half == CompletedGameHalf.Top
+                : half == CompletedGameHalf.Bottom;
+            if (!isTeamOffense)
+            {
+                if (!opponentByDisplayInning.TryGetValue(inning, out var summary)) return;
+                opponentScore += summary.OpponentRuns ?? 0;
+                opponentHomeRuns += summary.OpponentHomeRuns ?? 0;
+                groups.Add(new(inning, half, false, [], new(
+                    summary.OpponentRuns, summary.OpponentHomeRuns,
+                    opponentHomeRuns, teamScore, opponentScore)));
+                return;
+            }
+
+            var rows = new List<CompletedGamePlayRow>();
+            foreach (var appearance in appearances
+                         .Where(item => item.Inning == inning)
+                         .OrderBy(item => item.PlateAppearanceNumber))
+            {
+                var playMovements = movements
+                    .Where(item => item.GamePlateAppearanceId == appearance.Id)
+                    .OrderBy(item => item.OutOrder ?? int.MaxValue)
+                    .ThenByDescending(item => item.StartingLocation)
+                    .Select(item => new CompletedRunnerMovementRow(
+                        PlayerName(players[item.PlayerId]), item.StartingLocation,
+                        item.Destination, item.SafeDestination,
+                        item.AttemptedDestination, item.OutOrder, item.RunCounts))
+                    .ToArray();
+                teamScore += playMovements.Count(item =>
+                    item.Destination == RunnerDestination.Scores
+                    && item.RunCounts != false);
+                rows.Add(new(appearance.PlateAppearanceNumber,
+                    PlayerName(players[appearance.PlayerId]), appearance.Result,
+                    playMovements, teamScore, opponentScore));
+            }
+            if (rows.Count > 0)
+                groups.Add(new(inning, half, true, rows, null));
+        }
+    }
+
+    private static string PlayerName(Player player) => string.Join(" ",
+        new[] { player.FirstName, player.LastName }
+            .Where(value => !string.IsNullOrWhiteSpace(value))
+            .Select(value => value!.Trim()));
+
+    private static void SynchronizeInitialOpponentHalfInning(
+        SQLite.SQLiteConnection transaction, GameScoringSession session)
+    {
+        var initial = transaction.Table<GameScoringHalfInning>()
+            .FirstOrDefault(item => item.GameScoringSessionId == session.Id
+                && item.Inning == 0);
+        if (session.TeamSide == TeamGameSide.Away)
+        {
+            if (initial is not null && !initial.OpponentEntryCompleted)
+                transaction.Delete(initial);
+            return;
+        }
+
+        if (session.TeamSide != TeamGameSide.Home)
+            throw new InvalidOperationException("Scoring session has an invalid Team side.");
+        if (initial is not null) return;
+        if (transaction.Insert(new GameScoringHalfInning
+        {
+            GameScoringSessionId = session.Id,
+            Inning = 0,
+            TeamRuns = 0,
+            TeamHomeRuns = 0,
+            TeamSummaryAcknowledged = true,
+        }) != 1)
+            throw new InvalidOperationException(
+                "Initial opponent half-inning insertion did not affect one row.");
     }
 
     private static CompletePlateAppearanceResult CompleteFailure(

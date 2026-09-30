@@ -44,16 +44,51 @@ public sealed class AdvancedScoringWorkflowTests
     }
 
     [AndroidUiFact]
-    public void Fielder_choice_batter_retirement_reconciles_to_out_and_survives_resume()
+    public void Fielder_choice_third_out_force_resolves_without_retirement_or_timing_dialog()
     {
         AndroidScoringWorkflow.Run(fixture, nameof(
-            Fielder_choice_batter_retirement_reconciles_to_out_and_survives_resume), driver =>
+            Fielder_choice_third_out_force_resolves_without_retirement_or_timing_dialog), driver =>
+        {
+            AndroidScoringWorkflow.OpenPreparedScoring(driver);
+            AndroidScoringWorkflow.SelectResult(driver, "Single");
+            AndroidScoringWorkflow.CompletePendingPlay(driver);
+            AndroidElementWait.UntilAutomationIdText(
+                driver, "CurrentBatter", AndroidAutomationConstants.SecondBatterName);
+            AndroidScoringWorkflow.SelectResult(driver, "OUT");
+            AndroidScoringWorkflow.CompletePendingPlay(driver);
+            AndroidElementWait.UntilAutomationIdText(
+                driver, "CurrentBatter", AndroidAutomationConstants.ThirdBatterName);
+            AndroidScoringWorkflow.SelectResult(driver, "OUT");
+            AndroidScoringWorkflow.CompletePendingPlay(driver);
+            AndroidElementWait.UntilAutomationIdText(
+                driver, "CurrentBatter", AndroidAutomationConstants.FourthBatterName);
+
+            AndroidScoringWorkflow.SelectResult(driver, "Fielder's Choice");
+            Assert.Empty(driver.FindElements(By.Id(
+                $"{AndroidAutomationConstants.AppPackage}:id/RetireRunnerFromFirstButton")));
+            AndroidElementWait.UntilText(driver, "OK").Click();
+            Assert.Empty(driver.FindElements(By.XPath(
+                "//*[contains(@text,'Did the run count')]")));
+            AndroidElementWait.UntilAutomationId(
+                driver, "OpponentHalfInningSubmitButton").Click();
+            AndroidScoringWorkflow.AssertBatterInningAndOuts(
+                driver, "Evan Automation", "Top 2", "0 Outs");
+            AndroidElementWait.UntilAutomationIdText(driver, "VisitorScoreValue", "0");
+        });
+    }
+
+    [AndroidUiFact]
+    public void Normal_fielder_choice_at_zero_and_one_out_offers_batter_and_runner()
+    {
+        AndroidScoringWorkflow.Run(fixture, nameof(
+            Normal_fielder_choice_at_zero_and_one_out_offers_batter_and_runner), driver =>
         {
             AndroidScoringWorkflow.OpenPreparedScoring(driver);
             AndroidScoringWorkflow.SelectResult(driver, "Single");
             AndroidScoringWorkflow.CompletePendingPlay(driver);
 
             AndroidScoringWorkflow.SelectResult(driver, "Fielder's Choice");
+            AndroidElementWait.UntilAutomationId(driver, "RetireRunnerFromFirstButton");
             AndroidScoringWorkflow.Step("retire the batter", () =>
                 AndroidElementWait.UntilAutomationId(driver, "RetireBatterButton").Click());
             AndroidScoringWorkflow.AssertRunner(
@@ -63,6 +98,15 @@ public sealed class AdvancedScoringWorkflowTests
                 driver, "FirstBaseRunnerButton", AndroidAutomationConstants.FirstBatterName);
             AndroidScoringWorkflow.CompletePendingPlay(driver);
             AssertReconciledOutState(driver);
+
+            AndroidScoringWorkflow.SelectResult(driver, "Fielder's Choice");
+            AndroidElementWait.UntilAutomationId(driver, "RetireBatterButton");
+            AndroidScoringWorkflow.Step("retire the existing runner at one out", () =>
+                AndroidElementWait.UntilAutomationId(
+                    driver, "RetireRunnerFromFirstButton").Click());
+            AndroidScoringWorkflow.CompletePendingPlay(driver);
+            AndroidScoringWorkflow.AssertBatterInningAndOuts(
+                driver, AndroidAutomationConstants.FourthBatterName, "Top 1", "2 Outs");
         });
     }
 

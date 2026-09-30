@@ -15,6 +15,10 @@ public sealed class BasicScoringPaletteTests(AndroidAppiumFixture fixture)
                 AndroidElementWait.UntilAutomationId(driver, "ScoreGameButton").Click();
                 AndroidElementWait.UntilText(driver, "Home").Click();
                 AndroidElementWait.UntilAutomationId(driver, "ConfirmGameRulesButton").Click();
+                AndroidElementWait.UntilAutomationId(
+                    driver, "OpponentHalfInningDialog");
+                AndroidElementWait.UntilAutomationId(
+                    driver, "OpponentHalfInningSubmitButton").Click();
                 AndroidScoringWorkflow.AssertBatterInningAndOuts(
                     driver, AndroidAutomationConstants.FirstBatterName, "Bottom 1", "0 Outs");
 

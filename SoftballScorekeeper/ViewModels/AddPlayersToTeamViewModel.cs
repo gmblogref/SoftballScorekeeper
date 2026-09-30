@@ -174,6 +174,18 @@ public partial class AddPlayersToTeamViewModel : ObservableObject, IQueryAttribu
         await Shell.Current.GoToAsync(AppShell.CreatePlayerRoute, parameters);
     }
 
+    [RelayCommand]
+    private void SelectAll()
+    {
+        foreach (var player in Players) player.IsSelected = true;
+    }
+
+    [RelayCommand]
+    private void ClearAll()
+    {
+        foreach (var player in Players) player.IsSelected = false;
+    }
+
     [RelayCommand(CanExecute = nameof(CanConfirmAddSelectedPlayers))]
     private async Task ConfirmAddSelectedPlayersAsync()
     {

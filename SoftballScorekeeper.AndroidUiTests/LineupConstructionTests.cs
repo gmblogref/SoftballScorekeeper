@@ -23,9 +23,27 @@ public sealed class LineupConstructionTests(AndroidAppiumFixture fixture)
                     "1. Alpha Lineup",
                     "2. Bravo Lineup",
                     "3. Charlie Lineup");
+                AssertCurrentLineupObp(driver, "1. Alpha Lineup", ".500");
+                AssertCurrentLineupObp(driver, "2. Bravo Lineup", ".333");
+                AssertCurrentLineupObp(driver, "3. Charlie Lineup", ".000");
+                AndroidElementWait.UntilAutomationId(
+                    driver, "OrderLineupByObpButton").Click();
+                AssertOrder(driver,
+                    "1. Alpha Lineup",
+                    "2. Bravo Lineup",
+                    "3. Charlie Lineup");
+                fixture.SetOrientation(ScreenOrientation.Portrait);
+                AssertCurrentLineupObp(driver, "1. Alpha Lineup", ".500");
+                AssertCurrentLineupObp(driver, "2. Bravo Lineup", ".333");
+                AssertCurrentLineupObp(driver, "3. Charlie Lineup", ".000");
+                AndroidElementWait.UntilText(driver, "Done");
+                fixture.SetOrientation(ScreenOrientation.Landscape);
+                AndroidElementWait.UntilAutomationId(driver, "OrderLineupByObpButton");
+                AndroidElementWait.UntilText(driver, "Done");
 
                 AndroidElementWait.UntilText(driver, "Add Players").Click();
                 var delta = AndroidElementWait.UntilText(driver, "Delta Lineup");
+                AndroidElementWait.UntilText(driver, "—");
                 PhaseAUiWorkflow.NearestVisibleCheckbox(driver, delta).Click();
                 AndroidElementWait.UntilText(driver, "Add Selected").Click();
                 AssertOrder(driver,
@@ -33,6 +51,7 @@ public sealed class LineupConstructionTests(AndroidAppiumFixture fixture)
                     "2. Bravo Lineup",
                     "3. Charlie Lineup",
                     "4. Delta Lineup");
+                AssertCurrentLineupObp(driver, "4. Delta Lineup", "—");
 
                 AndroidElementWait.UntilText(driver, "Remove Players").Click();
                 var bravo = AndroidElementWait.UntilText(driver, "2. Bravo Lineup");
@@ -103,5 +122,19 @@ public sealed class LineupConstructionTests(AndroidAppiumFixture fixture)
         Assert.Equal(
             elements.Select(item => item.Location.Y).OrderBy(value => value),
             elements.Select(item => item.Location.Y));
+    }
+
+    private static void AssertCurrentLineupObp(
+        AndroidDriver driver,
+        string playerText,
+        string expectedObp)
+    {
+        var player = AndroidElementWait.UntilText(driver, playerText);
+        var obp = driver.FindElements(By.XPath($"//*[@text='{expectedObp}']"))
+            .Where(element => element.Displayed)
+            .OrderBy(element => Math.Abs(element.Location.Y - player.Location.Y))
+            .First();
+        Assert.InRange(Math.Abs(obp.Location.Y - player.Location.Y), 0, 4);
+        Assert.True(obp.Location.X > player.Location.X);
     }
 }

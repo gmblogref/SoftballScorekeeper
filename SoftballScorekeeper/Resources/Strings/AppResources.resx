@@ -605,6 +605,7 @@
   <data name="DoubleResultLabel" xml:space="preserve"><value>Double</value></data>
   <data name="TripleResultLabel" xml:space="preserve"><value>Triple</value></data>
   <data name="HomeRunResultLabel" xml:space="preserve"><value>Home Run</value></data>
+  <data name="InTheParkHomeRunResultLabel" xml:space="preserve"><value>In The Park Home Run</value></data>
   <data name="DeadBallOutResultLabel" xml:space="preserve"><value>Dead Ball Out</value></data>
   <data name="WalkResultLabel" xml:space="preserve"><value>Walk</value></data>
   <data name="FielderChoiceResultLabel" xml:space="preserve"><value>Fielder's Choice</value></data>
@@ -764,6 +765,28 @@
   <data name="TeamStatsLoadFailed" xml:space="preserve"><value>Team Stats could not be loaded.</value></data>
   <data name="SelectAllButton" xml:space="preserve"><value>Select All</value></data>
   <data name="ClearAllButton" xml:space="preserve"><value>Clear All</value></data>
+  <data name="UndefinedBattingRate" xml:space="preserve"><value>—</value></data>
+  <data name="OrderLineupByObpButton" xml:space="preserve"><value>Order by OBP</value></data>
+  <data name="GameStatsButton" xml:space="preserve"><value>Game Stats</value></data>
+  <data name="GamePlaysButton" xml:space="preserve"><value>Game Plays</value></data>
+  <data name="GamePlaysHalfHeading" xml:space="preserve"><value>{0} {1} — {2}</value></data>
+  <data name="GamePlaysTopLabel" xml:space="preserve"><value>Top</value></data>
+  <data name="GamePlaysBottomLabel" xml:space="preserve"><value>Bottom</value></data>
+  <data name="GamePlaysBatterResult" xml:space="preserve"><value>{0} — {1}</value></data>
+  <data name="GamePlaysScore" xml:space="preserve"><value>SCORE — {0}: {1} | {2}: {3}</value></data>
+  <data name="GamePlaysScored" xml:space="preserve"><value>{0} scored</value></data>
+  <data name="GamePlaysRunDidNotCount" xml:space="preserve"><value>{0}'s run did not count</value></data>
+  <data name="GamePlaysAdvancedTo" xml:space="preserve"><value>{0} advanced to {1}</value></data>
+  <data name="GamePlaysSafeAt" xml:space="preserve"><value>{0} safe at {1}</value></data>
+  <data name="GamePlaysOutAt" xml:space="preserve"><value>{0} was out at {1}</value></data>
+  <data name="GamePlaysOutAttempting" xml:space="preserve"><value>{0} was out attempting {1}</value></data>
+  <data name="GamePlaysFirstBase" xml:space="preserve"><value>1st</value></data>
+  <data name="GamePlaysSecondBase" xml:space="preserve"><value>2nd</value></data>
+  <data name="GamePlaysThirdBase" xml:space="preserve"><value>3rd</value></data>
+  <data name="GamePlaysHome" xml:space="preserve"><value>Home</value></data>
+  <data name="GamePlaysOpponentRuns" xml:space="preserve"><value>Runs this half: {0}</value></data>
+  <data name="GamePlaysOpponentHomeRuns" xml:space="preserve"><value>HRs this half: {0}</value></data>
+  <data name="GamePlaysOpponentTotalHomeRuns" xml:space="preserve"><value>Total HRs: {0}</value></data>
   <data name="ApplyButton" xml:space="preserve"><value>Apply</value></data>
   <data name="TeamYearLabel" xml:space="preserve"><value>Team Year</value></data>
   <data name="TeamYearPlaceholder" xml:space="preserve"><value>Enter a four-digit year</value></data>

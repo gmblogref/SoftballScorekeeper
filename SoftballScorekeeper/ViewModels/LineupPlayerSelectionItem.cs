@@ -1,5 +1,6 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using SoftballScorekeeper.Core.Models;
+using SoftballScorekeeper.Core.Statistics;
 using SoftballScorekeeper.Resources.Strings;
 
 namespace SoftballScorekeeper.ViewModels;
@@ -16,15 +17,22 @@ public partial class LineupPlayerSelectionItem : ObservableObject
     public LineupPlayerSelectionItem(
         GameLineupPlayer lineupPlayer,
         Player player,
-        Action<LineupPlayerSelectionItem>? selectionChanged = null)
+        Action<LineupPlayerSelectionItem>? selectionChanged = null,
+        decimal? onBasePercentage = null)
     {
         LineupPlayer = lineupPlayer;
         Player = player;
         this.selectionChanged = selectionChanged;
+        OnBasePercentage = onBasePercentage;
     }
 
     public GameLineupPlayer LineupPlayer { get; }
     public Player Player { get; }
+    public decimal? OnBasePercentage { get; }
+    public string OnBasePercentageDisplay => OnBasePercentage is decimal value
+        ? BattingRateFormatter.Format(value)
+        : AppResources.UndefinedBattingRate;
+    public string OnBasePercentageAutomationId => $"CurrentLineupObp-{Player.Id}";
     public string DisplayText => string.Format(
         System.Globalization.CultureInfo.CurrentCulture,
         AppResources.LineupPlayerFormat,

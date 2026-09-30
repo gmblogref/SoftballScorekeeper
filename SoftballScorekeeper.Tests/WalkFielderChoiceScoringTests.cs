@@ -119,8 +119,11 @@ public sealed partial class WalkFielderChoiceScoringTests
         Assert.Empty(state.PlateAppearances);
     }
 
-    [Fact]
-    public async Task Fielder_choice_single_runner_still_offers_runner_and_batter_retirements()
+    [Theory]
+    [InlineData(0)]
+    [InlineData(1)]
+    public async Task Normal_fielder_choice_still_offers_runner_and_batter_retirements(
+        int currentOuts)
     {
         await using var db = await TemporaryTestDatabase.CreateAsync();
         var context = await CreateReadyGameAsync(db, 3);
@@ -128,6 +131,7 @@ public sealed partial class WalkFielderChoiceScoringTests
         var initialized = await repository.InitializeAsync(
             context.Team.Id, context.Game.Id, TeamGameSide.Home);
         await SeedBasesAsync(db, initialized.Session!.Id, context.Players, "1");
+        await db.UpdateInningOutStateAsync(initialized.Session.Id, 1, currentOuts);
         await repository.SelectBatterResultAsync(
             context.Game.Id, BatterResult.FielderChoice);
         var pendingState = (await repository.GetStateForGameAsync(context.Game.Id))!;
@@ -166,7 +170,7 @@ public sealed partial class WalkFielderChoiceScoringTests
         Assert.Equal(RunnerDestination.First,
             committed.RunnerMovements.Single(item =>
                 item.PlayerId == context.Players[0].Id).Destination);
-        Assert.Equal((1, 2), (committed.Session.CurrentOuts,
+        Assert.Equal((currentOuts + 1, 2), (committed.Session.CurrentOuts,
             committed.Session.CurrentBatterPosition));
     }
 
@@ -576,15 +580,10 @@ public sealed partial class WalkFielderChoiceScoringTests
         await db.UpdateInningOutStateAsync(initialized.Session.Id, 1, 2);
         var selected = await repository.SelectBatterResultAsync(
             context.Game.Id, BatterResult.FielderChoice);
-        Assert.NotNull(selected.PendingPlay);
-        var retirement = await repository.SelectMultiOutRetirementsAsync(
-            context.Game.Id,
-            [new(context.Players[1].Id,
-                RunnerOutcomeChoice.ForDestination(RunnerDestination.Out))]);
         var completed = (await repository.GetStateForGameAsync(context.Game.Id))!;
 
         Assert.True(selected.IsSuccess);
-        Assert.True(retirement.IsSuccess);
+        Assert.Null(selected.PendingPlay);
         Assert.Null(completed.PendingPlay);
         Assert.Equal(BatterResult.FielderChoice,
             Assert.Single(completed.PlateAppearances).Result);
@@ -1088,14 +1087,10 @@ public sealed partial class WalkFielderChoiceScoringTests
         await db.UpdateInningOutStateAsync(initialized.Session.Id, 1, 2);
         var selected = await repository.SelectBatterResultAsync(
             context.Game.Id, BatterResult.FielderChoice);
-        Assert.NotNull(selected.PendingPlay);
-        Assert.True((await repository.SelectMultiOutRetirementsAsync(
-            context.Game.Id,
-            [new(context.Players[1].Id,
-                RunnerOutcomeChoice.ForDestination(RunnerDestination.Out))])).IsSuccess);
         var committed = await repository.GetStateForGameAsync(context.Game.Id);
 
         Assert.True(selected.IsSuccess);
+        Assert.Null(selected.PendingPlay);
         Assert.Null(committed!.PendingPlay);
         Assert.Equal(BatterResult.FielderChoice,
             Assert.Single(committed.PlateAppearances).Result);
@@ -1154,27 +1149,9 @@ public sealed partial class WalkFielderChoiceScoringTests
             context.Game.Id, BatterResult.FielderChoice);
 
         Assert.True(selected.IsSuccess);
-        Assert.NotNull(selected.PendingPlay);
-        var pending = (await repository.GetStateForGameAsync(context.Game.Id))!;
-        Assert.Equal(PlayDecisionRequirement.RetirementSelection,
-            pending.PlayResolution!.DecisionRequirement);
-        Assert.Equal(1, pending.PlayResolution.RequiredRetirementCount);
-        Assert.Equal(new[]
-        {
-            context.Players[3].Id,
-            context.Players[2].Id,
-            context.Players[1].Id,
-            context.Players[0].Id,
-        }, pending.PlayResolution.DecisionPlayerIds);
-
-        var retirement = await repository.SelectMultiOutRetirementsAsync(
-            context.Game.Id,
-            [new(context.Players[3].Id,
-                RunnerOutcomeChoice.ForDestination(RunnerDestination.Out))]);
+        Assert.Null(selected.PendingPlay);
         var committed = (await repository.GetStateForGameAsync(context.Game.Id))!;
 
-        Assert.True(retirement.IsSuccess);
-        Assert.Null(retirement.PendingPlay);
         Assert.Equal(BatterResult.FielderChoice,
             Assert.Single(committed.PlateAppearances).Result);
         var retired = Assert.Single(committed.RunnerMovements.Where(item =>

@@ -107,6 +107,7 @@ public enum GameScoringLifecycleFailure
     SessionNotFound,
     GameCompleted,
     UnresolvedScoringState,
+    ScoringHistoryExists,
     TeamYearFinalized,
     Persistence,
 }

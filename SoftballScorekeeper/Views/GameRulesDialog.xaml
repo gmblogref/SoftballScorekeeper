@@ -22,7 +22,8 @@
                         <RadioButton x:Name="AwayOption" AutomationId="AwayTeamSideOption" GroupName="TeamSide"
                                      Content="{x:Static strings:AppResources.AwayButton}"
                                      IsChecked="True" MinimumHeightRequest="52" />
-                        <RadioButton Grid.Column="1" GroupName="TeamSide"
+                        <RadioButton x:Name="HomeOption" AutomationId="HomeTeamSideOption"
+                                     Grid.Column="1" GroupName="TeamSide"
                                      Content="{x:Static strings:AppResources.HomeButton}"
                                      MinimumHeightRequest="52" />
                     </Grid>

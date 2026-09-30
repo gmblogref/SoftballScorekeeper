@@ -36,4 +36,5 @@ public enum BatterResult
     SacrificeFly = 10,
     Strikeout = 11,
     DeadBallOut = 12,
+    InTheParkHomeRun = 13,
 }

@@ -80,20 +80,38 @@ internal static class PhaseAUiWorkflow
     {
         try
         {
+            var visibleMatch = driver
+                .FindElements(By.XPath($"//*[@text={XPathLiteral(value)}]"))
+                .FirstOrDefault(item => item.Displayed);
+            if (visibleMatch is not null)
+                return visibleMatch;
+        }
+        catch (StaleElementReferenceException)
+        {
+            // The page may replace its accessibility tree as a modal closes.
+        }
+
+        try
+        {
             return driver.FindElement(MobileBy.AndroidUIAutomator(
                 $"new UiScrollable(new UiSelector().className(\"androidx.recyclerview.widget.RecyclerView\").scrollable(true)).scrollIntoView(new UiSelector().text(\"{value}\"))"));
         }
         catch (NoSuchElementException)
         {
-            var size = driver.Manage().Window.Size;
-            return Wait(driver).Until(current =>
+            // Fall back to bounded real gestures for split labels and virtualized rows.
+        }
+
+        var size = driver.Manage().Window.Size;
+        for (var swipe = 0; swipe < 24; swipe++)
+        {
+            try
             {
-                var match = current.FindElements(By.XPath($"//*[@text={XPathLiteral(value)}]"))
+                var match = driver.FindElements(By.XPath($"//*[@text={XPathLiteral(value)}]"))
                     .FirstOrDefault(item => item.Displayed);
                 if (match is not null)
                     return match;
 
-                var scrollable = current
+                var scrollable = driver
                     .FindElements(By.XPath("//*[@scrollable='true']"))
                     .Where(item => item.Displayed && item.Size.Width > 1 && item.Size.Height > 1)
                     .OrderBy(item => item.Size.Height)
@@ -113,12 +131,27 @@ internal static class PhaseAUiWorkflow
                         ["top"] = bounds.Top,
                         ["width"] = bounds.Width,
                         ["height"] = bounds.Height,
-                        ["direction"] = "down",
-                        ["percent"] = 0.8,
+                        ["direction"] = swipe < 16
+                            ? "up"
+                            : "down",
+                        ["percent"] = 0.75,
                     });
-                return null;
-            })!;
+                Thread.Sleep(200);
+            }
+            catch (StaleElementReferenceException)
+            {
+                // Re-query after virtualization replaces the visible list items.
+            }
         }
+
+        var finalMatch = driver
+            .FindElements(By.XPath($"//*[@text={XPathLiteral(value)}]"))
+            .FirstOrDefault(item => item.Displayed);
+        if (finalMatch is not null)
+            return finalMatch;
+
+        throw new WebDriverTimeoutException(
+            $"Could not scroll to the requested text within the visible list: {value}");
     }
 
     public static void ScrollDown(AndroidDriver driver)

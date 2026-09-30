@@ -107,7 +107,7 @@
 
             <Grid x:Name="CompletedGameGrid"
                   IsVisible="{Binding ShowCompletedGame}"
-                  RowDefinitions="Auto,Auto,*,Auto"
+                  RowDefinitions="Auto,Auto,Auto,*,Auto"
                   RowSpacing="12">
                 <Border x:Name="CompletedScoreboard"
                         Stroke="{AppThemeBinding Light={StaticResource Gray300}, Dark={StaticResource Gray600}}"
@@ -145,13 +145,63 @@
                     </Grid>
                 </Border>
 
-                <Label Grid.Row="1" Text="{x:Static strings:AppResources.BattingStatisticsHeading}"
+                <HorizontalStackLayout Grid.Row="1" HorizontalOptions="Center" Spacing="16">
+                    <Button AutomationId="GameStatsButton" Text="{x:Static strings:AppResources.GameStatsButton}"
+                            Command="{Binding ShowGameStatsCommand}" MinimumHeightRequest="48" />
+                    <Button AutomationId="GamePlaysButton" Text="{x:Static strings:AppResources.GamePlaysButton}"
+                            Command="{Binding ShowGamePlaysCommand}" MinimumHeightRequest="48" />
+                </HorizontalStackLayout>
+
+                <Label Grid.Row="2" Text="{x:Static strings:AppResources.BattingStatisticsHeading}"
+                       IsVisible="{Binding ShowingGameStats}"
                        Style="{StaticResource SubHeadline}" SemanticProperties.HeadingLevel="Level2" />
 
-                <controls:BattingStatisticsGrid Grid.Row="2"
-                                                BindingContext="{Binding CompletedBattingStatistics}" />
+                <Grid Grid.Row="3" AutomationId="CompletedGameStatsView"
+                      IsVisible="{Binding ShowingGameStats}">
+                    <controls:BattingStatisticsGrid
+                        BindingContext="{Binding CompletedBattingStatistics}" />
+                </Grid>
 
-                <Border Grid.Row="3"
+                <ScrollView Grid.Row="3" AutomationId="CompletedGamePlaysView"
+                            IsVisible="{Binding ShowingGamePlays}">
+                    <VerticalStackLayout Spacing="14" BindableLayout.ItemsSource="{Binding CompletedGamePlays}">
+                        <BindableLayout.ItemTemplate>
+                            <DataTemplate x:DataType="viewModels:CompletedGameHalfInningViewModel">
+                                <Border Stroke="{AppThemeBinding Light={StaticResource Gray300}, Dark={StaticResource Gray600}}"
+                                        StrokeShape="RoundRectangle 8" Padding="14">
+                                    <VerticalStackLayout Spacing="6">
+                                        <Label Text="{Binding Heading}" FontSize="20" FontAttributes="Bold" />
+                                        <VerticalStackLayout BindableLayout.ItemsSource="{Binding Plays}" Spacing="10">
+                                            <BindableLayout.ItemTemplate>
+                                                <DataTemplate x:DataType="viewModels:CompletedGamePlayViewModel">
+                                                    <VerticalStackLayout Spacing="2">
+                                                        <Label Text="{Binding BatterResultDisplay}" FontSize="18" FontAttributes="Bold" />
+                                                        <VerticalStackLayout BindableLayout.ItemsSource="{Binding RunnerMovements}">
+                                                            <BindableLayout.ItemTemplate>
+                                                                <DataTemplate x:DataType="x:String">
+                                                                    <Label Text="{Binding .}" />
+                                                                </DataTemplate>
+                                                            </BindableLayout.ItemTemplate>
+                                                        </VerticalStackLayout>
+                                                        <Label Text="{Binding Score}" FontAttributes="Bold" />
+                                                    </VerticalStackLayout>
+                                                </DataTemplate>
+                                            </BindableLayout.ItemTemplate>
+                                        </VerticalStackLayout>
+                                        <VerticalStackLayout IsVisible="{Binding IsOpponentSummary}" Spacing="2">
+                                            <Label Text="{Binding OpponentRuns}" />
+                                            <Label Text="{Binding OpponentHomeRuns}" />
+                                            <Label Text="{Binding OpponentTotalHomeRuns}" />
+                                            <Label Text="{Binding OpponentScore}" FontAttributes="Bold" />
+                                        </VerticalStackLayout>
+                                    </VerticalStackLayout>
+                                </Border>
+                            </DataTemplate>
+                        </BindableLayout.ItemTemplate>
+                    </VerticalStackLayout>
+                </ScrollView>
+
+                <Border Grid.Row="4"
                         Stroke="{AppThemeBinding Light={StaticResource Gray300}, Dark={StaticResource Gray600}}"
                         StrokeShape="RoundRectangle 8" Padding="14,8">
                     <Grid RowDefinitions="Auto,Auto,Auto" ColumnDefinitions="*,*" RowSpacing="6" ColumnSpacing="24">
