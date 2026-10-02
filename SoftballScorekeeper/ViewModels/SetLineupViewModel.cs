@@ -2,6 +2,7 @@ using System.Collections.ObjectModel;
 using System.Globalization;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using SoftballScorekeeper.Core.Statistics;
 using SoftballScorekeeper.Infrastructure.Data.Repositories;
 using SoftballScorekeeper.Resources.Strings;
 
@@ -16,6 +17,7 @@ public enum LineupManagerMode
 
 public partial class SetLineupViewModel : ObservableObject, IQueryAttributable
 {
+    private const int AutomaticLineupPlayerLimit = 10;
     private readonly GameLineupRepository repository;
     private readonly TeamBattingStatisticsRepository? statisticsRepository;
     private readonly List<int> selectionOrder = [];
@@ -50,6 +52,9 @@ public partial class SetLineupViewModel : ObservableObject, IQueryAttributable
     public bool IsCurrentLineupVisible => !IsAddMode;
     public bool CanReorderLineup => IsNormalMode && !IsBusy && ExistingLineupPlayers.Count > 1;
     public bool HasEmptyLineup => !HasExistingLineup;
+    public string OrderByObpButtonText => HasExistingLineup
+        ? AppResources.OrderLineupByObpButton
+        : AppResources.SetLineupByObpButton;
     public bool ShowNoEligiblePlayersMessage => IsAddMode && HasNoPlayers && !HasExistingLineup;
     public bool ShowNoAdditionalPlayersMessage => IsAddMode && HasNoPlayers && HasExistingLineup;
     public bool HasSelectedRemovals => SelectedRemovalCount > 0;
@@ -237,21 +242,11 @@ public partial class SetLineupViewModel : ObservableObject, IQueryAttributable
     private async Task OrderByObpAsync()
     {
         var orderedIds = HasExistingLineup
-            ? ExistingLineupPlayers
-                .Select((item, index) => (item, index))
-                .OrderByDescending(entry => entry.item.OnBasePercentage.HasValue)
-                .ThenByDescending(entry => entry.item.OnBasePercentage)
-                .ThenBy(entry => entry.index)
-                .Select(entry => entry.item.Player.Id)
-                .ToArray()
-            : Players
-                .Select((item, index) => (item, index))
-                .OrderByDescending(entry => entry.item.OnBasePercentage.HasValue)
-                .ThenByDescending(entry => entry.item.OnBasePercentage)
-                .ThenBy(entry => entry.index)
-                .Select(entry => entry.item.Player.Id)
-                .ToArray();
-        if (orderedIds.Length == 0) return;
+            ? LineupOnBasePercentageOrderer.Order(ExistingLineupPlayers.Select(item =>
+                (item.Player.Id, item.OnBasePercentage)))
+            : LineupOnBasePercentageOrderer.Order(Players.Select(item =>
+                (item.Player.Id, item.OnBasePercentage)), AutomaticLineupPlayerLimit);
+        if (orderedIds.Count == 0) return;
         IsBusy = true;
         try
         {
@@ -340,7 +335,7 @@ public partial class SetLineupViewModel : ObservableObject, IQueryAttributable
         OnPropertyChanged(nameof(IsNormalMode)); OnPropertyChanged(nameof(IsAddMode)); OnPropertyChanged(nameof(IsRemovalMode)); OnPropertyChanged(nameof(IsCurrentLineupVisible)); OnPropertyChanged(nameof(CanReorderLineup)); OnPropertyChanged(nameof(ShowNoEligiblePlayersMessage)); OnPropertyChanged(nameof(ShowNoAdditionalPlayersMessage));
         NotifyCommands();
     }
-    partial void OnHasExistingLineupChanged(bool value) { OnPropertyChanged(nameof(HasEmptyLineup)); OnPropertyChanged(nameof(ShowNoEligiblePlayersMessage)); OnPropertyChanged(nameof(ShowNoAdditionalPlayersMessage)); NotifyCommands(); }
+    partial void OnHasExistingLineupChanged(bool value) { OnPropertyChanged(nameof(HasEmptyLineup)); OnPropertyChanged(nameof(OrderByObpButtonText)); OnPropertyChanged(nameof(ShowNoEligiblePlayersMessage)); OnPropertyChanged(nameof(ShowNoAdditionalPlayersMessage)); NotifyCommands(); }
     partial void OnHasNoPlayersChanged(bool value) { OnPropertyChanged(nameof(ShowNoEligiblePlayersMessage)); OnPropertyChanged(nameof(ShowNoAdditionalPlayersMessage)); }
     private void NotifyCommands() { AddSelectedCommand.NotifyCanExecuteChanged(); CreatePlayerCommand.NotifyCanExecuteChanged(); EnterAddModeCommand.NotifyCanExecuteChanged(); EnterRemovalModeCommand.NotifyCanExecuteChanged(); CancelTemporaryModeCommand.NotifyCanExecuteChanged(); RequestRemovalCommand.NotifyCanExecuteChanged(); ConfirmRemovalCommand.NotifyCanExecuteChanged(); UsePreviousLineupCommand.NotifyCanExecuteChanged(); OrderByObpCommand.NotifyCanExecuteChanged(); DoneCommand.NotifyCanExecuteChanged(); }
     private void ClearSelections() { foreach (var item in Players) item.IsSelected = false; foreach (var item in ExistingLineupPlayers) item.IsSelected = false; selectionOrder.Clear(); SelectedPlayerCount = 0; UpdateRemovalSelection(); }

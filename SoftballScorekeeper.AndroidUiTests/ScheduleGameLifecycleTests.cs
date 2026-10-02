@@ -59,6 +59,7 @@ public sealed class ScheduleGameLifecycleTests(AndroidAppiumFixture fixture)
                 AndroidElementWait.UntilText(driver, "Remove Selected").Click();
                 AndroidElementWait.UntilText(driver, "Remove Scheduled Games");
                 AndroidElementWait.UntilText(driver, "Remove").Click();
+                ShowMonth(driver, new DateTime(2026, 9, 11));
                 AndroidElementWait.UntilText(
                     driver, "Summer 2", TimeSpan.FromSeconds(30));
                 PhaseAUiWorkflow.AssertTextAbsent(driver, "Phase A Opponent");
@@ -87,6 +88,7 @@ public sealed class ScheduleGameLifecycleTests(AndroidAppiumFixture fixture)
         string season,
         bool expectEditedValues)
     {
+        ExpandCurrentMonthIfCollapsed(driver);
         AndroidElementWait.UntilText(driver, season);
         AndroidElementWait.UntilText(
             driver,
@@ -106,6 +108,39 @@ public sealed class ScheduleGameLifecycleTests(AndroidAppiumFixture fixture)
             Assert.True(driver.FindElements(By.XPath("//*[@text='TBD']"))
                 .Count(item => item.Displayed) >= 2);
         }
+    }
+
+    private static void ExpandCurrentMonthIfCollapsed(AndroidDriver driver)
+        => ShowMonth(driver, DateTime.Today);
+
+    private static void ShowMonth(AndroidDriver driver, DateTime date)
+    {
+        var month = date.ToString("MMM", CultureInfo.CurrentCulture)
+            .ToUpper(CultureInfo.CurrentCulture);
+        var expandedText = $"{month} ▼";
+        var collapsedText = $"{month} ▶";
+        PhaseAUiWorkflow.Wait(driver).Until(current =>
+        {
+            var otherExpandedMonth = current.FindElements(By.XPath(
+                    $"//*[@text and contains(@text, '▼') and @text != '{expandedText}']"))
+                .FirstOrDefault();
+            if (otherExpandedMonth is not null)
+            {
+                otherExpandedMonth.Click();
+                return false;
+            }
+
+            var collapsedMonth = current.FindElements(By.XPath(
+                    $"//*[@text='{collapsedText}']"))
+                .FirstOrDefault();
+            if (collapsedMonth is not null)
+            {
+                collapsedMonth.Click();
+                return false;
+            }
+
+            return current.FindElements(By.XPath($"//*[@text='{expandedText}']")).Count > 0;
+        });
     }
 
     private static void OpenScheduledGame(AndroidDriver driver)

@@ -22,12 +22,12 @@ public partial class ScoringPage : ContentPage
     protected override void OnSizeAllocated(double width, double height)
     {
         base.OnSizeAllocated(width, height);
-        if (width <= 0 || height <= 0) return;
+        if (width <= 0 || height <= 0)
+            return;
 
-        var layoutState = width > height
-            ? "LandscapeScoreboard"
-            : "PortraitScoreboard";
-        if (layoutState == appliedLayoutState) return;
+        var layoutState = width > height ? "LandscapeScoreboard" : "PortraitScoreboard";
+        if (layoutState == appliedLayoutState)
+            return;
 
         VisualStateManager.GoToState(RootGrid, layoutState);
         appliedLayoutState = layoutState;
@@ -37,10 +37,12 @@ public partial class ScoringPage : ContentPage
     {
         base.OnAppearing();
         isExiting = false;
-        if (isHandlingInningTransition) return;
+        if (isHandlingInningTransition)
+            return;
         await viewModel.LoadAsync();
         await HandlePendingInningTransitionAsync();
         await ProcessCurrentPlayResolutionAsync();
+        await PromptForCreatedLiveLineupPlayerAsync();
     }
 
     protected override bool OnBackButtonPressed()
@@ -66,14 +68,25 @@ public partial class ScoringPage : ContentPage
         await viewModel.RedoAsync();
     }
 
+    private async void OnEnterOpponentHalfInningClicked(object sender, EventArgs e) =>
+        await HandlePendingInningTransitionAsync();
+
     private async void OnGameRulesClicked(object sender, EventArgs e)
     {
         ScoringMenu.IsVisible = false;
-        var dialog = new GameRulesDialog(false, viewModel.HomeRunLimit,
+        var dialog = new GameRulesDialog(
+            false,
+            viewModel.HomeRunLimit,
             viewModel.IsOneUpEnabled,
-            rules => viewModel.UpdateGameRulesAsync(
-                rules.HomeRunLimit, rules.IsOneUpEnabled, rules.TeamSide),
-            viewModel.CurrentTeamSide, viewModel.CanChangeTeamSide);
+            rules =>
+                viewModel.UpdateGameRulesAsync(
+                    rules.HomeRunLimit,
+                    rules.IsOneUpEnabled,
+                    rules.TeamSide
+                ),
+            viewModel.CurrentTeamSide,
+            viewModel.CanChangeTeamSide
+        );
         var result = await dialog.ShowAsync(Navigation);
         if (result is not null)
             await HandlePendingInningTransitionAsync();
@@ -88,11 +101,13 @@ public partial class ScoringPage : ContentPage
             await DisplayAlert(
                 AppResources.GameBeerRulesTitle,
                 AppResources.BeerRulesLoadFailed,
-                AppResources.OkButton);
+                AppResources.OkButton
+            );
             return;
         }
-        await new BeerRulesDialog(
-            false, settings, viewModel.SaveBeerRulesAsync).ShowAsync(Navigation);
+        await new BeerRulesDialog(false, settings, viewModel.SaveBeerRulesAsync).ShowAsync(
+            Navigation
+        );
     }
 
     private async void OnStatsClicked(object sender, EventArgs e)
@@ -104,11 +119,154 @@ public partial class ScoringPage : ContentPage
             await DisplayAlert(
                 AppResources.BattingStatisticsHeading,
                 AppResources.InGameStatisticsLoadFailedMessage,
-                AppResources.OkButton);
+                AppResources.OkButton
+            );
             return;
         }
 
         await new InGameStatsDialog(projection.Players).ShowAsync(Navigation);
+    }
+
+    private async void OnManageLineupClicked(object sender, EventArgs e)
+    {
+        ScoringMenu.IsVisible = false;
+        var action = await DisplayActionSheet(
+            AppResources.ManageLiveLineupTitle,
+            AppResources.CancelButton,
+            null,
+            AppResources.AddPlayerButton,
+            AppResources.RemovePlayerButton,
+            AppResources.ReplacePlayerButton,
+            AppResources.CreateNewPlayerButton
+        );
+        if (action == AppResources.CreateNewPlayerButton)
+        {
+            await viewModel.CreatePlayerForLiveLineupAsync();
+            return;
+        }
+        if (action == AppResources.AddPlayerButton)
+        {
+            var replacement = await SelectEligiblePlayerAsync(
+                AppResources.AddPlayerButton,
+                allowCreate: true
+            );
+            if (replacement is not null)
+                await AddPlayerAtSelectedPositionAsync(replacement);
+            return;
+        }
+
+        var active = await viewModel.GetLiveLineupPlayersAsync();
+        var outgoing = await SelectPlayerAsync(
+            action == AppResources.ReplacePlayerButton
+                ? AppResources.ReplacePlayerButton
+                : AppResources.RemovePlayerButton,
+            active,
+            includeBattingPosition: true
+        );
+        if (outgoing is null)
+            return;
+        if (action == AppResources.RemovePlayerButton)
+        {
+            await viewModel.RemoveLiveLineupPlayerAsync(outgoing.PlayerId);
+            return;
+        }
+        if (action != AppResources.ReplacePlayerButton)
+            return;
+        var incoming = await SelectEligiblePlayerAsync(AppResources.SelectReplacementPlayerTitle);
+        if (incoming is not null)
+            await viewModel.ReplaceLiveLineupPlayerAsync(outgoing.PlayerId, incoming.PlayerId);
+    }
+
+    private async Task PromptForCreatedLiveLineupPlayerAsync()
+    {
+        var createdPlayerId = viewModel.TakeCreatedLiveLineupPlayerId();
+        if (createdPlayerId is not > 0)
+            return;
+
+        var createdPlayer = (await viewModel.GetEligibleLiveLineupPlayersAsync()).FirstOrDefault(
+            item => item.PlayerId == createdPlayerId
+        );
+        if (createdPlayer is not null)
+            await AddPlayerAtSelectedPositionAsync(createdPlayer);
+    }
+
+    private async Task AddPlayerAtSelectedPositionAsync(LiveLineupPlayerOption player)
+    {
+        var lineup = await viewModel.GetLiveLineupPlayersAsync();
+        var labels = lineup
+            .Select(item =>
+                string.Format(
+                    AppResources.LiveLineupInsertBeforeFormat,
+                    item.BattingPosition,
+                    item.DisplayName
+                )
+            )
+            .Append(string.Format(AppResources.LiveLineupEndPositionFormat, lineup.Count + 1))
+            .ToArray();
+        var selection = await DisplayActionSheet(
+            string.Format(AppResources.LiveLineupInsertionTitleFormat, player.DisplayName),
+            AppResources.CancelButton,
+            null,
+            labels
+        );
+        var selectedIndex = Array.IndexOf(labels, selection);
+        if (selectedIndex >= 0)
+            await viewModel.AddLiveLineupPlayerAsync(player.PlayerId, selectedIndex + 1);
+    }
+
+    private async Task<LiveLineupPlayerOption?> SelectEligiblePlayerAsync(
+        string title,
+        bool allowCreate = false
+    )
+    {
+        var eligible = await viewModel.GetEligibleLiveLineupPlayersAsync();
+        if (eligible.Count == 0 && !allowCreate)
+        {
+            await DisplayAlert(
+                title,
+                AppResources.NoEligibleLiveLineupPlayers,
+                AppResources.OkButton
+            );
+            return null;
+        }
+        var labels = eligible.Select(item => item.DisplayName).ToList();
+        if (allowCreate)
+            labels.Add(AppResources.CreateNewPlayerButton);
+        var selection = await DisplayActionSheet(
+            title,
+            AppResources.CancelButton,
+            null,
+            labels.ToArray()
+        );
+        if (selection == AppResources.CreateNewPlayerButton)
+        {
+            await viewModel.CreatePlayerForLiveLineupAsync();
+            return null;
+        }
+        var index = labels.IndexOf(selection);
+        return index < 0 || index >= eligible.Count ? null : eligible[index];
+    }
+
+    private async Task<LiveLineupPlayerOption?> SelectPlayerAsync(
+        string title,
+        IReadOnlyList<LiveLineupPlayerOption> players,
+        bool includeBattingPosition
+    )
+    {
+        var labels = players
+            .Select(item =>
+                includeBattingPosition
+                    ? string.Format(
+                        AppResources.LiveLineupPlayerPositionFormat,
+                        item.BattingPosition,
+                        item.DisplayName
+                    )
+                    : item.DisplayName
+            )
+            .ToArray();
+        var selection = await DisplayActionSheet(title, AppResources.CancelButton, null, labels);
+        var index = Array.IndexOf(labels, selection);
+        return index < 0 ? null : players[index];
     }
 
     private async void OnGameOverClicked(object sender, EventArgs e)
@@ -118,29 +276,34 @@ public partial class ScoringPage : ContentPage
             AppResources.GameOverTitle,
             AppResources.GameOverConfirmationMessage,
             AppResources.GameOverButton,
-            AppResources.CancelButton);
-        if (!confirmed) return;
+            AppResources.CancelButton
+        );
+        if (!confirmed)
+            return;
         var failure = await viewModel.CompleteGameAsync();
         if (failure == Infrastructure.Data.Repositories.GameScoringLifecycleFailure.None)
             await viewModel.ExitGameAsync();
         else
-            await DisplayAlert(AppResources.GameOverTitle, viewModel.ValidationMessage,
-                AppResources.OkButton);
+            await DisplayAlert(
+                AppResources.GameOverTitle,
+                viewModel.ValidationMessage,
+                AppResources.OkButton
+            );
     }
 
-    private async void OnBatterClicked(object sender, EventArgs e)
-        => await ShowBatterResultMenuAsync();
+    private async void OnBatterClicked(object sender, EventArgs e) =>
+        await ShowBatterResultMenuAsync();
 
     private async Task ShowBatterResultMenuAsync()
     {
         var results = viewModel.AvailableBatterResults;
         var options = results.Select(ScoringViewModel.FormatResult).ToList();
         var selection = await DisplayActionSheet(
-            string.Format(AppResources.BatterResultMenuFormat,
-                viewModel.CurrentBatterDisplayName),
+            string.Format(AppResources.BatterResultMenuFormat, viewModel.CurrentBatterDisplayName),
             AppResources.CancelButton,
             null,
-            options.ToArray());
+            options.ToArray()
+        );
         var selectedIndex = options.IndexOf(selection);
         var result = selectedIndex >= 0 ? results[selectedIndex] : (BatterResult?)null;
         if (result is not null)
@@ -153,7 +316,8 @@ public partial class ScoringPage : ContentPage
 
     private async void OnRunnerButtonClicked(object sender, EventArgs e)
     {
-        if (!viewModel.HasPendingPlay || sender is not Button button) return;
+        if (!viewModel.HasPendingPlay || sender is not Button button)
+            return;
         if (viewModel.DecisionRequirement == PlayDecisionRequirement.RetirementSelection)
         {
             await ProcessCurrentPlayResolutionAsync();
@@ -161,16 +325,21 @@ public partial class ScoringPage : ContentPage
         }
         var participant = (button.CommandParameter ?? button.BindingContext) switch
         {
-            BaseRunnerViewModel { IsOccupied: true, PlayerId: int id } runner =>
-                (id, runner.PlayerName),
+            BaseRunnerViewModel { IsOccupied: true, PlayerId: int id } runner => (
+                id,
+                runner.PlayerName
+            ),
             ScoredPlayerViewModel scored => (scored.PlayerId, scored.PlayerName),
             _ => ((int PlayerId, string PlayerName)?)null,
         };
-        if (participant is null) return;
+        if (participant is null)
+            return;
         var outcome = await ShowRunnerDestinationMenuAsync(
-            participant.Value.PlayerId, participant.Value.PlayerName,
+            participant.Value.PlayerId,
+            participant.Value.PlayerName,
             viewModel.GetParticipantRoleLabel(participant.Value.PlayerId),
-            viewModel.DecisionRequirement == PlayDecisionRequirement.ParticipantOutcome);
+            viewModel.DecisionRequirement == PlayDecisionRequirement.ParticipantOutcome
+        );
         if (outcome is not null)
         {
             await viewModel.ChangeRunnerOutcomeAsync(
@@ -183,14 +352,16 @@ public partial class ScoringPage : ContentPage
     private async void OnNextBatterClicked(object sender, EventArgs e)
     {
         await ProcessCurrentPlayResolutionAsync();
-        if (!viewModel.CanAdvanceToNextBatter) return;
+        if (!viewModel.CanAdvanceToNextBatter)
+            return;
         if (await viewModel.CompletePlateAppearanceAsync())
             await HandlePendingInningTransitionAsync();
     }
 
     private async Task ProcessCurrentPlayResolutionAsync()
     {
-        if (isProcessingPlayResolution || !viewModel.IsLoaded) return;
+        if (isProcessingPlayResolution || !viewModel.IsLoaded)
+            return;
         isProcessingPlayResolution = true;
         try
         {
@@ -199,32 +370,39 @@ public partial class ScoringPage : ContentPage
                 switch (viewModel.DecisionRequirement)
                 {
                     case PlayDecisionRequirement.RetirementSelection:
-                        if (!await PresentRetirementSelectionAsync()) return;
+                        if (!await PresentRetirementSelectionAsync())
+                            return;
                         await HandlePendingInningTransitionAsync();
                         continue;
                     case PlayDecisionRequirement.ParticipantOutcome:
                         var participant = viewModel.DecisionParticipants.FirstOrDefault();
-                        if (participant is null) return;
+                        if (participant is null)
+                            return;
                         var outcome = await ShowRunnerDestinationMenuAsync(
                             participant.PlayerId,
                             participant.PlayerName,
                             participant.RoleLabel,
-                            showsGuidedResolutionContext: true);
-                        if (outcome is null) return;
-                        await viewModel.ChangeRunnerOutcomeAsync(
-                            participant.PlayerId, outcome);
+                            showsGuidedResolutionContext: true
+                        );
+                        if (outcome is null)
+                            return;
+                        await viewModel.ChangeRunnerOutcomeAsync(participant.PlayerId, outcome);
                         await HandlePendingInningTransitionAsync();
                         continue;
                     case PlayDecisionRequirement.ThirdOutRuling:
-                        if (!await CompleteWithThirdOutRulingsAsync()) return;
+                        if (!await CompleteWithThirdOutRulingsAsync())
+                            return;
                         await HandlePendingInningTransitionAsync();
                         continue;
                     case PlayDecisionRequirement.None:
-                        if (viewModel.ResolutionStatus is
-                            PlayResolutionStatus.AutoComplete
-                            or PlayResolutionStatus.CommitImmediately)
+                        if (
+                            viewModel.ResolutionStatus
+                            is PlayResolutionStatus.AutoComplete
+                                or PlayResolutionStatus.CommitImmediately
+                        )
                         {
-                            if (!await viewModel.CompletePlateAppearanceAsync()) return;
+                            if (!await viewModel.CompletePlateAppearanceAsync())
+                                return;
                             await HandlePendingInningTransitionAsync();
                             continue;
                         }
@@ -245,19 +423,24 @@ public partial class ScoringPage : ContentPage
         IReadOnlyList<MultiOutRetirementSelection>? retirements;
         if (viewModel.RequiredRetirementCount == 1)
         {
-            var dialog = new FielderChoiceThirdOutDialog(
-                viewModel.DecisionParticipants);
+            var dialog = new FielderChoiceThirdOutDialog(viewModel.DecisionParticipants);
             var outPlayerId = await dialog.ShowAsync(Navigation);
             retirements = outPlayerId is null
                 ? null
-                : [new(outPlayerId.Value,
-                    RunnerOutcomeChoice.ForDestination(RunnerDestination.Out))];
+                :
+                [
+                    new(
+                        outPlayerId.Value,
+                        RunnerOutcomeChoice.ForDestination(RunnerDestination.Out)
+                    ),
+                ];
         }
         else
         {
             var dialog = new MultiOutSelectionDialog(
                 viewModel.DecisionParticipants,
-                viewModel.RequiredRetirementCount);
+                viewModel.RequiredRetirementCount
+            );
             retirements = await dialog.ShowAsync(Navigation);
         }
         return retirements is not null
@@ -267,7 +450,8 @@ public partial class ScoringPage : ContentPage
     private async Task<bool> CompleteWithThirdOutRulingsAsync()
     {
         var requiredRulings = await viewModel.GetRunRulingRequirementsAsync();
-        if (requiredRulings is null) return false;
+        if (requiredRulings is null)
+            return false;
         var rulings = new Dictionary<int, bool>();
         foreach (var ruling in requiredRulings)
         {
@@ -275,9 +459,11 @@ public partial class ScoringPage : ContentPage
                 AppResources.RunRulingTitle,
                 string.Format(AppResources.RunCountQuestionFormat, ruling.PlayerName),
                 AppResources.RunCountsButton,
-                AppResources.RunDoesNotCountButton);
+                AppResources.RunDoesNotCountButton
+            );
             rulings[ruling.PlayerId] = counts;
-            if (!counts) break;
+            if (!counts)
+                break;
         }
         return await viewModel.CompletePlateAppearanceAsync(rulings);
     }
@@ -286,22 +472,26 @@ public partial class ScoringPage : ContentPage
         int playerId,
         string playerName,
         string startingLocationLabel,
-        bool showsGuidedResolutionContext)
+        bool showsGuidedResolutionContext
+    )
     {
         var menu = await viewModel.GetRunnerOutcomeMenuAsync(playerId);
-        if (menu is null || menu.Choices.Count == 0) return null;
+        if (menu is null || menu.Choices.Count == 0)
+            return null;
         var dialog = new RunnerDestinationDialog(
             playerName,
             startingLocationLabel,
             menu.CurrentOutcome,
             menu.Choices,
-            showsGuidedResolutionContext);
+            showsGuidedResolutionContext
+        );
         return await dialog.ShowAsync(Navigation);
     }
 
     private async Task ExitAsync()
     {
-        if (isExiting) return;
+        if (isExiting)
+            return;
         isExiting = true;
         ScoringMenu.IsVisible = false;
         await viewModel.ExitGameAsync();
@@ -309,28 +499,38 @@ public partial class ScoringPage : ContentPage
 
     private async Task HandlePendingInningTransitionAsync()
     {
-        if (isHandlingInningTransition || !viewModel.IsLoaded) return;
+        if (isHandlingInningTransition || !viewModel.IsLoaded)
+            return;
         isHandlingInningTransition = true;
         try
         {
             while (true)
             {
                 var transition = await viewModel.GetPendingHalfInningTransitionAsync();
-                if (transition is null) return;
+                if (transition is null)
+                    return;
                 if (!transition.TeamSummaryAcknowledged)
                 {
-                    await DisplayAlert(transition.SummaryTitle,
-                        transition.SummaryMessage, AppResources.OkButton);
+                    await DisplayAlert(
+                        transition.SummaryTitle,
+                        transition.SummaryMessage,
+                        AppResources.OkButton
+                    );
                     if (!await viewModel.AcknowledgeHalfInningSummaryAsync(transition.Id))
                         return;
                 }
 
                 var dialog = new OpponentHalfInningDialog(
                     transition.OpponentTitle,
-                    entry => viewModel.CompleteOpponentHalfInningAsync(
-                        transition.Id,
-                        entry.Runs, entry.RunsMode,
-                        entry.HomeRuns, entry.HomeRunsMode));
+                    entry =>
+                        viewModel.CompleteOpponentHalfInningAsync(
+                            transition.Id,
+                            entry.Runs,
+                            entry.RunsMode,
+                            entry.HomeRuns,
+                            entry.HomeRunsMode
+                        )
+                );
                 await dialog.ShowAsync(Navigation);
             }
         }

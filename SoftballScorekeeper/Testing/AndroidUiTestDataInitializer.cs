@@ -19,18 +19,16 @@ public sealed class AndroidUiTestDataInitializer
     internal const string BeerTotalsRequestFileName = "android-ui-test-beer-totals";
     internal const string TeamStatsRequestFileName = "android-ui-test-team-stats";
     internal const string TeamYearCopyRequestFileName = "android-ui-test-team-year-copy";
-    internal const string TeamYearSummaryRequestFileName =
-        "android-ui-test-team-year-summary";
-    internal const string ManualRestoreRequestFileName =
-        "android-ui-test-manual-restore";
-    internal const string DeviceMigrationRequestFileName =
-        "android-ui-test-device-migration";
+    internal const string TeamYearSummaryRequestFileName = "android-ui-test-team-year-summary";
+    internal const string ManualRestoreRequestFileName = "android-ui-test-manual-restore";
+    internal const string DeviceMigrationRequestFileName = "android-ui-test-device-migration";
     internal const string ManualFindingsReproductionRequestFileName =
         "android-ui-test-manual-findings-reproduction";
     internal const string ScheduleGamesRequestFileName = "android-ui-test-schedule-games";
     internal const string SeasonBackupReminderRequestFileName =
         "android-ui-test-season-backup-reminder";
     internal const string PhaseALineupRequestFileName = "android-ui-test-phase-a-lineup";
+    internal const string LiveLineupRequestFileName = "android-ui-test-live-lineup";
     private static readonly string[] RequestFileNames =
     [
         RequestFileName,
@@ -47,6 +45,7 @@ public sealed class AndroidUiTestDataInitializer
         ScheduleGamesRequestFileName,
         SeasonBackupReminderRequestFileName,
         PhaseALineupRequestFileName,
+        LiveLineupRequestFileName,
     ];
 
     private readonly AppDatabase database;
@@ -66,7 +65,8 @@ public sealed class AndroidUiTestDataInitializer
         GameLineupRepository lineupRepository,
         GameScoringSessionRepository scoringRepository,
         BeerAccountingRepository beerAccountingRepository,
-        SeasonBackupReminderRepository seasonBackupReminderRepository)
+        SeasonBackupReminderRepository seasonBackupReminderRepository
+    )
     {
         this.database = database;
         this.teamRepository = teamRepository;
@@ -83,7 +83,8 @@ public sealed class AndroidUiTestDataInitializer
 
     internal async Task<AndroidUiTestContext?> InitializeIfRequestedAsync()
     {
-        if (!IsInitializationRequested(FileSystem.AppDataDirectory)) return null;
+        if (!IsInitializationRequested(FileSystem.AppDataDirectory))
+            return null;
 
         Interlocked.Exchange(ref initializationInProgress, 1);
         try
@@ -100,34 +101,63 @@ public sealed class AndroidUiTestDataInitializer
     {
         var requestPath = Path.Combine(FileSystem.AppDataDirectory, RequestFileName);
         var missingGameRequestPath = Path.Combine(
-            FileSystem.AppDataDirectory, MissingGameRequestFileName);
+            FileSystem.AppDataDirectory,
+            MissingGameRequestFileName
+        );
         var completedStatisticsSortingRequestPath = Path.Combine(
-            FileSystem.AppDataDirectory, CompletedStatisticsSortingRequestFileName);
+            FileSystem.AppDataDirectory,
+            CompletedStatisticsSortingRequestFileName
+        );
         var teamRecordRequestPath = Path.Combine(
-            FileSystem.AppDataDirectory, TeamRecordRequestFileName);
+            FileSystem.AppDataDirectory,
+            TeamRecordRequestFileName
+        );
         var beerTotalsRequestPath = Path.Combine(
-            FileSystem.AppDataDirectory, BeerTotalsRequestFileName);
+            FileSystem.AppDataDirectory,
+            BeerTotalsRequestFileName
+        );
         var teamStatsRequestPath = Path.Combine(
-            FileSystem.AppDataDirectory, TeamStatsRequestFileName);
+            FileSystem.AppDataDirectory,
+            TeamStatsRequestFileName
+        );
         var teamYearCopyRequestPath = Path.Combine(
-            FileSystem.AppDataDirectory, TeamYearCopyRequestFileName);
+            FileSystem.AppDataDirectory,
+            TeamYearCopyRequestFileName
+        );
         var teamYearSummaryRequestPath = Path.Combine(
-            FileSystem.AppDataDirectory, TeamYearSummaryRequestFileName);
+            FileSystem.AppDataDirectory,
+            TeamYearSummaryRequestFileName
+        );
         var manualRestoreRequestPath = Path.Combine(
-            FileSystem.AppDataDirectory, ManualRestoreRequestFileName);
+            FileSystem.AppDataDirectory,
+            ManualRestoreRequestFileName
+        );
         var deviceMigrationRequestPath = Path.Combine(
-            FileSystem.AppDataDirectory, DeviceMigrationRequestFileName);
+            FileSystem.AppDataDirectory,
+            DeviceMigrationRequestFileName
+        );
         var manualFindingsReproductionRequestPath = Path.Combine(
-            FileSystem.AppDataDirectory, ManualFindingsReproductionRequestFileName);
+            FileSystem.AppDataDirectory,
+            ManualFindingsReproductionRequestFileName
+        );
         var scheduleGamesRequestPath = Path.Combine(
-            FileSystem.AppDataDirectory, ScheduleGamesRequestFileName);
+            FileSystem.AppDataDirectory,
+            ScheduleGamesRequestFileName
+        );
         var seasonBackupReminderRequestPath = Path.Combine(
-            FileSystem.AppDataDirectory, SeasonBackupReminderRequestFileName);
+            FileSystem.AppDataDirectory,
+            SeasonBackupReminderRequestFileName
+        );
         var phaseALineupRequestPath = Path.Combine(
-            FileSystem.AppDataDirectory, PhaseALineupRequestFileName);
+            FileSystem.AppDataDirectory,
+            PhaseALineupRequestFileName
+        );
+        var liveLineupRequestPath = Path.Combine(
+            FileSystem.AppDataDirectory,
+            LiveLineupRequestFileName
+        );
         var useMissingGame = File.Exists(missingGameRequestPath);
-        var useCompletedStatisticsSorting = File.Exists(
-            completedStatisticsSortingRequestPath);
+        var useCompletedStatisticsSorting = File.Exists(completedStatisticsSortingRequestPath);
         var useTeamRecord = File.Exists(teamRecordRequestPath);
         var useBeerTotals = File.Exists(beerTotalsRequestPath);
         var useTeamStats = File.Exists(teamStatsRequestPath);
@@ -135,57 +165,96 @@ public sealed class AndroidUiTestDataInitializer
         var useTeamYearSummary = File.Exists(teamYearSummaryRequestPath);
         var useManualRestore = File.Exists(manualRestoreRequestPath);
         var useDeviceMigration = File.Exists(deviceMigrationRequestPath);
-        var useManualFindingsReproduction = File.Exists(
-            manualFindingsReproductionRequestPath);
+        var useManualFindingsReproduction = File.Exists(manualFindingsReproductionRequestPath);
         var useScheduleGames = File.Exists(scheduleGamesRequestPath);
         var useSeasonBackupReminder = File.Exists(seasonBackupReminderRequestPath);
         var usePhaseALineup = File.Exists(phaseALineupRequestPath);
-        if (!File.Exists(requestPath) && !useMissingGame
-            && !useCompletedStatisticsSorting && !useTeamRecord && !useBeerTotals
-            && !useTeamStats && !useTeamYearCopy && !useTeamYearSummary
-            && !useManualRestore && !useDeviceMigration
-            && !useManualFindingsReproduction && !useScheduleGames
-            && !useSeasonBackupReminder && !usePhaseALineup) return null;
+        var useLiveLineup = File.Exists(liveLineupRequestPath);
+        if (
+            !File.Exists(requestPath)
+            && !useMissingGame
+            && !useCompletedStatisticsSorting
+            && !useTeamRecord
+            && !useBeerTotals
+            && !useTeamStats
+            && !useTeamYearCopy
+            && !useTeamYearSummary
+            && !useManualRestore
+            && !useDeviceMigration
+            && !useManualFindingsReproduction
+            && !useScheduleGames
+            && !useSeasonBackupReminder
+            && !usePhaseALineup
+            && !useLiveLineup
+        )
+            return null;
 
-        if (File.Exists(requestPath)) File.Delete(requestPath);
-        if (useMissingGame) File.Delete(missingGameRequestPath);
+        if (File.Exists(requestPath))
+            File.Delete(requestPath);
+        if (useMissingGame)
+            File.Delete(missingGameRequestPath);
         if (useCompletedStatisticsSorting)
             File.Delete(completedStatisticsSortingRequestPath);
-        if (useTeamRecord) File.Delete(teamRecordRequestPath);
-        if (useBeerTotals) File.Delete(beerTotalsRequestPath);
-        if (useTeamStats) File.Delete(teamStatsRequestPath);
-        if (useTeamYearCopy) File.Delete(teamYearCopyRequestPath);
-        if (useTeamYearSummary) File.Delete(teamYearSummaryRequestPath);
-        if (useManualRestore) File.Delete(manualRestoreRequestPath);
-        if (useDeviceMigration) File.Delete(deviceMigrationRequestPath);
+        if (useTeamRecord)
+            File.Delete(teamRecordRequestPath);
+        if (useBeerTotals)
+            File.Delete(beerTotalsRequestPath);
+        if (useTeamStats)
+            File.Delete(teamStatsRequestPath);
+        if (useTeamYearCopy)
+            File.Delete(teamYearCopyRequestPath);
+        if (useTeamYearSummary)
+            File.Delete(teamYearSummaryRequestPath);
+        if (useManualRestore)
+            File.Delete(manualRestoreRequestPath);
+        if (useDeviceMigration)
+            File.Delete(deviceMigrationRequestPath);
         if (useManualFindingsReproduction)
             File.Delete(manualFindingsReproductionRequestPath);
-        if (useScheduleGames) File.Delete(scheduleGamesRequestPath);
-        if (useSeasonBackupReminder) File.Delete(seasonBackupReminderRequestPath);
-        if (usePhaseALineup) File.Delete(phaseALineupRequestPath);
+        if (useScheduleGames)
+            File.Delete(scheduleGamesRequestPath);
+        if (useSeasonBackupReminder)
+            File.Delete(seasonBackupReminderRequestPath);
+        if (usePhaseALineup)
+            File.Delete(phaseALineupRequestPath);
+        if (useLiveLineup)
+            File.Delete(liveLineupRequestPath);
 
-        if (usePhaseALineup) return await SeedPhaseALineupAsync();
+        if (useLiveLineup)
+            return await SeedLiveLineupAsync();
 
-        if (useSeasonBackupReminder) return await SeedSeasonBackupReminderAsync();
+        if (usePhaseALineup)
+            return await SeedPhaseALineupAsync();
 
-        if (useScheduleGames) return await SeedScheduleGamesAsync();
+        if (useSeasonBackupReminder)
+            return await SeedSeasonBackupReminderAsync();
+
+        if (useScheduleGames)
+            return await SeedScheduleGamesAsync();
 
         if (useManualFindingsReproduction)
             return await SeedManualFindingsReproductionAsync();
 
-        if (useDeviceMigration) return await SeedDeviceMigrationAsync();
+        if (useDeviceMigration)
+            return await SeedDeviceMigrationAsync();
 
-        if (useManualRestore) return await SeedManualRestoreAsync();
+        if (useManualRestore)
+            return await SeedManualRestoreAsync();
 
-        if (useTeamYearSummary) return await SeedTeamYearSummaryAsync();
+        if (useTeamYearSummary)
+            return await SeedTeamYearSummaryAsync();
 
-        if (useTeamYearCopy) return await SeedTeamYearCopyAsync();
+        if (useTeamYearCopy)
+            return await SeedTeamYearCopyAsync();
 
-        if (useTeamStats) return await SeedTeamStatsAsync();
+        if (useTeamStats)
+            return await SeedTeamStatsAsync();
 
-        if (useBeerTotals) return await SeedBeerTotalsAsync();
+        if (useBeerTotals)
+            return await SeedBeerTotalsAsync();
 
-        if (useTeamRecord) return await SeedTeamRecordAsync();
+        if (useTeamRecord)
+            return await SeedTeamRecordAsync();
 
         var team = new Team { Name = "Automation Team", IsActive = true };
         EnsureSingleRow(await teamRepository.CreateAsync(team), "team");
@@ -215,7 +284,8 @@ public sealed class AndroidUiTestDataInitializer
                     LastName = "Automation",
                     IsActive = true,
                 },
-                team.Id);
+                team.Id
+            );
             if (!result.IsSuccess)
                 throw new InvalidOperationException($"Could not seed UI-test Player {firstName}.");
             playerIds.Add(result.PlayerId);
@@ -242,13 +312,16 @@ public sealed class AndroidUiTestDataInitializer
                     },
                 ]
                 :
-                [new Game
+                [
+                    new Game
                 {
                     ScheduledDate = new DateTime(2026, 8, 27),
                     ScheduledTime = new TimeSpan(18, 30, 0),
                     Opponent = "Automation Opponent",
                     Field = "Automation Field",
-                }]);
+                    },
+                ]
+        );
         if (!gameResult.IsCompleteSuccess)
             throw new InvalidOperationException("Could not seed the Android UI-test Game.");
 
@@ -260,8 +333,59 @@ public sealed class AndroidUiTestDataInitializer
         if (useCompletedStatisticsSorting)
             await SeedCompletedStatisticsSortingGameAsync(team.Id, gameId, playerIds);
 
-        return new AndroidUiTestContext(
-            team.Id, useMissingGame ? gameId + 1 : gameId, false);
+        return new AndroidUiTestContext(team.Id, useMissingGame ? gameId + 1 : gameId, false);
+    }
+
+    private async Task<AndroidUiTestContext> SeedLiveLineupAsync()
+    {
+        var team = new Team
+        {
+            Name = "LIVE LINEUP TEAM",
+            Year = 2026,
+            IsActive = true,
+        };
+        EnsureSingleRow(await teamRepository.CreateAsync(team), "live-lineup Team");
+
+        var playerIds = new List<int>();
+        foreach (var firstName in new[] { "Alex", "Blake", "Casey", "Bailey", "Riley" })
+        {
+            var result = await playerRepository.CreateForTeamAsync(
+                new Player
+                {
+                    FirstName = firstName,
+                    LastName = "Live",
+                    IsActive = true,
+                },
+                team.Id
+            );
+            if (!result.IsSuccess)
+                throw new InvalidOperationException(
+                    $"Could not seed live-lineup Player {firstName}."
+                );
+            playerIds.Add(result.PlayerId);
+        }
+
+        var gameResult = await gameRepository.CreateForTeamAsync(
+            team.Id,
+            new Season { Name = "Live", Year = team.Year },
+            [
+                new Game
+                {
+                    ScheduledDate = new DateTime(2026, 9, 30),
+                    ScheduledTime = new TimeSpan(18, 30, 0),
+                    Opponent = "Live Lineup Opponent",
+                    Field = "Live Lineup Field",
+                },
+            ]
+        );
+        if (!gameResult.IsCompleteSuccess)
+            throw new InvalidOperationException("Could not seed the live-lineup Game.");
+
+        var gameId = gameResult.CreatedGameIds.Single();
+        var lineup = await lineupRepository.SaveInitialAsync(team.Id, gameId, playerIds.Take(3));
+        if (!lineup.IsSuccess)
+            throw new InvalidOperationException("Could not seed the live lineup.");
+        return new AndroidUiTestContext(team.Id, gameId, false);
     }
 
     private async Task<AndroidUiTestContext> SeedManualFindingsReproductionAsync()
@@ -284,33 +408,35 @@ public sealed class AndroidUiTestDataInitializer
                     LastName = "Reproduction",
                     IsActive = true,
                 },
-                team.Id);
+                team.Id
+            );
             if (!result.IsSuccess)
                 throw new InvalidOperationException(
-                    $"Could not seed manual-findings Player {firstName}.");
+                    $"Could not seed manual-findings Player {firstName}."
+                );
             playerIds.Add(result.PlayerId);
         }
 
         var gameResult = await gameRepository.CreateForTeamAsync(
             team.Id,
             new Season { Name = "Reproduction", Year = team.Year },
-            [new Game
+            [
+                new Game
             {
                 ScheduledDate = new DateTime(2026, 9, 18),
                 ScheduledTime = new TimeSpan(18, 30, 0),
                 Opponent = "Reproduction Opponent",
                 Field = "Reproduction Field",
-            }]);
+                },
+            ]
+        );
         if (!gameResult.IsCompleteSuccess)
-            throw new InvalidOperationException(
-                "Could not seed the manual-findings Game.");
+            throw new InvalidOperationException("Could not seed the manual-findings Game.");
 
         var gameId = gameResult.CreatedGameIds.Single();
-        var lineupResult = await lineupRepository.SaveInitialAsync(
-            team.Id, gameId, playerIds);
+        var lineupResult = await lineupRepository.SaveInitialAsync(team.Id, gameId, playerIds);
         if (!lineupResult.IsSuccess)
-            throw new InvalidOperationException(
-                "Could not seed the manual-findings lineup.");
+            throw new InvalidOperationException("Could not seed the manual-findings lineup.");
 
         return new AndroidUiTestContext(team.Id, gameId, false);
     }
@@ -328,14 +454,16 @@ public sealed class AndroidUiTestDataInitializer
         var seasonResult = await gameRepository.CreateForTeamAsync(
             team.Id,
             new Season { Name = "Summer 2", Year = team.Year },
-            [new Game
+            [
+                new Game
             {
                 ScheduledDate = new DateTime(2026, 9, 11),
                 ScheduledTime = new TimeSpan(17, 0, 0),
-            }]);
+                },
+            ]
+        );
         if (!seasonResult.IsCompleteSuccess)
-            throw new InvalidOperationException(
-                "Could not seed the schedule-games Season.");
+            throw new InvalidOperationException("Could not seed the schedule-games Season.");
 
         return new AndroidUiTestContext(team.Id, 0, true);
     }
@@ -358,23 +486,25 @@ public sealed class AndroidUiTestDataInitializer
                 LastName = "Reminder",
                 IsActive = true,
             },
-            team.Id);
+            team.Id
+        );
         if (!player.IsSuccess)
-            throw new InvalidOperationException(
-                "Could not seed the backup-reminder Player.");
+            throw new InvalidOperationException("Could not seed the backup-reminder Player.");
 
         var gameResult = await gameRepository.CreateForTeamAsync(
             team.Id,
             new Season { Name = "Completed Season", Year = team.Year },
-            [new Game
+            [
+                new Game
             {
                 ScheduledDate = latestScheduledDate,
                 ScheduledTime = new TimeSpan(18, 30, 0),
                 Opponent = "Backup Reminder Opponent",
-            }]);
+                },
+            ]
+        );
         if (!gameResult.IsCompleteSuccess)
-            throw new InvalidOperationException(
-                "Could not seed the backup-reminder Game.");
+            throw new InvalidOperationException("Could not seed the backup-reminder Game.");
 
         await using var operation = await database.BeginOperationAsync();
         await InsertCompletedSessionAsync(
@@ -383,7 +513,8 @@ public sealed class AndroidUiTestDataInitializer
             player.PlayerId,
             TeamGameSide.Home,
             homeScore: 1,
-            visitorScore: 0);
+            visitorScore: 0
+        );
 
         return new AndroidUiTestContext(team.Id, 0, true);
     }
@@ -414,8 +545,10 @@ public sealed class AndroidUiTestDataInitializer
             Year = 2026,
             IsActive = true,
         };
-        EnsureSingleRow(await teamRepository.CreateAsync(sourceTeam),
-            "device-migration source Team");
+        EnsureSingleRow(
+            await teamRepository.CreateAsync(sourceTeam),
+            "device-migration source Team"
+        );
 
         var currentTeam = new Team
         {
@@ -444,55 +577,71 @@ public sealed class AndroidUiTestDataInitializer
                     LastName = "Migration",
                     IsActive = true,
                 },
-                sourceTeam.Id);
+                sourceTeam.Id
+            );
             if (!result.IsSuccess)
-                throw new InvalidOperationException(
-                    "Could not seed a device-migration Player.");
+                throw new InvalidOperationException("Could not seed a device-migration Player.");
             playerIds.Add(result.PlayerId);
         }
 
         await using (var operation = await database.BeginOperationAsync())
         {
             var connection = operation.Connection;
-            EnsureSingleRow(await connection.InsertAsync(currentTeam),
-                "device-migration current Team");
-            EnsureSingleRow(await connection.InsertAsync(finalizedTeam),
-                "device-migration finalized Team");
+            EnsureSingleRow(
+                await connection.InsertAsync(currentTeam),
+                "device-migration current Team"
+            );
+            EnsureSingleRow(
+                await connection.InsertAsync(finalizedTeam),
+                "device-migration finalized Team"
+            );
             for (var index = 0; index < playerIds.Count; index++)
             {
-                EnsureSingleRow(await connection.InsertAsync(new TeamPlayer
+                EnsureSingleRow(
+                    await connection.InsertAsync(
+                        new TeamPlayer
                 {
                     TeamId = currentTeam.Id,
                     PlayerId = playerIds[index],
                     JerseyNumber = (index + 1) * 11,
                     IsActive = true,
-                }), "device-migration current roster Player");
+                        }
+                    ),
+                    "device-migration current roster Player"
+                );
             }
         }
 
         var completedGames = await gameRepository.CreateForTeamAsync(
             sourceTeam.Id,
             new Season { Name = "Spring Migration", Year = sourceTeam.Year },
-            [new Game
+            [
+                new Game
             {
                 ScheduledDate = new DateTime(2026, 5, 12),
                 ScheduledTime = new TimeSpan(18, 30, 0),
                 Opponent = "Completed Migration Opponent",
                 Field = "History Field",
-            }]);
+                },
+            ]
+        );
         var currentGames = await gameRepository.CreateForTeamAsync(
             currentTeam.Id,
             new Season { Name = "Summer Migration", Year = currentTeam.Year },
-            [new Game
+            [
+                new Game
             {
                 ScheduledDate = new DateTime(2027, 7, 20),
                 ScheduledTime = new TimeSpan(19, 0, 0),
                 Opponent = "Resume Migration Opponent",
                 Field = "Migration Field",
-            }]);
+                },
+            ]
+        );
         if (!completedGames.IsCompleteSuccess || !currentGames.IsCompleteSuccess)
             throw new InvalidOperationException(
-                "Could not seed device-migration Seasons and Games.");
+                "Could not seed device-migration Seasons and Games."
+            );
 
         await using (var operation = await database.BeginOperationAsync())
         {
@@ -508,17 +657,26 @@ public sealed class AndroidUiTestDataInitializer
                 CurrentInning = 7,
                 CompletedAtUtc = new DateTime(2026, 5, 13, 1, 0, 0, DateTimeKind.Utc),
             };
-            EnsureSingleRow(await connection.InsertAsync(completedSession),
-                "device-migration completed scoring session");
+            EnsureSingleRow(
+                await connection.InsertAsync(completedSession),
+                "device-migration completed scoring session"
+            );
             for (var index = 0; index < playerIds.Count; index++)
             {
-                EnsureSingleRow(await connection.InsertAsync(new GameScoringLineupPlayer
+                EnsureSingleRow(
+                    await connection.InsertAsync(
+                        new GameScoringLineupPlayer
                 {
                     GameScoringSessionId = completedSession.Id,
                     PlayerId = playerIds[index],
                     BattingPosition = index + 1,
-                }), "device-migration completed frozen lineup Player");
-                EnsureSingleRow(await connection.InsertAsync(new GamePlateAppearance
+                        }
+                    ),
+                    "device-migration completed frozen lineup Player"
+                );
+                EnsureSingleRow(
+                    await connection.InsertAsync(
+                        new GamePlateAppearance
                 {
                     GameScoringSessionId = completedSession.Id,
                     PlayerId = playerIds[index],
@@ -532,7 +690,10 @@ public sealed class AndroidUiTestDataInitializer
                         2 => BatterResult.Walk,
                         _ => BatterResult.Out,
                     },
-                }), "device-migration completed plate appearance");
+                        }
+                    ),
+                    "device-migration completed plate appearance"
+                );
             }
 
             var currentSession = new GameScoringSession
@@ -546,18 +707,27 @@ public sealed class AndroidUiTestDataInitializer
                 CurrentInning = 3,
                 CurrentOuts = 1,
             };
-            EnsureSingleRow(await connection.InsertAsync(currentSession),
-                "device-migration in-progress scoring session");
+            EnsureSingleRow(
+                await connection.InsertAsync(currentSession),
+                "device-migration in-progress scoring session"
+            );
             for (var index = 0; index < playerIds.Count; index++)
             {
-                EnsureSingleRow(await connection.InsertAsync(new GameScoringLineupPlayer
+                EnsureSingleRow(
+                    await connection.InsertAsync(
+                        new GameScoringLineupPlayer
                 {
                     GameScoringSessionId = currentSession.Id,
                     PlayerId = playerIds[index],
                     BattingPosition = index + 1,
-                }), "device-migration in-progress frozen lineup Player");
             }
-            EnsureSingleRow(await connection.InsertAsync(new GamePlateAppearance
+                    ),
+                    "device-migration in-progress frozen lineup Player"
+                );
+            }
+            EnsureSingleRow(
+                await connection.InsertAsync(
+                    new GamePlateAppearance
             {
                 GameScoringSessionId = currentSession.Id,
                 PlayerId = playerIds[0],
@@ -565,8 +735,13 @@ public sealed class AndroidUiTestDataInitializer
                 PlateAppearanceNumber = 1,
                 Inning = 3,
                 Result = BatterResult.Single,
-            }), "device-migration committed first plate appearance");
-            EnsureSingleRow(await connection.InsertAsync(new GamePlateAppearance
+                    }
+                ),
+                "device-migration committed first plate appearance"
+            );
+            EnsureSingleRow(
+                await connection.InsertAsync(
+                    new GamePlateAppearance
             {
                 GameScoringSessionId = currentSession.Id,
                 PlayerId = playerIds[1],
@@ -574,8 +749,13 @@ public sealed class AndroidUiTestDataInitializer
                 PlateAppearanceNumber = 2,
                 Inning = 3,
                 Result = BatterResult.Single,
-            }), "device-migration committed second plate appearance");
-            EnsureSingleRow(await connection.InsertAsync(new GamePlateAppearance
+                    }
+                ),
+                "device-migration committed second plate appearance"
+            );
+            EnsureSingleRow(
+                await connection.InsertAsync(
+                    new GamePlateAppearance
             {
                 GameScoringSessionId = currentSession.Id,
                 PlayerId = playerIds[2],
@@ -583,38 +763,56 @@ public sealed class AndroidUiTestDataInitializer
                 PlateAppearanceNumber = 3,
                 Inning = 3,
                 Result = BatterResult.Out,
-            }), "device-migration committed third plate appearance");
-            EnsureSingleRow(await connection.InsertAsync(new GameScoringBaseRunner
+                    }
+                ),
+                "device-migration committed third plate appearance"
+            );
+            EnsureSingleRow(
+                await connection.InsertAsync(
+                    new GameScoringBaseRunner
             {
                 GameScoringSessionId = currentSession.Id,
                 PlayerId = playerIds[1],
                 Base = ScoringBase.First,
-            }), "device-migration first-base runner");
-            EnsureSingleRow(await connection.InsertAsync(new GameScoringBaseRunner
+                    }
+                ),
+                "device-migration first-base runner"
+            );
+            EnsureSingleRow(
+                await connection.InsertAsync(
+                    new GameScoringBaseRunner
             {
                 GameScoringSessionId = currentSession.Id,
                 PlayerId = playerIds[0],
                 Base = ScoringBase.Second,
-            }), "device-migration second-base runner");
+                    }
+                ),
+                "device-migration second-base runner"
+            );
 
             var beerRows = new[]
             {
                 new BeerLedgerEntry
                 {
-                    TeamId = currentTeam.Id, PlayerId = playerIds[0],
+                    TeamId = currentTeam.Id,
+                    PlayerId = playerIds[0],
                     SourceTeamId = sourceTeam.Id,
-                    Origin = BeerLedgerEntryOrigin.CarryForward, Amount = 3,
+                    Origin = BeerLedgerEntryOrigin.CarryForward,
+                    Amount = 3,
                 },
                 new BeerLedgerEntry
                 {
-                    TeamId = currentTeam.Id, PlayerId = playerIds[0],
+                    TeamId = currentTeam.Id,
+                    PlayerId = playerIds[0],
                     RuleType = BeerRuleType.Dbo,
                     Origin = BeerLedgerEntryOrigin.AutomaticScoring,
-                    RuleCountAdjustment = 1, Amount = 1,
+                    RuleCountAdjustment = 1,
+                    Amount = 1,
                 },
                 new BeerLedgerEntry
                 {
-                    TeamId = currentTeam.Id, PlayerId = playerIds[0],
+                    TeamId = currentTeam.Id,
+                    PlayerId = playerIds[0],
                     RuleType = BeerRuleType.LowMan,
                     Origin = BeerLedgerEntryOrigin.AutomaticScoring,
                     PlayingDate = new DateTime(2027, 7, 20),
@@ -622,19 +820,25 @@ public sealed class AndroidUiTestDataInitializer
                 },
                 new BeerLedgerEntry
                 {
-                    TeamId = currentTeam.Id, PlayerId = playerIds[0],
-                    Origin = BeerLedgerEntryOrigin.BroughtCredit, Amount = 2,
+                    TeamId = currentTeam.Id,
+                    PlayerId = playerIds[0],
+                    Origin = BeerLedgerEntryOrigin.BroughtCredit,
+                    Amount = 2,
                 },
                 new BeerLedgerEntry
                 {
-                    TeamId = currentTeam.Id, PlayerId = playerIds[1],
+                    TeamId = currentTeam.Id,
+                    PlayerId = playerIds[1],
                     SourceTeamId = sourceTeam.Id,
-                    Origin = BeerLedgerEntryOrigin.CarryForward, Amount = -2,
+                    Origin = BeerLedgerEntryOrigin.CarryForward,
+                    Amount = -2,
                 },
             };
             foreach (var beerRow in beerRows)
-                EnsureSingleRow(await connection.InsertAsync(beerRow),
-                    "device-migration Beer ledger row");
+                EnsureSingleRow(
+                    await connection.InsertAsync(beerRow),
+                    "device-migration Beer ledger row"
+                );
         }
 
         await DismissEligibleSeasonBackupRemindersAsync();
@@ -656,19 +860,33 @@ public sealed class AndroidUiTestDataInitializer
                     LastName = "Automation",
                     IsActive = true,
                 },
-                team.Id);
+                team.Id
+            );
             if (!player.IsSuccess)
                 throw new InvalidOperationException("Could not seed a Beer-totals Player.");
             playerIds.Add(player.PlayerId);
 
             if (firstName == "Alex")
             {
-                EnsureBeerUpdate(await beerAccountingRepository.SetEffectiveRuleCountAsync(
-                    team.Id, player.PlayerId, BeerRuleType.TriplePlay, 1));
-                EnsureBeerUpdate(await beerAccountingRepository.SetEffectiveRuleCountAsync(
-                    team.Id, player.PlayerId, BeerRuleType.LowMan, 2));
-                EnsureBeerUpdate(await beerAccountingRepository.SetBroughtAsync(
-                    team.Id, player.PlayerId, 5));
+                EnsureBeerUpdate(
+                    await beerAccountingRepository.SetEffectiveRuleCountAsync(
+                        team.Id,
+                        player.PlayerId,
+                        BeerRuleType.TriplePlay,
+                        1
+                    )
+                );
+                EnsureBeerUpdate(
+                    await beerAccountingRepository.SetEffectiveRuleCountAsync(
+                        team.Id,
+                        player.PlayerId,
+                        BeerRuleType.LowMan,
+                        2
+                    )
+                );
+                EnsureBeerUpdate(
+                    await beerAccountingRepository.SetBroughtAsync(team.Id, player.PlayerId, 5)
+                );
             }
         }
         var historicalPlayer = new Player
@@ -679,10 +897,13 @@ public sealed class AndroidUiTestDataInitializer
         };
         EnsureSingleRow(
             await playerRepository.CreateAsync(historicalPlayer),
-            "Beer-totals historical Player");
+            "Beer-totals historical Player"
+        );
         await using (var operation = await database.BeginOperationAsync())
         {
-            EnsureSingleRow(await operation.Connection.InsertAsync(new BeerLedgerEntry
+            EnsureSingleRow(
+                await operation.Connection.InsertAsync(
+                    new BeerLedgerEntry
             {
                 TeamId = team.Id,
                 PlayerId = historicalPlayer.Id,
@@ -690,7 +911,10 @@ public sealed class AndroidUiTestDataInitializer
                 Origin = BeerLedgerEntryOrigin.ManualAdjustment,
                 RuleCountAdjustment = 1,
                 Amount = 1,
-            }), "Beer-totals historical Beer balance");
+                    }
+                ),
+                "Beer-totals historical Beer balance"
+            );
         }
 
         await SeedBeerTotalsLowManGameAsync(team.Id, playerIds);
@@ -719,10 +943,10 @@ public sealed class AndroidUiTestDataInitializer
                     LastName = "Automation",
                     IsActive = true,
                 },
-                team.Id);
+                team.Id
+            );
             if (!player.IsSuccess)
-                throw new InvalidOperationException(
-                    "Could not seed a Team-year-summary Player.");
+                throw new InvalidOperationException("Could not seed a Team-year-summary Player.");
             playerIds.Add(player.PlayerId);
         }
 
@@ -742,29 +966,25 @@ public sealed class AndroidUiTestDataInitializer
                     ScheduledTime = new TimeSpan(18, 30, 0),
                     Opponent = "Automation Loss",
                 },
-            ]);
+            ]
+        );
         var summerGames = await gameRepository.CreateForTeamAsync(
             team.Id,
             new Season { Name = "Summer", Year = team.Year },
-            [new Game
+            [
+                new Game
             {
                 ScheduledDate = new DateTime(2026, 7, 1),
                 ScheduledTime = new TimeSpan(18, 30, 0),
                 Opponent = "Automation Tie",
-            }]);
+                },
+            ]
+        );
         if (!springGames.IsCompleteSuccess || !summerGames.IsCompleteSuccess)
-            throw new InvalidOperationException(
-                "Could not seed Team-year-summary Games.");
+            throw new InvalidOperationException("Could not seed Team-year-summary Games.");
 
-        var games = springGames.CreatedGameIds
-            .Concat(summerGames.CreatedGameIds)
-            .ToArray();
-        var alexResults = new[]
-        {
-            BatterResult.Single,
-            BatterResult.HomeRun,
-            BatterResult.Walk,
-        };
+        var games = springGames.CreatedGameIds.Concat(summerGames.CreatedGameIds).ToArray();
+        var alexResults = new[] { BatterResult.Single, BatterResult.HomeRun, BatterResult.Walk };
         var scores = new[] { (8, 3), (2, 5), (6, 6) };
         {
             await using var operation = await database.BeginOperationAsync();
@@ -782,50 +1002,87 @@ public sealed class AndroidUiTestDataInitializer
                     CurrentInning = 1,
                     CompletedAtUtc = DateTime.UtcNow,
                 };
-                EnsureSingleRow(await connection.InsertAsync(session),
-                    "Team-year-summary scoring session");
+                EnsureSingleRow(
+                    await connection.InsertAsync(session),
+                    "Team-year-summary scoring session"
+                );
                 for (var playerIndex = 0; playerIndex < playerIds.Count; playerIndex++)
                 {
-                    EnsureSingleRow(await connection.InsertAsync(new GameScoringLineupPlayer
+                    EnsureSingleRow(
+                        await connection.InsertAsync(
+                            new GameScoringLineupPlayer
                     {
                         GameScoringSessionId = session.Id,
                         PlayerId = playerIds[playerIndex],
                         BattingPosition = playerIndex + 1,
-                    }), "Team-year-summary frozen lineup Player");
-                    EnsureSingleRow(await connection.InsertAsync(new GamePlateAppearance
+                            }
+                        ),
+                        "Team-year-summary frozen lineup Player"
+                    );
+                    EnsureSingleRow(
+                        await connection.InsertAsync(
+                            new GamePlateAppearance
                     {
                         GameScoringSessionId = session.Id,
                         PlayerId = playerIds[playerIndex],
                         BattingPosition = playerIndex + 1,
                         PlateAppearanceNumber = playerIndex + 1,
                         Inning = 1,
-                        Result = playerIndex == 0
-                            ? alexResults[index]
-                            : BatterResult.Out,
-                    }), "Team-year-summary plate appearance");
+                                Result = playerIndex == 0 ? alexResults[index] : BatterResult.Out,
+                            }
+                        ),
+                        "Team-year-summary plate appearance"
+                    );
                 }
             }
 
-            EnsureSingleRow(await connection.InsertAsync(new Team
+            EnsureSingleRow(
+                await connection.InsertAsync(
+                    new Team
             {
                 Name = team.Name,
                 Year = team.Year + 1,
                 TeamLineageId = team.TeamLineageId,
                 PreviousTeamId = team.Id,
                 IsActive = true,
-            }), "Team-year-summary successor Team");
-
         }
-        EnsureBeerUpdate(await beerAccountingRepository.SetEffectiveRuleCountAsync(
-            team.Id, playerIds[0], BeerRuleType.Dbo, 1));
-        EnsureBeerUpdate(await beerAccountingRepository.SetEffectiveRuleCountAsync(
-            team.Id, playerIds[0], BeerRuleType.TriplePlay, 2));
-        EnsureBeerUpdate(await beerAccountingRepository.SetEffectiveRuleCountAsync(
-            team.Id, playerIds[0], BeerRuleType.Strikeout, 3));
-        EnsureBeerUpdate(await beerAccountingRepository.SetEffectiveRuleCountAsync(
-            team.Id, playerIds[0], BeerRuleType.LowMan, 4));
-        EnsureBeerUpdate(await beerAccountingRepository.SetBroughtAsync(
-            team.Id, playerIds[0], 2));
+                ),
+                "Team-year-summary successor Team"
+            );
+        }
+        EnsureBeerUpdate(
+            await beerAccountingRepository.SetEffectiveRuleCountAsync(
+                team.Id,
+                playerIds[0],
+                BeerRuleType.Dbo,
+                1
+            )
+        );
+        EnsureBeerUpdate(
+            await beerAccountingRepository.SetEffectiveRuleCountAsync(
+                team.Id,
+                playerIds[0],
+                BeerRuleType.TriplePlay,
+                2
+            )
+        );
+        EnsureBeerUpdate(
+            await beerAccountingRepository.SetEffectiveRuleCountAsync(
+                team.Id,
+                playerIds[0],
+                BeerRuleType.Strikeout,
+                3
+            )
+        );
+        EnsureBeerUpdate(
+            await beerAccountingRepository.SetEffectiveRuleCountAsync(
+                team.Id,
+                playerIds[0],
+                BeerRuleType.LowMan,
+                4
+            )
+        );
+        EnsureBeerUpdate(await beerAccountingRepository.SetBroughtAsync(team.Id, playerIds[0], 2));
 
         await DismissEligibleSeasonBackupRemindersAsync();
 
@@ -856,63 +1113,113 @@ public sealed class AndroidUiTestDataInitializer
                     LastName = playerData.LastName,
                     IsActive = true,
                 },
-                team.Id);
+                team.Id
+            );
             if (!result.IsSuccess)
                 throw new InvalidOperationException(
-                    "Could not seed a Team-year-copy roster Player.");
+                    "Could not seed a Team-year-copy roster Player."
+                );
         }
 
         var nonRosterPlayers = new[]
         {
-            new Player { FirstName = "Aaron", LastName = "Owed", IsActive = false },
-            new Player { FirstName = "Beta", LastName = "Credit", IsActive = true },
-            new Player { FirstName = "Zero", LastName = "Balance", IsActive = false },
+            new Player
+            {
+                FirstName = "Aaron",
+                LastName = "Owed",
+                IsActive = false,
+            },
+            new Player
+            {
+                FirstName = "Beta",
+                LastName = "Credit",
+                IsActive = true,
+            },
+            new Player
+            {
+                FirstName = "Zero",
+                LastName = "Balance",
+                IsActive = false,
+            },
         };
         foreach (var player in nonRosterPlayers)
-            EnsureSingleRow(await playerRepository.CreateAsync(player),
-                "Team-year-copy non-roster Player");
+            EnsureSingleRow(
+                await playerRepository.CreateAsync(player),
+                "Team-year-copy non-roster Player"
+            );
 
         {
             await using var operation = await database.BeginOperationAsync();
             var connection = operation.Connection;
-            var memberships = await connection.Table<TeamPlayer>()
+            var memberships = await connection
+                .Table<TeamPlayer>()
                 .Where(item => item.TeamId == team.Id)
                 .OrderBy(item => item.Id)
                 .ToListAsync();
             for (var index = 0; index < memberships.Count; index++)
             {
                 memberships[index].JerseyNumber = rosterPlayers[index].JerseyNumber;
-                EnsureSingleRow(await connection.UpdateAsync(memberships[index]),
-                    "Team-year-copy jersey number");
+                EnsureSingleRow(
+                    await connection.UpdateAsync(memberships[index]),
+                    "Team-year-copy jersey number"
+                );
             }
 
-            var spring = new Season { TeamId = team.Id, Name = "Spring", Year = 2026 };
-            var summer = new Season { TeamId = team.Id, Name = "Summer", Year = 2026 };
-            var legacy = new Season { TeamId = team.Id, Name = "Legacy", Year = 2025 };
+            var spring = new Season
+            {
+                TeamId = team.Id,
+                Name = "Spring",
+                Year = 2026,
+            };
+            var summer = new Season
+            {
+                TeamId = team.Id,
+                Name = "Summer",
+                Year = 2026,
+            };
+            var legacy = new Season
+            {
+                TeamId = team.Id,
+                Name = "Legacy",
+                Year = 2025,
+            };
             EnsureSingleRow(await connection.InsertAsync(spring), "Team-year-copy Spring Season");
             EnsureSingleRow(await connection.InsertAsync(summer), "Team-year-copy Summer Season");
             EnsureSingleRow(await connection.InsertAsync(legacy), "Team-year-copy legacy Season");
-            EnsureSingleRow(await connection.InsertAsync(new Game
+            EnsureSingleRow(
+                await connection.InsertAsync(
+                    new Game
             {
                 TeamId = team.Id,
                 SeasonId = spring.Id,
                 ScheduledDate = new DateTime(2026, 5, 4),
                 ScheduledTime = new TimeSpan(18, 30, 0),
                 Opponent = "Historical Opponent",
-            }), "Team-year-copy historical Game");
+                    }
+                ),
+                "Team-year-copy historical Game"
+            );
 
             foreach (var setting in BeerRuleConfigurationDefaults.TeamRules)
             {
-                EnsureSingleRow(await connection.InsertAsync(new TeamBeerRuleConfiguration
+                EnsureSingleRow(
+                    await connection.InsertAsync(
+                        new TeamBeerRuleConfiguration
                 {
                     TeamId = team.Id,
                     RuleType = setting.RuleType,
                     IsEnabled = setting.RuleType != BeerRuleType.Dbo,
-                    Amount = setting.RuleType == BeerRuleType.Strikeout ? 4 : setting.Amount,
-                }), "Team-year-copy Beer Rule configuration");
+                            Amount =
+                                setting.RuleType == BeerRuleType.Strikeout ? 4 : setting.Amount,
+                        }
+                    ),
+                    "Team-year-copy Beer Rule configuration"
+                );
             }
 
-            EnsureSingleRow(await connection.InsertAsync(new BeerLedgerEntry
+            EnsureSingleRow(
+                await connection.InsertAsync(
+                    new BeerLedgerEntry
             {
                 TeamId = team.Id,
                 PlayerId = nonRosterPlayers[0].Id,
@@ -920,15 +1227,22 @@ public sealed class AndroidUiTestDataInitializer
                 Origin = BeerLedgerEntryOrigin.ManualAdjustment,
                 RuleCountAdjustment = 3,
                 Amount = 3,
-            }), "Team-year-copy positive Beer balance");
-            EnsureSingleRow(await connection.InsertAsync(new BeerLedgerEntry
+                    }
+                ),
+                "Team-year-copy positive Beer balance"
+            );
+            EnsureSingleRow(
+                await connection.InsertAsync(
+                    new BeerLedgerEntry
             {
                 TeamId = team.Id,
                 PlayerId = nonRosterPlayers[1].Id,
                 Origin = BeerLedgerEntryOrigin.BroughtCredit,
                 Amount = 2,
-            }), "Team-year-copy negative Beer balance");
-
+                    }
+                ),
+                "Team-year-copy negative Beer balance"
+            );
         }
 
         return new AndroidUiTestContext(team.Id, 0, true);
@@ -949,7 +1263,8 @@ public sealed class AndroidUiTestDataInitializer
                     LastName = "Automation",
                     IsActive = true,
                 },
-                team.Id);
+                team.Id
+            );
             if (!player.IsSuccess)
                 throw new InvalidOperationException("Could not seed a Team-stats Player.");
             playerIds.Add(player.PlayerId);
@@ -962,7 +1277,8 @@ public sealed class AndroidUiTestDataInitializer
         };
         EnsureSingleRow(
             await playerRepository.CreateAsync(historicalPlayer),
-            "Team-stats historical Player");
+            "Team-stats historical Player"
+        );
         playerIds.Add(historicalPlayer.Id);
 
         var springGameIds = await CreateTeamStatsGamesAsync(
@@ -971,7 +1287,8 @@ public sealed class AndroidUiTestDataInitializer
             [
                 (new DateTime(2026, 4, 1), new TimeSpan(18, 30, 0), "Spring One"),
                 (new DateTime(2026, 4, 8), new TimeSpan(19, 0, 0), "Spring Two"),
-            ]);
+            ]
+        );
         var summerGameIds = await CreateTeamStatsGamesAsync(
             team.Id,
             "Summer 1",
@@ -979,15 +1296,20 @@ public sealed class AndroidUiTestDataInitializer
                 (new DateTime(2026, 7, 1), new TimeSpan(18, 0, 0), "Summer One"),
                 (new DateTime(2026, 7, 8), new TimeSpan(18, 30, 0), "Summer Two"),
                 (new DateTime(2026, 7, 15), new TimeSpan(19, 0, 0), "Summer Three"),
-            ]);
+            ]
+        );
         _ = await CreateTeamStatsGamesAsync(
             team.Id,
             "Summer 2",
-            [(new DateTime(2026, 8, 1), new TimeSpan(18, 30, 0), "Future Summer")]);
-        var fallGameId = (await CreateTeamStatsGamesAsync(
+            [(new DateTime(2026, 8, 1), new TimeSpan(18, 30, 0), "Future Summer")]
+        );
+        var fallGameId = (
+            await CreateTeamStatsGamesAsync(
             team.Id,
             "Fall",
-            [(new DateTime(2026, 9, 1), new TimeSpan(18, 30, 0), "In Progress Fall")]))[0];
+                [(new DateTime(2026, 9, 1), new TimeSpan(18, 30, 0), "In Progress Fall")]
+            )
+        )[0];
 
         var completedGameIds = springGameIds.Concat(summerGameIds).ToArray();
         var alexResults = new[]
@@ -1008,15 +1330,16 @@ public sealed class AndroidUiTestDataInitializer
                     completedGameIds[index],
                     playerIds,
                     GameScoringStatus.Completed,
-                    alexResults[index]);
+                    alexResults[index]
+                );
             }
             await InsertTeamStatsSessionAsync(
                 connection,
                 fallGameId,
                 playerIds,
                 GameScoringStatus.InProgress,
-                BatterResult.HomeRun);
-
+                BatterResult.HomeRun
+            );
         }
 
         await DismissEligibleSeasonBackupRemindersAsync();
@@ -1027,7 +1350,8 @@ public sealed class AndroidUiTestDataInitializer
     private async Task<IReadOnlyList<int>> CreateTeamStatsGamesAsync(
         int teamId,
         string leagueSeasonName,
-        IReadOnlyList<(DateTime Date, TimeSpan Time, string Opponent)> games)
+        IReadOnlyList<(DateTime Date, TimeSpan Time, string Opponent)> games
+    )
     {
         var createdIds = new List<int>(games.Count);
         foreach (var batch in games.Chunk(2))
@@ -1035,16 +1359,20 @@ public sealed class AndroidUiTestDataInitializer
             var result = await gameRepository.CreateForTeamAsync(
                 teamId,
                 new Season { Name = leagueSeasonName, Year = 2026 },
-                batch.Select(game => new Game
+                batch
+                    .Select(game => new Game
                 {
                     ScheduledDate = game.Date,
                     ScheduledTime = game.Time,
                     Opponent = game.Opponent,
-                }).ToArray());
+                    })
+                    .ToArray()
+            );
             if (!result.IsCompleteSuccess)
                 throw new InvalidOperationException(
                     $"Could not seed Android Team-stats {leagueSeasonName} Games."
-                    + $" Failure: {result.FailureReason}.");
+                        + $" Failure: {result.FailureReason}."
+                );
             createdIds.AddRange(result.CreatedGameIds);
         }
         return createdIds;
@@ -1055,7 +1383,8 @@ public sealed class AndroidUiTestDataInitializer
         int gameId,
         IReadOnlyList<int> playerIds,
         GameScoringStatus status,
-        BatterResult firstPlayerResult)
+        BatterResult firstPlayerResult
+    )
     {
         var session = new GameScoringSession
         {
@@ -1069,13 +1398,20 @@ public sealed class AndroidUiTestDataInitializer
         EnsureSingleRow(await connection.InsertAsync(session), "Team-stats scoring session");
         for (var index = 0; index < playerIds.Count; index++)
         {
-            EnsureSingleRow(await connection.InsertAsync(new GameScoringLineupPlayer
+            EnsureSingleRow(
+                await connection.InsertAsync(
+                    new GameScoringLineupPlayer
             {
                 GameScoringSessionId = session.Id,
                 PlayerId = playerIds[index],
                 BattingPosition = index + 1,
-            }), "Team-stats frozen lineup Player");
-            EnsureSingleRow(await connection.InsertAsync(new GamePlateAppearance
+                    }
+                ),
+                "Team-stats frozen lineup Player"
+            );
+            EnsureSingleRow(
+                await connection.InsertAsync(
+                    new GamePlateAppearance
             {
                 GameScoringSessionId = session.Id,
                 PlayerId = playerIds[index],
@@ -1083,13 +1419,14 @@ public sealed class AndroidUiTestDataInitializer
                 PlateAppearanceNumber = index + 1,
                 Inning = 1,
                 Result = index == 0 ? firstPlayerResult : BatterResult.Out,
-            }), "Team-stats plate appearance");
+                    }
+                ),
+                "Team-stats plate appearance"
+            );
         }
     }
 
-    private async Task SeedBeerTotalsLowManGameAsync(
-        int teamId,
-        IReadOnlyList<int> playerIds)
+    private async Task SeedBeerTotalsLowManGameAsync(int teamId, IReadOnlyList<int> playerIds)
     {
         var gameResult = await gameRepository.CreateForTeamAsync(
             teamId,
@@ -1107,7 +1444,8 @@ public sealed class AndroidUiTestDataInitializer
                     ScheduledTime = new TimeSpan(20, 0, 0),
                     Opponent = "Automation Incomplete Opponent",
                 },
-            ]);
+            ]
+        );
         if (!gameResult.IsCompleteSuccess)
             throw new InvalidOperationException("Could not seed the Low Man Game Night.");
 
@@ -1124,17 +1462,26 @@ public sealed class AndroidUiTestDataInitializer
                 CurrentInning = 1,
                 CompletedAtUtc = DateTime.UtcNow,
             };
-            EnsureSingleRow(await connection.InsertAsync(session),
-                "Low Man completed scoring session");
+            EnsureSingleRow(
+                await connection.InsertAsync(session),
+                "Low Man completed scoring session"
+            );
             for (var index = 0; index < playerIds.Count; index++)
             {
-                EnsureSingleRow(await connection.InsertAsync(new GameScoringLineupPlayer
+                EnsureSingleRow(
+                    await connection.InsertAsync(
+                        new GameScoringLineupPlayer
                 {
                     GameScoringSessionId = session.Id,
                     PlayerId = playerIds[index],
                     BattingPosition = index + 1,
-                }), "Low Man frozen lineup Player");
-                EnsureSingleRow(await connection.InsertAsync(new GamePlateAppearance
+                        }
+                    ),
+                    "Low Man frozen lineup Player"
+                );
+                EnsureSingleRow(
+                    await connection.InsertAsync(
+                        new GamePlateAppearance
                 {
                     GameScoringSessionId = session.Id,
                     PlayerId = playerIds[index],
@@ -1142,7 +1489,10 @@ public sealed class AndroidUiTestDataInitializer
                     PlateAppearanceNumber = index + 1,
                     Inning = 1,
                     Result = index == 0 ? BatterResult.Out : BatterResult.Single,
-                }), "Low Man plate appearance");
+                        }
+                    ),
+                    "Low Man plate appearance"
+                );
             }
         }
     }
@@ -1151,7 +1501,8 @@ public sealed class AndroidUiTestDataInitializer
     {
         if (!result.IsSuccess)
             throw new InvalidOperationException(
-                $"Could not seed Beer totals: {result.FailureReason}.");
+                $"Could not seed Beer totals: {result.FailureReason}."
+            );
     }
 
     private async Task<AndroidUiTestContext> SeedTeamRecordAsync()
@@ -1165,15 +1516,18 @@ public sealed class AndroidUiTestDataInitializer
                 LastName = "Automation",
                 IsActive = true,
             },
-            team.Id);
+            team.Id
+        );
         if (!playerResult.IsSuccess)
-            throw new InvalidOperationException(
-                "Could not seed the Android Team-record Player.");
+            throw new InvalidOperationException("Could not seed the Android Team-record Player.");
 
         var oldGameId = await CreateLegacyTeamRecordGameAsync(
-            team.Id, "Fall", 2025, new DateTime(2025, 9, 1));
-        var winGameId = await CreateTeamRecordGameAsync(
-            team.Id, "Spring", 2026, DateTime.Today);
+            team.Id,
+            "Fall",
+            2025,
+            new DateTime(2025, 9, 1)
+        );
+        var winGameId = await CreateTeamRecordGameAsync(team.Id, "Spring", 2026, DateTime.Today);
         var latestGames = await gameRepository.CreateForTeamAsync(
             team.Id,
             new Season { Name = "Summer", Year = 2026 },
@@ -1190,10 +1544,12 @@ public sealed class AndroidUiTestDataInitializer
                     ScheduledTime = new TimeSpan(18, 30, 0),
                     Opponent = "Automation Tie Opponent",
                 },
-            ]);
+            ]
+        );
         if (!latestGames.IsCompleteSuccess)
             throw new InvalidOperationException(
-                "Could not seed the Android Team-record Summer Games.");
+                "Could not seed the Android Team-record Summer Games."
+            );
 
         var allGameIds = new[]
         {
@@ -1205,34 +1561,51 @@ public sealed class AndroidUiTestDataInitializer
         foreach (var gameId in allGameIds)
         {
             var lineupResult = await lineupRepository.SaveInitialAsync(
-                team.Id, gameId, [playerResult.PlayerId]);
+                team.Id,
+                gameId,
+                [playerResult.PlayerId]
+            );
             if (!lineupResult.IsSuccess)
                 throw new InvalidOperationException(
-                    "Could not seed an Android Team-record Game lineup.");
+                    "Could not seed an Android Team-record Game lineup."
+                );
         }
 
         {
             await using var operation = await database.BeginOperationAsync();
             var connection = operation.Connection;
             await InsertCompletedSessionAsync(
-                connection, oldGameId, playerResult.PlayerId, TeamGameSide.Home, 12, 1);
+                connection,
+                oldGameId,
+                playerResult.PlayerId,
+                TeamGameSide.Home,
+                12,
+                1
+            );
             await InsertCompletedSessionAsync(
-                connection, winGameId, playerResult.PlayerId, TeamGameSide.Home, 8, 3);
+                connection,
+                winGameId,
+                playerResult.PlayerId,
+                TeamGameSide.Home,
+                8,
+                3
+            );
             await InsertCompletedSessionAsync(
                 connection,
                 latestGames.CreatedGameIds[0],
                 playerResult.PlayerId,
                 TeamGameSide.Away,
                 8,
-                3);
+                3
+            );
             await InsertCompletedSessionAsync(
                 connection,
                 latestGames.CreatedGameIds[1],
                 playerResult.PlayerId,
                 TeamGameSide.Home,
                 6,
-                6);
-
+                6
+            );
         }
 
         return new AndroidUiTestContext(team.Id, 0, true);
@@ -1242,20 +1615,25 @@ public sealed class AndroidUiTestDataInitializer
         int teamId,
         string seasonName,
         int seasonYear,
-        DateTime date)
+        DateTime date
+    )
     {
         var result = await gameRepository.CreateForTeamAsync(
             teamId,
             new Season { Name = seasonName, Year = seasonYear },
-            [new Game
+            [
+                new Game
             {
                 ScheduledDate = date,
                 ScheduledTime = new TimeSpan(18, 30, 0),
                 Opponent = $"Automation {seasonName} Opponent",
-            }]);
+                },
+            ]
+        );
         if (!result.IsCompleteSuccess)
             throw new InvalidOperationException(
-                $"Could not seed the Android Team-record {seasonName} Game.");
+                $"Could not seed the Android Team-record {seasonName} Game."
+            );
         return result.CreatedGameIds.Single();
     }
 
@@ -1276,7 +1654,25 @@ public sealed class AndroidUiTestDataInitializer
         EnsureSingleRow(await teamRepository.CreateAsync(team), "Phase A lineup Team");
 
         var playerIds = new List<int>();
-        foreach (var firstName in new[] { "Alpha", "Bravo", "Charlie", "Delta" })
+        foreach (
+            var firstName in new[]
+            {
+                "Alpha",
+                "Bravo",
+                "Charlie",
+                "Delta",
+                "Echo",
+                "Foxtrot",
+                "Golf",
+                "Hotel",
+                "India",
+                "Juliet",
+                "Kilo",
+                "Lima",
+                "Mike",
+                "November",
+            }
+        )
         {
             var result = await playerRepository.CreateForTeamAsync(
                 new Player
@@ -1285,10 +1681,12 @@ public sealed class AndroidUiTestDataInitializer
                     LastName = "Lineup",
                     IsActive = true,
                 },
-                team.Id);
+                team.Id
+            );
             if (!result.IsSuccess)
                 throw new InvalidOperationException(
-                    $"Could not seed Phase A lineup Player {firstName}.");
+                    $"Could not seed Phase A lineup Player {firstName}."
+                );
             playerIds.Add(result.PlayerId);
         }
 
@@ -1308,22 +1706,28 @@ public sealed class AndroidUiTestDataInitializer
                     ScheduledTime = new TimeSpan(18, 30, 0),
                     Opponent = "Current Lineup Opponent",
                 },
-            ]);
+            ]
+        );
         if (!games.IsCompleteSuccess)
             throw new InvalidOperationException("Could not seed Phase A lineup Games.");
 
         var previousLineup = await lineupRepository.SaveInitialAsync(
             team.Id,
             games.CreatedGameIds[0],
-            playerIds.Take(3).ToArray());
+            playerIds.Take(3).ToArray()
+        );
         if (!previousLineup.IsSuccess)
             throw new InvalidOperationException("Could not seed the previous Phase A lineup.");
 
         var completed = await scoringRepository.InitializeAsync(
-            team.Id, games.CreatedGameIds[0], TeamGameSide.Away);
+            team.Id,
+            games.CreatedGameIds[0],
+            TeamGameSide.Away
+        );
         if (!completed.IsSuccess)
             throw new InvalidOperationException(
-                "Could not initialize the completed Phase A lineup Game.");
+                "Could not initialize the completed Phase A lineup Game."
+            );
         var appearances = new[]
         {
             (playerIds[0], 1, BatterResult.Single),
@@ -1338,7 +1742,8 @@ public sealed class AndroidUiTestDataInitializer
             for (var index = 0; index < appearances.Length; index++)
             {
                 var (playerId, battingPosition, result) = appearances[index];
-                EnsureSingleRow(await operation.Connection.InsertAsync(
+                EnsureSingleRow(
+                    await operation.Connection.InsertAsync(
                     new GamePlateAppearance
                     {
                         GameScoringSessionId = completed.Session!.Id,
@@ -1347,12 +1752,16 @@ public sealed class AndroidUiTestDataInitializer
                         PlateAppearanceNumber = index + 1,
                         Inning = 1,
                         Result = result,
-                    }), "Phase A lineup plate appearance");
+                        }
+                    ),
+                    "Phase A lineup plate appearance"
+                );
             }
         }
         if (!(await scoringRepository.CompleteGameAsync(games.CreatedGameIds[0])).IsSuccess)
             throw new InvalidOperationException(
-                "Could not complete the Phase A lineup statistics Game.");
+                "Could not complete the Phase A lineup statistics Game."
+            );
 
         return new AndroidUiTestContext(team.Id, games.CreatedGameIds[1], false);
     }
@@ -1361,7 +1770,8 @@ public sealed class AndroidUiTestDataInitializer
         int teamId,
         string seasonName,
         int seasonYear,
-        DateTime date)
+        DateTime date
+    )
     {
         await using var operation = await database.BeginOperationAsync();
         var connection = operation.Connection;
@@ -1371,9 +1781,7 @@ public sealed class AndroidUiTestDataInitializer
             Name = seasonName,
             Year = seasonYear,
         };
-        EnsureSingleRow(
-            await connection.InsertAsync(season),
-            "legacy Team-record Season");
+        EnsureSingleRow(await connection.InsertAsync(season), "legacy Team-record Season");
         var game = new Game
         {
             TeamId = teamId,
@@ -1382,9 +1790,7 @@ public sealed class AndroidUiTestDataInitializer
             ScheduledTime = new TimeSpan(18, 30, 0),
             Opponent = $"Automation {seasonName} Opponent",
         };
-        EnsureSingleRow(
-            await connection.InsertAsync(game),
-            "legacy Team-record Game");
+        EnsureSingleRow(await connection.InsertAsync(game), "legacy Team-record Game");
         return game.Id;
     }
 
@@ -1394,7 +1800,8 @@ public sealed class AndroidUiTestDataInitializer
         int playerId,
         TeamGameSide side,
         int homeScore,
-        int visitorScore)
+        int visitorScore
+    )
     {
         var session = new GameScoringSession
         {
@@ -1407,26 +1814,35 @@ public sealed class AndroidUiTestDataInitializer
             CurrentInning = 1,
             CompletedAtUtc = DateTime.UtcNow,
         };
+        EnsureSingleRow(await connection.InsertAsync(session), "Team-record scoring session");
         EnsureSingleRow(
-            await connection.InsertAsync(session), "Team-record scoring session");
-        EnsureSingleRow(await connection.InsertAsync(new GameScoringLineupPlayer
+            await connection.InsertAsync(
+                new GameScoringLineupPlayer
         {
             GameScoringSessionId = session.Id,
             PlayerId = playerId,
             BattingPosition = 1,
-        }), "Team-record frozen lineup Player");
+                }
+            ),
+            "Team-record frozen lineup Player"
+        );
     }
 
     private async Task SeedCompletedStatisticsSortingGameAsync(
         int teamId,
         int gameId,
-        IReadOnlyList<int> playerIds)
+        IReadOnlyList<int> playerIds
+    )
     {
         var initialized = await scoringRepository.InitializeAsync(
-            teamId, gameId, TeamGameSide.Away);
+            teamId,
+            gameId,
+            TeamGameSide.Away
+        );
         if (!initialized.IsSuccess)
             throw new InvalidOperationException(
-                "Could not initialize the Android statistics-sorting Game.");
+                "Could not initialize the Android statistics-sorting Game."
+            );
 
         var appearances = new[]
         {
@@ -1452,7 +1868,9 @@ public sealed class AndroidUiTestDataInitializer
             for (var index = 0; index < appearances.Length; index++)
             {
                 var (playerId, battingPosition, result) = appearances[index];
-                EnsureSingleRow(await connection.InsertAsync(new GamePlateAppearance
+                EnsureSingleRow(
+                    await connection.InsertAsync(
+                        new GamePlateAppearance
                 {
                     GameScoringSessionId = initialized.Session!.Id,
                     PlayerId = playerId,
@@ -1460,19 +1878,24 @@ public sealed class AndroidUiTestDataInitializer
                     PlateAppearanceNumber = index + 1,
                     Inning = 1,
                     Result = result,
-                }), "statistics-sorting plate appearance");
             }
-
+                    ),
+                    "statistics-sorting plate appearance"
+                );
+            }
         }
         if (!(await scoringRepository.CompleteGameAsync(gameId)).IsSuccess)
             throw new InvalidOperationException(
-                "Could not complete the Android statistics-sorting Game.");
+                "Could not complete the Android statistics-sorting Game."
+            );
     }
 
     private static void EnsureSingleRow(int affectedRows, string entityName)
     {
         if (affectedRows != 1)
-            throw new InvalidOperationException($"Could not seed the Android UI-test {entityName}.");
+            throw new InvalidOperationException(
+                $"Could not seed the Android UI-test {entityName}."
+            );
     }
 }
 

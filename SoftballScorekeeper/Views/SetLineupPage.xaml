@@ -59,7 +59,7 @@
     <Button Margin="8,4" Text="{x:Static strings:AppResources.AddLineupPlayersButton}" Command="{Binding EnterAddModeCommand}" MinimumHeightRequest="52" MinimumWidthRequest="160"/>
     <Button Margin="8,4" Text="{x:Static strings:AppResources.RemoveLineupPlayersButton}" Command="{Binding EnterRemovalModeCommand}" MinimumHeightRequest="52" MinimumWidthRequest="160"/>
     <Button Margin="8,4" Text="{x:Static strings:AppResources.UsePreviousLineupButton}" Command="{Binding UsePreviousLineupCommand}" MinimumHeightRequest="52" MinimumWidthRequest="190"/>
-    <Button Margin="8,4" AutomationId="OrderLineupByObpButton" Text="{x:Static strings:AppResources.OrderLineupByObpButton}" Command="{Binding OrderByObpCommand}" MinimumHeightRequest="52" MinimumWidthRequest="170"/>
+    <Button Margin="8,4" AutomationId="OrderLineupByObpButton" Text="{Binding OrderByObpButtonText}" Command="{Binding OrderByObpCommand}" MinimumHeightRequest="52" MinimumWidthRequest="190"/>
     <Button Margin="8,4" Text="{x:Static strings:AppResources.DoneButton}" Command="{Binding DoneCommand}" MinimumHeightRequest="52" MinimumWidthRequest="140"/>
    </FlexLayout>
   <Grid Grid.Row="2" RowDefinitions="Auto,*" RowSpacing="8" IsVisible="{Binding IsAddMode}">

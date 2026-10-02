@@ -23,13 +23,22 @@ public sealed class PlayerRepository
     public Task<CreatePlayerResult> CreateForTeamAsync(Player player, int teamId) =>
         CreateForContextAsync(player, teamId, null);
 
-    public Task<CreatePlayerResult> CreateForGameLineupAsync(Player player, int teamId, int gameId) =>
-        CreateForContextAsync(player, teamId, gameId);
+    public Task<CreatePlayerResult> CreateForGameLineupAsync(
+        Player player,
+        int teamId,
+        int gameId
+    ) => CreateForContextAsync(player, teamId, gameId);
 
-    private async Task<CreatePlayerResult> CreateForContextAsync(Player player, int teamId, int? gameId)
+    private async Task<CreatePlayerResult> CreateForContextAsync(
+        Player player,
+        int teamId,
+        int? gameId
+    )
     {
-        if (teamId <= 0) return new(0, CreatePlayerFailure.InvalidTeam);
-        if (gameId is <= 0) return new(0, CreatePlayerFailure.InvalidGame);
+        if (teamId <= 0)
+            return new(0, CreatePlayerFailure.InvalidTeam);
+        if (gameId is <= 0)
+            return new(0, CreatePlayerFailure.InvalidGame);
 
         await using var operation = await database.BeginOperationAsync();
         var connection = operation.Connection;
@@ -61,8 +70,10 @@ public sealed class PlayerRepository
                         return;
                     }
 
-                    if (transaction.Table<GameScoringSession>()
-                        .Any(session => session.GameId == game.Id))
+                    var scoringSession = transaction
+                        .Table<GameScoringSession>()
+                        .FirstOrDefault(session => session.GameId == game.Id);
+                    if (scoringSession?.Status == GameScoringStatus.Completed)
                     {
                         result = new(0, CreatePlayerFailure.ScoringStarted);
                         return;
@@ -71,32 +82,48 @@ public sealed class PlayerRepository
 
                 player.Id = 0;
                 player.IsActive = true;
-                if (transaction.Insert(player) != 1) return;
+                if (transaction.Insert(player) != 1)
+                    return;
 
-                if (transaction.Insert(new TeamPlayer
+                if (
+                    transaction.Insert(
+                        new TeamPlayer
                     {
                         TeamId = teamId,
                         PlayerId = player.Id,
                         IsActive = true,
-                    }) != 1)
+                        }
+                    ) != 1
+                )
                 {
                     throw new InvalidOperationException();
                 }
 
-                if (game is not null)
+                if (
+                    game is not null
+                    && !transaction
+                        .Table<GameScoringSession>()
+                        .Any(session => session.GameId == game.Id)
+                )
                 {
-                    var existingLineup = transaction.Table<GameLineupPlayer>()
+                    var existingLineup = transaction
+                        .Table<GameLineupPlayer>()
                         .Where(item => item.GameId == game.Id)
                         .ToList();
-                    var nextBattingOrder = existingLineup.Count == 0
+                    var nextBattingOrder =
+                        existingLineup.Count == 0
                         ? 1
                         : existingLineup.Max(item => item.BattingOrder) + 1;
-                    if (transaction.Insert(new GameLineupPlayer
+                    if (
+                        transaction.Insert(
+                            new GameLineupPlayer
                         {
                             GameId = game.Id,
                             PlayerId = player.Id,
                             BattingOrder = nextBattingOrder,
-                        }) != 1)
+                            }
+                        ) != 1
+                    )
                     {
                         throw new InvalidOperationException();
                     }
@@ -123,7 +150,8 @@ public sealed class PlayerRepository
             player.FirstName,
             player.LastName,
             player.Id,
-            true);
+            true
+        );
     }
 
     public async Task<int> DeactivateAsync(IReadOnlyCollection<int>? playerIds)
@@ -133,10 +161,7 @@ public sealed class PlayerRepository
             return 0;
         }
 
-        var validPlayerIds = playerIds
-            .Where(playerId => playerId > 0)
-            .Distinct()
-            .ToArray();
+        var validPlayerIds = playerIds.Where(playerId => playerId > 0).Distinct().ToArray();
 
         if (validPlayerIds.Length == 0)
         {
@@ -152,7 +177,8 @@ public sealed class PlayerRepository
 
         return await connection.ExecuteAsync(
             $"UPDATE Player SET IsActive = ? WHERE IsActive = ? AND Id IN ({placeholders})",
-            parameters);
+            parameters
+        );
     }
 
     public async Task<int> ReactivateAsync(IReadOnlyCollection<int>? playerIds)
@@ -162,10 +188,7 @@ public sealed class PlayerRepository
             return 0;
         }
 
-        var validPlayerIds = playerIds
-            .Where(playerId => playerId > 0)
-            .Distinct()
-            .ToArray();
+        var validPlayerIds = playerIds.Where(playerId => playerId > 0).Distinct().ToArray();
 
         if (validPlayerIds.Length == 0)
         {
@@ -181,14 +204,16 @@ public sealed class PlayerRepository
 
         return await connection.ExecuteAsync(
             $"UPDATE Player SET IsActive = ? WHERE IsActive = ? AND Id IN ({placeholders})",
-            parameters);
+            parameters
+        );
     }
 
     public async Task<List<Player>> GetActiveAsync()
     {
         await using var operation = await database.BeginOperationAsync();
         var connection = operation.Connection;
-        var activePlayers = await connection.Table<Player>()
+        var activePlayers = await connection
+            .Table<Player>()
             .Where(player => player.IsActive)
             .ToListAsync();
 
@@ -202,7 +227,8 @@ public sealed class PlayerRepository
     {
         await using var operation = await database.BeginOperationAsync();
         var connection = operation.Connection;
-        var inactivePlayers = await connection.Table<Player>()
+        var inactivePlayers = await connection
+            .Table<Player>()
             .Where(player => !player.IsActive)
             .ToListAsync();
 
@@ -216,7 +242,8 @@ public sealed class PlayerRepository
     {
         await using var operation = await database.BeginOperationAsync();
         var connection = operation.Connection;
-        return await connection.Table<Player>()
+        return await connection
+            .Table<Player>()
             .Where(player => player.Id == id && player.IsActive)
             .FirstOrDefaultAsync();
     }

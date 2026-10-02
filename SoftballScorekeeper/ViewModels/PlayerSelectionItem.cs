@@ -13,7 +13,8 @@ public partial class PlayerSelectionItem : ObservableObject
     public PlayerSelectionItem(
         Player player,
         Action<PlayerSelectionItem>? selectionChanged = null,
-        decimal? onBasePercentage = null)
+        decimal? onBasePercentage = null
+    )
     {
         ArgumentNullException.ThrowIfNull(player);
 
@@ -24,9 +25,10 @@ public partial class PlayerSelectionItem : ObservableObject
 
     public Player Player { get; }
     public decimal? OnBasePercentage { get; }
-    public string OnBasePercentageDisplay => OnBasePercentage is decimal value
-        ? BattingRateFormatter.Format(value)
-        : AppResources.UndefinedBattingRate;
+    public string OnBasePercentageDisplay =>
+        OnBasePercentage is decimal value
+            ? string.Format(AppResources.LineupObpDisplayFormat, BattingRateFormatter.Format(value))
+            : string.Format(AppResources.LineupObpDisplayFormat, BattingRateFormatter.Format(0));
 
     public bool IsSelected
     {
@@ -40,9 +42,11 @@ public partial class PlayerSelectionItem : ObservableObject
         }
     }
 
-    public string DisplayName => string.Join(
+    public string DisplayName =>
+        string.Join(
         " ",
         new[] { Player.FirstName, Player.LastName }
             .Where(name => !string.IsNullOrWhiteSpace(name))
-            .Select(name => name!.Trim()));
+                .Select(name => name!.Trim())
+        );
 }

@@ -175,15 +175,20 @@
                                             <BindableLayout.ItemTemplate>
                                                 <DataTemplate x:DataType="viewModels:CompletedGamePlayViewModel">
                                                     <VerticalStackLayout Spacing="2">
-                                                        <Label Text="{Binding BatterResultDisplay}" FontSize="18" FontAttributes="Bold" />
-                                                        <VerticalStackLayout BindableLayout.ItemsSource="{Binding RunnerMovements}">
+                                                        <Label Text="{Binding LineupChangeDisplay}" FontSize="18"
+                                                               FontAttributes="Italic" IsVisible="{Binding IsLineupChange}" />
+                                                        <Label Text="{Binding BatterResultDisplay}" FontSize="18"
+                                                               FontAttributes="Bold" IsVisible="{Binding IsPlateAppearance}" />
+                                                        <VerticalStackLayout BindableLayout.ItemsSource="{Binding RunnerMovements}"
+                                                                             IsVisible="{Binding IsPlateAppearance}">
                                                             <BindableLayout.ItemTemplate>
                                                                 <DataTemplate x:DataType="x:String">
                                                                     <Label Text="{Binding .}" />
                                                                 </DataTemplate>
                                                             </BindableLayout.ItemTemplate>
                                                         </VerticalStackLayout>
-                                                        <Label Text="{Binding Score}" FontAttributes="Bold" />
+                                                        <Label Text="{Binding Score}" FontAttributes="Bold"
+                                                               IsVisible="{Binding IsPlateAppearance}" />
                                                     </VerticalStackLayout>
                                                 </DataTemplate>
                                             </BindableLayout.ItemTemplate>

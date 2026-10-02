@@ -25,15 +25,28 @@ public partial class CreatePlayerViewModel : ObservableObject, IQueryAttributabl
     private int gameId;
     private CreatePlayerContext context;
 
-    public string FirstName { get => firstName; set => SetProperty(ref firstName, value); }
-    public string LastName { get => lastName; set => SetProperty(ref lastName, value); }
-    public string ValidationMessage { get => validationMessage; set => SetProperty(ref validationMessage, value); }
+    public string FirstName
+    {
+        get => firstName;
+        set => SetProperty(ref firstName, value);
+    }
+    public string LastName
+    {
+        get => lastName;
+        set => SetProperty(ref lastName, value);
+    }
+    public string ValidationMessage
+    {
+        get => validationMessage;
+        set => SetProperty(ref validationMessage, value);
+    }
     public bool IsBusy
     {
         get => isBusy;
         set
         {
-            if (SetProperty(ref isBusy, value)) NotifyCommands();
+            if (SetProperty(ref isBusy, value))
+                NotifyCommands();
         }
     }
 
@@ -51,7 +64,11 @@ public partial class CreatePlayerViewModel : ObservableObject, IQueryAttributabl
 
         var hasTeamId = query.TryGetValue(AppShell.TeamIdQueryParameter, out var teamValue);
         var hasGameId = query.TryGetValue(AppShell.GameIdQueryParameter, out var gameValue);
-        if (!hasTeamId && !hasGameId) { NotifyCommands(); return; }
+        if (!hasTeamId && !hasGameId)
+        {
+            NotifyCommands();
+            return;
+        }
 
         if (!hasTeamId || !TryParseId(teamValue, out teamId))
         {
@@ -60,7 +77,11 @@ public partial class CreatePlayerViewModel : ObservableObject, IQueryAttributabl
         }
 
         context = CreatePlayerContext.Team;
-        if (!hasGameId) { NotifyCommands(); return; }
+        if (!hasGameId)
+        {
+            NotifyCommands();
+            return;
+        }
         if (!TryParseId(gameValue, out gameId))
         {
             InvalidateContext(AppResources.GameNotFound);
@@ -79,7 +100,8 @@ public partial class CreatePlayerViewModel : ObservableObject, IQueryAttributabl
 
     private async Task SaveCoreAsync(bool addAnother)
     {
-        if (!CanSave()) return;
+        if (!CanSave())
+            return;
         IsBusy = true;
         try
         {
@@ -114,21 +136,32 @@ public partial class CreatePlayerViewModel : ObservableObject, IQueryAttributabl
                 return;
             }
 
-            await Shell.Current.GoToAsync(context switch
+            if (context == CreatePlayerContext.GameLineup)
             {
-                CreatePlayerContext.Team => "../..",
-                _ => "..",
-            });
+                await Shell.Current.GoToAsync(
+                    "..",
+                    new ShellNavigationQueryParameters
+                    {
+                        [AppShell.LiveLineupPlayerIdQueryParameter] = result.PlayerId,
+                    }
+                );
+            }
+            else
+            {
+                await Shell.Current.GoToAsync(context == CreatePlayerContext.Team ? "../.." : "..");
+            }
         }
         catch
         {
-            ValidationMessage = context == CreatePlayerContext.GameLineup
-                ? AppResources.PlayerLineupCreationFailed
-                : context == CreatePlayerContext.Team
-                    ? AppResources.PlayerTeamCreationFailed
-                    : AppResources.PlayerCreationFailed;
+            ValidationMessage =
+                context == CreatePlayerContext.GameLineup ? AppResources.PlayerLineupCreationFailed
+                : context == CreatePlayerContext.Team ? AppResources.PlayerTeamCreationFailed
+                : AppResources.PlayerCreationFailed;
         }
-        finally { IsBusy = false; }
+        finally
+        {
+            IsBusy = false;
+        }
     }
 
     private async Task<CreatePlayerResult> CreateAsync(Player player)
@@ -145,22 +178,44 @@ public partial class CreatePlayerViewModel : ObservableObject, IQueryAttributabl
     [RelayCommand]
     private async Task CancelAsync()
     {
-        if (IsBusy) return;
+        if (IsBusy)
+            return;
         FirstName = LastName = ValidationMessage = string.Empty;
         await Shell.Current.GoToAsync("..");
     }
 
     private bool CanSave() => !IsBusy && !hasInvalidContext;
-    private string FailureMessage(CreatePlayerFailure failure) => failure switch
+
+    private string FailureMessage(CreatePlayerFailure failure) =>
+        failure switch
+        {
+            CreatePlayerFailure.InvalidTeam => AppResources.TeamNotFound,
+            CreatePlayerFailure.InvalidGame or CreatePlayerFailure.TeamMismatch =>
+                AppResources.GameNotFound,
+            _ when context == CreatePlayerContext.GameLineup =>
+                AppResources.PlayerLineupCreationFailed,
+            _ when context == CreatePlayerContext.Team => AppResources.PlayerTeamCreationFailed,
+            _ => AppResources.PlayerCreationFailed,
+        };
+
+    private void InvalidateContext(string message)
     {
-        CreatePlayerFailure.InvalidTeam => AppResources.TeamNotFound,
-        CreatePlayerFailure.InvalidGame or CreatePlayerFailure.TeamMismatch => AppResources.GameNotFound,
-        _ when context == CreatePlayerContext.GameLineup => AppResources.PlayerLineupCreationFailed,
-        _ when context == CreatePlayerContext.Team => AppResources.PlayerTeamCreationFailed,
-        _ => AppResources.PlayerCreationFailed,
-    };
-    private void InvalidateContext(string message) { hasInvalidContext = true; ValidationMessage = message; NotifyCommands(); }
-    private void NotifyCommands() { SaveCommand.NotifyCanExecuteChanged(); SaveAndAddAnotherCommand.NotifyCanExecuteChanged(); }
+        hasInvalidContext = true;
+        ValidationMessage = message;
+        NotifyCommands();
+    }
+
+    private void NotifyCommands()
+    {
+        SaveCommand.NotifyCanExecuteChanged();
+        SaveAndAddAnotherCommand.NotifyCanExecuteChanged();
+    }
+
     private static bool TryParseId(object? value, out int id)
-    { id = 0; return value is int number ? (id = number) > 0 : value is string text && int.TryParse(text, out id) && id > 0; }
+    {
+        id = 0;
+        return value is int number
+            ? (id = number) > 0
+            : value is string text && int.TryParse(text, out id) && id > 0;
+    }
 }

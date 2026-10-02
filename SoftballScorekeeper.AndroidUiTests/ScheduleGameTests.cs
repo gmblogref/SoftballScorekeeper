@@ -60,14 +60,45 @@ public sealed class ScheduleGameTests(AndroidAppiumFixture fixture)
         AndroidDriver driver,
         string scheduledDateDisplay)
     {
+        ExpandCurrentMonthIfCollapsed(driver);
         AssertVisibleTextContaining(driver, "6:30", "PM");
         AssertVisibleTextContaining(driver, "7:30", "PM");
         AssertVisibleText(driver, scheduledDateDisplay);
-        Assert.True(driver.FindElements(By.XPath("//*[@text='TBD']")).Count >= 6);
+        Assert.True(driver.FindElements(By.XPath("//*[@text='TBD']")).Count >= 4);
         Assert.DoesNotContain(
             "The Game schedule could not be saved",
             driver.PageSource,
             StringComparison.Ordinal);
+    }
+
+    private static void ExpandCurrentMonthIfCollapsed(AndroidDriver driver)
+    {
+        var month = DateTime.Today.ToString("MMM", CultureInfo.CurrentCulture)
+            .ToUpper(CultureInfo.CurrentCulture);
+        var expandedText = $"{month} ▼";
+        var collapsedText = $"{month} ▶";
+        PhaseAUiWorkflow.Wait(driver).Until(current =>
+        {
+            var otherExpandedMonth = current.FindElements(By.XPath(
+                    $"//*[@text and contains(@text, '▼') and @text != '{expandedText}']"))
+                .FirstOrDefault();
+            if (otherExpandedMonth is not null)
+            {
+                otherExpandedMonth.Click();
+                return false;
+            }
+
+            var collapsedMonth = current.FindElements(By.XPath(
+                    $"//*[@text='{collapsedText}']"))
+                .FirstOrDefault();
+            if (collapsedMonth is not null)
+            {
+                collapsedMonth.Click();
+                return false;
+            }
+
+            return current.FindElements(By.XPath($"//*[@text='{expandedText}']")).Count > 0;
+        });
     }
 
     private static void AssertVisibleText(AndroidDriver driver, string text) =>

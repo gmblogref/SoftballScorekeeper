@@ -1204,6 +1204,26 @@ namespace SoftballScorekeeper.Resources.Strings {
         public static string ClearAllButton { get { return ResourceManager.GetString("ClearAllButton", resourceCulture); } }
         public static string UndefinedBattingRate { get { return ResourceManager.GetString("UndefinedBattingRate", resourceCulture); } }
         public static string OrderLineupByObpButton { get { return ResourceManager.GetString("OrderLineupByObpButton", resourceCulture); } }
+
+        public static string SetLineupByObpButton { get { return ResourceManager.GetString("SetLineupByObpButton", resourceCulture); } }
+        public static string LineupObpDisplayFormat { get { return ResourceManager.GetString("LineupObpDisplayFormat", resourceCulture); } }
+        public static string ManageLiveLineupButton { get { return ResourceManager.GetString("ManageLiveLineupButton", resourceCulture); } }
+        public static string ManageLiveLineupTitle { get { return ResourceManager.GetString("ManageLiveLineupTitle", resourceCulture); } }
+        public static string RemovePlayerButton { get { return ResourceManager.GetString("RemovePlayerButton", resourceCulture); } }
+        public static string ReplacePlayerButton { get { return ResourceManager.GetString("ReplacePlayerButton", resourceCulture); } }
+        public static string SelectReplacementPlayerTitle { get { return ResourceManager.GetString("SelectReplacementPlayerTitle", resourceCulture); } }
+        public static string NoEligibleLiveLineupPlayers { get { return ResourceManager.GetString("NoEligibleLiveLineupPlayers", resourceCulture); } }
+        public static string LiveLineupPlayerPositionFormat { get { return ResourceManager.GetString("LiveLineupPlayerPositionFormat", resourceCulture); } }
+        public static string LiveLineupInsertionTitleFormat { get { return ResourceManager.GetString("LiveLineupInsertionTitleFormat", resourceCulture); } }
+        public static string LiveLineupInsertBeforeFormat { get { return ResourceManager.GetString("LiveLineupInsertBeforeFormat", resourceCulture); } }
+        public static string LiveLineupEndPositionFormat { get { return ResourceManager.GetString("LiveLineupEndPositionFormat", resourceCulture); } }
+        public static string LiveLineupPendingPlayMessage { get { return ResourceManager.GetString("LiveLineupPendingPlayMessage", resourceCulture); } }
+        public static string LiveLineupChangeFailedMessage { get { return ResourceManager.GetString("LiveLineupChangeFailedMessage", resourceCulture); } }
+        public static string GamePlaysPlayerAdded { get { return ResourceManager.GetString("GamePlaysPlayerAdded", resourceCulture); } }
+        public static string GamePlaysPlayerRemoved { get { return ResourceManager.GetString("GamePlaysPlayerRemoved", resourceCulture); } }
+        public static string GamePlaysPlayerReplaced { get { return ResourceManager.GetString("GamePlaysPlayerReplaced", resourceCulture); } }
+
+        public static string EnterOpponentHalfInningButton { get { return ResourceManager.GetString("EnterOpponentHalfInningButton", resourceCulture); } }
         public static string GameStatsButton { get { return ResourceManager.GetString("GameStatsButton", resourceCulture); } }
         public static string GamePlaysButton { get { return ResourceManager.GetString("GamePlaysButton", resourceCulture); } }
         public static string GamePlaysHalfHeading { get { return ResourceManager.GetString("GamePlaysHalfHeading", resourceCulture); } }
