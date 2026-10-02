@@ -635,6 +635,7 @@
   <data name="HalfInningCompleteTitleFormat" xml:space="preserve"><value>{0} {1} Complete</value></data>
   <data name="HalfInningSummaryMessageFormat" xml:space="preserve"><value>Runs: {0}&#xA;Home Runs: {1}</value></data>
   <data name="OpponentHalfInningTitleFormat" xml:space="preserve"><value>Opponent {0} {1}</value></data>
+  <data name="EnterOpponentHalfInningButton" xml:space="preserve"><value>Enter Opponent Half-Inning</value></data>
   <data name="OpponentRunsLabel" xml:space="preserve"><value>Runs</value></data>
   <data name="OpponentHomeRunsLabel" xml:space="preserve"><value>Home Runs</value></data>
   <data name="TotalScoreModeLabel" xml:space="preserve"><value>Total Score</value></data>
@@ -767,6 +768,23 @@
   <data name="ClearAllButton" xml:space="preserve"><value>Clear All</value></data>
   <data name="UndefinedBattingRate" xml:space="preserve"><value>—</value></data>
   <data name="OrderLineupByObpButton" xml:space="preserve"><value>Order by OBP</value></data>
+  <data name="SetLineupByObpButton" xml:space="preserve"><value>Set Lineup by OBP</value></data>
+  <data name="LineupObpDisplayFormat" xml:space="preserve"><value>OBP: {0}</value></data>
+  <data name="ManageLiveLineupButton" xml:space="preserve"><value>Manage Lineup</value></data>
+  <data name="ManageLiveLineupTitle" xml:space="preserve"><value>Manage Live Lineup</value></data>
+  <data name="RemovePlayerButton" xml:space="preserve"><value>Remove Player</value></data>
+  <data name="ReplacePlayerButton" xml:space="preserve"><value>Replace Player</value></data>
+  <data name="SelectReplacementPlayerTitle" xml:space="preserve"><value>Select Replacement Player</value></data>
+  <data name="NoEligibleLiveLineupPlayers" xml:space="preserve"><value>No eligible roster Players are available. Create a new Player or return a Player who has left the lineup.</value></data>
+  <data name="LiveLineupPlayerPositionFormat" xml:space="preserve"><value>{0}. {1}</value></data>
+  <data name="LiveLineupInsertionTitleFormat" xml:space="preserve"><value>Where should {0} bat?</value></data>
+  <data name="LiveLineupInsertBeforeFormat" xml:space="preserve"><value>{0} — Before {1}</value></data>
+  <data name="LiveLineupEndPositionFormat" xml:space="preserve"><value>{0} — End of Lineup</value></data>
+  <data name="LiveLineupPendingPlayMessage" xml:space="preserve"><value>Finish or undo the current play before changing the lineup.</value></data>
+  <data name="LiveLineupChangeFailedMessage" xml:space="preserve"><value>The live lineup could not be changed.</value></data>
+  <data name="GamePlaysPlayerAdded" xml:space="preserve"><value>{0} was added to the lineup</value></data>
+  <data name="GamePlaysPlayerRemoved" xml:space="preserve"><value>{0} was removed from the lineup</value></data>
+  <data name="GamePlaysPlayerReplaced" xml:space="preserve"><value>{0} replaced {1} in the lineup</value></data>
   <data name="GameStatsButton" xml:space="preserve"><value>Game Stats</value></data>
   <data name="GamePlaysButton" xml:space="preserve"><value>Game Plays</value></data>
   <data name="GamePlaysHalfHeading" xml:space="preserve"><value>{0} {1} — {2}</value></data>

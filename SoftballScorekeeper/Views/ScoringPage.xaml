@@ -403,12 +403,14 @@
                                    Text="{x:Static strings:AppResources.OnDeckLabel}"
                                    FontAttributes="Bold" />
                             <Label Grid.Row="1" Grid.Column="1"
+                                   AutomationId="OnDeckBatter"
                                    Text="{Binding OnDeckDisplayName}"
                                    FontSize="16" LineBreakMode="TailTruncation" />
                             <Label Grid.Row="2"
                                    Text="{x:Static strings:AppResources.InTheHoleLabel}"
                                    FontAttributes="Bold" />
                             <Label Grid.Row="2" Grid.Column="1"
+                                   AutomationId="InTheHoleBatter"
                                    Text="{Binding InTheHoleDisplayName}"
                                    FontSize="16" LineBreakMode="TailTruncation" />
                         </Grid>
@@ -490,6 +492,23 @@
                          IsVisible="False"
                          BackgroundColor="{AppThemeBinding Light={StaticResource Gray300}, Dark={StaticResource Gray600}}" />
         </Grid>
+        <HorizontalStackLayout Grid.Row="3"
+                               IsVisible="{Binding IsAwaitingOpponentHalfInning}"
+                               HorizontalOptions="Center"
+                               VerticalOptions="Center"
+                               Spacing="16">
+            <Button AutomationId="EnterOpponentHalfInningButton"
+                    Text="{x:Static strings:AppResources.EnterOpponentHalfInningButton}"
+                    Clicked="OnEnterOpponentHalfInningClicked"
+                    MinimumHeightRequest="56"
+                    MinimumWidthRequest="240" />
+            <Button AutomationId="StartupRedoScoringButton"
+                    Text="{x:Static strings:AppResources.RedoScoringButton}"
+                    Clicked="OnRedoClicked"
+                    IsEnabled="{Binding CanRedo}"
+                    MinimumHeightRequest="56"
+                    MinimumWidthRequest="140" />
+        </HorizontalStackLayout>
     </Grid>
     <Border x:Name="ScoringMenu"
             IsVisible="False"
@@ -516,6 +535,12 @@
             <Button AutomationId="InGameStatsButton"
                     Text="{x:Static strings:AppResources.StatsButton}"
                     Clicked="OnStatsClicked"
+                    BackgroundColor="Transparent" TextColor="Black"
+                    MinimumHeightRequest="52" MinimumWidthRequest="180" Padding="20,12" />
+            <BoxView BackgroundColor="Black" HeightRequest="1" />
+            <Button AutomationId="ManageLiveLineupButton"
+                    Text="{x:Static strings:AppResources.ManageLiveLineupButton}"
+                    Clicked="OnManageLineupClicked"
                     BackgroundColor="Transparent" TextColor="Black"
                     MinimumHeightRequest="52" MinimumWidthRequest="180" Padding="20,12" />
             <BoxView BackgroundColor="Black" HeightRequest="1" />

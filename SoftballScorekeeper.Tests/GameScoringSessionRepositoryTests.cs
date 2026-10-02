@@ -11,8 +11,9 @@ public sealed partial class GameScoringSessionRepositoryTests
         await using var db = await TemporaryTestDatabase.CreateAsync();
         var context = await CreateReadyGameAsync(db, DateTime.Today, null, null, 1);
         var repository = db.CreateGameScoringSessionRepository();
-        var inProgress = (await repository.InitializeAsync(
-            context.Team.Id, context.Game.Id, TeamGameSide.Away)).Session!;
+        var inProgress = (
+            await repository.InitializeAsync(context.Team.Id, context.Game.Id, TeamGameSide.Away)
+        ).Session!;
         await db.UpdateScoringStateAsync(inProgress.Id, 3, 5, 1);
         var otherGame = new Game
         {
@@ -33,19 +34,39 @@ public sealed partial class GameScoringSessionRepositoryTests
             CurrentInning = 1,
             CompletedAtUtc = DateTime.UtcNow,
         };
-        Assert.Equal(1, await db.UseConnectionAsync(
-            connection => connection.InsertAsync(completed)));
+        Assert.Equal(
+            1,
+            await db.UseConnectionAsync(connection => connection.InsertAsync(completed))
+        );
 
-        var sessions = await repository.GetForGamesAsync(
-            [0, -1, context.Game.Id, otherGame.Id, context.Game.Id, int.MaxValue]);
+        var sessions = await repository.GetForGamesAsync([
+            0,
+            -1,
+            context.Game.Id,
+            otherGame.Id,
+            context.Game.Id,
+            int.MaxValue,
+        ]);
 
         Assert.Equal(2, sessions.Count);
-        Assert.Equal((GameScoringStatus.InProgress, TeamGameSide.Away, 3, 5),
-            (sessions[context.Game.Id].Status, sessions[context.Game.Id].TeamSide,
-                sessions[context.Game.Id].HomeScore, sessions[context.Game.Id].VisitorScore));
-        Assert.Equal((GameScoringStatus.Completed, TeamGameSide.Home, 8, 6),
-            (sessions[otherGame.Id].Status, sessions[otherGame.Id].TeamSide,
-                sessions[otherGame.Id].HomeScore, sessions[otherGame.Id].VisitorScore));
+        Assert.Equal(
+            (GameScoringStatus.InProgress, TeamGameSide.Away, 3, 5),
+            (
+                sessions[context.Game.Id].Status,
+                sessions[context.Game.Id].TeamSide,
+                sessions[context.Game.Id].HomeScore,
+                sessions[context.Game.Id].VisitorScore
+            )
+        );
+        Assert.Equal(
+            (GameScoringStatus.Completed, TeamGameSide.Home, 8, 6),
+            (
+                sessions[otherGame.Id].Status,
+                sessions[otherGame.Id].TeamSide,
+                sessions[otherGame.Id].HomeScore,
+                sessions[otherGame.Id].VisitorScore
+            )
+        );
     }
 
     [Fact]
@@ -66,7 +87,10 @@ public sealed partial class GameScoringSessionRepositoryTests
         var context = await CreateReadyGameAsync(db, DateTime.Today, null, null, 3);
         var repository = db.CreateGameScoringSessionRepository();
         var initialized = await repository.InitializeAsync(
-            context.Team.Id, context.Game.Id, TeamGameSide.Home);
+            context.Team.Id,
+            context.Game.Id,
+            TeamGameSide.Home
+        );
         await db.UpdateScoringStateAsync(initialized.Session!.Id, 4, 6, 1);
         var frozenBefore = (await db.GetGameLineupPlayersAsync()).ToArray();
         var sequenceBefore = (await db.GetGameScoringLineupPlayersAsync()).ToArray();
@@ -79,20 +103,37 @@ public sealed partial class GameScoringSessionRepositoryTests
         Assert.True(first.IsSuccess);
         Assert.True(second.IsSuccess);
         Assert.True(third.IsSuccess);
-        Assert.Equal([2, 3, 1],
-            new[] { first.CurrentBatterPosition, second.CurrentBatterPosition, third.CurrentBatterPosition });
         Assert.Equal(
-            sequenceBefore.Select((item, index) =>
-                (Number: index + 1, item.PlayerId, item.BattingPosition)),
+            [2, 3, 1],
+            new[]
+            {
+                first.CurrentBatterPosition,
+                second.CurrentBatterPosition,
+                third.CurrentBatterPosition,
+            }
+        );
+        Assert.Equal(
+            sequenceBefore.Select(
+                (item, index) => (Number: index + 1, item.PlayerId, item.BattingPosition)
+            ),
             state!.PlateAppearances.Select(item =>
-                (item.PlateAppearanceNumber, item.PlayerId, item.BattingPosition)));
-        Assert.All(state.PlateAppearances,
-            item => Assert.Equal(state.Session.Id, item.GameScoringSessionId));
+                (item.PlateAppearanceNumber, item.PlayerId, item.BattingPosition)
+            )
+        );
+        Assert.All(
+            state.PlateAppearances,
+            item => Assert.Equal(state.Session.Id, item.GameScoringSessionId)
+        );
         Assert.Equal(1, state.Session.CurrentBatterPosition);
         Assert.Equal((4, 6), (state.Session.HomeScore, state.Session.VisitorScore));
-        Assert.Equal(LineupValues(frozenBefore), LineupValues(await db.GetGameLineupPlayersAsync()));
-        Assert.Equal(SequenceValues(sequenceBefore),
-            SequenceValues(await db.GetGameScoringLineupPlayersAsync()));
+        Assert.Equal(
+            LineupValues(frozenBefore),
+            LineupValues(await db.GetGameLineupPlayersAsync())
+        );
+        Assert.Equal(
+            SequenceValues(sequenceBefore),
+            SequenceValues(await db.GetGameScoringLineupPlayersAsync())
+        );
     }
 
     [Fact]
@@ -112,8 +153,10 @@ public sealed partial class GameScoringSessionRepositoryTests
         Assert.NotEqual(first.PlateAppearance!.Id, second.PlateAppearance!.Id);
         Assert.Equal([1, 2], loaded!.PlateAppearances.Select(item => item.PlateAppearanceNumber));
         Assert.Single(loaded.BattingSequence);
-        Assert.All(loaded.PlateAppearances,
-            item => Assert.Equal(loaded.BattingSequence[0].PlayerId, item.PlayerId));
+        Assert.All(
+            loaded.PlateAppearances,
+            item => Assert.Equal(loaded.BattingSequence[0].PlayerId, item.PlayerId)
+        );
         Assert.Equal(1, loaded.Session.CurrentBatterPosition);
     }
 
@@ -132,8 +175,10 @@ public sealed partial class GameScoringSessionRepositoryTests
         var first = await CompleteHitAsync(repository, context.Game.Id);
         var second = await CompleteHitAsync(repository, context.Game.Id);
 
-        Assert.Equal(frozen.Select(item => item.PlayerId),
-            new[] { first.PlateAppearance!.PlayerId, second.PlateAppearance!.PlayerId });
+        Assert.Equal(
+            frozen.Select(item => item.PlayerId),
+            new[] { first.PlateAppearance!.PlayerId, second.PlateAppearance!.PlayerId }
+        );
     }
 
     [Fact]
@@ -150,12 +195,14 @@ public sealed partial class GameScoringSessionRepositoryTests
         };
         await db.SeedGameAsync(secondGame);
         var secondPlayer = await CreateEligiblePlayerAsync(db, first.Team.Id, "OtherGame");
-        await db.SeedGameLineupPlayerAsync(new()
+        await db.SeedGameLineupPlayerAsync(
+            new()
         {
             GameId = secondGame.Id,
             PlayerId = secondPlayer.Id,
             BattingOrder = 1,
-        });
+            }
+        );
         var repository = db.CreateGameScoringSessionRepository();
         await repository.InitializeAsync(first.Team.Id, first.Game.Id, TeamGameSide.Home);
         await repository.InitializeAsync(first.Team.Id, secondGame.Id, TeamGameSide.Away);
@@ -175,7 +222,9 @@ public sealed partial class GameScoringSessionRepositoryTests
     [InlineData("missing-sequence")]
     [InlineData("invalid-current-position")]
     [InlineData("completed-session")]
-    public async Task Complete_plate_appearance_rejects_invalid_state_without_changes(string scenario)
+    public async Task Complete_plate_appearance_rejects_invalid_state_without_changes(
+        string scenario
+    )
     {
         await using var db = await TemporaryTestDatabase.CreateAsync();
         var context = await CreateReadyGameAsync(db, DateTime.Today, null, null, 2);
@@ -183,17 +232,26 @@ public sealed partial class GameScoringSessionRepositoryTests
         GameScoringSession? session = null;
         if (scenario != "missing-session")
         {
-            session = (await repository.InitializeAsync(
-                context.Team.Id, context.Game.Id, TeamGameSide.Home)).Session!;
+            session = (
+                await repository.InitializeAsync(
+                    context.Team.Id,
+                    context.Game.Id,
+                    TeamGameSide.Home
+                )
+            ).Session!;
             if (scenario == "missing-sequence")
                 await db.ExecuteAsync(
-                    "DELETE FROM GameScoringLineupPlayer WHERE GameScoringSessionId = ?", session.Id);
+                    "DELETE FROM GameScoringLineupPlayer WHERE GameScoringSessionId = ?",
+                    session.Id
+                );
             else if (scenario == "invalid-current-position")
                 await db.UpdateScoringStateAsync(session.Id, 3, 2, 99);
             else if (scenario == "completed-session")
                 await db.ExecuteAsync(
                     "UPDATE GameScoringSession SET Status = ? WHERE Id = ?",
-                    GameScoringStatus.Completed, session.Id);
+                    GameScoringStatus.Completed,
+                    session.Id
+                );
         }
         var frozenBefore = (await db.GetGameLineupPlayersAsync()).ToArray();
         var sequenceBefore = (await db.GetGameScoringLineupPlayersAsync()).ToArray();
@@ -202,17 +260,28 @@ public sealed partial class GameScoringSessionRepositoryTests
 
         Assert.False(result.IsSuccess);
         Assert.Empty(await db.GetGamePlateAppearancesAsync());
-        Assert.Equal(LineupValues(frozenBefore), LineupValues(await db.GetGameLineupPlayersAsync()));
-        Assert.Equal(SequenceValues(sequenceBefore),
-            SequenceValues(await db.GetGameScoringLineupPlayersAsync()));
+        Assert.Equal(
+            LineupValues(frozenBefore),
+            LineupValues(await db.GetGameLineupPlayersAsync())
+        );
+        Assert.Equal(
+            SequenceValues(sequenceBefore),
+            SequenceValues(await db.GetGameScoringLineupPlayersAsync())
+        );
         if (session is not null)
         {
             var persisted = Assert.Single(await db.GetGameScoringSessionsAsync());
-            Assert.Equal(scenario == "invalid-current-position" ? 99 : 1,
-                persisted.CurrentBatterPosition);
-            Assert.Equal((scenario == "invalid-current-position" ? 3 : 0,
-                scenario == "invalid-current-position" ? 2 : 0),
-                (persisted.HomeScore, persisted.VisitorScore));
+            Assert.Equal(
+                scenario == "invalid-current-position" ? 99 : 1,
+                persisted.CurrentBatterPosition
+            );
+            Assert.Equal(
+                (
+                    scenario == "invalid-current-position" ? 3 : 0,
+                    scenario == "invalid-current-position" ? 2 : 0
+                ),
+                (persisted.HomeScore, persisted.VisitorScore)
+            );
         }
     }
 
@@ -225,7 +294,8 @@ public sealed partial class GameScoringSessionRepositoryTests
         await repository.InitializeAsync(context.Team.Id, context.Game.Id, TeamGameSide.Home);
         await repository.SelectBatterResultAsync(context.Game.Id, BatterResult.Single);
         await db.ExecuteAsync(
-            "CREATE TRIGGER FailBatterAdvance BEFORE UPDATE OF CurrentBatterPosition ON GameScoringSession BEGIN SELECT RAISE(ABORT, 'test failure'); END");
+            "CREATE TRIGGER FailBatterAdvance BEFORE UPDATE OF CurrentBatterPosition ON GameScoringSession BEGIN SELECT RAISE(ABORT, 'test failure'); END"
+        );
 
         var result = await repository.CompletePlateAppearanceAsync(context.Game.Id);
         var session = Assert.Single(await db.GetGameScoringSessionsAsync());
@@ -239,7 +309,8 @@ public sealed partial class GameScoringSessionRepositoryTests
     [InlineData(1)]
     [InlineData(4)]
     public async Task Initialize_creates_zeroed_session_and_ordered_live_sequence_without_changing_frozen_lineup(
-        int playerCount)
+        int playerCount
+    )
     {
         await using var db = await TemporaryTestDatabase.CreateAsync();
         var context = await CreateReadyGameAsync(db, DateTime.Today, null, null, playerCount);
@@ -247,7 +318,8 @@ public sealed partial class GameScoringSessionRepositoryTests
 
         var result = await db.CreateGameScoringSessionRepository()
             .InitializeAsync(context.Team.Id, context.Game.Id, TeamGameSide.Home);
-        var state = await db.CreateGameScoringSessionRepository().GetStateForGameAsync(context.Game.Id);
+        var state = await db.CreateGameScoringSessionRepository()
+            .GetStateForGameAsync(context.Game.Id);
 
         Assert.True(result.IsSuccess);
         Assert.True(result.WasCreated);
@@ -257,9 +329,17 @@ public sealed partial class GameScoringSessionRepositoryTests
         Assert.Equal(
             frozenBefore.Select(item => (state.Session.Id, item.PlayerId, item.BattingOrder)),
             state.BattingSequence.Select(item =>
-                (item.GameScoringSessionId, item.PlayerId, item.BattingPosition)));
-        Assert.Equal(LineupValues(frozenBefore), LineupValues(await db.GetGameLineupPlayersAsync()));
-        Assert.Equal(frozenBefore.Select(item => item.PlayerId).Order(), state.PlayersById.Keys.Order());
+                (item.GameScoringSessionId, item.PlayerId, item.BattingPosition)
+            )
+        );
+        Assert.Equal(
+            LineupValues(frozenBefore),
+            LineupValues(await db.GetGameLineupPlayersAsync())
+        );
+        Assert.Equal(
+            frozenBefore.Select(item => item.PlayerId).Order(),
+            state.PlayersById.Keys.Order()
+        );
     }
 
     [Fact]
@@ -274,11 +354,14 @@ public sealed partial class GameScoringSessionRepositoryTests
 
         var result = await db.CreateGameScoringSessionRepository()
             .InitializeAsync(context.Team.Id, context.Game.Id, TeamGameSide.Away);
-        var state = await db.CreateGameScoringSessionRepository().GetStateForGameAsync(context.Game.Id);
+        var state = await db.CreateGameScoringSessionRepository()
+            .GetStateForGameAsync(context.Game.Id);
 
         Assert.True(result.IsSuccess);
-        Assert.Equal(frozen.Select(item => item.PlayerId),
-            state!.BattingSequence.Select(item => item.PlayerId));
+        Assert.Equal(
+            frozen.Select(item => item.PlayerId),
+            state!.BattingSequence.Select(item => item.PlayerId)
+        );
         Assert.Equal(frozen.Select(item => item.PlayerId).Order(), state.PlayersById.Keys.Order());
     }
 
@@ -289,12 +372,18 @@ public sealed partial class GameScoringSessionRepositoryTests
         var context = await CreateReadyGameAsync(db, DateTime.Today, null, null, 3);
         var repository = db.CreateGameScoringSessionRepository();
         var created = await repository.InitializeAsync(
-            context.Team.Id, context.Game.Id, TeamGameSide.Away);
+            context.Team.Id,
+            context.Game.Id,
+            TeamGameSide.Away
+        );
         var originalSequence = await db.GetGameScoringLineupPlayersAsync();
         await db.UpdateScoringStateAsync(created.Session!.Id, 7, 5, 3);
 
         var repeated = await repository.InitializeAsync(
-            context.Team.Id, context.Game.Id, TeamGameSide.Home);
+            context.Team.Id,
+            context.Game.Id,
+            TeamGameSide.Home
+        );
         var loaded = await repository.GetStateForGameAsync(context.Game.Id);
 
         Assert.True(repeated.IsSuccess);
@@ -305,8 +394,10 @@ public sealed partial class GameScoringSessionRepositoryTests
         Assert.Equal(5, loaded.Session.VisitorScore);
         Assert.Equal(3, loaded.Session.CurrentBatterPosition);
         Assert.Equal(SequenceValues(originalSequence), SequenceValues(loaded.BattingSequence));
-        Assert.Equal(SequenceValues(originalSequence),
-            SequenceValues(await db.GetGameScoringLineupPlayersAsync()));
+        Assert.Equal(
+            SequenceValues(originalSequence),
+            SequenceValues(await db.GetGameScoringLineupPlayersAsync())
+        );
     }
 
     [Fact]
@@ -315,7 +406,8 @@ public sealed partial class GameScoringSessionRepositoryTests
         await using var db = await TemporaryTestDatabase.CreateAsync();
         var context = await CreateReadyGameAsync(db, DateTime.Today, null, null, 2);
         await db.ExecuteAsync(
-            "CREATE TRIGGER FailLiveSequence BEFORE INSERT ON GameScoringLineupPlayer BEGIN SELECT RAISE(ABORT, 'test failure'); END");
+            "CREATE TRIGGER FailLiveSequence BEFORE INSERT ON GameScoringLineupPlayer BEGIN SELECT RAISE(ABORT, 'test failure'); END"
+        );
 
         var result = await db.CreateGameScoringSessionRepository()
             .InitializeAsync(context.Team.Id, context.Game.Id, TeamGameSide.Home);
@@ -341,13 +433,19 @@ public sealed partial class GameScoringSessionRepositoryTests
         Assert.Equal(legacy.GameId, session.GameId);
         Assert.Equal(TeamGameSide.Away, session.TeamSide);
         Assert.Equal(GameScoringStatus.InProgress, session.Status);
-        Assert.Equal((0, 0, 1),
-            (session.HomeScore, session.VisitorScore, session.CurrentBatterPosition));
+        Assert.Equal(
+            (0, 0, 1),
+            (session.HomeScore, session.VisitorScore, session.CurrentBatterPosition)
+        );
         Assert.Equal(legacy.LineupValues, LineupValues(lineup));
         Assert.Equal(
-            legacy.LineupValues.Select(item => (legacy.SessionId, item.PlayerId, item.BattingOrder)),
+            legacy.LineupValues.Select(item =>
+                (legacy.SessionId, item.PlayerId, item.BattingOrder)
+            ),
             sequence.Select(item =>
-                (item.GameScoringSessionId, item.PlayerId, item.BattingPosition)));
+                (item.GameScoringSessionId, item.PlayerId, item.BattingPosition)
+            )
+        );
     }
 
     [Fact]
@@ -386,7 +484,13 @@ public sealed partial class GameScoringSessionRepositoryTests
     public async Task Initialize_accepts_past_today_and_future_games(int dayOffset)
     {
         await using var db = await TemporaryTestDatabase.CreateAsync();
-        var context = await CreateReadyGameAsync(db, DateTime.Today.AddDays(dayOffset), "Opponent", "Field", 1);
+        var context = await CreateReadyGameAsync(
+            db,
+            DateTime.Today.AddDays(dayOffset),
+            "Opponent",
+            "Field",
+            1
+        );
 
         var result = await db.CreateGameScoringSessionRepository()
             .InitializeAsync(context.Team.Id, context.Game.Id, TeamGameSide.Away);
@@ -433,12 +537,22 @@ public sealed partial class GameScoringSessionRepositoryTests
         await db.CreateTeamRepository().CreateAsync(otherTeam);
         var repository = db.CreateGameScoringSessionRepository();
 
-        Assert.Equal(InitializeScoringSessionFailure.InvalidRequest,
-            (await repository.InitializeAsync(0, context.Game.Id, TeamGameSide.Home)).FailureReason);
-        Assert.Equal(InitializeScoringSessionFailure.InvalidTeamOrGame,
-            (await repository.InitializeAsync(otherTeam.Id, context.Game.Id, TeamGameSide.Home)).FailureReason);
-        Assert.Equal(InitializeScoringSessionFailure.InvalidTeamOrGame,
-            (await repository.InitializeAsync(context.Team.Id, 999999, TeamGameSide.Home)).FailureReason);
+        Assert.Equal(
+            InitializeScoringSessionFailure.InvalidRequest,
+            (await repository.InitializeAsync(0, context.Game.Id, TeamGameSide.Home)).FailureReason
+        );
+        Assert.Equal(
+            InitializeScoringSessionFailure.InvalidTeamOrGame,
+            (
+                await repository.InitializeAsync(otherTeam.Id, context.Game.Id, TeamGameSide.Home)
+            ).FailureReason
+        );
+        Assert.Equal(
+            InitializeScoringSessionFailure.InvalidTeamOrGame,
+            (
+                await repository.InitializeAsync(context.Team.Id, 999999, TeamGameSide.Home)
+            ).FailureReason
+        );
         Assert.Empty(await db.GetGameScoringSessionsAsync());
     }
 
@@ -466,8 +580,13 @@ public sealed partial class GameScoringSessionRepositoryTests
         var context = await CreateReadyGameAsync(db, DateTime.Today, null, null, 1);
         var repository = db.CreateGameScoringSessionRepository();
 
-        var results = await Task.WhenAll(Enumerable.Range(0, 8).Select(_ =>
-            repository.InitializeAsync(context.Team.Id, context.Game.Id, TeamGameSide.Away)));
+        var results = await Task.WhenAll(
+            Enumerable
+                .Range(0, 8)
+                .Select(_ =>
+                    repository.InitializeAsync(context.Team.Id, context.Game.Id, TeamGameSide.Away)
+                )
+        );
         var sessions = await db.GetGameScoringSessionsAsync();
 
         Assert.All(results, result => Assert.True(result.IsSuccess));
@@ -485,19 +604,38 @@ public sealed partial class GameScoringSessionRepositoryTests
     {
         await using var db = await TemporaryTestDatabase.CreateAsync();
         var first = await CreateReadyGameAsync(db, DateTime.Today, null, null, 2);
-        var secondGame = new Game { TeamId = first.Team.Id, SeasonId = first.Game.SeasonId, ScheduledDate = DateTime.Today.AddDays(1), ScheduledTime = TimeSpan.FromHours(18) };
+        var secondGame = new Game
+        {
+            TeamId = first.Team.Id,
+            SeasonId = first.Game.SeasonId,
+            ScheduledDate = DateTime.Today.AddDays(1),
+            ScheduledTime = TimeSpan.FromHours(18),
+        };
         await db.SeedGameAsync(secondGame);
-        var secondPlayer = new Player { FirstName = "Second", LastName = "Game", IsActive = true };
+        var secondPlayer = new Player
+        {
+            FirstName = "Second",
+            LastName = "Game",
+            IsActive = true,
+        };
         await db.CreatePlayerRepository().CreateAsync(secondPlayer);
-        await db.SeedGameLineupPlayerAsync(new() { GameId = secondGame.Id, PlayerId = secondPlayer.Id, BattingOrder = 1 });
+        await db.SeedGameLineupPlayerAsync(
+            new()
+            {
+                GameId = secondGame.Id,
+                PlayerId = secondPlayer.Id,
+                BattingOrder = 1,
+            }
+        );
         var before = await db.GetGameLineupPlayersAsync();
 
-        await db.CreateGameScoringSessionRepository().InitializeAsync(first.Team.Id, first.Game.Id, TeamGameSide.Home);
+        await db.CreateGameScoringSessionRepository()
+            .InitializeAsync(first.Team.Id, first.Game.Id, TeamGameSide.Home);
 
         Assert.Equal(LineupValues(before), LineupValues(await db.GetGameLineupPlayersAsync()));
         Assert.Null(await db.CreateGameScoringSessionRepository().GetForGameAsync(secondGame.Id));
-        await db.CreateGameScoringSessionRepository().InitializeAsync(
-            first.Team.Id, secondGame.Id, TeamGameSide.Away);
+        await db.CreateGameScoringSessionRepository()
+            .InitializeAsync(first.Team.Id, secondGame.Id, TeamGameSide.Away);
         var states = new[]
         {
             await db.CreateGameScoringSessionRepository().GetStateForGameAsync(first.Game.Id),
@@ -506,34 +644,55 @@ public sealed partial class GameScoringSessionRepositoryTests
         Assert.NotEqual(states[0]!.Session.Id, states[1]!.Session.Id);
         Assert.Equal(2, states[0]!.BattingSequence.Count);
         Assert.Single(states[1]!.BattingSequence);
-        Assert.NotEqual(states[0]!.BattingSequence[0].PlayerId,
-            states[1]!.BattingSequence[0].PlayerId);
+        Assert.NotEqual(
+            states[0]!.BattingSequence[0].PlayerId,
+            states[1]!.BattingSequence[0].PlayerId
+        );
     }
 
     [Fact]
-    public async Task Session_blocks_every_pre_game_lineup_mutation()
+    public async Task Session_blocks_frozen_lineup_mutation_but_allows_normal_roster_creation()
     {
         await using var db = await TemporaryTestDatabase.CreateAsync();
         var context = await CreateReadyGameAsync(db, DateTime.Today, null, null, 2);
         var lineupRepository = db.CreateGameLineupRepository();
-        await db.CreateGameScoringSessionRepository().InitializeAsync(context.Team.Id, context.Game.Id, TeamGameSide.Away);
+        await db.CreateGameScoringSessionRepository()
+            .InitializeAsync(context.Team.Id, context.Game.Id, TeamGameSide.Away);
         var before = await db.GetGameLineupPlayersAsync();
         var extra = await CreateEligiblePlayerAsync(db, context.Team.Id, "Extra");
 
-        var append = await lineupRepository.AppendAsync(context.Team.Id, context.Game.Id, [extra.Id]);
-        var remove = await lineupRepository.RemovePlayersAsync(context.Game.Id, [before[0].PlayerId]);
-        var reorder = await lineupRepository.ReorderAsync(context.Game.Id, before.Select(row => row.PlayerId).Reverse().ToArray());
+        var append = await lineupRepository.AppendAsync(
+            context.Team.Id,
+            context.Game.Id,
+            [extra.Id]
+        );
+        var remove = await lineupRepository.RemovePlayersAsync(
+            context.Game.Id,
+            [before[0].PlayerId]
+        );
+        var reorder = await lineupRepository.ReorderAsync(
+            context.Game.Id,
+            before.Select(row => row.PlayerId).Reverse().ToArray()
+        );
         var previous = await lineupRepository.UsePreviousAsync(context.Team.Id, context.Game.Id);
         var created = new Player { FirstName = "New", LastName = "Player" };
-        var create = await db.CreatePlayerRepository().CreateForGameLineupAsync(created, context.Team.Id, context.Game.Id);
+        var create = await db.CreatePlayerRepository()
+            .CreateForGameLineupAsync(created, context.Team.Id, context.Game.Id);
 
         Assert.Equal(SaveGameLineupFailure.ScoringStarted, append.FailureReason);
         Assert.Empty(remove.RemovedPlayerIds);
         Assert.Equal(ReorderGameLineupFailure.ScoringStarted, reorder.FailureReason);
         Assert.Equal(UsePreviousLineupFailure.ScoringStarted, previous.FailureReason);
-        Assert.Equal(CreatePlayerFailure.ScoringStarted, create.Failure);
+        Assert.Equal(CreatePlayerFailure.None, create.Failure);
         Assert.Equal(LineupValues(before), LineupValues(await db.GetGameLineupPlayersAsync()));
-        Assert.DoesNotContain(await db.GetPlayersAsync(), player => player.FirstName == "New");
+        Assert.Contains(await db.GetPlayersAsync(), player => player.FirstName == "New");
+        Assert.Contains(
+            await db.GetTeamPlayersAsync(),
+            membership =>
+                membership.TeamId == context.Team.Id
+                && membership.PlayerId == created.Id
+                && membership.IsActive
+        );
     }
 
     [Fact]
@@ -541,10 +700,12 @@ public sealed partial class GameScoringSessionRepositoryTests
     {
         await using var db = await TemporaryTestDatabase.CreateAsync();
         var context = await CreateReadyGameAsync(db, DateTime.Today, null, null, 1);
-        await db.CreateGameScoringSessionRepository().InitializeAsync(context.Team.Id, context.Game.Id, TeamGameSide.Home);
+        await db.CreateGameScoringSessionRepository()
+            .InitializeAsync(context.Team.Id, context.Game.Id, TeamGameSide.Home);
         await db.DeleteGameLineupAsync(context.Game.Id);
 
-        var result = await db.CreateGameRepository().RemoveGamesAsync(context.Team.Id, [context.Game.Id]);
+        var result = await db.CreateGameRepository()
+            .RemoveGamesAsync(context.Team.Id, [context.Game.Id]);
 
         Assert.Contains(context.Game.Id, result.BlockedGameIds);
         Assert.Contains(await db.GetGamesAsync(), game => game.Id == context.Game.Id);
@@ -555,9 +716,21 @@ public sealed partial class GameScoringSessionRepositoryTests
     {
         await using var db = await TemporaryTestDatabase.CreateAsync();
         var context = await CreateGameAsync(db, DateTime.Today, null, null);
-        var player = new Player { FirstName = "Invalid", LastName = "Order", IsActive = true };
+        var player = new Player
+        {
+            FirstName = "Invalid",
+            LastName = "Order",
+            IsActive = true,
+        };
         await db.CreatePlayerRepository().CreateAsync(player);
-        await db.SeedGameLineupPlayerAsync(new() { GameId = context.Game.Id, PlayerId = player.Id, BattingOrder = 2 });
+        await db.SeedGameLineupPlayerAsync(
+            new()
+            {
+                GameId = context.Game.Id,
+                PlayerId = player.Id,
+                BattingOrder = 2,
+            }
+        );
 
         var result = await db.CreateGameScoringSessionRepository()
             .InitializeAsync(context.Team.Id, context.Game.Id, TeamGameSide.Home);
@@ -567,20 +740,34 @@ public sealed partial class GameScoringSessionRepositoryTests
     }
 
     private static async Task<(Team Team, Game Game)> CreateReadyGameAsync(
-        TemporaryTestDatabase db, DateTime date, string? opponent, string? field, int playerCount)
+        TemporaryTestDatabase db,
+        DateTime date,
+        string? opponent,
+        string? field,
+        int playerCount
+    )
     {
         var context = await CreateGameAsync(db, date, opponent, field);
         for (var index = 0; index < playerCount; index++)
         {
             var player = await CreateEligiblePlayerAsync(db, context.Team.Id, $"Player{index}");
-            await db.SeedGameLineupPlayerAsync(new() { GameId = context.Game.Id, PlayerId = player.Id, BattingOrder = index + 1 });
+            await db.SeedGameLineupPlayerAsync(
+                new()
+                {
+                    GameId = context.Game.Id,
+                    PlayerId = player.Id,
+                    BattingOrder = index + 1,
+                }
+            );
         }
         return context;
     }
 
     private static async Task<CompletePlateAppearanceResult> CompleteHitAsync(
-        GameScoringSessionRepository repository, int gameId,
-        BatterResult result = BatterResult.Single)
+        GameScoringSessionRepository repository,
+        int gameId,
+        BatterResult result = BatterResult.Single
+    )
     {
         var selected = await repository.SelectBatterResultAsync(gameId, result);
         Assert.True(selected.IsSuccess);
@@ -588,37 +775,70 @@ public sealed partial class GameScoringSessionRepositoryTests
     }
 
     private static async Task<(Team Team, Game Game)> CreateGameAsync(
-        TemporaryTestDatabase db, DateTime date, string? opponent, string? field)
+        TemporaryTestDatabase db,
+        DateTime date,
+        string? opponent,
+        string? field
+    )
     {
         var team = new Team { Name = $"Team-{Guid.NewGuid():N}", IsActive = true };
         await db.CreateTeamRepository().CreateAsync(team);
-        var season = new Season { TeamId = team.Id, Name = "Season", Year = 2026 };
+        var season = new Season
+        {
+            TeamId = team.Id,
+            Name = "Season",
+            Year = 2026,
+        };
         await db.SeedSeasonAsync(season);
-        var game = new Game { TeamId = team.Id, SeasonId = season.Id, ScheduledDate = date.Date, ScheduledTime = TimeSpan.FromHours(18), Opponent = opponent, Field = field };
+        var game = new Game
+        {
+            TeamId = team.Id,
+            SeasonId = season.Id,
+            ScheduledDate = date.Date,
+            ScheduledTime = TimeSpan.FromHours(18),
+            Opponent = opponent,
+            Field = field,
+        };
         await db.SeedGameAsync(game);
         return (team, game);
     }
 
-    private static async Task<Player> CreateEligiblePlayerAsync(TemporaryTestDatabase db, int teamId, string firstName)
+    private static async Task<Player> CreateEligiblePlayerAsync(
+        TemporaryTestDatabase db,
+        int teamId,
+        string firstName
+    )
     {
-        var player = new Player { FirstName = firstName, LastName = "Player", IsActive = true };
+        var player = new Player
+    {
+            FirstName = firstName,
+            LastName = "Player",
+            IsActive = true,
+        };
         await db.CreatePlayerRepository().CreateAsync(player);
-        await db.SeedTeamPlayerAsync(new() { TeamId = teamId, PlayerId = player.Id, IsActive = true });
+        await db.SeedTeamPlayerAsync(
+            new()
+            {
+                TeamId = teamId,
+                PlayerId = player.Id,
+                IsActive = true,
+            }
+        );
         return player;
     }
 
     private static IEnumerable<(int Id, int GameId, int PlayerId, int BattingOrder)> LineupValues(
-        IEnumerable<GameLineupPlayer> rows) =>
-        rows.Select(row => (row.Id, row.GameId, row.PlayerId, row.BattingOrder));
+        IEnumerable<GameLineupPlayer> rows
+    ) => rows.Select(row => (row.Id, row.GameId, row.PlayerId, row.BattingOrder));
 
     private static IEnumerable<(int Id, int SessionId, int PlayerId, int Position)> SequenceValues(
-        IEnumerable<GameScoringLineupPlayer> rows) =>
-        rows.Select(row =>
-            (row.Id, row.GameScoringSessionId, row.PlayerId, row.BattingPosition));
+        IEnumerable<GameScoringLineupPlayer> rows
+    ) => rows.Select(row => (row.Id, row.GameScoringSessionId, row.PlayerId, row.BattingPosition));
 
     private static async Task<LegacyContext> SeedLegacyStory60DatabaseAsync(
         TemporaryTestDatabase db,
-        bool validLineup)
+        bool validLineup
+    )
     {
         return await db.UseConnectionAsync<LegacyContext>(async connection =>
         {
@@ -632,7 +852,12 @@ public sealed partial class GameScoringSessionRepositoryTests
 
             var team = new Team { Name = "Legacy Team", IsActive = true };
             await connection.InsertAsync(team);
-            var season = new Season { TeamId = team.Id, Name = "Legacy", Year = 2026 };
+            var season = new Season
+            {
+                TeamId = team.Id,
+                Name = "Legacy",
+                Year = 2026,
+            };
             await connection.InsertAsync(season);
             var game = new Game
             {
@@ -670,17 +895,15 @@ public sealed partial class GameScoringSessionRepositoryTests
                 TeamSide = TeamGameSide.Away,
             };
             await connection.InsertAsync(session);
-            return new LegacyContext(
-                session.Id,
-                game.Id,
-                LineupValues(lineup).ToArray());
+            return new LegacyContext(session.Id, game.Id, LineupValues(lineup).ToArray());
         });
     }
 
     private sealed record LegacyContext(
         int SessionId,
         int GameId,
-        IReadOnlyList<(int Id, int GameId, int PlayerId, int BattingOrder)> LineupValues);
+        IReadOnlyList<(int Id, int GameId, int PlayerId, int BattingOrder)> LineupValues
+    );
 
     [SQLite.Table("GameScoringSession")]
     private sealed class LegacyGameScoringSession

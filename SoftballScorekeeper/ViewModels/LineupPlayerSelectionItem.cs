@@ -12,13 +12,16 @@ public partial class LineupPlayerSelectionItem : ObservableObject
     private bool isDropGapAfter;
     private bool isDropGapBefore;
     private bool isSelected;
-    [ObservableProperty] private bool isSelectionVisible;
+
+    [ObservableProperty]
+    private bool isSelectionVisible;
 
     public LineupPlayerSelectionItem(
         GameLineupPlayer lineupPlayer,
         Player player,
         Action<LineupPlayerSelectionItem>? selectionChanged = null,
-        decimal? onBasePercentage = null)
+        decimal? onBasePercentage = null
+    )
     {
         LineupPlayer = lineupPlayer;
         Player = player;
@@ -29,23 +32,31 @@ public partial class LineupPlayerSelectionItem : ObservableObject
     public GameLineupPlayer LineupPlayer { get; }
     public Player Player { get; }
     public decimal? OnBasePercentage { get; }
-    public string OnBasePercentageDisplay => OnBasePercentage is decimal value
-        ? BattingRateFormatter.Format(value)
-        : AppResources.UndefinedBattingRate;
+    public string OnBasePercentageDisplay =>
+        OnBasePercentage is decimal value
+            ? string.Format(AppResources.LineupObpDisplayFormat, BattingRateFormatter.Format(value))
+            : string.Format(AppResources.LineupObpDisplayFormat, BattingRateFormatter.Format(0));
     public string OnBasePercentageAutomationId => $"CurrentLineupObp-{Player.Id}";
-    public string DisplayText => string.Format(
+    public string DisplayText =>
+        string.Format(
         System.Globalization.CultureInfo.CurrentCulture,
         AppResources.LineupPlayerFormat,
         LineupPlayer.BattingOrder,
-        string.Join(" ", new[] { Player.FirstName, Player.LastName }
-            .Where(value => !string.IsNullOrWhiteSpace(value))));
+            string.Join(
+                " ",
+                new[] { Player.FirstName, Player.LastName }.Where(value =>
+                    !string.IsNullOrWhiteSpace(value)
+                )
+            )
+        );
 
     public bool IsSelected
     {
         get => isSelected;
         set
         {
-            if (SetProperty(ref isSelected, value)) selectionChanged?.Invoke(this);
+            if (SetProperty(ref isSelected, value))
+                selectionChanged?.Invoke(this);
         }
     }
 

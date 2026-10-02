@@ -143,6 +143,78 @@ public sealed class ScoringUndoRedoWorkflowTests
         );
     }
 
+    [AndroidUiFact]
+    public void Home_opening_opponent_entry_undo_can_redo_reenter_or_change_to_away()
+    {
+        AndroidScoringWorkflow.Run(
+            fixture,
+            nameof(Home_opening_opponent_entry_undo_can_redo_reenter_or_change_to_away),
+            driver =>
+            {
+                AndroidElementWait.UntilAutomationId(driver, "ScoreGameButton").Click();
+                AndroidElementWait.UntilText(driver, "Home").Click();
+                AndroidElementWait.UntilAutomationId(
+                    driver, "ConfirmGameRulesButton").Click();
+                SubmitOpponentEntry(driver, "2", "1");
+                AndroidScoringWorkflow.AssertBatterInningAndOuts(
+                    driver, AndroidAutomationConstants.FirstBatterName,
+                    "Bottom 1", "0 Outs");
+                AndroidElementWait.UntilAutomationIdText(
+                    driver, "VisitorScoreValue", "2");
+
+                SelectHistoryAction(driver, "UndoScoringButton");
+                var startupRedo = AndroidElementWait.UntilAutomationId(
+                    driver, "StartupRedoScoringButton");
+                Assert.True(startupRedo.Enabled);
+                AndroidElementWait.UntilAutomationId(
+                    driver, "EnterOpponentHalfInningButton");
+
+                startupRedo.Click();
+                AndroidScoringWorkflow.AssertBatterInningAndOuts(
+                    driver, AndroidAutomationConstants.FirstBatterName,
+                    "Bottom 1", "0 Outs");
+                AndroidElementWait.UntilAutomationIdText(
+                    driver, "VisitorScoreValue", "2");
+
+                SelectHistoryAction(driver, "UndoScoringButton");
+                AndroidElementWait.UntilAutomationId(
+                    driver, "EnterOpponentHalfInningButton").Click();
+                SubmitOpponentEntry(driver, "3", "0");
+                AndroidElementWait.UntilAutomationIdText(
+                    driver, "VisitorScoreValue", "3");
+                Assert.False(AndroidElementWait.UntilAutomationId(
+                    driver, "RedoScoringButton").Enabled);
+
+                SelectHistoryAction(driver, "UndoScoringButton");
+                AndroidElementWait.UntilAutomationId(
+                    driver, "ScoringMenuButton").Click();
+                AndroidElementWait.UntilText(driver, "Game Rules").Click();
+                AndroidElementWait.UntilAutomationId(
+                    driver, "AwayTeamSideOption").Click();
+                AndroidElementWait.UntilAutomationId(
+                    driver, "ConfirmGameRulesButton").Click();
+                AndroidScoringWorkflow.AssertBatterInningAndOuts(
+                    driver, AndroidAutomationConstants.FirstBatterName,
+                    "Top 1", "0 Outs");
+                AndroidElementWait.UntilAutomationIdText(
+                    driver, "VisitorScoreValue", "0");
+            });
+    }
+
+    private static void SubmitOpponentEntry(
+        OpenQA.Selenium.Appium.Android.AndroidDriver driver,
+        string runs,
+        string homeRuns)
+    {
+        AndroidElementWait.UntilAutomationId(driver, "OpponentHalfInningDialog");
+        var entries = AndroidScoringWorkflow.VisibleEditTexts(driver);
+        Assert.Equal(2, entries.Length);
+        entries[0].SendKeys(runs);
+        entries[1].SendKeys(homeRuns);
+        AndroidElementWait.UntilAutomationId(
+            driver, "OpponentHalfInningSubmitButton").Click();
+    }
+
     private static void SelectHistoryAction(
         OpenQA.Selenium.Appium.Android.AndroidDriver driver,
         string automationId

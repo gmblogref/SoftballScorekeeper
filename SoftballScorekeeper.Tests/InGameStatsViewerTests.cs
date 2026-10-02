@@ -5,24 +5,30 @@ namespace SoftballScorekeeper.Tests;
 public sealed class InGameStatsViewerTests
 {
     [Fact]
-    public void Scoring_menu_places_beer_rules_before_stats_and_exit_game()
+    public void Scoring_menu_places_beer_rules_stats_and_lineup_before_exit_game()
     {
         var page = LoadXaml("Views", "ScoringPage.xaml");
         var ns = page.Root!.Name.Namespace;
         var menu = NamedElements(page)["ScoringMenu"];
         var buttons = menu.Descendants(ns + "Button").ToArray();
 
-        Assert.Equal(new[]
+        Assert.Equal(
+            new[]
         {
             "OnGameRulesClicked",
             "OnBeerRulesClicked",
             "OnStatsClicked",
+                "OnManageLineupClicked",
             "OnExitGameClicked",
             "OnGameOverClicked",
-        }, buttons.Select(button => button.Attribute("Clicked")?.Value));
+            },
+            buttons.Select(button => button.Attribute("Clicked")?.Value)
+        );
         Assert.Equal("InGameStatsButton", buttons[2].Attribute("AutomationId")?.Value);
-        Assert.Equal("{x:Static strings:AppResources.StatsButton}",
-            buttons[2].Attribute("Text")?.Value);
+        Assert.Equal(
+            "{x:Static strings:AppResources.StatsButton}",
+            buttons[2].Attribute("Text")?.Value
+        );
     }
 
     [Fact]
@@ -41,11 +47,14 @@ public sealed class InGameStatsViewerTests
         Assert.Equal("Start", menu.Attribute("VerticalOptions")?.Value);
         Assert.Equal("10", menu.Attribute("ZIndex")?.Value);
         Assert.Equal("40,92,0,0", menu.Attribute("Margin")?.Value);
-        Assert.Contains(page.Descendants(), element =>
+        Assert.Contains(
+            page.Descendants(),
+            element =>
             element.Name.LocalName == "Setter"
                 && element.Attribute("TargetName")?.Value == "ScoringMenu"
                 && element.Attribute("Property")?.Value == "Margin"
-                && element.Attribute("Value")?.Value == "20,64,0,0");
+                && element.Attribute("Value")?.Value == "20,64,0,0"
+        );
     }
 
     [Fact]
@@ -54,11 +63,15 @@ public sealed class InGameStatsViewerTests
         var dialog = LoadXaml("Views", "InGameStatsDialog.xaml");
         var ns = dialog.Root!.Name.Namespace;
 
-        Assert.Single(dialog.Descendants().Where(element =>
-            element.Name.LocalName == "BattingStatisticsGrid"));
-        Assert.Contains(dialog.Descendants(ns + "Button"), button =>
+        Assert.Single(
+            dialog.Descendants().Where(element => element.Name.LocalName == "BattingStatisticsGrid")
+        );
+        Assert.Contains(
+            dialog.Descendants(ns + "Button"),
+            button =>
             button.Attribute("AutomationId")?.Value == "CloseInGameStatsButton"
-                && button.Attribute("Clicked")?.Value == "OnCloseClicked");
+                && button.Attribute("Clicked")?.Value == "OnCloseClicked"
+        );
         Assert.Empty(dialog.Descendants(ns + "Entry"));
         Assert.Empty(dialog.Descendants(ns + "Editor"));
         Assert.Empty(dialog.Descendants(ns + "Picker"));
@@ -71,8 +84,13 @@ public sealed class InGameStatsViewerTests
     {
         var pageCode = ReadText("Views", "ScoringPage.xaml.cs");
         var scoringViewModel = ReadText("ViewModels", "ScoringViewModel.cs");
-        var repository = ReadText("..", "SoftballScorekeeper.Infrastructure", "Data",
-            "Repositories", "GameScoringSessionRepository.cs");
+        var repository = ReadText(
+            "..",
+            "SoftballScorekeeper.Infrastructure",
+            "Data",
+            "Repositories",
+            "GameScoringSessionRepository.cs"
+        );
 
         Assert.Contains("OnStatsClicked", pageCode);
         Assert.Contains("await viewModel.LoadInGameBattingStatisticsAsync()", pageCode);
@@ -92,39 +110,54 @@ public sealed class InGameStatsViewerTests
         var header = named["CompletedStatsHeader"];
         var headings = header.Elements(ns + "Button").ToArray();
 
-        Assert.Equal("Both", named["CompletedStatsTable"].Parent!
-            .Attribute("Orientation")?.Value);
+        Assert.Equal("Both", named["CompletedStatsTable"].Parent!.Attribute("Orientation")?.Value);
         Assert.Equal(14, headings.Length);
-        Assert.Equal("{Binding SacrificeFliesStatSortHeader}",
-            headings[10].Attribute("Text")?.Value);
-        Assert.Equal("{Binding BattingAverageStatSortHeader}",
-            headings[11].Attribute("Text")?.Value);
-        Assert.Equal("{Binding OnBasePercentageStatSortHeader}",
-            headings[12].Attribute("Text")?.Value);
-        Assert.Equal("{Binding SluggingPercentageStatSortHeader}",
-            headings[13].Attribute("Text")?.Value);
-        Assert.All(headings, heading =>
-            Assert.Equal("{Binding SortRowsCommand}", heading.Attribute("Command")?.Value));
-        Assert.Contains(named["CompletedStatsTeamTotal"],
-            named["CompletedStatsPlayerRows"].ElementsAfterSelf());
+        Assert.Equal(
+            "{Binding SacrificeFliesStatSortHeader}",
+            headings[10].Attribute("Text")?.Value
+        );
+        Assert.Equal(
+            "{Binding BattingAverageStatSortHeader}",
+            headings[11].Attribute("Text")?.Value
+        );
+        Assert.Equal(
+            "{Binding OnBasePercentageStatSortHeader}",
+            headings[12].Attribute("Text")?.Value
+        );
+        Assert.Equal(
+            "{Binding SluggingPercentageStatSortHeader}",
+            headings[13].Attribute("Text")?.Value
+        );
+        Assert.All(
+            headings,
+            heading =>
+                Assert.Equal("{Binding SortRowsCommand}", heading.Attribute("Command")?.Value)
+        );
+        Assert.Contains(
+            named["CompletedStatsTeamTotal"],
+            named["CompletedStatsPlayerRows"].ElementsAfterSelf()
+        );
     }
 
     private static XDocument LoadXaml(params string[] path) =>
-        XDocument.Load(Path.Combine(new[] { RepositoryRoot, "SoftballScorekeeper" }
-            .Concat(path).ToArray()));
+        XDocument.Load(
+            Path.Combine(new[] { RepositoryRoot, "SoftballScorekeeper" }.Concat(path).ToArray())
+        );
 
     private static string ReadText(params string[] path) =>
-        File.ReadAllText(Path.Combine(new[] { RepositoryRoot, "SoftballScorekeeper" }
-            .Concat(path).ToArray()));
+        File.ReadAllText(
+            Path.Combine(new[] { RepositoryRoot, "SoftballScorekeeper" }.Concat(path).ToArray())
+        );
 
     private static Dictionary<string, XElement> NamedElements(XDocument document)
     {
         var x = XNamespace.Get("http://schemas.microsoft.com/winfx/2009/xaml");
-        return document.Descendants()
+        return document
+            .Descendants()
             .Where(element => element.Attribute(x + "Name") is not null)
             .ToDictionary(element => element.Attribute(x + "Name")!.Value);
     }
 
-    private static string RepositoryRoot => Path.GetFullPath(
-        Path.Combine(AppContext.BaseDirectory, "..", "..", "..", ".."));
+    private static string RepositoryRoot =>
+        Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", ".."));
 }

@@ -31,6 +31,125 @@ public sealed partial class GameScoringRulesLifecycleRepositoryTests
     }
 
     [Fact]
+    public async Task Home_opening_opponent_entry_undo_and_redo_restore_exact_startup_states()
+    {
+        await using var db = await TemporaryTestDatabase.CreateAsync();
+        var context = await CreateReadyGameAsync(db, 3);
+        var repository = db.CreateGameScoringSessionRepository();
+        await repository.InitializeAsync(context.Team.Id, context.Game.Id,
+            TeamGameSide.Home);
+        var opening = Assert.IsType<GameScoringHalfInning>(
+            await repository.GetPendingHalfInningTransitionAsync(context.Game.Id));
+
+        Assert.True((await repository.CompleteOpponentHalfInningAsync(
+            context.Game.Id, opening.Id, 2, 1)).IsSuccess);
+        var committed = (await repository.GetStateForGameAsync(context.Game.Id))!;
+        Assert.Equal((1, 0, 2), (committed.Session.CurrentInning,
+            committed.Session.HomeScore, committed.Session.VisitorScore));
+
+        Assert.True((await repository.UndoAsync(context.Game.Id)).IsSuccess);
+        var restored = (await repository.GetStateForGameAsync(context.Game.Id))!;
+        var restoredOpening = Assert.Single(restored.HalfInnings);
+        Assert.Equal(0, restoredOpening.Inning);
+        Assert.True(restoredOpening.TeamSummaryAcknowledged);
+        Assert.False(restoredOpening.OpponentEntryCompleted);
+        Assert.Equal((0, 0), (restored.Session.HomeScore, restored.Session.VisitorScore));
+        Assert.Equal(new(false, true),
+            await repository.GetUndoRedoAvailabilityAsync(context.Game.Id));
+        Assert.Equal(restoredOpening.Id,
+            (await repository.GetPendingHalfInningTransitionAsync(context.Game.Id))!.Id);
+
+        Assert.True((await repository.RedoAsync(context.Game.Id)).IsSuccess);
+        var redone = (await repository.GetStateForGameAsync(context.Game.Id))!;
+        var redoneOpening = Assert.Single(redone.HalfInnings);
+        Assert.Equal((committed.Session.HomeScore, committed.Session.VisitorScore,
+                committed.Session.CurrentInning, committed.Session.CurrentOuts),
+            (redone.Session.HomeScore, redone.Session.VisitorScore,
+                redone.Session.CurrentInning, redone.Session.CurrentOuts));
+        Assert.Equal((committed.HalfInnings[0].OpponentRuns,
+                committed.HalfInnings[0].OpponentHomeRuns,
+                committed.HalfInnings[0].OpponentEntryCompleted),
+            (redoneOpening.OpponentRuns, redoneOpening.OpponentHomeRuns,
+                redoneOpening.OpponentEntryCompleted));
+    }
+
+    [Fact]
+    public async Task New_opening_opponent_entry_after_undo_clears_redo()
+    {
+        await using var db = await TemporaryTestDatabase.CreateAsync();
+        var context = await CreateReadyGameAsync(db, 3);
+        var repository = db.CreateGameScoringSessionRepository();
+        await repository.InitializeAsync(context.Team.Id, context.Game.Id,
+            TeamGameSide.Home);
+        var opening = (await repository.GetPendingHalfInningTransitionAsync(
+            context.Game.Id))!;
+        Assert.True((await repository.CompleteOpponentHalfInningAsync(
+            context.Game.Id, opening.Id, 2, 1)).IsSuccess);
+        Assert.True((await repository.UndoAsync(context.Game.Id)).IsSuccess);
+
+        opening = (await repository.GetPendingHalfInningTransitionAsync(
+            context.Game.Id))!;
+        Assert.True((await repository.CompleteOpponentHalfInningAsync(
+            context.Game.Id, opening.Id, 3, 0)).IsSuccess);
+
+        Assert.Equal(new(true, false),
+            await repository.GetUndoRedoAvailabilityAsync(context.Game.Id));
+        Assert.Equal(3, (await repository.GetStateForGameAsync(
+            context.Game.Id))!.Session.VisitorScore);
+    }
+
+    [Fact]
+    public async Task Home_side_can_change_to_away_after_opening_entry_is_undone()
+    {
+        await using var db = await TemporaryTestDatabase.CreateAsync();
+        var context = await CreateReadyGameAsync(db, 3);
+        var repository = db.CreateGameScoringSessionRepository();
+        await repository.InitializeAsync(context.Team.Id, context.Game.Id,
+            TeamGameSide.Home);
+        var opening = (await repository.GetPendingHalfInningTransitionAsync(
+            context.Game.Id))!;
+        Assert.True((await repository.CompleteOpponentHalfInningAsync(
+            context.Game.Id, opening.Id, 1, 0)).IsSuccess);
+        Assert.True((await repository.UndoAsync(context.Game.Id)).IsSuccess);
+
+        var changed = await repository.UpdateGameRulesAsync(
+            context.Game.Id, 5, false, TeamGameSide.Away);
+        var away = (await repository.GetStateForGameAsync(context.Game.Id))!;
+
+        Assert.True(changed.IsSuccess);
+        Assert.Equal(TeamGameSide.Away, away.Session.TeamSide);
+        Assert.Equal((1, 0, 0), (away.Session.CurrentInning,
+            away.Session.CurrentOuts, away.Session.VisitorScore));
+        Assert.Empty(away.HalfInnings);
+        Assert.Null(await repository.GetPendingHalfInningTransitionAsync(context.Game.Id));
+        Assert.Equal(new(false, false),
+            await repository.GetUndoRedoAvailabilityAsync(context.Game.Id));
+    }
+
+    [Fact]
+    public async Task Reset_after_opening_undo_allows_a_fresh_valid_home_start()
+    {
+        await using var db = await TemporaryTestDatabase.CreateAsync();
+        var context = await CreateReadyGameAsync(db, 3);
+        var repository = db.CreateGameScoringSessionRepository();
+        await repository.InitializeAsync(context.Team.Id, context.Game.Id,
+            TeamGameSide.Home);
+        var opening = (await repository.GetPendingHalfInningTransitionAsync(
+            context.Game.Id))!;
+        Assert.True((await repository.CompleteOpponentHalfInningAsync(
+            context.Game.Id, opening.Id, 0, 0)).IsSuccess);
+        Assert.True((await repository.UndoAsync(context.Game.Id)).IsSuccess);
+
+        Assert.True((await repository.ResetGameAsync(context.Game.Id)).IsSuccess);
+        Assert.True((await repository.InitializeAsync(context.Team.Id, context.Game.Id,
+            TeamGameSide.Home)).IsSuccess);
+        var freshOpening = Assert.IsType<GameScoringHalfInning>(
+            await repository.GetPendingHalfInningTransitionAsync(context.Game.Id));
+        Assert.Equal(0, freshOpening.Inning);
+        Assert.False(freshOpening.OpponentEntryCompleted);
+    }
+
+    [Fact]
     public async Task Away_start_has_no_opening_opponent_entry()
     {
         await using var db = await TemporaryTestDatabase.CreateAsync();

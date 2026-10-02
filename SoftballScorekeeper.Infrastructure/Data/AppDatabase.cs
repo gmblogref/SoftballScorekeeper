@@ -6,7 +6,7 @@ namespace SoftballScorekeeper.Infrastructure.Data;
 public sealed class AppDatabase
 {
     public const int MinimumSupportedSchemaVersion = 0;
-    public const int CurrentSchemaVersion = 3;
+    public const int CurrentSchemaVersion = 4;
 
     internal static readonly TimeSpan ScoringHistoryRetention = TimeSpan.FromDays(21);
     private SQLiteAsyncConnection connection;
@@ -112,6 +112,7 @@ public sealed class AppDatabase
             var legacyScoringRules = await RequiresScoringRulesCompatibilityAsync();
             await connection.CreateTableAsync<GameScoringSession>();
             await connection.CreateTableAsync<GameScoringLineupPlayer>();
+            await connection.CreateTableAsync<GameScoringLineupChange>();
             await connection.CreateTableAsync<GamePlateAppearance>();
             await connection.CreateTableAsync<GameScoringBaseRunner>();
             await connection.CreateTableAsync<GamePlateAppearanceRunnerMovement>();
@@ -165,6 +166,7 @@ public sealed class AppDatabase
                 UpgradeStory77TeamYearsAndLineage(transaction);
                 UpgradeStory79TeamYearCompletion(transaction);
                 UpgradeStory85SeasonBackupReminders(transaction);
+                UpgradeStory10LiveLineup(transaction);
                 if (legacyScoringRules)
                     transaction.Execute(
                         "UPDATE GameScoringSession SET HomeRunLimit = ?",
@@ -224,8 +226,8 @@ public sealed class AppDatabase
         if (transaction.ExecuteScalar<int>("PRAGMA user_version") >= 3)
             return;
 
-        var completedSchedules = Repositories.SeasonBackupReminderRepository
-            .FindCompletedCandidates(
+        var completedSchedules =
+            Repositories.SeasonBackupReminderRepository.FindCompletedCandidates(
                 transaction,
                 DateTime.MaxValue.Date,
                 requirePriorPlayingDate: false
@@ -236,6 +238,14 @@ public sealed class AppDatabase
             SeasonBackupReminderCheckpointDisposition.HistoricalBaseline
         );
         transaction.Execute("PRAGMA user_version = 3");
+    }
+
+    private static void UpgradeStory10LiveLineup(SQLiteConnection transaction)
+    {
+        if (transaction.ExecuteScalar<int>("PRAGMA user_version") >= 4)
+            return;
+
+        transaction.Execute("PRAGMA user_version = 4");
     }
 
     private static void UpgradeStory77TeamYearsAndLineage(SQLiteConnection transaction)

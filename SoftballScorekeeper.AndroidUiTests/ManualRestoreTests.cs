@@ -151,26 +151,7 @@ public sealed class ManualRestoreTests(AndroidAppiumFixture fixture)
     }
 
     private static void OpenShellFlyout(AndroidDriver driver)
-    {
-        var drawerRequested = false;
-        var wait = CreateWait(driver);
-        wait.Until(currentDriver =>
-        {
-            if (currentDriver.FindElements(By.XPath("//*[@text='Data Management']")).Count > 0)
-                return true;
-            if (drawerRequested)
-                return false;
-
-            var openDrawer = currentDriver
-                .FindElements(MobileBy.AccessibilityId("Open navigation drawer"))
-                .FirstOrDefault();
-            if (openDrawer is null)
-                return false;
-            openDrawer.Click();
-            drawerRequested = true;
-            return false;
-        });
-    }
+        => PhaseAUiWorkflow.OpenShellFlyout(driver);
 
     private static void OpenDownloadsRoot(AndroidDriver driver)
     {

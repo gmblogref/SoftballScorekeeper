@@ -16,22 +16,18 @@ internal static class AndroidAutomationConstants
     public const string TeamRecordTestSeedRequestFileName = "android-ui-test-team-record";
     public const string BeerTotalsTestSeedRequestFileName = "android-ui-test-beer-totals";
     public const string TeamStatsTestSeedRequestFileName = "android-ui-test-team-stats";
-    public const string TeamYearCopyTestSeedRequestFileName =
-        "android-ui-test-team-year-copy";
+    public const string TeamYearCopyTestSeedRequestFileName = "android-ui-test-team-year-copy";
     public const string TeamYearSummaryTestSeedRequestFileName =
         "android-ui-test-team-year-summary";
-    public const string ManualRestoreTestSeedRequestFileName =
-        "android-ui-test-manual-restore";
-    public const string DeviceMigrationTestSeedRequestFileName =
-        "android-ui-test-device-migration";
+    public const string ManualRestoreTestSeedRequestFileName = "android-ui-test-manual-restore";
+    public const string DeviceMigrationTestSeedRequestFileName = "android-ui-test-device-migration";
     public const string ManualFindingsReproductionTestSeedRequestFileName =
         "android-ui-test-manual-findings-reproduction";
-    public const string ScheduleGamesTestSeedRequestFileName =
-        "android-ui-test-schedule-games";
+    public const string ScheduleGamesTestSeedRequestFileName = "android-ui-test-schedule-games";
     public const string SeasonBackupReminderTestSeedRequestFileName =
         "android-ui-test-season-backup-reminder";
-    public const string PhaseALineupTestSeedRequestFileName =
-        "android-ui-test-phase-a-lineup";
+    public const string PhaseALineupTestSeedRequestFileName = "android-ui-test-phase-a-lineup";
+    public const string LiveLineupTestSeedRequestFileName = "android-ui-test-live-lineup";
     public static readonly IReadOnlyList<string> TestSeedRequestFileNames =
     [
         TestSeedRequestFileName,
@@ -48,6 +44,7 @@ internal static class AndroidAutomationConstants
         ScheduleGamesTestSeedRequestFileName,
         SeasonBackupReminderTestSeedRequestFileName,
         PhaseALineupTestSeedRequestFileName,
+        LiveLineupTestSeedRequestFileName,
     ];
     public const string FirstBatterName = "Alex Automation";
     public const string SecondBatterName = "Blake Automation";

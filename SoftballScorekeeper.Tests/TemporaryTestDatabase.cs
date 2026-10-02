@@ -138,6 +138,11 @@ internal sealed class TemporaryTestDatabase : IAsyncDisposable
                 .ToListAsync()
         );
 
+    public Task<List<GameScoringLineupChange>> GetGameScoringLineupChangesAsync() =>
+        UseSeedingConnectionAsync(connection =>
+            connection.Table<GameScoringLineupChange>().OrderBy(item => item.Id).ToListAsync()
+        );
+
     public Task<List<GamePlateAppearance>> GetGamePlateAppearancesAsync() =>
         UseSeedingConnectionAsync(connection =>
             connection

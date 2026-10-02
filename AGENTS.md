@@ -552,6 +552,14 @@ Every newly introduced committed scoring action must participate atomically in p
 
 Pending-play Undo/Redo uses persisted semantic checkpoints. One result selection plus its automatic resolver defaults is one checkpoint; meaningful scorer decisions create checkpoints, backtracking to an earlier semantic state collapses redundant history, and progressive runner decisions remain separately reversible. Committing a play collapses its temporary pending checkpoints into the single committed-action boundary.
 
+The Game lineup frozen when scoring begins is immutable starting-lineup history.
+The scoring session owns a separate persisted live batting sequence that begins
+from that lineup and may change through Add, Remove, and Replace actions. Live
+lineup changes affect only future batting rotation, participate chronologically
+in the same persisted scoring Undo/Redo history as plate appearances, and must
+never rewrite the frozen starting lineup or reassign a committed plate
+appearance to a different Player.
+
 ## Completion Review and Definition of Done
 
 Before reporting a story as complete:

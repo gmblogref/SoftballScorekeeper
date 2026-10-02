@@ -26,6 +26,7 @@
         public const string TeamIdQueryParameter = "teamId";
         public const string PlayerIdQueryParameter = "playerId";
         public const string GameIdQueryParameter = "gameId";
+        public const string LiveLineupPlayerIdQueryParameter = "liveLineupPlayerId";
         public const string TeamsSectionRoute = "//teams/team-manager";
         public const string PlayersSectionRoute = "//players/player-manager";
 
@@ -210,10 +211,7 @@
 
         private void UpdateModeMenuVisibility()
         {
-            Shell.SetFlyoutItemIsVisible(
-                EnterTestModeMenuItem,
-                databaseModeState.IsProductionMode
-            );
+            Shell.SetFlyoutItemIsVisible(EnterTestModeMenuItem, databaseModeState.IsProductionMode);
             Shell.SetFlyoutItemIsVisible(ExitTestModeMenuItem, databaseModeState.IsTestMode);
         }
     }
