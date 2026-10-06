@@ -20,7 +20,7 @@
             <Button.Triggers>
                 <DataTrigger
                     TargetType="Button"
-                    Binding="{Binding CurrentSection, Source={x:Reference NavigationRoot}}"
+                    Binding="{Binding CurrentSection, Source={x:Reference NavigationRoot}, x:DataType=controls:PrimarySectionNavigation}"
                     Value="{x:Static controls:PrimarySection.Teams}">
                     <Setter Property="BackgroundColor" Value="{StaticResource Primary}" />
                     <Setter Property="BorderColor" Value="{StaticResource Primary}" />
@@ -43,7 +43,7 @@
             <Button.Triggers>
                 <DataTrigger
                     TargetType="Button"
-                    Binding="{Binding CurrentSection, Source={x:Reference NavigationRoot}}"
+                    Binding="{Binding CurrentSection, Source={x:Reference NavigationRoot}, x:DataType=controls:PrimarySectionNavigation}"
                     Value="{x:Static controls:PrimarySection.Players}">
                     <Setter Property="BackgroundColor" Value="{StaticResource Primary}" />
                     <Setter Property="BorderColor" Value="{StaticResource Primary}" />

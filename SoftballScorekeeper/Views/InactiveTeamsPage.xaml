@@ -62,7 +62,7 @@
                                 <Button
                                     Grid.Column="1"
                                     Text="{x:Static strings:AppResources.ReactivateTeamButton}"
-                                    Command="{Binding Source={x:Reference PageRoot}, Path=BindingContext.RequestReactivateTeamCommand}"
+                                    Command="{Binding RequestReactivateTeamCommand, Source={RelativeSource AncestorType={x:Type viewModels:InactiveTeamsViewModel}}, x:DataType=viewModels:InactiveTeamsViewModel}"
                                     CommandParameter="{Binding .}"
                                     MinimumHeightRequest="52"
                                     Padding="24,14" />

@@ -68,7 +68,7 @@
                                 SemanticProperties.Description="{Binding DisplayName}">
                                 <Border.GestureRecognizers>
                                     <TapGestureRecognizer
-                                        Command="{Binding Source={x:Reference PageRoot}, Path=BindingContext.OpenPlayerCommand}"
+                                        Command="{Binding OpenPlayerCommand, Source={RelativeSource AncestorType={x:Type viewModels:PlayerListViewModel}}, x:DataType=viewModels:PlayerListViewModel}"
                                         CommandParameter="{Binding Player.Id}"
                                         NumberOfTapsRequired="1" />
                                 </Border.GestureRecognizers>
@@ -90,7 +90,7 @@
                                 VerticalOptions="Center"
                                 IsVisible="False">
                                 <CheckBox.Triggers>
-                                    <DataTrigger TargetType="CheckBox" Binding="{Binding Source={x:Reference PageRoot}, Path=BindingContext.IsSelectingPlayers}" Value="True">
+                                    <DataTrigger TargetType="CheckBox" Binding="{Binding IsSelectingPlayers, Source={RelativeSource AncestorType={x:Type viewModels:PlayerListViewModel}}, x:DataType=viewModels:PlayerListViewModel}" Value="True">
                                         <Setter Property="IsVisible" Value="True" />
                                     </DataTrigger>
                                 </CheckBox.Triggers>
