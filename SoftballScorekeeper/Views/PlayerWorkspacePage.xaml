@@ -9,7 +9,7 @@
              x:DataType="viewModels:PlayerWorkspaceViewModel"
              Title="{x:Static strings:AppResources.PlayerWorkspaceTitle}">
 
-    <Grid Padding="40" RowDefinitions="Auto,Auto,Auto,Auto,*,Auto" RowSpacing="24">
+    <Grid Style="{StaticResource ResponsivePageGrid}" RowDefinitions="Auto,Auto,Auto,Auto,*,Auto">
         <controls:PrimarySectionNavigation Grid.Row="0" CurrentSection="Players" />
         <Grid Grid.Row="1" IsVisible="{Binding IsPlayerLoaded}">
             <Grid ColumnDefinitions="Auto,Auto" ColumnSpacing="6" HorizontalOptions="Center">

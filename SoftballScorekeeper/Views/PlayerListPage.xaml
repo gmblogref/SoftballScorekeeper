@@ -10,15 +10,14 @@
              Title="{x:Static strings:AppResources.PlayersTitle}">
 
     <Grid
-        Padding="40"
-        RowDefinitions="Auto,Auto,Auto,Auto,*,Auto"
-        RowSpacing="20">
+        Style="{StaticResource ResponsivePageGrid}"
+        RowDefinitions="Auto,Auto,Auto,Auto,*,Auto">
         <controls:PrimarySectionNavigation Grid.Row="0" CurrentSection="Players" IsCurrentSectionRoot="True" />
 
         <Label
             Grid.Row="1"
             Text="{x:Static strings:AppResources.PlayersTitle}"
-            Style="{StaticResource Headline}"
+            Style="{StaticResource ResponsiveHeadline}"
             SemanticProperties.HeadingLevel="Level1" />
 
         <Label
@@ -62,13 +61,10 @@
                             ColumnSpacing="20"
                             MinimumHeightRequest="72">
                             <Border
-                                Padding="24,10"
-                                MinimumHeightRequest="52"
-                                HorizontalOptions="Start"
+                                Style="{StaticResource PrimaryListCard}"
                                 VerticalOptions="Center"
                                 BackgroundColor="{AppThemeBinding Light={StaticResource White}, Dark={StaticResource Gray900}}"
                                 Stroke="{AppThemeBinding Light={StaticResource Gray300}, Dark={StaticResource Gray500}}"
-                                StrokeThickness="2"
                                 SemanticProperties.Description="{Binding DisplayName}">
                                 <Border.GestureRecognizers>
                                     <TapGestureRecognizer
@@ -81,7 +77,7 @@
                                 </Border.StrokeShape>
                                 <Label
                                     Text="{Binding DisplayName}"
-                                    FontSize="20"
+                                    Style="{StaticResource PrimaryListItemText}"
                                     LineBreakMode="WordWrap"
                                     VerticalOptions="Center" />
                             </Border>

@@ -9,22 +9,21 @@
              x:DataType="viewModels:LandingPageViewModel">
 
     <Grid
-        Padding="40"
-        RowDefinitions="Auto,Auto,Auto,*,Auto"
-        RowSpacing="24">
+        Style="{StaticResource ResponsivePageGrid}"
+        RowDefinitions="Auto,Auto,Auto,*,Auto">
 
         <controls:PrimarySectionNavigation Grid.Row="0" CurrentSection="Teams" IsCurrentSectionRoot="True" />
 
         <Label
             Grid.Row="1"
             Text="{x:Static strings:AppResources.LandingPageTitle}"
-            Style="{StaticResource Headline}"
+            Style="{StaticResource ResponsiveHeadline}"
             SemanticProperties.HeadingLevel="Level1" />
 
         <Label
             Grid.Row="2"
             Text="{x:Static strings:AppResources.TeamsHeading}"
-            Style="{StaticResource SubHeadline}"
+            Style="{StaticResource ResponsiveSubHeadline}"
             SemanticProperties.HeadingLevel="Level2" />
 
         <Grid Grid.Row="3">
@@ -58,13 +57,10 @@
                                 <BindableLayout.ItemTemplate>
                                     <DataTemplate x:DataType="viewModels:TeamManagerItem">
                                         <Border
+                                            Style="{StaticResource PrimaryListCard}"
                                             Margin="0,0,0,12"
-                                            Padding="28,16"
-                                            MinimumHeightRequest="64"
-                                            HorizontalOptions="Start"
                                             BackgroundColor="{AppThemeBinding Light={StaticResource White}, Dark={StaticResource Gray900}}"
                                             Stroke="{AppThemeBinding Light={StaticResource Gray300}, Dark={StaticResource Gray500}}"
-                                            StrokeThickness="2"
                                             AutomationId="{Binding CardAutomationId}"
                                             SemanticProperties.Description="{Binding Name}">
                                             <Border.GestureRecognizers>

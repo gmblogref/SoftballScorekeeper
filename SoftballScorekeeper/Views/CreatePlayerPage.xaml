@@ -8,13 +8,11 @@
              Title="{x:Static strings:AppResources.CreatePlayerTitle}">
 
     <ScrollView>
-        <VerticalStackLayout
-            Padding="40"
-            Spacing="20">
+        <VerticalStackLayout Style="{StaticResource ResponsivePageStack}">
 
             <Label
                 Text="{x:Static strings:AppResources.CreatePlayerTitle}"
-                Style="{StaticResource Headline}"
+                Style="{StaticResource ResponsiveHeadline}"
                 SemanticProperties.HeadingLevel="Level1" />
 
             <Label

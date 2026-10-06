@@ -7,6 +7,98 @@ namespace SoftballScorekeeper.Tests;
 public sealed partial class GameScoringSessionRepositoryTests
 {
     [Fact]
+    public async Task Existing_global_player_joins_team_once_then_live_lineup_preserves_frozen_and_undo_redo()
+    {
+        await using var db = await TemporaryTestDatabase.CreateAsync();
+        var context = await CreateReadyGameAsync(db, DateTime.Today, null, null, 2);
+        var frozen = (await db.GetGameLineupPlayersAsync()).ToArray();
+        var globalPlayer = new Player
+        {
+            FirstName = "Existing",
+            LastName = "Global",
+            IsActive = true,
+        };
+        Assert.Equal(1, await db.CreatePlayerRepository().CreateAsync(globalPlayer));
+        var teamPlayers = db.CreateTeamPlayerRepository();
+        Assert.DoesNotContain(
+            await teamPlayers.GetActivePlayersForTeamAsync(context.Team.Id),
+            player => player.Id == globalPlayer.Id
+        );
+
+        var membership = await teamPlayers.AddPlayersToTeamAsync(
+            context.Team.Id,
+            [globalPlayer.Id]
+        );
+        Assert.Equal([globalPlayer.Id], membership.InsertedPlayerIds);
+        Assert.Empty(membership.ReactivatedPlayerIds);
+        Assert.Empty(membership.AlreadyActivePlayerIds);
+
+        var scoring = db.CreateGameScoringSessionRepository();
+        await scoring.InitializeAsync(context.Team.Id, context.Game.Id, TeamGameSide.Away);
+        var added = await scoring.AddLiveLineupPlayerAsync(
+            context.Game.Id,
+            globalPlayer.Id,
+            2
+        );
+        Assert.True(added.IsSuccess);
+        Assert.Equal(
+            LiveLineupChangeFailure.PlayerAlreadyActive,
+            (
+                await scoring.AddLiveLineupPlayerAsync(
+                    context.Game.Id,
+                    globalPlayer.Id,
+                    3
+                )
+            ).FailureReason
+        );
+
+        Assert.Equal(
+            frozen.Select(item => (item.PlayerId, item.BattingOrder)),
+            (await db.GetGameLineupPlayersAsync()).Select(item =>
+                (item.PlayerId, item.BattingOrder)
+            )
+        );
+        Assert.Equal(
+            globalPlayer.Id,
+            (await scoring.GetStateForGameAsync(context.Game.Id))!
+                .BattingSequence.Single(item => item.BattingPosition == 2)
+                .PlayerId
+        );
+
+        Assert.True((await scoring.UndoAsync(context.Game.Id)).IsSuccess);
+        Assert.DoesNotContain(
+            (await scoring.GetStateForGameAsync(context.Game.Id))!.BattingSequence,
+            item => item.PlayerId == globalPlayer.Id
+        );
+        Assert.Contains(
+            await teamPlayers.GetActivePlayersForTeamAsync(context.Team.Id),
+            player => player.Id == globalPlayer.Id
+        );
+        Assert.True((await scoring.RedoAsync(context.Game.Id)).IsSuccess);
+        Assert.Contains(
+            (await scoring.GetStateForGameAsync(context.Game.Id))!.BattingSequence,
+            item => item.PlayerId == globalPlayer.Id
+        );
+
+        var repeatMembership = await teamPlayers.AddPlayersToTeamAsync(
+            context.Team.Id,
+            [globalPlayer.Id]
+        );
+        Assert.Empty(repeatMembership.InsertedPlayerIds);
+        Assert.Equal([globalPlayer.Id], repeatMembership.AlreadyActivePlayerIds);
+        Assert.Single(
+            (await db.GetTeamPlayersAsync()).Where(item =>
+                item.TeamId == context.Team.Id && item.PlayerId == globalPlayer.Id
+            )
+        );
+        Assert.Single(
+            (await db.CreatePlayerRepository().GetActiveAsync()).Where(player =>
+                player.Id == globalPlayer.Id
+            )
+        );
+    }
+
+    [Fact]
     public async Task Replace_is_chronological_preserves_frozen_lineup_and_player_statistics()
     {
         await using var db = await TemporaryTestDatabase.CreateAsync();

@@ -4,6 +4,64 @@ namespace SoftballScorekeeper.AndroidUiTests;
 public sealed class LiveLineupManagementTests(AndroidAppiumFixture fixture)
 {
     [AndroidUiFact]
+    public void Existing_global_player_joins_team_through_replace_and_remains_undoable()
+    {
+        Run(
+            nameof(Existing_global_player_joins_team_through_replace_and_remains_undoable),
+            driver =>
+            {
+                OpenScoring(driver);
+                OpenManageLineup(driver);
+                AndroidElementWait.UntilText(driver, "Replace Player").Click();
+                AndroidElementWait.UntilText(driver, "2. Blake Live").Click();
+
+                AssertSelectorWithinViewport(driver);
+                fixture.SetOrientation(OpenQA.Selenium.ScreenOrientation.Portrait);
+                AssertSelectorWithinViewport(driver);
+                fixture.SetOrientation(OpenQA.Selenium.ScreenOrientation.Landscape);
+                AssertSelectorWithinViewport(driver);
+                Assert.DoesNotContain(
+                    driver.FindElements(OpenQA.Selenium.By.XPath("//*[@text='Global Live']")),
+                    element => element.Displayed
+                );
+
+                AndroidElementWait.UntilAutomationId(
+                    driver,
+                    "LiveLineupAllPlayersFilter"
+                ).Click();
+                AndroidElementWait.UntilText(
+                    driver,
+                    "Global Live — Not on Team — will be added"
+                ).Click();
+                AndroidElementWait.UntilAutomationIdText(driver, "OnDeckBatter", "Global Live");
+
+                AndroidElementWait.UntilAutomationId(driver, "UndoScoringButton").Click();
+                AndroidElementWait.UntilAutomationIdText(driver, "OnDeckBatter", "Blake Live");
+                AndroidElementWait.UntilAutomationId(driver, "RedoScoringButton").Click();
+                AndroidElementWait.UntilAutomationIdText(driver, "OnDeckBatter", "Global Live");
+
+                OpenManageLineup(driver);
+                AndroidElementWait.UntilText(driver, "Replace Player").Click();
+                AndroidElementWait.UntilText(driver, "3. Casey Live").Click();
+                AndroidElementWait.UntilAutomationId(
+                    driver,
+                    "LiveLineupAllPlayersFilter"
+                ).Click();
+                Assert.DoesNotContain(
+                    driver.FindElements(
+                        OpenQA.Selenium.By.XPath("//*[contains(@text,'Global Live')]")
+                    ),
+                    element => element.Displayed
+                );
+                AndroidElementWait.UntilAutomationId(
+                    driver,
+                    "LiveLineupPlayerCancelButton"
+                ).Click();
+            }
+        );
+    }
+
+    [AndroidUiFact]
     public void Add_in_middle_shows_named_positions_and_preserves_current_batter()
     {
         Run(
@@ -249,5 +307,28 @@ public sealed class LiveLineupManagementTests(AndroidAppiumFixture fixture)
         AndroidElementWait.UntilAutomationId(driver, "ScoringMenuButton").Click();
         AndroidElementWait.UntilAutomationId(driver, "ExitGameButton").Click();
         AndroidElementWait.UntilAutomationId(driver, "ResumeGameButton");
+    }
+
+    private static void AssertSelectorWithinViewport(
+        OpenQA.Selenium.Appium.Android.AndroidDriver driver
+    )
+    {
+        foreach (
+            var element in new[]
+            {
+                AndroidElementWait.UntilAutomationId(driver, "LiveLineupRosteredFilter"),
+                AndroidElementWait.UntilAutomationId(driver, "LiveLineupAllPlayersFilter"),
+                AndroidElementWait.UntilText(driver, "Bailey Live"),
+                AndroidElementWait.UntilAutomationId(driver, "LiveLineupPlayerCancelButton"),
+            }
+        )
+        {
+            var viewport = driver.Manage().Window.Size;
+            Assert.True(element.Displayed);
+            Assert.InRange(element.Location.X, 0, viewport.Width - 1);
+            Assert.InRange(element.Location.Y, 0, viewport.Height - 1);
+            Assert.InRange(element.Location.X + element.Size.Width, 1, viewport.Width);
+            Assert.InRange(element.Location.Y + element.Size.Height, 1, viewport.Height);
+        }
     }
 }

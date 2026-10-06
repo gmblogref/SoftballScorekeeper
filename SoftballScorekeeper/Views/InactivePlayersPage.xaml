@@ -6,12 +6,11 @@
              x:Class="SoftballScorekeeper.Views.InactivePlayersPage"
              x:DataType="viewModels:InactivePlayersViewModel"
              Title="{x:Static strings:AppResources.InactivePlayersTitle}">
-    <Grid Padding="40"
-          RowDefinitions="Auto,Auto,Auto,*,Auto"
-          RowSpacing="20">
+    <Grid Style="{StaticResource ResponsivePageGrid}"
+          RowDefinitions="Auto,Auto,Auto,*,Auto">
         <Label Grid.Row="0"
                Text="{x:Static strings:AppResources.InactivePlayersTitle}"
-               Style="{StaticResource Headline}"
+               Style="{StaticResource ResponsiveHeadline}"
                SemanticProperties.HeadingLevel="Level1" />
 
         <Label Grid.Row="1" Text="{Binding ValidationMessage}">

@@ -1213,12 +1213,18 @@ namespace SoftballScorekeeper.Resources.Strings {
         public static string ReplacePlayerButton { get { return ResourceManager.GetString("ReplacePlayerButton", resourceCulture); } }
         public static string SelectReplacementPlayerTitle { get { return ResourceManager.GetString("SelectReplacementPlayerTitle", resourceCulture); } }
         public static string NoEligibleLiveLineupPlayers { get { return ResourceManager.GetString("NoEligibleLiveLineupPlayers", resourceCulture); } }
+        public static string RosteredPlayersFilter { get { return ResourceManager.GetString("RosteredPlayersFilter", resourceCulture); } }
+        public static string AllPlayersFilter { get { return ResourceManager.GetString("AllPlayersFilter", resourceCulture); } }
+        public static string RosteredPlayerStatus { get { return ResourceManager.GetString("RosteredPlayerStatus", resourceCulture); } }
+        public static string NonRosteredPlayerStatus { get { return ResourceManager.GetString("NonRosteredPlayerStatus", resourceCulture); } }
+        public static string PlayerMembershipDisplayFormat { get { return ResourceManager.GetString("PlayerMembershipDisplayFormat", resourceCulture); } }
         public static string LiveLineupPlayerPositionFormat { get { return ResourceManager.GetString("LiveLineupPlayerPositionFormat", resourceCulture); } }
         public static string LiveLineupInsertionTitleFormat { get { return ResourceManager.GetString("LiveLineupInsertionTitleFormat", resourceCulture); } }
         public static string LiveLineupInsertBeforeFormat { get { return ResourceManager.GetString("LiveLineupInsertBeforeFormat", resourceCulture); } }
         public static string LiveLineupEndPositionFormat { get { return ResourceManager.GetString("LiveLineupEndPositionFormat", resourceCulture); } }
         public static string LiveLineupPendingPlayMessage { get { return ResourceManager.GetString("LiveLineupPendingPlayMessage", resourceCulture); } }
         public static string LiveLineupChangeFailedMessage { get { return ResourceManager.GetString("LiveLineupChangeFailedMessage", resourceCulture); } }
+        public static string LiveLineupTeamMembershipFailed { get { return ResourceManager.GetString("LiveLineupTeamMembershipFailed", resourceCulture); } }
         public static string GamePlaysPlayerAdded { get { return ResourceManager.GetString("GamePlaysPlayerAdded", resourceCulture); } }
         public static string GamePlaysPlayerRemoved { get { return ResourceManager.GetString("GamePlaysPlayerRemoved", resourceCulture); } }
         public static string GamePlaysPlayerReplaced { get { return ResourceManager.GetString("GamePlaysPlayerReplaced", resourceCulture); } }

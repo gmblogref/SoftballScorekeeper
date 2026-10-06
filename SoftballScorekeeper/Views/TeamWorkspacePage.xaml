@@ -2,6 +2,7 @@
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              xmlns:controls="clr-namespace:SoftballScorekeeper.Views.Controls"
+             xmlns:services="clr-namespace:SoftballScorekeeper.Services"
              xmlns:strings="clr-namespace:SoftballScorekeeper.Resources.Strings"
              xmlns:viewModels="clr-namespace:SoftballScorekeeper.ViewModels"
              x:Class="SoftballScorekeeper.Views.TeamWorkspacePage"
@@ -26,14 +27,10 @@
         </ToolbarItem>
     </ContentPage.ToolbarItems>
 
-    <Grid
-        Padding="40"
-        RowDefinitions="Auto,Auto,Auto,Auto,*,Auto,Auto"
-        RowSpacing="20">
+    <Grid Style="{StaticResource ResponsivePageGrid}"
+          RowDefinitions="Auto,Auto,Auto,*,Auto,Auto">
 
-        <controls:PrimarySectionNavigation Grid.Row="0" CurrentSection="Teams" />
-
-        <Grid Grid.Row="1"
+        <Grid Grid.Row="0"
               IsVisible="{Binding IsTeamLoaded}">
             <Button
                 AutomationId="EditTeamNameButton"
@@ -49,6 +46,11 @@
                 SemanticProperties.HeadingLevel="Level1"
                 SemanticProperties.Hint="{x:Static strings:AppResources.TeamNameEditHint}">
                 <Button.Triggers>
+                    <DataTrigger TargetType="Button"
+                                 Binding="{Binding IsCompactLandscape, Source={x:Static services:ResponsiveLayoutState.Current}}"
+                                 Value="True">
+                        <Setter Property="FontSize" Value="22" />
+                    </DataTrigger>
                     <DataTrigger TargetType="Button" Binding="{Binding IsEditingTeamName}" Value="True">
                         <Setter Property="IsVisible" Value="False" />
                     </DataTrigger>
@@ -84,7 +86,7 @@
         </Grid>
 
         <Grid
-            Grid.Row="2"
+            Grid.Row="1"
             ColumnDefinitions="*,*"
             ColumnSpacing="16"
             HorizontalOptions="Fill"
@@ -131,7 +133,7 @@
         </Grid>
 
         <Label
-            Grid.Row="3"
+            Grid.Row="2"
             Text="{Binding ValidationMessage}"
             HorizontalTextAlignment="Center">
             <Label.Triggers>
@@ -141,7 +143,7 @@
             </Label.Triggers>
         </Label>
 
-        <Grid Grid.Row="4" IsVisible="{Binding IsTeamLoaded}">
+        <Grid Grid.Row="3" IsVisible="{Binding IsTeamLoaded}">
             <Grid
                 RowDefinitions="Auto,*"
                 RowSpacing="12"
@@ -452,7 +454,7 @@
         </Grid>
 
         <Label
-            Grid.Row="5"
+            Grid.Row="4"
             Text="{Binding StatusMessage}"
             HorizontalTextAlignment="Center">
             <Label.Triggers>
@@ -462,7 +464,7 @@
             </Label.Triggers>
         </Label>
 
-        <HorizontalStackLayout Grid.Row="6" HorizontalOptions="Center" Spacing="20" IsVisible="{Binding IsRosterSectionSelected}">
+        <HorizontalStackLayout Grid.Row="5" HorizontalOptions="Center" Spacing="20" IsVisible="{Binding IsRosterSectionSelected}">
             <HorizontalStackLayout.Triggers>
                 <DataTrigger TargetType="HorizontalStackLayout" Binding="{Binding IsRemovingPlayers}" Value="True">
                     <Setter Property="IsVisible" Value="False" />
@@ -486,7 +488,7 @@
         </HorizontalStackLayout>
 
         <HorizontalStackLayout
-            Grid.Row="6"
+            Grid.Row="5"
             HorizontalOptions="Center"
             Spacing="20"
             IsVisible="{Binding IsGamesSectionSelected}">
@@ -512,7 +514,7 @@
                 Padding="24,12" />
         </HorizontalStackLayout>
 
-        <HorizontalStackLayout Grid.Row="6" HorizontalOptions="Center" Spacing="20" IsVisible="{Binding IsRemovingGames}">
+        <HorizontalStackLayout Grid.Row="5" HorizontalOptions="Center" Spacing="20" IsVisible="{Binding IsRemovingGames}">
             <Button
                 Text="{x:Static strings:AppResources.CancelButton}"
                 Command="{Binding CancelRemoveGamesCommand}"
@@ -525,7 +527,7 @@
                 Padding="24,12" />
         </HorizontalStackLayout>
 
-        <HorizontalStackLayout Grid.Row="6" HorizontalOptions="Center" Spacing="20" IsVisible="{Binding IsRemovingPlayers}">
+        <HorizontalStackLayout Grid.Row="5" HorizontalOptions="Center" Spacing="20" IsVisible="{Binding IsRemovingPlayers}">
             <Button
                 Text="{x:Static strings:AppResources.CancelButton}"
                 Command="{Binding CancelRemovePlayersCommand}"
@@ -542,7 +544,7 @@
             x:Name="TeamActionMenu"
             AutomationId="TeamWorkspaceActionMenu"
             IsVisible="False"
-            Grid.RowSpan="7"
+            Grid.RowSpan="6"
             Margin="0,8,0,0"
             Padding="8"
             WidthRequest="260"

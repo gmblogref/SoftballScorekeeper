@@ -9,9 +9,8 @@
     <Grid Padding="36">
         <Border AutomationId="RunnerDestinationDialog"
                 Padding="28"
-                WidthRequest="620"
                 MaximumWidthRequest="680"
-                HorizontalOptions="Center"
+                HorizontalOptions="Fill"
                 VerticalOptions="Center"
                 BackgroundColor="{AppThemeBinding Light=White, Dark={StaticResource Gray900}}"
                 Stroke="{AppThemeBinding Light={StaticResource Gray300}, Dark={StaticResource Gray600}}"

@@ -7,10 +7,9 @@
              x:Class="SoftballScorekeeper.Views.TeamStatsPage"
              x:DataType="viewModels:TeamStatsViewModel"
              Title="{x:Static strings:AppResources.TeamStatsTitle}">
-    <Grid Padding="28" RowDefinitions="Auto,Auto,Auto,Auto,Auto,*" RowSpacing="12">
-        <Label Text="{x:Static strings:AppResources.TeamStatsTitle}" Style="{StaticResource Headline}" HorizontalTextAlignment="Center" />
-        <Label Grid.Row="1" Text="{Binding TeamName}" Style="{StaticResource SubHeadline}" HorizontalTextAlignment="Center" />
-        <ScrollView Grid.Row="2" Orientation="Horizontal" HorizontalScrollBarVisibility="Always">
+    <Grid Style="{StaticResource ResponsivePageGrid}" RowDefinitions="Auto,Auto,Auto,Auto,*">
+        <controls:TeamContextHeader TeamName="{Binding TeamName}" PageTitle="{x:Static strings:AppResources.TeamStatsTitle}" />
+        <ScrollView Grid.Row="1" Orientation="Horizontal" HorizontalScrollBarVisibility="Always">
             <HorizontalStackLayout Spacing="10">
                 <Button AutomationId="TeamStatsAllGamesFilter" Text="{x:Static strings:AppResources.TeamStatsAllGamesFilter}" Command="{Binding ShowAllGamesCommand}" MinimumHeightRequest="52" />
                 <Button AutomationId="TeamStatsLastGameNightFilter" Text="{x:Static strings:AppResources.TeamStatsLastGameNightFilter}" Command="{Binding ShowLastGameNightCommand}" MinimumHeightRequest="52" />
@@ -18,14 +17,14 @@
                 <Button AutomationId="TeamStatsCustomFilter" Text="{x:Static strings:AppResources.TeamStatsCustomFilter}" Clicked="OnCustomClicked" MinimumHeightRequest="52" />
             </HorizontalStackLayout>
         </ScrollView>
-        <Grid Grid.Row="3" ColumnDefinitions="*,Auto" ColumnSpacing="12">
+        <Grid Grid.Row="2" ColumnDefinitions="*,Auto" ColumnSpacing="12">
             <VerticalStackLayout>
                 <Label AutomationId="TeamStatsActiveFilter" Text="{Binding ActiveFilterText}" FontAttributes="Bold" />
                 <Label Text="{Binding ValidationMessage}" TextColor="{StaticResource WarningText}" />
             </VerticalStackLayout>
             <ActivityIndicator Grid.Column="1" IsRunning="{Binding IsBusy}" IsVisible="{Binding IsBusy}" />
         </Grid>
-        <Label Grid.Row="4" AutomationId="TeamStatsNoGames" Text="{x:Static strings:AppResources.TeamStatsNoCompletedGames}" IsVisible="{Binding HasNoSelectedGames}" HorizontalTextAlignment="Center" />
-        <controls:BattingStatisticsGrid Grid.Row="5" BindingContext="{Binding Statistics}" />
+        <Label Grid.Row="3" AutomationId="TeamStatsNoGames" Text="{x:Static strings:AppResources.TeamStatsNoCompletedGames}" IsVisible="{Binding HasNoSelectedGames}" HorizontalTextAlignment="Center" />
+        <controls:BattingStatisticsGrid Grid.Row="4" BindingContext="{Binding Statistics}" />
     </Grid>
 </ContentPage>

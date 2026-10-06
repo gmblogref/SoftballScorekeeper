@@ -365,6 +365,18 @@ public sealed class AndroidUiTestDataInitializer
             playerIds.Add(result.PlayerId);
         }
 
+        EnsureSingleRow(
+            await playerRepository.CreateAsync(
+                new Player
+                {
+                    FirstName = "Global",
+                    LastName = "Live",
+                    IsActive = true,
+                }
+            ),
+            "global live-lineup Player"
+        );
+
         var gameResult = await gameRepository.CreateForTeamAsync(
             team.Id,
             new Season { Name = "Live", Year = team.Year },
