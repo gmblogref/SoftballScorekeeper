@@ -31,9 +31,11 @@
     </FlyoutItem>
 
     <MenuItem
+        AutomationId="TeamsFlyoutMenuItem"
         Text="{x:Static strings:AppResources.TeamsHeading}"
         Clicked="OnTeamsClicked" />
     <MenuItem
+        AutomationId="PlayersFlyoutMenuItem"
         Text="{x:Static strings:AppResources.PlayersTitle}"
         Clicked="OnPlayersClicked" />
 

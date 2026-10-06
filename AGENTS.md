@@ -209,6 +209,13 @@ Design UI and interaction work for live use on the primary 10-inch Android table
 - Simple, responsive layouts that remain usable on the target tablet
 - Reliable offline operation during games
 
+Treat the actual available Android application window as the responsive-layout
+authority. Responsive decisions must account for both available width and
+available height rather than orientation alone. Preserve practical tablet touch
+targets while tightening chrome or rearranging content for constrained windows,
+and do not optimize fixed dimensions solely for the development emulator when
+physical-tablet behavior differs.
+
 Avoid hover-only, right-click-only, keyboard-only, or other desktop-only interaction assumptions. Avoid unnecessarily dense desktop-style forms. Do not introduce arbitrary control-size measurements unless approved measurements already exist in the repository.
 
 Use CommunityToolkit.Mvvm for common MVVM infrastructure such as:

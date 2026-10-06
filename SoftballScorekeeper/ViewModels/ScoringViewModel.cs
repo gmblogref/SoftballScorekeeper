@@ -14,6 +14,8 @@ public partial class ScoringViewModel : ObservableObject, IQueryAttributable
     private readonly GameScoringSessionRepository sessionRepository;
     private readonly BeerRuleConfigurationRepository? beerRuleConfigurationRepository;
     private readonly GameLineupRepository? lineupRepository;
+    private readonly PlayerRepository? playerRepository;
+    private readonly TeamPlayerRepository? teamPlayerRepository;
     private int? createdLiveLineupPlayerId;
     private bool hasValidContext;
     private int currentBatterPlayerId;
@@ -219,7 +221,9 @@ public partial class ScoringViewModel : ObservableObject, IQueryAttributable
         GameRepository gameRepository,
         GameScoringSessionRepository sessionRepository,
         BeerRuleConfigurationRepository? beerRuleConfigurationRepository = null,
-        GameLineupRepository? lineupRepository = null
+        GameLineupRepository? lineupRepository = null,
+        PlayerRepository? playerRepository = null,
+        TeamPlayerRepository? teamPlayerRepository = null
     )
     {
         this.teamRepository = teamRepository;
@@ -227,6 +231,8 @@ public partial class ScoringViewModel : ObservableObject, IQueryAttributable
         this.sessionRepository = sessionRepository;
         this.beerRuleConfigurationRepository = beerRuleConfigurationRepository;
         this.lineupRepository = lineupRepository;
+        this.playerRepository = playerRepository;
+        this.teamPlayerRepository = teamPlayerRepository;
     }
 
     public async Task<IReadOnlyList<LiveLineupPlayerOption>> GetLiveLineupPlayersAsync()
@@ -262,7 +268,33 @@ public partial class ScoringViewModel : ObservableObject, IQueryAttributable
             .Select(player => new LiveLineupPlayerOption(
                 player.Id,
                 FormatPlayerName(player.FirstName, player.LastName),
-                0
+                0,
+                true
+            ))
+            .ToArray();
+    }
+
+    public async Task<IReadOnlyList<LiveLineupPlayerOption>> GetAllEligibleLiveLineupPlayersAsync()
+    {
+        var rostered = await GetEligibleLiveLineupPlayersAsync();
+        if (playerRepository is null || teamPlayerRepository is null)
+            return rostered;
+
+        var activeLineupIds = (await GetLiveLineupPlayersAsync())
+            .Select(item => item.PlayerId)
+            .ToHashSet();
+        var rosteredIds = (await teamPlayerRepository.GetActivePlayersForTeamAsync(TeamId))
+            .Select(player => player.Id)
+            .ToHashSet();
+
+        return (await playerRepository.GetActiveAsync())
+            .Where(player => !activeLineupIds.Contains(player.Id))
+            .Select(player => new LiveLineupPlayerOption(
+                player.Id,
+                FormatPlayerName(player.FirstName, player.LastName),
+                0,
+                rosteredIds.Contains(player.Id),
+                true
             ))
             .ToArray();
     }
@@ -277,10 +309,26 @@ public partial class ScoringViewModel : ObservableObject, IQueryAttributable
             }
         );
 
+    public Task AddPlayersToTeamForLiveLineupAsync() =>
+        Shell.Current.GoToAsync(
+            AppShell.AddPlayersToTeamRoute,
+            new ShellNavigationQueryParameters
+            {
+                [AppShell.TeamIdQueryParameter] = TeamId,
+            }
+        );
+
     public async Task<bool> AddLiveLineupPlayerAsync(int playerId, int battingPosition) =>
         await ApplyLiveLineupChangeAsync(
             sessionRepository.AddLiveLineupPlayerAsync(GameId, playerId, battingPosition)
         );
+
+    public async Task<bool> AddSelectedLiveLineupPlayerAsync(
+        int playerId,
+        int battingPosition
+    ) =>
+        await EnsureLiveLineupPlayerRosteredAsync(playerId)
+        && await AddLiveLineupPlayerAsync(playerId, battingPosition);
 
     public int? TakeCreatedLiveLineupPlayerId()
     {
@@ -305,6 +353,31 @@ public partial class ScoringViewModel : ObservableObject, IQueryAttributable
                 replacementPlayerId
             )
         );
+
+    public async Task<bool> ReplaceWithSelectedLiveLineupPlayerAsync(
+        int outgoingPlayerId,
+        int replacementPlayerId
+    ) =>
+        await EnsureLiveLineupPlayerRosteredAsync(replacementPlayerId)
+        && await ReplaceLiveLineupPlayerAsync(outgoingPlayerId, replacementPlayerId);
+
+    private async Task<bool> EnsureLiveLineupPlayerRosteredAsync(int playerId)
+    {
+        if (teamPlayerRepository is null)
+            return false;
+
+        var isRostered = (await teamPlayerRepository.GetActivePlayersForTeamAsync(TeamId))
+            .Any(player => player.Id == playerId);
+        if (isRostered)
+            return true;
+
+        var result = await teamPlayerRepository.AddPlayersToTeamAsync(TeamId, [playerId]);
+        if (result.SuccessfullyActiveMembershipCount == 1)
+            return true;
+
+        ValidationMessage = AppResources.LiveLineupTeamMembershipFailed;
+        return false;
+    }
 
     private async Task<bool> ApplyLiveLineupChangeAsync(Task<LiveLineupChangeResult> operation)
     {
@@ -1140,7 +1213,28 @@ public partial class ScoringViewModel : ObservableObject, IQueryAttributable
     }
 }
 
-public sealed record LiveLineupPlayerOption(int PlayerId, string DisplayName, int BattingPosition);
+public sealed record LiveLineupPlayerOption(
+    int PlayerId,
+    string DisplayName,
+    int BattingPosition,
+    bool IsRostered = true,
+    bool ShowsMembershipStatus = false
+)
+{
+    public string MembershipDisplay =>
+        IsRostered ? AppResources.RosteredPlayerStatus : AppResources.NonRosteredPlayerStatus;
+
+    public string SelectionAutomationId => $"LiveLineupPlayerOption-{PlayerId}";
+
+    public string SelectionDisplay =>
+        ShowsMembershipStatus
+            ? string.Format(
+                AppResources.PlayerMembershipDisplayFormat,
+                DisplayName,
+                MembershipDisplay
+            )
+            : DisplayName;
+}
 
 public sealed record BaseRunnerViewModel(
     string BaseLabel,

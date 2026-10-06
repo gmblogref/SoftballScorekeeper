@@ -6,10 +6,10 @@
     xmlns:strings="clr-namespace:SoftballScorekeeper.Resources.Strings"
     Shell.NavBarIsVisible="False"
     BackgroundColor="#99000000">
-    <Grid Padding="48">
+    <Grid Padding="24">
         <Border
             AutomationId="OpponentHalfInningDialog"
-            Padding="32"
+            Padding="24"
             BackgroundColor="{AppThemeBinding Light=White, Dark={StaticResource Gray900}}"
             Stroke="{AppThemeBinding Light={StaticResource Gray300}, Dark={StaticResource Gray600}}"
             StrokeShape="RoundRectangle 16"

@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentView xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:controls="clr-namespace:SoftballScorekeeper.Views.Controls"
+             xmlns:services="clr-namespace:SoftballScorekeeper.Services"
+             x:Class="SoftballScorekeeper.Views.Controls.TeamContextHeader"
+             x:Name="HeaderRoot">
+    <Grid>
+        <VerticalStackLayout x:Name="RegularHeader" Spacing="2">
+            <VerticalStackLayout.Triggers>
+                <DataTrigger TargetType="VerticalStackLayout"
+                             Binding="{Binding IsCompactLandscape, Source={x:Static services:ResponsiveLayoutState.Current}}"
+                             Value="True">
+                    <Setter Property="IsVisible" Value="False" />
+                </DataTrigger>
+            </VerticalStackLayout.Triggers>
+            <Label Text="{Binding TeamName, Source={x:Reference HeaderRoot}}"
+                   AutomationId="{Binding TeamNameAutomationId, Source={x:Reference HeaderRoot}}"
+                   Style="{StaticResource ResponsiveHeadline}"
+                   SemanticProperties.HeadingLevel="Level1" />
+            <Label Text="{Binding PageTitle, Source={x:Reference HeaderRoot}}"
+                   Style="{StaticResource ResponsiveSubHeadline}"
+                   SemanticProperties.HeadingLevel="Level2" />
+        </VerticalStackLayout>
+        <Grid x:Name="CompactHeader"
+              IsVisible="False"
+              ColumnDefinitions="*,1,*"
+              ColumnSpacing="10">
+            <Grid.Triggers>
+                <DataTrigger TargetType="Grid"
+                             Binding="{Binding IsCompactLandscape, Source={x:Static services:ResponsiveLayoutState.Current}}"
+                             Value="True">
+                    <Setter Property="IsVisible" Value="True" />
+                </DataTrigger>
+            </Grid.Triggers>
+            <Label Text="{Binding TeamName, Source={x:Reference HeaderRoot}}"
+                   AutomationId="{Binding TeamNameAutomationId, Source={x:Reference HeaderRoot}}"
+                   Style="{StaticResource CompactTeamContextLabel}"
+                   HorizontalTextAlignment="End"
+                   LineBreakMode="TailTruncation"
+                   MaxLines="1"
+                   SemanticProperties.HeadingLevel="Level1" />
+            <BoxView Grid.Column="1"
+                     BackgroundColor="{AppThemeBinding Light={StaticResource Gray400}, Dark={StaticResource Gray500}}" />
+            <Label Grid.Column="2"
+                   Text="{Binding PageTitle, Source={x:Reference HeaderRoot}}"
+                   Style="{StaticResource CompactTeamContextLabel}"
+                   HorizontalTextAlignment="Start"
+                   LineBreakMode="TailTruncation"
+                   MaxLines="1"
+                   SemanticProperties.HeadingLevel="Level2" />
+        </Grid>
+    </Grid>
+</ContentView>

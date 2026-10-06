@@ -1,5 +1,6 @@
 using Microsoft.Extensions.DependencyInjection;
 using SoftballScorekeeper.Infrastructure.Data;
+using SoftballScorekeeper.Services;
 #if DEBUG
 using SoftballScorekeeper.Testing;
 #endif
@@ -40,9 +41,16 @@ public partial class App : Application
     protected override Window CreateWindow(IActivationState? activationState)
     {
         var window = new Window(appShell);
+        window.SizeChanged += OnWindowSizeChanged;
         window.Created += OnWindowCreated;
 
         return window;
+    }
+
+    private static void OnWindowSizeChanged(object? sender, EventArgs e)
+    {
+        if (sender is Window window)
+            ResponsiveLayoutState.Current.Update(window.Width, window.Height);
     }
 
     private async void OnWindowCreated(object? sender, EventArgs e)

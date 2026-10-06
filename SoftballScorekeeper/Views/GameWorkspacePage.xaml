@@ -7,7 +7,7 @@
              x:Class="SoftballScorekeeper.Views.GameWorkspacePage"
              x:DataType="viewModels:GameWorkspaceViewModel"
              Title="{x:Static strings:AppResources.GameWorkspaceTitle}">
-    <Grid x:Name="RootGrid" Padding="40" RowDefinitions="Auto,Auto,*" RowSpacing="20">
+    <Grid x:Name="RootGrid" Style="{StaticResource ResponsivePageGrid}" RowDefinitions="Auto,*">
         <VisualStateManager.VisualStateGroups>
             <VisualStateGroup x:Name="CompletedWorkspaceLayoutStates">
                 <VisualState x:Name="PortraitCompletedWorkspace">
@@ -20,8 +20,6 @@
                         <AdaptiveTrigger MinWindowWidth="900" />
                     </VisualState.StateTriggers>
                     <VisualState.Setters>
-                        <Setter TargetName="RootGrid" Property="Padding" Value="24,16" />
-                        <Setter TargetName="RootGrid" Property="RowSpacing" Value="12" />
                         <Setter TargetName="CompletedGameGrid" Property="RowSpacing" Value="8" />
                         <Setter TargetName="CompletedScoreboard" Property="Padding" Value="18,8" />
                         <Setter TargetName="CompletedVisitorScore" Property="Label.FontSize" Value="48" />
@@ -31,10 +29,8 @@
             </VisualStateGroup>
         </VisualStateManager.VisualStateGroups>
 
-        <controls:PrimarySectionNavigation Grid.Row="0" CurrentSection="Teams" />
-
         <Label AutomationId="GameWorkspaceValidationMessage"
-               Grid.Row="1"
+               Grid.Row="0"
                Text="{Binding ValidationMessage}"
                HorizontalTextAlignment="Center">
             <Label.Triggers>
@@ -44,17 +40,12 @@
             </Label.Triggers>
         </Label>
 
-        <Grid Grid.Row="2">
+        <Grid Grid.Row="1">
             <Grid IsVisible="{Binding ShowStandardWorkspace}"
                   RowDefinitions="Auto,Auto,Auto,*,Auto"
                   RowSpacing="20">
-                <VerticalStackLayout Spacing="6">
-                    <Label Text="{Binding TeamName}" Style="{StaticResource Headline}"
-                           SemanticProperties.HeadingLevel="Level1" />
-                    <Label Text="{x:Static strings:AppResources.GameDetailsHeading}"
-                           Style="{StaticResource SubHeadline}"
-                           SemanticProperties.HeadingLevel="Level2" />
-                </VerticalStackLayout>
+                <controls:TeamContextHeader TeamName="{Binding TeamName}"
+                                            PageTitle="{x:Static strings:AppResources.GameDetailsHeading}" />
                 <Grid Grid.Row="1" RowDefinitions="Auto,Auto,Auto"
                       ColumnDefinitions="*,*" ColumnSpacing="32" RowSpacing="20" Padding="0,12">
                     <VerticalStackLayout Spacing="6">

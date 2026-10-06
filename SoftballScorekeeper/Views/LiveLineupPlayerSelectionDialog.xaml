@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:strings="clr-namespace:SoftballScorekeeper.Resources.Strings"
+             xmlns:viewModels="clr-namespace:SoftballScorekeeper.ViewModels"
+             x:Class="SoftballScorekeeper.Views.LiveLineupPlayerSelectionDialog"
+             Shell.NavBarIsVisible="False"
+             BackgroundColor="#99000000">
+    <Grid Padding="16">
+        <Border Padding="16"
+                MaximumWidthRequest="680"
+                MaximumHeightRequest="620"
+                HorizontalOptions="Center"
+                VerticalOptions="Center"
+                BackgroundColor="{AppThemeBinding Light=White, Dark={StaticResource Gray900}}"
+                StrokeShape="RoundRectangle 16">
+            <Grid RowDefinitions="Auto,Auto,*,Auto,Auto" RowSpacing="10">
+                <Label x:Name="DialogTitle"
+                       FontSize="22"
+                       FontAttributes="Bold"
+                       HorizontalTextAlignment="Center" />
+                <Grid Grid.Row="1" ColumnDefinitions="*,*" ColumnSpacing="8">
+                    <Button x:Name="RosteredFilterButton"
+                            AutomationId="LiveLineupRosteredFilter"
+                            Text="{x:Static strings:AppResources.RosteredPlayersFilter}"
+                            Clicked="OnRosteredClicked"
+                            MinimumHeightRequest="48" />
+                    <Button x:Name="AllPlayersFilterButton"
+                            Grid.Column="1"
+                            AutomationId="LiveLineupAllPlayersFilter"
+                            Text="{x:Static strings:AppResources.AllPlayersFilter}"
+                            Clicked="OnAllPlayersClicked"
+                            MinimumHeightRequest="48" />
+                </Grid>
+                <Grid Grid.Row="2">
+                    <CollectionView x:Name="PlayersCollection" SelectionMode="None">
+                        <CollectionView.ItemTemplate>
+                            <DataTemplate x:DataType="viewModels:LiveLineupPlayerOption">
+                                <Button AutomationId="{Binding SelectionAutomationId}"
+                                        Text="{Binding SelectionDisplay}"
+                                        SemanticProperties.Description="{Binding MembershipDisplay}"
+                                        Clicked="OnPlayerClicked"
+                                        Margin="0,3"
+                                        MinimumHeightRequest="52" />
+                            </DataTemplate>
+                        </CollectionView.ItemTemplate>
+                    </CollectionView>
+                    <Label x:Name="EmptyMessage"
+                           Text="{x:Static strings:AppResources.NoEligibleLiveLineupPlayers}"
+                           IsVisible="False"
+                           HorizontalTextAlignment="Center"
+                           VerticalTextAlignment="Center" />
+                </Grid>
+                <Button x:Name="CreatePlayerButton"
+                        Grid.Row="3"
+                        AutomationId="LiveLineupCreatePlayerButton"
+                        Text="{x:Static strings:AppResources.CreateNewPlayerButton}"
+                        Clicked="OnCreatePlayerClicked"
+                        MinimumHeightRequest="48" />
+                <Button Grid.Row="4"
+                        AutomationId="LiveLineupPlayerCancelButton"
+                        Text="{x:Static strings:AppResources.CancelButton}"
+                        Clicked="OnCancelClicked"
+                        MinimumHeightRequest="48" />
+            </Grid>
+        </Border>
+    </Grid>
+</ContentPage>

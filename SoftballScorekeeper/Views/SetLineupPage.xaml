@@ -2,9 +2,9 @@
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui" xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
  xmlns:strings="clr-namespace:SoftballScorekeeper.Resources.Strings" xmlns:viewModels="clr-namespace:SoftballScorekeeper.ViewModels"
  x:Class="SoftballScorekeeper.Views.SetLineupPage" x:DataType="viewModels:SetLineupViewModel" Title="{x:Static strings:AppResources.LineupManagerTitle}">
- <Grid Padding="40" RowDefinitions="Auto,Auto,*,Auto" RowSpacing="16">
+ <Grid Style="{StaticResource ResponsivePageGrid}" RowDefinitions="Auto,Auto,*,Auto">
   <Grid ColumnDefinitions="*,Auto">
-   <Label Text="{x:Static strings:AppResources.LineupManagerTitle}" Style="{StaticResource Headline}"/>
+   <Label Text="{x:Static strings:AppResources.LineupManagerTitle}" Style="{StaticResource ResponsiveHeadline}"/>
    <Label Grid.Column="1" Text="{Binding SelectedPlayerCount, StringFormat={x:Static strings:AppResources.SelectedPlayerCountText}}" IsVisible="{Binding IsAddMode}"/>
    <Label Grid.Column="1" Text="{Binding SelectedRemovalCountText}" IsVisible="{Binding IsRemovalMode}"/>
   </Grid>

@@ -10,13 +10,12 @@
              Title="{x:Static strings:AppResources.InactiveTeamsTitle}">
 
     <Grid
-        Padding="40"
-        RowDefinitions="Auto,Auto,*"
-        RowSpacing="20">
+        Style="{StaticResource ResponsivePageGrid}"
+        RowDefinitions="Auto,Auto,*">
         <Label
             Grid.Row="0"
             Text="{x:Static strings:AppResources.InactiveTeamsTitle}"
-            Style="{StaticResource Headline}"
+            Style="{StaticResource ResponsiveHeadline}"
             SemanticProperties.HeadingLevel="Level1" />
 
         <Label

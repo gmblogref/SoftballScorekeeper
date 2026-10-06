@@ -1,5 +1,6 @@
 using SoftballScorekeeper.Core.Models;
 using SoftballScorekeeper.Resources.Strings;
+using SoftballScorekeeper.Services;
 using SoftballScorekeeper.ViewModels;
 
 namespace SoftballScorekeeper.Views;
@@ -25,7 +26,15 @@ public partial class ScoringPage : ContentPage
         if (width <= 0 || height <= 0)
             return;
 
-        var layoutState = width > height ? "LandscapeScoreboard" : "PortraitScoreboard";
+        ResponsiveLayoutState.Current.Update(width, height);
+        var layoutState = ResponsiveLayoutState.Classify(width, height) switch
+        {
+            ResponsiveLayoutProfile.NarrowPortrait => "CompactPortraitScoreboard",
+            ResponsiveLayoutProfile.CompactPortrait => "CompactPortraitScoreboard",
+            ResponsiveLayoutProfile.CompactLandscape => "CompactLandscapeScoreboard",
+            ResponsiveLayoutProfile.RegularLandscape => "LandscapeScoreboard",
+            _ => "PortraitScoreboard",
+        };
         if (layoutState == appliedLayoutState)
             return;
 
@@ -137,8 +146,14 @@ public partial class ScoringPage : ContentPage
             AppResources.AddPlayerButton,
             AppResources.RemovePlayerButton,
             AppResources.ReplacePlayerButton,
+            AppResources.AddPlayersToTeamTitle,
             AppResources.CreateNewPlayerButton
         );
+        if (action == AppResources.AddPlayersToTeamTitle)
+        {
+            await viewModel.AddPlayersToTeamForLiveLineupAsync();
+            return;
+        }
         if (action == AppResources.CreateNewPlayerButton)
         {
             await viewModel.CreatePlayerForLiveLineupAsync();
@@ -174,7 +189,10 @@ public partial class ScoringPage : ContentPage
             return;
         var incoming = await SelectEligiblePlayerAsync(AppResources.SelectReplacementPlayerTitle);
         if (incoming is not null)
-            await viewModel.ReplaceLiveLineupPlayerAsync(outgoing.PlayerId, incoming.PlayerId);
+            await viewModel.ReplaceWithSelectedLiveLineupPlayerAsync(
+                outgoing.PlayerId,
+                incoming.PlayerId
+            );
     }
 
     private async Task PromptForCreatedLiveLineupPlayerAsync()
@@ -211,7 +229,10 @@ public partial class ScoringPage : ContentPage
         );
         var selectedIndex = Array.IndexOf(labels, selection);
         if (selectedIndex >= 0)
-            await viewModel.AddLiveLineupPlayerAsync(player.PlayerId, selectedIndex + 1);
+            await viewModel.AddSelectedLiveLineupPlayerAsync(
+                player.PlayerId,
+                selectedIndex + 1
+            );
     }
 
     private async Task<LiveLineupPlayerOption?> SelectEligiblePlayerAsync(
@@ -219,8 +240,9 @@ public partial class ScoringPage : ContentPage
         bool allowCreate = false
     )
     {
-        var eligible = await viewModel.GetEligibleLiveLineupPlayersAsync();
-        if (eligible.Count == 0 && !allowCreate)
+        var rostered = await viewModel.GetEligibleLiveLineupPlayersAsync();
+        var allPlayers = await viewModel.GetAllEligibleLiveLineupPlayersAsync();
+        if (rostered.Count == 0 && allPlayers.Count == 0 && !allowCreate)
         {
             await DisplayAlert(
                 title,
@@ -229,22 +251,20 @@ public partial class ScoringPage : ContentPage
             );
             return null;
         }
-        var labels = eligible.Select(item => item.DisplayName).ToList();
-        if (allowCreate)
-            labels.Add(AppResources.CreateNewPlayerButton);
-        var selection = await DisplayActionSheet(
+
+        var selection = await new LiveLineupPlayerSelectionDialog(
             title,
-            AppResources.CancelButton,
-            null,
-            labels.ToArray()
-        );
-        if (selection == AppResources.CreateNewPlayerButton)
+            rostered,
+            allPlayers,
+            allowCreate
+        ).ShowAsync(Navigation);
+        if (selection?.CreateNewPlayer == true)
         {
             await viewModel.CreatePlayerForLiveLineupAsync();
             return null;
         }
-        var index = labels.IndexOf(selection);
-        return index < 0 || index >= eligible.Count ? null : eligible[index];
+
+        return selection?.Player;
     }
 
     private async Task<LiveLineupPlayerOption?> SelectPlayerAsync(

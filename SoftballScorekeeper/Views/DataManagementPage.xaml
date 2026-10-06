@@ -7,10 +7,10 @@
              x:DataType="viewModels:DataManagementViewModel"
              Title="{x:Static strings:AppResources.DataManagementTitle}">
     <ScrollView>
-        <VerticalStackLayout Padding="40" Spacing="20">
+        <VerticalStackLayout Style="{StaticResource ResponsivePageStack}">
             <Label
                 Text="{x:Static strings:AppResources.DataManagementTitle}"
-                Style="{StaticResource Headline}"
+                Style="{StaticResource ResponsiveHeadline}"
                 SemanticProperties.HeadingLevel="Level1" />
             <ActivityIndicator
                 AutomationId="BackupDataActivityIndicator"

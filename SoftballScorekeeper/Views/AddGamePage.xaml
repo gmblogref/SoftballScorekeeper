@@ -8,22 +8,14 @@
              x:DataType="viewModels:AddGameViewModel"
              Title="{x:Static strings:AppResources.AddGameTitle}">
 
-    <Grid Padding="40" RowDefinitions="Auto,Auto,Auto,Auto,*,Auto" RowSpacing="16">
-        <controls:PrimarySectionNavigation Grid.Row="0" CurrentSection="Teams" />
-        <Label
-            Grid.Row="1"
-            Text="{Binding TeamName}"
-            Style="{StaticResource Headline}"
-            SemanticProperties.HeadingLevel="Level1"
-            IsVisible="{Binding IsTeamLoaded}" />
-        <Label
-            Grid.Row="2"
-            Text="{x:Static strings:AppResources.AddGameHeading}"
-            Style="{StaticResource SubHeadline}"
-            SemanticProperties.HeadingLevel="Level2"
+    <Grid Style="{StaticResource ResponsivePageGrid}" RowDefinitions="Auto,Auto,*,Auto">
+        <controls:TeamContextHeader
+            Grid.Row="0"
+            TeamName="{Binding TeamName}"
+            PageTitle="{x:Static strings:AppResources.AddGameHeading}"
             IsVisible="{Binding IsTeamLoaded}" />
         <Border
-            Grid.Row="3"
+            Grid.Row="1"
             Padding="14,10"
             BackgroundColor="{AppThemeBinding Light={StaticResource WarningSurface}, Dark={StaticResource WarningSurfaceDark}}"
             Stroke="{AppThemeBinding Light={StaticResource Error}, Dark={StaticResource ErrorDark}}"
@@ -43,7 +35,7 @@
             </Border.Triggers>
         </Border>
 
-        <ScrollView Grid.Row="4" IsVisible="{Binding IsTeamLoaded}">
+        <ScrollView Grid.Row="2" IsVisible="{Binding IsTeamLoaded}">
             <Grid
                 Padding="0,4"
                 RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto"
@@ -177,7 +169,7 @@
             </Grid>
         </ScrollView>
 
-        <HorizontalStackLayout Grid.Row="5" HorizontalOptions="Center" Spacing="20">
+        <HorizontalStackLayout Grid.Row="3" HorizontalOptions="Center" Spacing="20">
             <Button
                 Text="{x:Static strings:AppResources.SaveButton}"
                 Command="{Binding SaveCommand}"

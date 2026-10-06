@@ -7,10 +7,10 @@
              x:Class="SoftballScorekeeper.Views.TeamYearSummaryPage"
              x:DataType="viewModels:TeamYearSummaryViewModel"
              Title="{x:Static strings:AppResources.TeamYearSummaryTitle}">
-    <Grid Padding="20" RowDefinitions="Auto,*" RowSpacing="10">
+    <Grid Style="{StaticResource ResponsivePageGrid}" RowDefinitions="Auto,*">
         <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
             <VerticalStackLayout>
-                <Label AutomationId="TeamYearSummaryHeader" Text="{Binding Header}" Style="{StaticResource Headline}" HorizontalTextAlignment="Center" />
+                <Label AutomationId="TeamYearSummaryHeader" Text="{Binding Header}" Style="{StaticResource ResponsiveHeadline}" HorizontalTextAlignment="Center" />
                 <Label Text="{Binding ValidationMessage}" TextColor="{StaticResource WarningText}" HorizontalTextAlignment="Center" />
             </VerticalStackLayout>
             <ActivityIndicator Grid.Column="1" IsRunning="{Binding IsBusy}" IsVisible="{Binding IsBusy}" />

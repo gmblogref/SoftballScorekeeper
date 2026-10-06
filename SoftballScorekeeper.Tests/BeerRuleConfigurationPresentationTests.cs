@@ -86,7 +86,7 @@ public sealed class BeerRuleConfigurationPresentationTests
             icon => icon.Attribute("Glyph")?.Value == "☰"
         );
         Assert.Equal("False", actionMenu.Attribute("IsVisible")?.Value);
-        Assert.Equal("7", actionMenu.Attribute("Grid.RowSpan")?.Value);
+        Assert.Equal("6", actionMenu.Attribute("Grid.RowSpan")?.Value);
         Assert.DoesNotContain("IsGamesSectionSelected", actionMenu.ToString());
         Assert.DoesNotContain("IsRosterSectionSelected", actionMenu.ToString());
         Assert.Equal(7, menuButtons.Length);

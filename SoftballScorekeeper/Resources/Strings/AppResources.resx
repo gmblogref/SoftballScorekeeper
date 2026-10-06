@@ -775,13 +775,19 @@
   <data name="RemovePlayerButton" xml:space="preserve"><value>Remove Player</value></data>
   <data name="ReplacePlayerButton" xml:space="preserve"><value>Replace Player</value></data>
   <data name="SelectReplacementPlayerTitle" xml:space="preserve"><value>Select Replacement Player</value></data>
-  <data name="NoEligibleLiveLineupPlayers" xml:space="preserve"><value>No eligible roster Players are available. Create a new Player or return a Player who has left the lineup.</value></data>
+  <data name="NoEligibleLiveLineupPlayers" xml:space="preserve"><value>No eligible Players are available in this view.</value></data>
+  <data name="RosteredPlayersFilter" xml:space="preserve"><value>Rostered</value></data>
+  <data name="AllPlayersFilter" xml:space="preserve"><value>All Players</value></data>
+  <data name="RosteredPlayerStatus" xml:space="preserve"><value>Rostered</value></data>
+  <data name="NonRosteredPlayerStatus" xml:space="preserve"><value>Not on Team — will be added</value></data>
+  <data name="PlayerMembershipDisplayFormat" xml:space="preserve"><value>{0} — {1}</value></data>
   <data name="LiveLineupPlayerPositionFormat" xml:space="preserve"><value>{0}. {1}</value></data>
   <data name="LiveLineupInsertionTitleFormat" xml:space="preserve"><value>Where should {0} bat?</value></data>
   <data name="LiveLineupInsertBeforeFormat" xml:space="preserve"><value>{0} — Before {1}</value></data>
   <data name="LiveLineupEndPositionFormat" xml:space="preserve"><value>{0} — End of Lineup</value></data>
   <data name="LiveLineupPendingPlayMessage" xml:space="preserve"><value>Finish or undo the current play before changing the lineup.</value></data>
   <data name="LiveLineupChangeFailedMessage" xml:space="preserve"><value>The live lineup could not be changed.</value></data>
+  <data name="LiveLineupTeamMembershipFailed" xml:space="preserve"><value>The Player could not be added to this Team.</value></data>
   <data name="GamePlaysPlayerAdded" xml:space="preserve"><value>{0} was added to the lineup</value></data>
   <data name="GamePlaysPlayerRemoved" xml:space="preserve"><value>{0} was removed from the lineup</value></data>
   <data name="GamePlaysPlayerReplaced" xml:space="preserve"><value>{0} replaced {1} in the lineup</value></data>
