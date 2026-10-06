@@ -47,7 +47,7 @@
                 SemanticProperties.Hint="{x:Static strings:AppResources.TeamNameEditHint}">
                 <Button.Triggers>
                     <DataTrigger TargetType="Button"
-                                 Binding="{Binding IsCompactLandscape, Source={x:Static services:ResponsiveLayoutState.Current}}"
+                                 Binding="{Binding IsCompactLandscape, Source={x:Static services:ResponsiveLayoutState.Current}, x:DataType=services:ResponsiveLayoutState}"
                                  Value="True">
                         <Setter Property="FontSize" Value="22" />
                     </DataTrigger>
@@ -377,7 +377,7 @@
                                         <Button
                                             Grid.Column="2"
                                             Text="{x:Static strings:AppResources.EditButton}"
-                                            Command="{Binding Source={x:Reference PageRoot}, Path=BindingContext.BeginJerseyNumberEditCommand}"
+                                            Command="{Binding BeginJerseyNumberEditCommand, Source={RelativeSource AncestorType={x:Type viewModels:TeamWorkspaceViewModel}}, x:DataType=viewModels:TeamWorkspaceViewModel}"
                                             CommandParameter="{Binding .}"
                                             MinimumHeightRequest="48"
                                             Padding="20,10" />
@@ -402,7 +402,7 @@
                                         <Button
                                             Grid.Column="2"
                                             Text="{x:Static strings:AppResources.SaveButton}"
-                                            Command="{Binding Source={x:Reference PageRoot}, Path=BindingContext.SaveJerseyNumberCommand}"
+                                            Command="{Binding SaveJerseyNumberCommand, Source={RelativeSource AncestorType={x:Type viewModels:TeamWorkspaceViewModel}}, x:DataType=viewModels:TeamWorkspaceViewModel}"
                                             CommandParameter="{Binding .}"
                                             MinimumHeightRequest="48"
                                             Padding="20,10"
@@ -410,7 +410,7 @@
                                         <Button
                                             Grid.Column="3"
                                             Text="{x:Static strings:AppResources.CancelButton}"
-                                            Command="{Binding Source={x:Reference PageRoot}, Path=BindingContext.CancelJerseyNumberEditCommand}"
+                                            Command="{Binding CancelJerseyNumberEditCommand, Source={RelativeSource AncestorType={x:Type viewModels:TeamWorkspaceViewModel}}, x:DataType=viewModels:TeamWorkspaceViewModel}"
                                             CommandParameter="{Binding .}"
                                             MinimumHeightRequest="48"
                                             Padding="20,10"

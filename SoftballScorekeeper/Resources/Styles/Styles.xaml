@@ -205,13 +205,13 @@
         <Setter Property="RowSpacing" Value="14" />
         <Style.Triggers>
             <DataTrigger TargetType="Grid"
-                         Binding="{Binding Profile, Source={x:Static services:ResponsiveLayoutState.Current}}"
+                         Binding="{Binding Profile, Source={x:Static services:ResponsiveLayoutState.Current}, x:DataType=services:ResponsiveLayoutState}"
                          Value="{x:Static services:ResponsiveLayoutProfile.NarrowPortrait}">
                 <Setter Property="Padding" Value="18,16" />
                 <Setter Property="RowSpacing" Value="12" />
             </DataTrigger>
             <DataTrigger TargetType="Grid"
-                         Binding="{Binding Profile, Source={x:Static services:ResponsiveLayoutState.Current}}"
+                         Binding="{Binding Profile, Source={x:Static services:ResponsiveLayoutState.Current}, x:DataType=services:ResponsiveLayoutState}"
                          Value="{x:Static services:ResponsiveLayoutProfile.CompactLandscape}">
                 <Setter Property="Padding" Value="16,8" />
                 <Setter Property="RowSpacing" Value="6" />
@@ -224,13 +224,13 @@
         <Setter Property="Spacing" Value="14" />
         <Style.Triggers>
             <DataTrigger TargetType="VerticalStackLayout"
-                         Binding="{Binding Profile, Source={x:Static services:ResponsiveLayoutState.Current}}"
+                         Binding="{Binding Profile, Source={x:Static services:ResponsiveLayoutState.Current}, x:DataType=services:ResponsiveLayoutState}"
                          Value="{x:Static services:ResponsiveLayoutProfile.NarrowPortrait}">
                 <Setter Property="Padding" Value="18,16" />
                 <Setter Property="Spacing" Value="12" />
             </DataTrigger>
             <DataTrigger TargetType="VerticalStackLayout"
-                         Binding="{Binding Profile, Source={x:Static services:ResponsiveLayoutState.Current}}"
+                         Binding="{Binding Profile, Source={x:Static services:ResponsiveLayoutState.Current}, x:DataType=services:ResponsiveLayoutState}"
                          Value="{x:Static services:ResponsiveLayoutProfile.CompactLandscape}">
                 <Setter Property="Padding" Value="16,8" />
                 <Setter Property="Spacing" Value="8" />
@@ -242,7 +242,7 @@
         <Setter Property="FontSize" Value="30" />
         <Style.Triggers>
             <DataTrigger TargetType="Label"
-                         Binding="{Binding IsCompactLandscape, Source={x:Static services:ResponsiveLayoutState.Current}}"
+                         Binding="{Binding IsCompactLandscape, Source={x:Static services:ResponsiveLayoutState.Current}, x:DataType=services:ResponsiveLayoutState}"
                          Value="True">
                 <Setter Property="FontSize" Value="22" />
             </DataTrigger>
@@ -253,7 +253,7 @@
         <Setter Property="FontSize" Value="22" />
         <Style.Triggers>
             <DataTrigger TargetType="Label"
-                         Binding="{Binding IsCompactLandscape, Source={x:Static services:ResponsiveLayoutState.Current}}"
+                         Binding="{Binding IsCompactLandscape, Source={x:Static services:ResponsiveLayoutState.Current}, x:DataType=services:ResponsiveLayoutState}"
                          Value="True">
                 <Setter Property="FontSize" Value="18" />
             </DataTrigger>
@@ -279,7 +279,7 @@
         <Setter Property="VerticalTextAlignment" Value="Center" />
         <Style.Triggers>
             <DataTrigger TargetType="Label"
-                         Binding="{Binding IsLandscape, Source={x:Static services:ResponsiveLayoutState.Current}}"
+                         Binding="{Binding IsLandscape, Source={x:Static services:ResponsiveLayoutState.Current}, x:DataType=services:ResponsiveLayoutState}"
                          Value="True">
                 <Setter Property="FontSize" Value="22" />
             </DataTrigger>

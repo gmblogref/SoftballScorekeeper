@@ -79,7 +79,7 @@
         <Grid Grid.Row="4" ColumnDefinitions="*,*" ColumnSpacing="12" RowSpacing="8">
             <Grid.Triggers>
                 <DataTrigger TargetType="Grid"
-                             Binding="{Binding Profile, Source={x:Static services:ResponsiveLayoutState.Current}}"
+                             Binding="{Binding Profile, Source={x:Static services:ResponsiveLayoutState.Current}, x:DataType=services:ResponsiveLayoutState}"
                              Value="{x:Static services:ResponsiveLayoutProfile.NarrowPortrait}">
                     <Setter Property="ColumnDefinitions" Value="*" />
                     <Setter Property="RowDefinitions" Value="Auto,Auto" />
@@ -102,7 +102,7 @@
                 Style="{StaticResource ResponsiveActionButton}">
                 <Button.Triggers>
                     <DataTrigger TargetType="Button"
-                                 Binding="{Binding Profile, Source={x:Static services:ResponsiveLayoutState.Current}}"
+                                 Binding="{Binding Profile, Source={x:Static services:ResponsiveLayoutState.Current}, x:DataType=services:ResponsiveLayoutState}"
                                  Value="{x:Static services:ResponsiveLayoutProfile.NarrowPortrait}">
                         <Setter Property="Grid.Row" Value="1" />
                         <Setter Property="Grid.Column" Value="0" />

@@ -65,7 +65,7 @@
                                             SemanticProperties.Description="{Binding Name}">
                                             <Border.GestureRecognizers>
                                                 <TapGestureRecognizer
-                                                    Command="{Binding Source={x:Reference PageRoot}, Path=BindingContext.OpenTeamCommand}"
+                                                    Command="{Binding OpenTeamCommand, Source={RelativeSource AncestorType={x:Type viewModels:LandingPageViewModel}}, x:DataType=viewModels:LandingPageViewModel}"
                                                     CommandParameter="{Binding .}"
                                                     NumberOfTapsRequired="1" />
                                             </Border.GestureRecognizers>

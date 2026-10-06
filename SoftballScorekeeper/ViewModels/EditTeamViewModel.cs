@@ -117,6 +117,8 @@ public partial class EditTeamViewModel : ObservableObject, IQueryAttributable
             return;
         }
 
+        var teamToUpdate = loadedTeam;
+
         IsBusy = true;
         try
         {
@@ -130,8 +132,8 @@ public partial class EditTeamViewModel : ObservableObject, IQueryAttributable
             if (
                 await teamRepository.NameYearExistsAsync(
                     trimmedName,
-                    loadedTeam.Year,
-                    loadedTeam.Id
+                    teamToUpdate.Year,
+                    teamToUpdate.Id
                 )
             )
             {
@@ -140,14 +142,14 @@ public partial class EditTeamViewModel : ObservableObject, IQueryAttributable
             }
 
             TeamName = trimmedName;
-            var originalName = loadedTeam.Name;
-            loadedTeam.Name = trimmedName;
+            var originalName = teamToUpdate.Name;
+            teamToUpdate.Name = trimmedName;
 
             try
             {
-                if (await teamRepository.UpdateAsync(loadedTeam) == 0)
+                if (await teamRepository.UpdateAsync(teamToUpdate) == 0)
                 {
-                    loadedTeam.Name = originalName;
+                    teamToUpdate.Name = originalName;
                     loadedTeam = null;
                     IsTeamLoaded = false;
                     ValidationMessage = AppResources.TeamNotFound;
@@ -156,7 +158,7 @@ public partial class EditTeamViewModel : ObservableObject, IQueryAttributable
             }
             catch
             {
-                loadedTeam.Name = originalName;
+                teamToUpdate.Name = originalName;
                 throw;
             }
 

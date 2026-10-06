@@ -9,16 +9,16 @@
         <VerticalStackLayout x:Name="RegularHeader" Spacing="2">
             <VerticalStackLayout.Triggers>
                 <DataTrigger TargetType="VerticalStackLayout"
-                             Binding="{Binding IsCompactLandscape, Source={x:Static services:ResponsiveLayoutState.Current}}"
+                             Binding="{Binding IsCompactLandscape, Source={x:Static services:ResponsiveLayoutState.Current}, x:DataType=services:ResponsiveLayoutState}"
                              Value="True">
                     <Setter Property="IsVisible" Value="False" />
                 </DataTrigger>
             </VerticalStackLayout.Triggers>
-            <Label Text="{Binding TeamName, Source={x:Reference HeaderRoot}}"
-                   AutomationId="{Binding TeamNameAutomationId, Source={x:Reference HeaderRoot}}"
+            <Label Text="{Binding TeamName, Source={x:Reference HeaderRoot}, x:DataType=controls:TeamContextHeader}"
+                   AutomationId="{Binding TeamNameAutomationId, Source={x:Reference HeaderRoot}, x:DataType=controls:TeamContextHeader}"
                    Style="{StaticResource ResponsiveHeadline}"
                    SemanticProperties.HeadingLevel="Level1" />
-            <Label Text="{Binding PageTitle, Source={x:Reference HeaderRoot}}"
+            <Label Text="{Binding PageTitle, Source={x:Reference HeaderRoot}, x:DataType=controls:TeamContextHeader}"
                    Style="{StaticResource ResponsiveSubHeadline}"
                    SemanticProperties.HeadingLevel="Level2" />
         </VerticalStackLayout>
@@ -28,13 +28,13 @@
               ColumnSpacing="10">
             <Grid.Triggers>
                 <DataTrigger TargetType="Grid"
-                             Binding="{Binding IsCompactLandscape, Source={x:Static services:ResponsiveLayoutState.Current}}"
+                             Binding="{Binding IsCompactLandscape, Source={x:Static services:ResponsiveLayoutState.Current}, x:DataType=services:ResponsiveLayoutState}"
                              Value="True">
                     <Setter Property="IsVisible" Value="True" />
                 </DataTrigger>
             </Grid.Triggers>
-            <Label Text="{Binding TeamName, Source={x:Reference HeaderRoot}}"
-                   AutomationId="{Binding TeamNameAutomationId, Source={x:Reference HeaderRoot}}"
+            <Label Text="{Binding TeamName, Source={x:Reference HeaderRoot}, x:DataType=controls:TeamContextHeader}"
+                   AutomationId="{Binding TeamNameAutomationId, Source={x:Reference HeaderRoot}, x:DataType=controls:TeamContextHeader}"
                    Style="{StaticResource CompactTeamContextLabel}"
                    HorizontalTextAlignment="End"
                    LineBreakMode="TailTruncation"
@@ -43,7 +43,7 @@
             <BoxView Grid.Column="1"
                      BackgroundColor="{AppThemeBinding Light={StaticResource Gray400}, Dark={StaticResource Gray500}}" />
             <Label Grid.Column="2"
-                   Text="{Binding PageTitle, Source={x:Reference HeaderRoot}}"
+                   Text="{Binding PageTitle, Source={x:Reference HeaderRoot}, x:DataType=controls:TeamContextHeader}"
                    Style="{StaticResource CompactTeamContextLabel}"
                    HorizontalTextAlignment="Start"
                    LineBreakMode="TailTruncation"
