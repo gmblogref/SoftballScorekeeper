@@ -10,10 +10,10 @@ Stable product and architecture decisions belong in the project architecture doc
 
 ## Current Project Status
 
-- **Latest completed story:** Story 10 — Post-Appium / Post-Acceptance Fixes (all ten approved areas implemented and validated; physical-device visual/touch acceptance remains pending)
-- **Completed stories:** Stories 0.0 through 6.9.5, Stories 7.0 through 7.9 except Story 7.6, Stories 8.0 through 8.5, Story 9.0, and Story 10; Story 6.9.4 and Story 7.7 retain their recorded physical Android acceptance status, and Stories 3.2 through 3.4 retain their recorded validation status
+- **Latest completed story:** Story 11 — Release Candidate APK Build / Tablet Install Preparation (signed Release APK prepared; physical-tablet acceptance remains pending)
+- **Completed stories:** Stories 0.0 through 6.9.5, Stories 7.0 through 7.9 except Story 7.6, Stories 8.0 through 8.5, Stories 9.0 through 11; Story 6.9.4 and Story 7.7 retain their recorded physical Android acceptance status, and Stories 3.2 through 3.4 retain their recorded validation status
 - **Current story:** No implementation story is in progress
-- **Current phase:** Story 10 closed; release work has not started
+- **Current phase:** Story 11 release candidate prepared; physical-tablet acceptance is pending
 - **Foundation status:** Complete
 
 The repository contains a five-project .NET 9 solution: the Android- and Windows-targeted .NET MAUI application, platform-independent Core, Infrastructure, the emulator-independent automated test project, and the opt-in Android UI test project. Its implemented foundation includes repository guidance, pragmatic layered dependencies, CommunityToolkit.Mvvm, MAUI dependency injection, device-local SQLite initialization, centralized user-facing resources, strongly typed application settings, and isolated xUnit repository integration tests. Team Workspace contains local Games and Roster sections, supports adding or removing existing active Players, and supports creating a global Player with immediate TeamPlayer membership from the Team-scoped Add Players workflow. Player Workspace shows active Team memberships, and Player Manager retains bulk lifecycle actions; Game schedule management and other later softball workflows remain deferred.
@@ -3456,6 +3456,22 @@ Dedicated Double Play/Triple Play presentation, sacrifice results, HR-limit/dead
 - Focused repository/current-batter/history coverage passed 140 of 140, including direct Add-event Game Plays chronology; presentation checks passed 5 of 5; and the final complete emulator-independent suite passed 1,089 of 1,089 with zero failures or skips. An earlier complete-suite attempt exposed two pre-existing source-format assertions after formatting touched their expressions; their established layouts were restored without behavior changes, the pinpoint checks passed 2 of 2, and the clean full reruns passed.
 - Targeted Android position-picker/live-lineup acceptance passed 6 of 6 in 3 minutes 2 seconds, and the relevant Story 10/manual-check regression passed 11 of 11 in 7 minutes. Both passed without retries or skips. The Android application build passed with zero errors and the existing 10 `CS8602`/`XC0025` warnings; Windows passed with zero errors and 154 existing-category `CS8602`/`MVVMTK0045`/`XC0025` warnings; the Android UI-test project passed with zero warnings or errors.
 - The fresh final unfiltered command `powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\run-android-ui-tests.ps1 -AvdName softball_tablet_ui_tests_api_35` passed 69 of 69 with zero failures or skips in 40 minutes 32 seconds. It required no retry, built and installed the final application successfully, used only `softball_tablet_ui_tests_api_35` as `emulator-5556`, preserved the isolated UI-test database lifecycle, and stopped its runner-owned Appium process and emulator normally. `AGENTS.md` was reviewed and remains unchanged for this fix because its existing live-lineup invariants already cover current-batter history and runner identity separation. Physical-tablet validation, packaging, deployment, and source-control submission were not performed.
+
+### Story 11 — Release Candidate APK Build / Tablet Install Preparation
+
+#### Release Artifact
+
+- Prepared the Android Release candidate from branch `task/release-candidate-apk` at source commit `3ee3f0339d2b62970706f2e16bf41c86cc9b6084`, which matched both `main` and `origin/main` before the documentation update. The source working tree was clean before release preparation.
+- Published `SoftballScorekeeper/SoftballScorekeeper.csproj` with configuration `Release`, target framework `net9.0-android`, APK-only packaging, and the permanent `softballscorekeeper` signing identity. The build succeeded in 123.5 seconds with zero errors and 10 existing-category warnings.
+- Selected the signed publish output `com.companyname.softballscorekeeper-Signed.apk` and copied it byte-for-byte to the ignored local artifact `artifacts/release/SoftballScorekeeper-RC.apk`. The artifact is 34,421,581 bytes and has APK file SHA-256 `94171D5C66E5920E9679C9E988720FEC5C10DEF036E875490E86EBBB15618714`. No AAB was produced; the separately generated unsigned APK was not selected.
+- Android signing verification passed for APK Signature Schemes v1, v2, and v3. The APK uses package ID `com.companyname.softballscorekeeper`, version name `1.0`, and version code `1`. Its signing certificate SHA-256 fingerprint is `D5:5E:FD:C1:E2:5B:34:1F:44:08:BC:30:14:EC:FF:31:D9:42:55:11:3E:DD:6F:9B:5F:3C:E9:8E:83:3E:4E:05`, valid from October 2, 2026 through February 17, 2054.
+
+#### Release Safety and Validation
+
+- Release compilation excludes the Android UI-test initializer, seed-request processing, and UI-test database selection through existing `DEBUG` conditional compilation. Production continues to default to `SoftballScorekeeper.db3`, so a fresh Production startup does not auto-seed Android UI-test data. `SoftballScorekeeper.AndroidUiTests.db3` remains isolated from the normal Release database.
+- Product Test Mode remains available with its separate `SoftballScorekeeper.Test.db3` database. Production-only Backup and Restore remain registered and available, and the Production-only League Season Backup Reminder remains registered and available.
+- Artifact validation confirmed that the copied RC is byte-identical to the verified signed publish output. The previously accepted broad Appium suite was not rerun, and the APK was not installed automatically. Physical tablet acceptance is **PENDING**.
+- `AGENTS.md` was reviewed and left unchanged because Story 11 established no new durable project-wide rule beyond the existing release, validation, and source-control guidance.
 
 ## Maintenance Rules
 
