@@ -1232,6 +1232,10 @@ namespace SoftballScorekeeper.Resources.Strings {
         public static string EnterOpponentHalfInningButton { get { return ResourceManager.GetString("EnterOpponentHalfInningButton", resourceCulture); } }
         public static string GameStatsButton { get { return ResourceManager.GetString("GameStatsButton", resourceCulture); } }
         public static string GamePlaysButton { get { return ResourceManager.GetString("GamePlaysButton", resourceCulture); } }
+        public static string GameStatsActiveAccessibilityText { get { return ResourceManager.GetString("GameStatsActiveAccessibilityText", resourceCulture); } }
+        public static string GameStatsInactiveAccessibilityText { get { return ResourceManager.GetString("GameStatsInactiveAccessibilityText", resourceCulture); } }
+        public static string GamePlaysActiveAccessibilityText { get { return ResourceManager.GetString("GamePlaysActiveAccessibilityText", resourceCulture); } }
+        public static string GamePlaysInactiveAccessibilityText { get { return ResourceManager.GetString("GamePlaysInactiveAccessibilityText", resourceCulture); } }
         public static string GamePlaysHalfHeading { get { return ResourceManager.GetString("GamePlaysHalfHeading", resourceCulture); } }
         public static string GamePlaysTopLabel { get { return ResourceManager.GetString("GamePlaysTopLabel", resourceCulture); } }
         public static string GamePlaysBottomLabel { get { return ResourceManager.GetString("GamePlaysBottomLabel", resourceCulture); } }

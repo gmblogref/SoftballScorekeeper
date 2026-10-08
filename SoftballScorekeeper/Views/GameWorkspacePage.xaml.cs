@@ -1,11 +1,18 @@
 using SoftballScorekeeper.ViewModels;
 using SoftballScorekeeper.Resources.Strings;
+using SoftballScorekeeper.Services;
 
 namespace SoftballScorekeeper.Views;
 
 public partial class GameWorkspacePage : ContentPage
 {
+    private const string PortraitCompletedWorkspaceState = "PortraitCompletedWorkspace";
+    private const string LandscapeCompletedWorkspaceState = "LandscapeCompletedWorkspace";
     private readonly GameWorkspaceViewModel viewModel;
+    private string? appliedCompletedLayoutState;
+    private string? lastCompletedLayoutLog;
+    private double allocatedWidth;
+    private double allocatedHeight;
 
     public GameWorkspacePage(GameWorkspaceViewModel viewModel)
     {
@@ -14,10 +21,37 @@ public partial class GameWorkspacePage : ContentPage
         BindingContext = viewModel;
     }
 
+    protected override void OnSizeAllocated(double width, double height)
+    {
+        base.OnSizeAllocated(width, height);
+        if (width <= 0 || height <= 0)
+            return;
+
+        allocatedWidth = width;
+        allocatedHeight = height;
+        ResponsiveLayoutState.Current.Update(width, height);
+        var layoutState = SelectCompletedWorkspaceState(width, height);
+        if (layoutState != appliedCompletedLayoutState)
+        {
+            VisualStateManager.GoToState(RootGrid, layoutState);
+            appliedCompletedLayoutState = layoutState;
+        }
+
+        QueueCompletedLayoutLog();
+    }
+
+    internal static string SelectCompletedWorkspaceState(double width, double height) =>
+        ResponsiveLayoutState.Classify(width, height)
+            is ResponsiveLayoutProfile.CompactLandscape
+                or ResponsiveLayoutProfile.RegularLandscape
+            ? LandscapeCompletedWorkspaceState
+            : PortraitCompletedWorkspaceState;
+
     protected override async void OnAppearing()
     {
         base.OnAppearing();
         await viewModel.LoadAsync();
+        QueueCompletedLayoutLog();
     }
 
     private async void OnScoreGameClicked(object sender, EventArgs e)
@@ -45,5 +79,24 @@ public partial class GameWorkspacePage : ContentPage
             AppResources.CancelButton);
         if (finalConfirmation)
             await viewModel.ResetScoringAsync();
+    }
+
+    private void QueueCompletedLayoutLog()
+    {
+        if (App.CurrentDatabaseModeState?.IsTestMode == true && viewModel.ShowCompletedGame)
+            Dispatcher.Dispatch(LogCompletedLayoutDimensions);
+    }
+
+    private void LogCompletedLayoutDimensions()
+    {
+        var message =
+            $"[Story13CompletedLayout] PAGE={allocatedWidth:0.#}x{allocatedHeight:0.#} "
+            + $"WORKSPACE={WorkspaceContentGrid.Width:0.#}x{WorkspaceContentGrid.Height:0.#} "
+            + $"STATE={appliedCompletedLayoutState}";
+        if (message == lastCompletedLayoutLog)
+            return;
+
+        lastCompletedLayoutLog = message;
+        Console.WriteLine(message);
     }
 }

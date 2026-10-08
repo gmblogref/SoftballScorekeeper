@@ -7,23 +7,90 @@
              x:Class="SoftballScorekeeper.Views.GameWorkspacePage"
              x:DataType="viewModels:GameWorkspaceViewModel"
              Title="{x:Static strings:AppResources.GameWorkspaceTitle}">
+    <ContentPage.Resources>
+        <Style x:Key="CompletedGameViewButton" TargetType="Button">
+            <Setter Property="BackgroundColor" Value="{StaticResource Black}" />
+            <Setter Property="BorderColor" Value="{StaticResource White}" />
+            <Setter Property="BorderWidth" Value="1" />
+            <Setter Property="TextColor" Value="{StaticResource White}" />
+        </Style>
+    </ContentPage.Resources>
+
     <Grid x:Name="RootGrid" Style="{StaticResource ResponsivePageGrid}" RowDefinitions="Auto,*">
         <VisualStateManager.VisualStateGroups>
             <VisualStateGroup x:Name="CompletedWorkspaceLayoutStates">
                 <VisualState x:Name="PortraitCompletedWorkspace">
-                    <VisualState.StateTriggers>
-                        <AdaptiveTrigger MinWindowWidth="0" />
-                    </VisualState.StateTriggers>
+                    <VisualState.Setters>
+                        <Setter TargetName="CompletedGameGrid" Property="RowDefinitions" Value="Auto,Auto,Auto,*,Auto" />
+                        <Setter TargetName="CompletedGameGrid" Property="RowSpacing" Value="12" />
+                        <Setter TargetName="CompletedGameGrid" Property="ColumnDefinitions" Value="*" />
+                        <Setter TargetName="CompletedGameGrid" Property="ColumnSpacing" Value="0" />
+                        <Setter TargetName="CompletedScoreboard"
+                                Property="controls:FullScoreboard.Profile"
+                                Value="CompletedPortrait" />
+                        <Setter TargetName="CompletedScoreboard" Property="Grid.Row" Value="0" />
+                        <Setter TargetName="CompletedScoreboard" Property="Grid.Column" Value="0" />
+                        <Setter TargetName="CompletedViewButtons" Property="Grid.Row" Value="1" />
+                        <Setter TargetName="CompletedViewButtons" Property="Grid.Column" Value="0" />
+                        <Setter TargetName="CompletedStatsHeading" Property="Grid.Row" Value="2" />
+                        <Setter TargetName="CompletedStatsHeading" Property="Grid.Column" Value="0" />
+                        <Setter TargetName="CompletedGameStatsView" Property="Grid.Row" Value="3" />
+                        <Setter TargetName="CompletedGameStatsView" Property="Grid.Column" Value="0" />
+                        <Setter TargetName="CompletedGamePlaysView" Property="Grid.Row" Value="3" />
+                        <Setter TargetName="CompletedGamePlaysView" Property="Grid.Column" Value="0" />
+                        <Setter TargetName="CompletedGameInfoPanel" Property="Grid.Row" Value="4" />
+                        <Setter TargetName="CompletedGameInfoPanel" Property="Grid.Column" Value="0" />
+                        <Setter TargetName="CompletedGameInfoPanel" Property="Grid.RowSpan" Value="1" />
+                        <Setter TargetName="CompletedGameInfoPanel" Property="VerticalOptions" Value="Fill" />
+                        <Setter TargetName="CompletedGameInfoGrid" Property="ColumnDefinitions" Value="*,*" />
+                        <Setter TargetName="CompletedGameInfoGrid" Property="RowDefinitions" Value="Auto,Auto,Auto" />
+                        <Setter TargetName="CompletedSeasonInfo" Property="Grid.Row" Value="0" />
+                        <Setter TargetName="CompletedSeasonInfo" Property="Grid.Column" Value="0" />
+                        <Setter TargetName="CompletedDateInfo" Property="Grid.Row" Value="1" />
+                        <Setter TargetName="CompletedDateInfo" Property="Grid.Column" Value="0" />
+                        <Setter TargetName="CompletedFieldInfo" Property="Grid.Row" Value="2" />
+                        <Setter TargetName="CompletedFieldInfo" Property="Grid.Column" Value="0" />
+                        <Setter TargetName="CompletedOpponentInfo" Property="Grid.Row" Value="0" />
+                        <Setter TargetName="CompletedOpponentInfo" Property="Grid.Column" Value="1" />
+                        <Setter TargetName="CompletedTimeInfo" Property="Grid.Row" Value="1" />
+                        <Setter TargetName="CompletedTimeInfo" Property="Grid.Column" Value="1" />
+                    </VisualState.Setters>
                 </VisualState>
                 <VisualState x:Name="LandscapeCompletedWorkspace">
-                    <VisualState.StateTriggers>
-                        <AdaptiveTrigger MinWindowWidth="900" />
-                    </VisualState.StateTriggers>
                     <VisualState.Setters>
+                        <Setter TargetName="CompletedGameGrid" Property="RowDefinitions" Value="Auto,Auto,Auto,*,Auto" />
                         <Setter TargetName="CompletedGameGrid" Property="RowSpacing" Value="8" />
-                        <Setter TargetName="CompletedScoreboard" Property="Padding" Value="18,8" />
-                        <Setter TargetName="CompletedVisitorScore" Property="Label.FontSize" Value="48" />
-                        <Setter TargetName="CompletedHomeScore" Property="Label.FontSize" Value="48" />
+                        <Setter TargetName="CompletedGameGrid" Property="ColumnDefinitions" Value="0.3*,0.7*" />
+                        <Setter TargetName="CompletedGameGrid" Property="ColumnSpacing" Value="16" />
+                        <Setter TargetName="CompletedScoreboard"
+                                Property="controls:FullScoreboard.Profile"
+                                Value="CompletedLandscape" />
+                        <Setter TargetName="CompletedScoreboard" Property="Grid.Row" Value="0" />
+                        <Setter TargetName="CompletedScoreboard" Property="Grid.Column" Value="1" />
+                        <Setter TargetName="CompletedViewButtons" Property="Grid.Row" Value="1" />
+                        <Setter TargetName="CompletedViewButtons" Property="Grid.Column" Value="1" />
+                        <Setter TargetName="CompletedStatsHeading" Property="Grid.Row" Value="2" />
+                        <Setter TargetName="CompletedStatsHeading" Property="Grid.Column" Value="1" />
+                        <Setter TargetName="CompletedGameStatsView" Property="Grid.Row" Value="3" />
+                        <Setter TargetName="CompletedGameStatsView" Property="Grid.Column" Value="1" />
+                        <Setter TargetName="CompletedGamePlaysView" Property="Grid.Row" Value="3" />
+                        <Setter TargetName="CompletedGamePlaysView" Property="Grid.Column" Value="1" />
+                        <Setter TargetName="CompletedGameInfoPanel" Property="Grid.Row" Value="0" />
+                        <Setter TargetName="CompletedGameInfoPanel" Property="Grid.Column" Value="0" />
+                        <Setter TargetName="CompletedGameInfoPanel" Property="Grid.RowSpan" Value="5" />
+                        <Setter TargetName="CompletedGameInfoPanel" Property="VerticalOptions" Value="Fill" />
+                        <Setter TargetName="CompletedGameInfoGrid" Property="ColumnDefinitions" Value="*" />
+                        <Setter TargetName="CompletedGameInfoGrid" Property="RowDefinitions" Value="Auto,Auto,Auto,*,Auto,Auto" />
+                        <Setter TargetName="CompletedSeasonInfo" Property="Grid.Row" Value="0" />
+                        <Setter TargetName="CompletedSeasonInfo" Property="Grid.Column" Value="0" />
+                        <Setter TargetName="CompletedDateInfo" Property="Grid.Row" Value="1" />
+                        <Setter TargetName="CompletedDateInfo" Property="Grid.Column" Value="0" />
+                        <Setter TargetName="CompletedFieldInfo" Property="Grid.Row" Value="2" />
+                        <Setter TargetName="CompletedFieldInfo" Property="Grid.Column" Value="0" />
+                        <Setter TargetName="CompletedOpponentInfo" Property="Grid.Row" Value="4" />
+                        <Setter TargetName="CompletedOpponentInfo" Property="Grid.Column" Value="0" />
+                        <Setter TargetName="CompletedTimeInfo" Property="Grid.Row" Value="5" />
+                        <Setter TargetName="CompletedTimeInfo" Property="Grid.Column" Value="0" />
                     </VisualState.Setters>
                 </VisualState>
             </VisualStateGroup>
@@ -40,7 +107,7 @@
             </Label.Triggers>
         </Label>
 
-        <Grid Grid.Row="1">
+        <Grid x:Name="WorkspaceContentGrid" Grid.Row="1">
             <Grid IsVisible="{Binding ShowStandardWorkspace}"
                   RowDefinitions="Auto,Auto,Auto,*,Auto"
                   RowSpacing="20">
@@ -98,62 +165,66 @@
 
             <Grid x:Name="CompletedGameGrid"
                   IsVisible="{Binding ShowCompletedGame}"
+                  ColumnDefinitions="*"
                   RowDefinitions="Auto,Auto,Auto,*,Auto"
                   RowSpacing="12">
-                <Border x:Name="CompletedScoreboard"
-                        Stroke="{AppThemeBinding Light={StaticResource Gray300}, Dark={StaticResource Gray600}}"
-                        StrokeShape="RoundRectangle 12" Padding="24,12">
-                    <Grid RowDefinitions="Auto,Auto" RowSpacing="4">
-                        <Label AutomationId="CompletedGameStatus"
-                               Text="{x:Static strings:AppResources.FinalStatus}"
-                               FontSize="20" FontAttributes="Bold"
-                               HorizontalTextAlignment="Center"
-                               SemanticProperties.HeadingLevel="Level1" />
-                        <Grid Grid.Row="1" ColumnDefinitions="*,1,*" ColumnSpacing="24">
-                            <Grid RowDefinitions="Auto,Auto,Auto" RowSpacing="2">
-                                <Label Text="{x:Static strings:AppResources.VisitorScoreboardHeading}"
-                                       FontSize="16" FontAttributes="Bold" HorizontalTextAlignment="Center" />
-                                <Label AutomationId="CompletedVisitorName" Grid.Row="1"
-                                       Text="{Binding CompletedVisitorName}" FontSize="20" FontAttributes="Bold"
-                                       HorizontalTextAlignment="Center" LineBreakMode="TailTruncation" MaxLines="1" />
-                                <Label x:Name="CompletedVisitorScore" AutomationId="CompletedVisitorScore"
-                                       Grid.Row="2" Text="{Binding CompletedVisitorScore}"
-                                       FontSize="56" FontAttributes="Bold" HorizontalTextAlignment="Center" />
-                            </Grid>
-                            <BoxView Grid.Column="1"
-                                     BackgroundColor="{AppThemeBinding Light={StaticResource Gray300}, Dark={StaticResource Gray600}}" />
-                            <Grid Grid.Column="2" RowDefinitions="Auto,Auto,Auto" RowSpacing="2">
-                                <Label Text="{x:Static strings:AppResources.HomeScoreboardHeading}"
-                                       FontSize="16" FontAttributes="Bold" HorizontalTextAlignment="Center" />
-                                <Label AutomationId="CompletedHomeName" Grid.Row="1"
-                                       Text="{Binding CompletedHomeName}" FontSize="20" FontAttributes="Bold"
-                                       HorizontalTextAlignment="Center" LineBreakMode="TailTruncation" MaxLines="1" />
-                                <Label x:Name="CompletedHomeScore" AutomationId="CompletedHomeScore"
-                                       Grid.Row="2" Text="{Binding CompletedHomeScore}"
-                                       FontSize="56" FontAttributes="Bold" HorizontalTextAlignment="Center" />
-                            </Grid>
-                        </Grid>
-                    </Grid>
-                </Border>
+                <controls:FullScoreboard x:Name="CompletedScoreboard"
+                                         Profile="CompletedPortrait"
+                                         HeaderText="{x:Static strings:AppResources.FinalStatus}"
+                                         VisitorName="{Binding CompletedVisitorName}"
+                                         VisitorScore="{Binding CompletedVisitorScore}"
+                                         HomeName="{Binding CompletedHomeName}"
+                                         HomeScore="{Binding CompletedHomeScore}"
+                                         HeaderAutomationId="CompletedGameStatus"
+                                         VisitorNameAutomationId="CompletedVisitorName"
+                                         VisitorScoreAutomationId="CompletedVisitorScore"
+                                         HomeNameAutomationId="CompletedHomeName"
+                                         HomeScoreAutomationId="CompletedHomeScore" />
 
-                <HorizontalStackLayout Grid.Row="1" HorizontalOptions="Center" Spacing="16">
+                <HorizontalStackLayout x:Name="CompletedViewButtons"
+                                       Grid.Row="1" HorizontalOptions="Center" Spacing="16">
                     <Button AutomationId="GameStatsButton" Text="{x:Static strings:AppResources.GameStatsButton}"
-                            Command="{Binding ShowGameStatsCommand}" MinimumHeightRequest="48" />
+                            Command="{Binding ShowGameStatsCommand}"
+                            MinimumHeightRequest="48"
+                            SemanticProperties.Description="{x:Static strings:AppResources.GameStatsInactiveAccessibilityText}"
+                            Style="{StaticResource CompletedGameViewButton}">
+                        <Button.Triggers>
+                            <DataTrigger TargetType="Button" Binding="{Binding ShowingGameStats}" Value="True">
+                                <Setter Property="BackgroundColor" Value="{StaticResource Primary}" />
+                                <Setter Property="BorderColor" Value="{StaticResource Primary}" />
+                                <Setter Property="SemanticProperties.Description" Value="{x:Static strings:AppResources.GameStatsActiveAccessibilityText}" />
+                            </DataTrigger>
+                        </Button.Triggers>
+                    </Button>
                     <Button AutomationId="GamePlaysButton" Text="{x:Static strings:AppResources.GamePlaysButton}"
-                            Command="{Binding ShowGamePlaysCommand}" MinimumHeightRequest="48" />
+                            Command="{Binding ShowGamePlaysCommand}"
+                            MinimumHeightRequest="48"
+                            SemanticProperties.Description="{x:Static strings:AppResources.GamePlaysInactiveAccessibilityText}"
+                            Style="{StaticResource CompletedGameViewButton}">
+                        <Button.Triggers>
+                            <DataTrigger TargetType="Button" Binding="{Binding ShowingGamePlays}" Value="True">
+                                <Setter Property="BackgroundColor" Value="{StaticResource Primary}" />
+                                <Setter Property="BorderColor" Value="{StaticResource Primary}" />
+                                <Setter Property="SemanticProperties.Description" Value="{x:Static strings:AppResources.GamePlaysActiveAccessibilityText}" />
+                            </DataTrigger>
+                        </Button.Triggers>
+                    </Button>
                 </HorizontalStackLayout>
 
-                <Label Grid.Row="2" Text="{x:Static strings:AppResources.BattingStatisticsHeading}"
+                <Label x:Name="CompletedStatsHeading"
+                       Grid.Row="2" Text="{x:Static strings:AppResources.BattingStatisticsHeading}"
                        IsVisible="{Binding ShowingGameStats}"
                        Style="{StaticResource SubHeadline}" SemanticProperties.HeadingLevel="Level2" />
 
-                <Grid Grid.Row="3" AutomationId="CompletedGameStatsView"
+                <Grid x:Name="CompletedGameStatsView"
+                      Grid.Row="3" AutomationId="CompletedGameStatsView"
                       IsVisible="{Binding ShowingGameStats}">
                     <controls:BattingStatisticsGrid
                         BindingContext="{Binding CompletedBattingStatistics}" />
                 </Grid>
 
-                <ScrollView Grid.Row="3" AutomationId="CompletedGamePlaysView"
+                <ScrollView x:Name="CompletedGamePlaysView"
+                            Grid.Row="3" AutomationId="CompletedGamePlaysView"
                             IsVisible="{Binding ShowingGamePlays}">
                     <VerticalStackLayout Spacing="14" BindableLayout.ItemsSource="{Binding CompletedGamePlays}">
                         <BindableLayout.ItemTemplate>
@@ -197,27 +268,31 @@
                     </VerticalStackLayout>
                 </ScrollView>
 
-                <Border Grid.Row="4"
+                <Border x:Name="CompletedGameInfoPanel"
+                        Grid.Row="4"
                         Stroke="{AppThemeBinding Light={StaticResource Gray300}, Dark={StaticResource Gray600}}"
                         StrokeShape="RoundRectangle 8" Padding="14,8">
-                    <Grid RowDefinitions="Auto,Auto,Auto" ColumnDefinitions="*,*" RowSpacing="6" ColumnSpacing="24">
-                        <HorizontalStackLayout Spacing="6">
+                    <Grid x:Name="CompletedGameInfoGrid"
+                          RowDefinitions="Auto,Auto,Auto" ColumnDefinitions="*,*"
+                          RowSpacing="6" ColumnSpacing="24">
+                        <HorizontalStackLayout x:Name="CompletedSeasonInfo" Spacing="6">
                             <Label Text="{x:Static strings:AppResources.SeasonLabel}" FontAttributes="Bold" />
                             <Label Text="{Binding SeasonDisplay}" LineBreakMode="TailTruncation" MaxLines="1" />
                         </HorizontalStackLayout>
-                        <HorizontalStackLayout Grid.Column="1" Spacing="6">
+                        <HorizontalStackLayout x:Name="CompletedOpponentInfo" Grid.Column="1" Spacing="6">
                             <Label Text="{x:Static strings:AppResources.OpponentLabel}" FontAttributes="Bold" />
                             <Label Text="{Binding OpponentDisplay}" LineBreakMode="TailTruncation" MaxLines="1" />
                         </HorizontalStackLayout>
-                        <HorizontalStackLayout Grid.Row="1" Spacing="6">
+                        <HorizontalStackLayout x:Name="CompletedDateInfo" Grid.Row="1" Spacing="6">
                             <Label Text="{x:Static strings:AppResources.GameDateLabel}" FontAttributes="Bold" />
                             <Label Text="{Binding DateDisplay}" LineBreakMode="TailTruncation" MaxLines="1" />
                         </HorizontalStackLayout>
-                        <HorizontalStackLayout Grid.Row="1" Grid.Column="1" Spacing="6">
+                        <HorizontalStackLayout x:Name="CompletedTimeInfo"
+                                               Grid.Row="1" Grid.Column="1" Spacing="6">
                             <Label Text="{x:Static strings:AppResources.GameTimeLabel}" FontAttributes="Bold" />
                             <Label Text="{Binding TimeDisplay}" LineBreakMode="TailTruncation" MaxLines="1" />
                         </HorizontalStackLayout>
-                        <HorizontalStackLayout Grid.Row="2" Spacing="6">
+                        <HorizontalStackLayout x:Name="CompletedFieldInfo" Grid.Row="2" Spacing="6">
                             <Label Text="{x:Static strings:AppResources.FieldLabel}" FontAttributes="Bold" />
                             <Label Text="{Binding FieldDisplay}" LineBreakMode="TailTruncation" MaxLines="1" />
                         </HorizontalStackLayout>

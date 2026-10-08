@@ -96,18 +96,26 @@ public sealed class ResponsiveLayoutPresentationTests
     public void Scoring_has_short_landscape_density_without_reducing_touch_targets()
     {
         var page = LoadXaml("Views", "ScoringPage.xaml");
+        var scoreboard = LoadXaml("Views", "Controls", "FullScoreboard.xaml");
         var code = Read("Views", "ScoringPage.xaml.cs");
-        var compactState = page.Descendants()
+        var compactPageState = page.Descendants()
             .Single(element =>
                 element.Name.LocalName == "VisualState"
                 && element.Attribute(XName.Get("Name", XamlNamespace))?.Value
                     == "CompactLandscapeScoreboard"
             );
+        var compactScoreboardState = scoreboard
+            .Descendants()
+            .Single(element =>
+                element.Name.LocalName == "VisualState"
+                && element.Attribute(XName.Get("Name", XamlNamespace))?.Value
+                    == "LiveCompactLandscape"
+            );
 
         Assert.Contains("ResponsiveLayoutState.Classify(width, height)", code);
         Assert.Contains("CompactLandscapeScoreboard", code);
         Assert.Contains(
-            compactState.Descendants(),
+            compactScoreboardState.Descendants(),
             setter =>
                 setter.Attribute("TargetName")?.Value == "HomeScoreValue"
                 && setter.Attribute("Property")?.Value == "Label.FontSize"
@@ -122,7 +130,7 @@ public sealed class ResponsiveLayoutPresentationTests
             }
         )
             Assert.Contains(
-                compactState.Descendants(),
+                compactPageState.Descendants(),
                 setter =>
                     setter.Attribute("TargetName")?.Value == automationId
                     && setter.Attribute("Property")?.Value == "MinimumHeightRequest"

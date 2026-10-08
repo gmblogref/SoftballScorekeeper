@@ -793,6 +793,10 @@
   <data name="GamePlaysPlayerReplaced" xml:space="preserve"><value>{0} replaced {1} in the lineup</value></data>
   <data name="GameStatsButton" xml:space="preserve"><value>Game Stats</value></data>
   <data name="GamePlaysButton" xml:space="preserve"><value>Game Plays</value></data>
+  <data name="GameStatsActiveAccessibilityText" xml:space="preserve"><value>Game Stats, selected view</value></data>
+  <data name="GameStatsInactiveAccessibilityText" xml:space="preserve"><value>Game Stats, available view</value></data>
+  <data name="GamePlaysActiveAccessibilityText" xml:space="preserve"><value>Game Plays, selected view</value></data>
+  <data name="GamePlaysInactiveAccessibilityText" xml:space="preserve"><value>Game Plays, available view</value></data>
   <data name="GamePlaysHalfHeading" xml:space="preserve"><value>{0} {1} — {2}</value></data>
   <data name="GamePlaysTopLabel" xml:space="preserve"><value>Top</value></data>
   <data name="GamePlaysBottomLabel" xml:space="preserve"><value>Bottom</value></data>
