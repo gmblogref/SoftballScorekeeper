@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8" ?>
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:controls="clr-namespace:SoftballScorekeeper.Views.Controls"
              xmlns:services="clr-namespace:SoftballScorekeeper.Services"
              xmlns:strings="clr-namespace:SoftballScorekeeper.Resources.Strings"
              xmlns:viewModels="clr-namespace:SoftballScorekeeper.ViewModels"
@@ -28,38 +29,9 @@
                         <Setter TargetName="RootGrid" Property="RowSpacing" Value="4" />
                         <Setter TargetName="ScoringMenu" Property="Margin" Value="12,54,0,0" />
                         <Setter TargetName="ScoringPageTitle" Property="Label.FontSize" Value="20" />
-                        <Setter TargetName="ScoreboardBorder" Property="Padding" Value="8,2" />
-                        <Setter TargetName="ScoreboardGrid" Property="ColumnDefinitions" Value="*,1,Auto,1,*" />
-                        <Setter TargetName="ScoreboardGrid" Property="RowDefinitions" Value="Auto" />
-                        <Setter TargetName="ScoreboardGrid" Property="RowSpacing" Value="0" />
-                        <Setter TargetName="HomeScoreboard" Property="Grid.Column" Value="4" />
-                        <Setter TargetName="HomeScoreboard" Property="RowDefinitions" Value="Auto,Auto,Auto" />
-                        <Setter TargetName="VisitorScoreboard" Property="RowDefinitions" Value="Auto,Auto,Auto" />
-                        <Setter TargetName="HomeScoreboard" Property="RowSpacing" Value="0" />
-                        <Setter TargetName="VisitorScoreboard" Property="RowSpacing" Value="0" />
-                        <Setter TargetName="ScoreboardRightDivider" Property="IsVisible" Value="True" />
-                        <Setter TargetName="ScoreboardRightDivider" Property="Grid.Column" Value="3" />
-                        <Setter TargetName="GameStatusPanel" Property="Grid.Row" Value="0" />
-                        <Setter TargetName="GameStatusPanel" Property="Grid.Column" Value="2" />
-                        <Setter TargetName="GameStatusPanel" Property="Grid.ColumnSpan" Value="1" />
-                        <Setter TargetName="GameStatusPanel" Property="Padding" Value="8,0" />
-                        <Setter TargetName="HomeHeading" Property="Label.FontSize" Value="12" />
-                        <Setter TargetName="VisitorHeading" Property="Label.FontSize" Value="12" />
-                        <Setter TargetName="HomeTeamName" Property="Label.FontSize" Value="15" />
-                        <Setter TargetName="VisitorTeamName" Property="Label.FontSize" Value="15" />
-                        <Setter TargetName="HomeScoreValue" Property="Label.FontSize" Value="30" />
-                        <Setter TargetName="VisitorScoreValue" Property="Label.FontSize" Value="30" />
-                        <Setter TargetName="HomeScoreValue" Property="Grid.Row" Value="0" />
-                        <Setter TargetName="VisitorScoreValue" Property="Grid.Row" Value="0" />
-                        <Setter TargetName="HomeScoreValue" Property="Grid.Column" Value="1" />
-                        <Setter TargetName="VisitorScoreValue" Property="Grid.Column" Value="1" />
-                        <Setter TargetName="HomeScoreValue" Property="Grid.RowSpan" Value="2" />
-                        <Setter TargetName="VisitorScoreValue" Property="Grid.RowSpan" Value="2" />
-                        <Setter TargetName="HomeHomeRunLabel" Property="Grid.Row" Value="2" />
-                        <Setter TargetName="VisitorHomeRunLabel" Property="Grid.Row" Value="2" />
-                        <Setter TargetName="HomeHomeRunLabel" Property="Label.FontSize" Value="12" />
-                        <Setter TargetName="VisitorHomeRunLabel" Property="Label.FontSize" Value="12" />
-                        <Setter TargetName="InningOutLabel" Property="Label.FontSize" Value="15" />
+                        <Setter TargetName="FullScoreboard"
+                                Property="controls:FullScoreboard.Profile"
+                                Value="LiveCompactPortrait" />
                         <Setter TargetName="ScoringContentLayout" Property="RowSpacing" Value="4" />
                         <Setter TargetName="FieldSection" Property="RowSpacing" Value="2" />
                         <Setter TargetName="FieldGrid" Property="RowSpacing" Value="3" />
@@ -82,43 +54,10 @@
                         <Setter TargetName="RootGrid" Property="Padding" Value="20,8" />
                         <Setter TargetName="RootGrid" Property="RowSpacing" Value="6" />
                         <Setter TargetName="ScoringMenu" Property="Margin" Value="20,64,0,0" />
-                        <Setter TargetName="ScoreboardBorder" Property="Padding" Value="10,2" />
-                        <Setter TargetName="ScoreboardGrid" Property="ColumnDefinitions" Value="*,1,Auto,1,*" />
-                        <Setter TargetName="ScoreboardGrid" Property="RowDefinitions" Value="Auto" />
-                        <Setter TargetName="ScoreboardGrid" Property="RowSpacing" Value="2" />
-                        <Setter TargetName="HomeScoreboard" Property="Grid.Column" Value="4" />
-                        <Setter TargetName="HomeScoreboard" Property="RowDefinitions" Value="Auto,Auto,Auto" />
-                        <Setter TargetName="VisitorScoreboard" Property="RowDefinitions" Value="Auto,Auto,Auto" />
-                        <Setter TargetName="HomeScoreboard" Property="RowSpacing" Value="0" />
-                        <Setter TargetName="VisitorScoreboard" Property="RowSpacing" Value="0" />
-                        <Setter TargetName="ScoreboardRightDivider" Property="IsVisible" Value="True" />
-                        <Setter TargetName="ScoreboardRightDivider" Property="Grid.Column" Value="3" />
-                        <Setter TargetName="GameStatusPanel" Property="Grid.Row" Value="0" />
-                        <Setter TargetName="GameStatusPanel" Property="Grid.Column" Value="2" />
-                        <Setter TargetName="GameStatusPanel" Property="Grid.ColumnSpan" Value="1" />
-                        <Setter TargetName="GameStatusPanel" Property="Padding" Value="10,0" />
-                        <Setter TargetName="InningOutLabel" Property="IsVisible" Value="False" />
-                        <Setter TargetName="LandscapeInningLabel" Property="IsVisible" Value="True" />
-                        <Setter TargetName="LandscapeOutsLabel" Property="IsVisible" Value="True" />
-                        <Setter TargetName="HomeHeading" Property="Label.FontSize" Value="14" />
-                        <Setter TargetName="VisitorHeading" Property="Label.FontSize" Value="14" />
-                        <Setter TargetName="HomeTeamName" Property="Label.FontSize" Value="16" />
-                        <Setter TargetName="VisitorTeamName" Property="Label.FontSize" Value="16" />
-                        <Setter TargetName="HomeScoreValue" Property="Label.FontSize" Value="34" />
-                        <Setter TargetName="VisitorScoreValue" Property="Label.FontSize" Value="34" />
+                        <Setter TargetName="FullScoreboard"
+                                Property="controls:FullScoreboard.Profile"
+                                Value="LiveRegularLandscape" />
                         <Setter TargetName="ScoringPageTitle" Property="Label.FontSize" Value="24" />
-                        <Setter TargetName="HomeScoreValue" Property="Grid.Row" Value="0" />
-                        <Setter TargetName="VisitorScoreValue" Property="Grid.Row" Value="0" />
-                        <Setter TargetName="HomeScoreValue" Property="Grid.Column" Value="1" />
-                        <Setter TargetName="VisitorScoreValue" Property="Grid.Column" Value="1" />
-                        <Setter TargetName="HomeScoreValue" Property="Grid.RowSpan" Value="2" />
-                        <Setter TargetName="VisitorScoreValue" Property="Grid.RowSpan" Value="2" />
-                        <Setter TargetName="HomeHomeRunLabel" Property="Grid.Row" Value="2" />
-                        <Setter TargetName="VisitorHomeRunLabel" Property="Grid.Row" Value="2" />
-                        <Setter TargetName="HomeHomeRunLabel" Property="Label.FontSize" Value="13" />
-                        <Setter TargetName="VisitorHomeRunLabel" Property="Label.FontSize" Value="13" />
-                        <Setter TargetName="LandscapeInningLabel" Property="Label.FontSize" Value="14" />
-                        <Setter TargetName="LandscapeOutsLabel" Property="Label.FontSize" Value="14" />
                         <Setter TargetName="ScoringContentLayout" Property="ColumnDefinitions" Value="210,1,*,1,240" />
                         <Setter TargetName="ScoringContentLayout" Property="RowDefinitions" Value="*" />
                         <Setter TargetName="FieldSection" Property="Grid.Row" Value="0" />
@@ -167,42 +106,9 @@
                         <Setter TargetName="RootGrid" Property="RowSpacing" Value="3" />
                         <Setter TargetName="ScoringMenu" Property="Margin" Value="10,48,0,0" />
                         <Setter TargetName="ScoringPageTitle" Property="Label.FontSize" Value="18" />
-                        <Setter TargetName="ScoreboardBorder" Property="Padding" Value="8,0" />
-                        <Setter TargetName="ScoreboardGrid" Property="ColumnDefinitions" Value="*,1,Auto,1,*" />
-                        <Setter TargetName="ScoreboardGrid" Property="RowDefinitions" Value="Auto" />
-                        <Setter TargetName="ScoreboardGrid" Property="RowSpacing" Value="0" />
-                        <Setter TargetName="HomeScoreboard" Property="Grid.Column" Value="4" />
-                        <Setter TargetName="HomeScoreboard" Property="RowDefinitions" Value="Auto,Auto,Auto" />
-                        <Setter TargetName="VisitorScoreboard" Property="RowDefinitions" Value="Auto,Auto,Auto" />
-                        <Setter TargetName="HomeScoreboard" Property="RowSpacing" Value="0" />
-                        <Setter TargetName="VisitorScoreboard" Property="RowSpacing" Value="0" />
-                        <Setter TargetName="ScoreboardRightDivider" Property="IsVisible" Value="True" />
-                        <Setter TargetName="ScoreboardRightDivider" Property="Grid.Column" Value="3" />
-                        <Setter TargetName="GameStatusPanel" Property="Grid.Row" Value="0" />
-                        <Setter TargetName="GameStatusPanel" Property="Grid.Column" Value="2" />
-                        <Setter TargetName="GameStatusPanel" Property="Grid.ColumnSpan" Value="1" />
-                        <Setter TargetName="GameStatusPanel" Property="Padding" Value="8,0" />
-                        <Setter TargetName="InningOutLabel" Property="IsVisible" Value="False" />
-                        <Setter TargetName="LandscapeInningLabel" Property="IsVisible" Value="True" />
-                        <Setter TargetName="LandscapeOutsLabel" Property="IsVisible" Value="True" />
-                        <Setter TargetName="HomeHeading" Property="Label.FontSize" Value="12" />
-                        <Setter TargetName="VisitorHeading" Property="Label.FontSize" Value="12" />
-                        <Setter TargetName="HomeTeamName" Property="Label.FontSize" Value="15" />
-                        <Setter TargetName="VisitorTeamName" Property="Label.FontSize" Value="15" />
-                        <Setter TargetName="HomeScoreValue" Property="Label.FontSize" Value="28" />
-                        <Setter TargetName="VisitorScoreValue" Property="Label.FontSize" Value="28" />
-                        <Setter TargetName="HomeScoreValue" Property="Grid.Row" Value="0" />
-                        <Setter TargetName="VisitorScoreValue" Property="Grid.Row" Value="0" />
-                        <Setter TargetName="HomeScoreValue" Property="Grid.Column" Value="1" />
-                        <Setter TargetName="VisitorScoreValue" Property="Grid.Column" Value="1" />
-                        <Setter TargetName="HomeScoreValue" Property="Grid.RowSpan" Value="2" />
-                        <Setter TargetName="VisitorScoreValue" Property="Grid.RowSpan" Value="2" />
-                        <Setter TargetName="HomeHomeRunLabel" Property="Grid.Row" Value="2" />
-                        <Setter TargetName="VisitorHomeRunLabel" Property="Grid.Row" Value="2" />
-                        <Setter TargetName="HomeHomeRunLabel" Property="Label.FontSize" Value="12" />
-                        <Setter TargetName="VisitorHomeRunLabel" Property="Label.FontSize" Value="12" />
-                        <Setter TargetName="LandscapeInningLabel" Property="Label.FontSize" Value="13" />
-                        <Setter TargetName="LandscapeOutsLabel" Property="Label.FontSize" Value="13" />
+                        <Setter TargetName="FullScoreboard"
+                                Property="controls:FullScoreboard.Profile"
+                                Value="LiveCompactLandscape" />
                         <Setter TargetName="ScoringContentLayout" Property="ColumnDefinitions" Value="190,1,*,1,210" />
                         <Setter TargetName="ScoringContentLayout" Property="RowDefinitions" Value="*" />
                         <Setter TargetName="FieldSection" Property="Grid.Row" Value="0" />
@@ -267,107 +173,25 @@
                    SemanticProperties.HeadingLevel="Level1" />
         </Grid>
         <Label Grid.Row="1" Text="{Binding ValidationMessage}" HorizontalTextAlignment="Center" />
-        <Border x:Name="ScoreboardBorder"
-                Grid.Row="2"
-                IsVisible="{Binding IsLoaded}"
-                Stroke="{AppThemeBinding Light={StaticResource Gray300}, Dark={StaticResource Gray600}}"
-                StrokeShape="RoundRectangle 12"
-                Padding="24,16">
-            <Grid x:Name="ScoreboardGrid"
-                  ColumnDefinitions="*,1,*" RowDefinitions="Auto,Auto"
-                  ColumnSpacing="24" RowSpacing="8">
-                <Grid x:Name="HomeScoreboard"
-                      Grid.Column="2"
-                      ColumnDefinitions="*,Auto"
-                      RowDefinitions="Auto,Auto,Auto,Auto"
-                      RowSpacing="4"
-                      HorizontalOptions="Fill">
-                    <Label x:Name="HomeHeading"
-                           Text="{x:Static strings:AppResources.HomeScoreboardHeading}"
-                           FontSize="20"
-                           FontAttributes="Bold"
-                           HorizontalTextAlignment="Center" />
-                    <Label x:Name="HomeTeamName"
-                           Grid.Row="1"
-                           Text="{Binding HomeTeamDisplayName}"
-                           FontSize="24"
-                           FontAttributes="Bold"
-                           HorizontalTextAlignment="Center"
-                           LineBreakMode="TailTruncation"
-                           MaxLines="1" />
-                    <Label x:Name="HomeScoreValue" AutomationId="HomeScoreValue"
-                           Grid.Row="2"
-                           Text="{Binding HomeScore}"
-                            FontSize="52"
-                           FontAttributes="Bold"
-                           HorizontalTextAlignment="Center" />
-                    <Label x:Name="HomeHomeRunLabel"
-                           Grid.Row="3" Text="{Binding HomeHomeRunDisplay}"
-                           FontSize="16" FontAttributes="Bold"
-                           HorizontalTextAlignment="Center" />
-                </Grid>
-                <BoxView Grid.Column="1"
-                         BackgroundColor="{AppThemeBinding Light={StaticResource Gray300}, Dark={StaticResource Gray600}}" />
-                <BoxView x:Name="ScoreboardRightDivider"
-                         Grid.Column="1"
-                         IsVisible="False"
-                         BackgroundColor="{AppThemeBinding Light={StaticResource Gray300}, Dark={StaticResource Gray600}}" />
-                <Grid x:Name="VisitorScoreboard"
-                      Grid.Column="0"
-                      ColumnDefinitions="*,Auto"
-                      RowDefinitions="Auto,Auto,Auto,Auto"
-                      RowSpacing="4"
-                      HorizontalOptions="Fill">
-                    <Label x:Name="VisitorHeading"
-                           Text="{x:Static strings:AppResources.VisitorScoreboardHeading}"
-                           FontSize="20"
-                           FontAttributes="Bold"
-                           HorizontalTextAlignment="Center" />
-                    <Label x:Name="VisitorTeamName"
-                           Grid.Row="1"
-                           Text="{Binding VisitorTeamDisplayName}"
-                           FontSize="24"
-                           FontAttributes="Bold"
-                           HorizontalTextAlignment="Center"
-                           LineBreakMode="TailTruncation"
-                           MaxLines="1" />
-                    <Label x:Name="VisitorScoreValue" AutomationId="VisitorScoreValue"
-                           Grid.Row="2"
-                           Text="{Binding VisitorScore}"
-                            FontSize="52"
-                           FontAttributes="Bold"
-                           HorizontalTextAlignment="Center" />
-                    <Label x:Name="VisitorHomeRunLabel"
-                           Grid.Row="3" Text="{Binding VisitorHomeRunDisplay}"
-                           FontSize="16" FontAttributes="Bold"
-                           HorizontalTextAlignment="Center" />
-                </Grid>
-                <VerticalStackLayout x:Name="GameStatusPanel"
-                                     Grid.Row="1" Grid.ColumnSpan="3"
-                                     Spacing="2">
-                    <Label x:Name="InningOutLabel" AutomationId="InningOutStateLabel"
-                           Text="{Binding InningOutDisplay}"
-                           FontSize="20"
-                           FontAttributes="Bold"
-                           HorizontalTextAlignment="Center" />
-                    <Label x:Name="LandscapeInningLabel" AutomationId="InningStateLabel"
-                           Text="{Binding InningDisplay}"
-                           IsVisible="False"
-                           FontSize="16" FontAttributes="Bold"
-                           HorizontalTextAlignment="Center" />
-                    <Label x:Name="LandscapeOutsLabel" AutomationId="OutsStateLabel"
-                           Text="{Binding OutsDisplay}"
-                           IsVisible="False"
-                           FontSize="16" FontAttributes="Bold"
-                           HorizontalTextAlignment="Center" />
-                    <Label Text="{x:Static strings:AppResources.OneUpOnLabel}"
-                           IsVisible="{Binding IsOneUpEnabled}"
-                           FontSize="14" FontAttributes="Bold"
-                           TextColor="{StaticResource Primary}"
-                           HorizontalTextAlignment="Center" />
-                </VerticalStackLayout>
-            </Grid>
-        </Border>
+        <controls:FullScoreboard x:Name="FullScoreboard"
+                                 Grid.Row="2"
+                                 IsVisible="{Binding IsLoaded}"
+                                 Profile="LiveRegularPortrait"
+                                 VisitorName="{Binding VisitorTeamDisplayName}"
+                                 VisitorScore="{Binding VisitorScore}"
+                                 HomeName="{Binding HomeTeamDisplayName}"
+                                 HomeScore="{Binding HomeScore}"
+                                 VisitorDetailText="{Binding VisitorHomeRunDisplay}"
+                                 HomeDetailText="{Binding HomeHomeRunDisplay}"
+                                 CombinedStatusText="{Binding InningOutDisplay}"
+                                 InningStatusText="{Binding InningDisplay}"
+                                 OutsStatusText="{Binding OutsDisplay}"
+                                 IsOneUpEnabled="{Binding IsOneUpEnabled}"
+                                 VisitorScoreAutomationId="VisitorScoreValue"
+                                 HomeScoreAutomationId="HomeScoreValue"
+                                 CombinedStatusAutomationId="InningOutStateLabel"
+                                 InningStatusAutomationId="InningStateLabel"
+                                 OutsStatusAutomationId="OutsStateLabel" />
         <Grid x:Name="ScoringContentLayout"
               Grid.Row="3"
               IsVisible="{Binding IsOffenseAvailable}"

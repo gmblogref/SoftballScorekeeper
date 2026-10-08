@@ -302,6 +302,11 @@ public sealed class CompletedGameWorkspaceTests
 
     private static void AssertViewSelection(AndroidDriver driver, bool statsVisible)
     {
+        AssertButtonSelectionState(driver, "GameStatsButton",
+            statsVisible ? "Game Stats, selected view" : "Game Stats, available view");
+        AssertButtonSelectionState(driver, "GamePlaysButton",
+            statsVisible ? "Game Plays, available view" : "Game Plays, selected view");
+
         if (statsVisible)
         {
             AndroidElementWait.UntilAutomationId(driver, "CompletedBattingStats");
@@ -311,6 +316,17 @@ public sealed class CompletedGameWorkspaceTests
 
         AndroidElementWait.UntilText(driver, "Top 1 — Automation Team");
         AssertNotDisplayed(driver, "CompletedBattingStats");
+    }
+
+    private static void AssertButtonSelectionState(AndroidDriver driver,
+        string automationId, string expectedDescription)
+    {
+        var wait = new WebDriverWait(driver, TimeSpan.FromSeconds(15));
+        wait.IgnoreExceptionTypes(typeof(StaleElementReferenceException));
+        Assert.True(wait.Until(_ => AndroidElementWait
+                .UntilAutomationId(driver, automationId)
+                .GetAttribute("content-desc") == expectedDescription),
+            $"{automationId} did not expose the expected selected-view state.");
     }
 
     private static int CenterX(IWebElement element) =>

@@ -1,3 +1,4 @@
+using OpenQA.Selenium;
 using OpenQA.Selenium.Appium.Android;
 
 namespace SoftballScorekeeper.AndroidUiTests;
@@ -19,6 +20,7 @@ public sealed class RunnerMovementCorrectionTests
         var driver = fixture.Driver;
         try
         {
+            fixture.SetOrientation(ScreenOrientation.Landscape);
             OpenPreparedScoring(driver);
             SelectSingle(driver);
             AndroidElementWait.UntilAutomationId(driver, "NextBatterButton").Click();
@@ -35,8 +37,11 @@ public sealed class RunnerMovementCorrectionTests
                     driver, "SecondBaseRunnerButton").Click();
                 AndroidElementWait.UntilAutomationIdText(
                     driver, "RunnerCurrentOutcomeLabel", "Current: Second");
-                AndroidElementWait.UntilAutomationId(
-                    driver, "RunnerDestinationCancelButton").Click();
+                AssertRunnerDialogContained(driver);
+                var cancel = AndroidElementWait.UntilAutomationId(
+                    driver, "RunnerDestinationCancelButton");
+                Assert.True(cancel.Enabled);
+                cancel.Click();
                 AssertRunner(driver, "SecondBaseRunnerButton",
                     AndroidAutomationConstants.FirstBatterName);
             });
@@ -117,6 +122,27 @@ public sealed class RunnerMovementCorrectionTests
         string playerName) =>
         Step($"verify {playerName} at {automationId}", () =>
             AndroidElementWait.UntilAutomationIdText(driver, automationId, playerName));
+
+    private static void AssertRunnerDialogContained(AndroidDriver driver)
+    {
+        var viewport = driver.Manage().Window.Size;
+        Assert.True(viewport.Width > viewport.Height);
+        foreach (var element in new[]
+        {
+            AndroidElementWait.UntilAutomationId(driver, "RunnerDestinationDialog"),
+            AndroidElementWait.UntilText(driver, AndroidAutomationConstants.FirstBatterName),
+            AndroidElementWait.UntilAutomationId(driver, "RunnerCurrentOutcomeLabel"),
+            AndroidElementWait.UntilAutomationId(driver, "RunnerDestinationThirdButton"),
+            AndroidElementWait.UntilAutomationId(driver, "RunnerDestinationCancelButton"),
+        })
+        {
+            Assert.True(element.Displayed);
+            Assert.InRange(element.Location.X, 0, viewport.Width - 1);
+            Assert.InRange(element.Location.Y, 0, viewport.Height - 1);
+            Assert.True(element.Location.X + element.Size.Width <= viewport.Width);
+            Assert.True(element.Location.Y + element.Size.Height <= viewport.Height);
+        }
+    }
 
     private static void Step(string description, Action action)
     {

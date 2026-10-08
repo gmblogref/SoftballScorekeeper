@@ -3,11 +3,20 @@
     x:Class="SoftballScorekeeper.Views.RunnerDestinationDialog"
     xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:services="clr-namespace:SoftballScorekeeper.Services"
     xmlns:strings="clr-namespace:SoftballScorekeeper.Resources.Strings"
     Shell.NavBarIsVisible="False"
     BackgroundColor="#99000000">
-    <Grid Padding="36">
+    <Grid x:Name="DialogOverlay" Padding="36">
+        <Grid.Triggers>
+            <DataTrigger TargetType="Grid"
+                         Binding="{Binding IsCompactLandscape, Source={x:Static services:ResponsiveLayoutState.Current}, x:DataType=services:ResponsiveLayoutState}"
+                         Value="True">
+                <Setter Property="Padding" Value="12" />
+            </DataTrigger>
+        </Grid.Triggers>
         <Border AutomationId="RunnerDestinationDialog"
+                x:Name="DialogCard"
                 Padding="28"
                 MaximumWidthRequest="680"
                 HorizontalOptions="Fill"
@@ -15,7 +24,21 @@
                 BackgroundColor="{AppThemeBinding Light=White, Dark={StaticResource Gray900}}"
                 Stroke="{AppThemeBinding Light={StaticResource Gray300}, Dark={StaticResource Gray600}}"
                 StrokeShape="RoundRectangle 16">
-            <VerticalStackLayout Spacing="16">
+            <Border.Triggers>
+                <DataTrigger TargetType="Border"
+                             Binding="{Binding IsCompactLandscape, Source={x:Static services:ResponsiveLayoutState.Current}, x:DataType=services:ResponsiveLayoutState}"
+                             Value="True">
+                    <Setter Property="Padding" Value="16" />
+                </DataTrigger>
+            </Border.Triggers>
+            <VerticalStackLayout x:Name="DialogContent" Spacing="16">
+                <VerticalStackLayout.Triggers>
+                    <DataTrigger TargetType="VerticalStackLayout"
+                                 Binding="{Binding IsCompactLandscape, Source={x:Static services:ResponsiveLayoutState.Current}, x:DataType=services:ResponsiveLayoutState}"
+                                 Value="True">
+                        <Setter Property="Spacing" Value="8" />
+                    </DataTrigger>
+                </VerticalStackLayout.Triggers>
                 <Label x:Name="FielderChoiceContextLabel"
                        IsVisible="False"
                        FontSize="14"
