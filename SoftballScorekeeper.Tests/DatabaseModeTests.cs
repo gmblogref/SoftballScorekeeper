@@ -77,6 +77,42 @@ public sealed class DatabaseModeTests
     }
 
     [Fact]
+    public async Task Manual_override_tables_follow_existing_production_and_test_database_isolation()
+    {
+        await using var fixture = await ModeDatabaseFixture.CreateAsync();
+        await using (var operation = await fixture.Database.BeginOperationAsync())
+        {
+            await operation.Connection.InsertAsync(new CompletedGameBattingOverride
+            {
+                GameId = 1, PlayerId = 1, Singles = 1,
+            });
+            await operation.Connection.InsertAsync(new CompletedGameScoreOverride
+            {
+                GameId = 1, VisitorScore = 2, HomeScore = 3,
+            });
+        }
+
+        await SwitchAsync(fixture.Database, DatabaseMode.Test);
+        Assert.Equal(0, await CountAsync<CompletedGameBattingOverride>(fixture.Database));
+        Assert.Equal(0, await CountAsync<CompletedGameScoreOverride>(fixture.Database));
+        await using (var operation = await fixture.Database.BeginOperationAsync())
+            await operation.Connection.InsertAsync(new CompletedGameScoreOverride
+            {
+                GameId = 9, VisitorScore = 8, HomeScore = 7,
+            });
+
+        await SwitchAsync(fixture.Database, DatabaseMode.Production);
+        Assert.Equal(1, await CountAsync<CompletedGameBattingOverride>(fixture.Database));
+        var productionScore = Assert.Single(await ReadAsync<CompletedGameScoreOverride>(
+            fixture.Database));
+        Assert.Equal(1, productionScore.GameId);
+
+        await SwitchAsync(fixture.Database, DatabaseMode.Test);
+        var testScore = Assert.Single(await ReadAsync<CompletedGameScoreOverride>(fixture.Database));
+        Assert.Equal(9, testScore.GameId);
+    }
+
+    [Fact]
     public async Task Reset_deletes_only_product_test_database_and_sidecars()
     {
         await using var fixture = await ModeDatabaseFixture.CreateAsync();
@@ -279,6 +315,13 @@ public sealed class DatabaseModeTests
     {
         await using var operation = await database.BeginOperationAsync();
         return await operation.Connection.Table<T>().CountAsync();
+    }
+
+    private static async Task<List<T>> ReadAsync<T>(AppDatabase database)
+        where T : new()
+    {
+        await using var operation = await database.BeginOperationAsync();
+        return await operation.Connection.Table<T>().ToListAsync();
     }
 
     private static string[] AndroidUiSidecars(AppDatabasePaths paths) =>

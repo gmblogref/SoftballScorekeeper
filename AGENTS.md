@@ -140,6 +140,17 @@ semantics and derive separate consequences; Beer evaluation must not redefine
 scoring, runner movement, outs, innings, score, batting order, plate-appearance
 classification, or statistics.
 
+Canonical Game Plays and plate appearances remain immutable historical scoring
+truth after Game completion. Completed-game Manual Overrides are a separate
+persistence layer that changes effective official batting statistics and final
+scores without rewriting canonical scoring history. Every completed-game
+statistical aggregate must use the shared effective projection, while Game
+Plays and in-progress statistics continue to use canonical scoring data.
+Manual batting overrides store complete effective editable outcome counts,
+including ordinary Out. They may add or remove completed-game plate appearances;
+effective PA and every other derived statistic are recalculated from those
+outcomes plus preserved canonical special-out identities.
+
 Beer-rule configuration uses normalized Team defaults and historically stable
 Game-scoring snapshots. The six plate-appearance rules are copied when scoring
 starts; later Team edits do not reinterpret active or completed Games. In-game
@@ -668,6 +679,17 @@ Documentation must accurately distinguish between:
 When completing a story, add its reviewed history entry to `FEATURE_HISTORY.md` and include that change in the same commit as the story implementation.
 
 ## Version 1 Project Boundaries
+
+Version 1.0 feature implementation is complete and the feature set is frozen.
+Until Version 1.0 is released, work is limited to release-blocking bug fixes,
+regression validation, physical-device acceptance follow-ups,
+build/signing/package validation, release documentation, and
+deployment/release preparation. New feature requests belong in a
+post-Version-1.0 backlog unless explicitly approved as release blockers.
+Story 14 must merge before the definitive Release Candidate is packaged.
+Feature complete does not mean released; do not claim Version 1.0 is publicly
+released or that the definitive Release Candidate exists until those actions
+have actually occurred.
 
 Do not implement the following unless a later story explicitly includes them:
 

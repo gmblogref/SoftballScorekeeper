@@ -92,6 +92,7 @@ namespace SoftballScorekeeper
             builder.Services.AddSingleton<GameLineupRepository>();
             builder.Services.AddSingleton<Core.Models.PlayResolutionCoordinator>();
             builder.Services.AddSingleton<GameScoringSessionRepository>();
+            builder.Services.AddSingleton<CompletedGameManualOverrideRepository>();
             builder.Services.AddSingleton<BeerRuleConfigurationRepository>();
             builder.Services.AddSingleton<BeerAccountingRepository>();
             builder.Services.AddSingleton<LowManCalculationRepository>();

@@ -13,7 +13,8 @@ public sealed record CompletedGameProjection(
     int VisitorScore,
     string HomeName,
     int HomeScore,
-    IReadOnlyList<GameBattingPlayerProjection> Players);
+    IReadOnlyList<GameBattingPlayerProjection> Players,
+    bool HasManualOverrides = false);
 
 public sealed record GameBattingStatisticsProjection(
     int GameId,
@@ -24,4 +25,5 @@ public sealed record GameBattingPlayerProjection(
     int PlayerId,
     string DisplayName,
     int BattingPosition,
-    PlayerBattingStatLine BattingStatistics);
+    PlayerBattingStatLine BattingStatistics,
+    int OrdinaryOuts = 0);

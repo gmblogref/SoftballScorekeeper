@@ -57,6 +57,22 @@ public sealed class GameScoringSessionRepository
             $"SELECT * FROM GameScoringSession WHERE GameId IN ({placeholders})",
             requestedIds.Cast<object>().ToArray()
         );
+        var completedIds = sessions
+            .Where(item => item.Status == GameScoringStatus.Completed)
+            .Select(item => item.GameId)
+            .ToHashSet();
+        if (completedIds.Count > 0)
+        {
+            var scoreOverrides = (await connection.Table<CompletedGameScoreOverride>().ToListAsync())
+                .Where(item => completedIds.Contains(item.GameId))
+                .ToDictionary(item => item.GameId);
+            foreach (var session in sessions)
+                if (scoreOverrides.TryGetValue(session.GameId, out var scoreOverride))
+                {
+                    session.VisitorScore = scoreOverride.VisitorScore;
+                    session.HomeScore = scoreOverride.HomeScore;
+                }
+        }
         return sessions.ToDictionary(session => session.GameId);
     }
 
@@ -85,7 +101,11 @@ public sealed class GameScoringSessionRepository
         var team =
             await connection.FindAsync<Team>(game.TeamId)
             ?? throw new InvalidOperationException("The completed Game has no scored Team.");
-        var projectedPlayers = await ProjectBattingPlayersAsync(connection, session);
+        var projectedPlayers = await ProjectBattingPlayersAsync(
+            connection, session, includeCompletedOverrides: true);
+        var scoreOverride = await connection.FindAsync<CompletedGameScoreOverride>(gameId);
+        var hasBattingOverrides = await connection.Table<CompletedGameBattingOverride>()
+            .Where(item => item.GameId == gameId).CountAsync() > 0;
 
         if (session.TeamSide is not TeamGameSide.Away and not TeamGameSide.Home)
             throw new InvalidOperationException("The completed Game has an invalid Team side.");
@@ -100,10 +120,11 @@ public sealed class GameScoringSessionRepository
             session.CompletedAtUtc,
             session.TeamSide,
             visitorName,
-            session.VisitorScore,
+            scoreOverride?.VisitorScore ?? session.VisitorScore,
             homeName,
-            session.HomeScore,
-            projectedPlayers
+            scoreOverride?.HomeScore ?? session.HomeScore,
+            projectedPlayers,
+            hasBattingOverrides || scoreOverride is not null
         );
     }
 
@@ -123,14 +144,16 @@ public sealed class GameScoringSessionRepository
         if (session is null)
             return null;
 
-        return new(gameId, session.Id, await ProjectBattingPlayersAsync(connection, session));
+        return new(gameId, session.Id, await ProjectBattingPlayersAsync(
+            connection, session, includeCompletedOverrides: false));
     }
 
     private static async Task<
         IReadOnlyList<GameBattingPlayerProjection>
     > ProjectBattingPlayersAsync(
         SQLite.SQLiteAsyncConnection connection,
-        GameScoringSession session
+        GameScoringSession session,
+        bool includeCompletedOverrides
     )
     {
         var lineup = await connection
@@ -151,10 +174,31 @@ public sealed class GameScoringSessionRepository
         var outcomes = appearances
             .Select(item => new BattingOutcome(item.PlayerId, item.Result!.Value))
             .ToArray();
-        var statLines = BattingStatisticsCalculator.Calculate(
-            lineup.Select(item => item.PlayerId),
-            outcomes
-        );
+        IReadOnlyList<PlayerBattingStatLine> statLines;
+        IReadOnlyDictionary<int, int> ordinaryOutsByPlayer;
+        if (includeCompletedOverrides)
+        {
+            var overrides = await connection.Table<CompletedGameBattingOverride>()
+                .Where(item => item.GameId == session.GameId).ToListAsync();
+            var effectivePlayers = EffectiveCompletedBattingStatistics.ProjectGame(
+                    new CompletedGameBattingSource(
+                        session.GameId,
+                        lineup.Select(item => item.PlayerId).ToArray(),
+                        outcomes),
+                    overrides);
+            statLines = effectivePlayers.Select(item => item.Statistics).ToArray();
+            ordinaryOutsByPlayer = effectivePlayers.ToDictionary(
+                item => item.PlayerId, item => item.EffectiveValues.Outs);
+        }
+        else
+        {
+            statLines = BattingStatisticsCalculator.Calculate(
+                lineup.Select(item => item.PlayerId), outcomes);
+            ordinaryOutsByPlayer = outcomes
+                .GroupBy(item => item.PlayerId)
+                .ToDictionary(group => group.Key,
+                    group => group.Count(item => item.Result == BatterResult.Out));
+        }
         var playerIds = statLines.Select(item => item.PlayerId).ToArray();
         List<Player> players =
             playerIds.Length == 0
@@ -184,7 +228,8 @@ public sealed class GameScoringSessionRepository
                     statLine.PlayerId,
                     FormatPlayerName(player),
                     battingPositions[statLine.PlayerId],
-                    statLine
+                    statLine,
+                    ordinaryOutsByPlayer.GetValueOrDefault(statLine.PlayerId)
                 );
             })
             .ToArray();

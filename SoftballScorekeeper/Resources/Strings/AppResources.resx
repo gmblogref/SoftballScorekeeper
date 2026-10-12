@@ -581,6 +581,7 @@
   <data name="WalksStatHeading" xml:space="preserve"><value>BB</value></data>
   <data name="FielderChoicesStatHeading" xml:space="preserve"><value>FC</value></data>
   <data name="SacrificeFliesStatHeading" xml:space="preserve"><value>SF</value></data>
+  <data name="OutsStatHeading" xml:space="preserve"><value>OUT</value></data>
   <data name="BattingAverageStatHeading" xml:space="preserve"><value>AVG</value></data>
   <data name="OnBasePercentageStatHeading" xml:space="preserve"><value>OBP</value></data>
   <data name="SluggingPercentageStatHeading" xml:space="preserve"><value>SLG</value></data>
@@ -884,4 +885,18 @@
   <data name="ApplicationWorkflowBusyTitle" xml:space="preserve"><value>Operation In Progress</value></data>
   <data name="ApplicationWorkflowBusyMessage" xml:space="preserve"><value>Finish the current Backup, Restore, or Test Mode operation before trying again.</value></data>
   <data name="PortableDataProductionOnlyMessage" xml:space="preserve"><value>Backup and Restore are available only in Production Mode.</value></data>
+  <data name="ManualOverrideEditStatsButton" xml:space="preserve"><value>Manual Override / Edit Stats</value></data>
+  <data name="ManualOverrideChip" xml:space="preserve"><value>Manual Override</value></data>
+  <data name="RevertToGamePlaysStatsButton" xml:space="preserve"><value>Revert to Game Plays Stats</value></data>
+  <data name="ManualOverrideVisitorScoreLabel" xml:space="preserve"><value>Visitor Final Score</value></data>
+  <data name="ManualOverrideHomeScoreLabel" xml:space="preserve"><value>Home Final Score</value></data>
+  <data name="ManualOverrideUnsavedFieldDescription" xml:space="preserve"><value>{0}, unsaved change</value></data>
+  <data name="ManualOverrideInvalidValueMessage" xml:space="preserve"><value>Enter a non-negative whole number in every editable statistic and final score.</value></data>
+  <data name="ManualOverrideImpossibleStatsMessage" xml:space="preserve"><value>The corrected outcome totals are too large. Previous corrections were preserved.</value></data>
+  <data name="ManualOverrideSaveFailedMessage" xml:space="preserve"><value>The Manual Override could not be saved. Previous corrections were preserved.</value></data>
+  <data name="ManualOverrideRevertFailedMessage" xml:space="preserve"><value>The Manual Override could not be reverted.</value></data>
+  <data name="ManualOverrideRevertTitle" xml:space="preserve"><value>Revert Manual Override?</value></data>
+  <data name="ManualOverrideRevertMessage" xml:space="preserve"><value>Restore batting statistics and the final score from the original Game Plays? Historical Game Plays will remain unchanged.</value></data>
+  <data name="ManualOverrideRevertConfirmButton" xml:space="preserve"><value>Revert</value></data>
+  <data name="TeamYearFinalizedWriteMessage" xml:space="preserve"><value>This Team Year is finalized and cannot be changed.</value></data>
 </root>

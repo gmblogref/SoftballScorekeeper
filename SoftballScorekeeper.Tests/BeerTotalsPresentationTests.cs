@@ -5,28 +5,43 @@ namespace SoftballScorekeeper.Tests;
 
 public sealed class BeerTotalsPresentationTests
 {
-    private const string ExpectedColumns = "180,2,72,88,72,72,88,100,88,100,88";
+    private const string PlayerColumns = "180,2";
+    private const string StatisticColumns = "72,88,72,72,88,100,88,100,88";
 
     [Fact]
-    public void Grid_has_exact_story_order_and_one_shared_horizontal_layout()
+    public void Grid_freezes_headers_and_player_column_with_shared_row_alignment()
     {
         var grid = LoadXaml("Views", "Controls", "BeerTotalsGrid.xaml");
         var ns = grid.Root!.Name.Namespace;
         var named = NamedElements(grid);
-        var header = named["BeerTotalsHeader"];
-        var row = Assert.Single(named["BeerTotalsPlayerRows"]
+        var playerRow = Assert.Single(named["BeerTotalsPlayerNames"]
             .Descendants(ns + "DataTemplate")).Elements().Single();
+        var statisticRow = Assert.Single(named["BeerTotalsPlayerRows"]
+            .Descendants(ns + "DataTemplate")).Elements().Single();
+        var scrolls = grid.Descendants(ns + "ScrollView").ToArray();
 
-        Assert.Equal("Both", named["BeerTotalsTable"].Parent!
-            .Attribute("Orientation")?.Value);
-        Assert.Equal(ExpectedColumns, header.Attribute("ColumnDefinitions")?.Value);
-        Assert.Equal(ExpectedColumns, row.Attribute("ColumnDefinitions")?.Value);
-        Assert.Single(grid.Descendants(ns + "ScrollView"));
-        Assert.Single(grid.Descendants(ns + "DataTemplate"));
+        Assert.Equal("Auto,*", named["BeerTotalsTable"].Attribute("RowDefinitions")?.Value);
+        Assert.Equal("182,*", named["BeerTotalsHeader"].Attribute("ColumnDefinitions")?.Value);
+        Assert.Equal("182,*", named["BeerTotalsBody"].Attribute("ColumnDefinitions")?.Value);
+        Assert.Equal(PlayerColumns, named["BeerTotalsPlayerHeader"].Attribute("ColumnDefinitions")?.Value);
+        Assert.Equal(PlayerColumns, playerRow.Attribute("ColumnDefinitions")?.Value);
+        Assert.Equal(StatisticColumns, named["BeerTotalsScrollableHeader"].Attribute("ColumnDefinitions")?.Value);
+        Assert.Equal(StatisticColumns, statisticRow.Attribute("ColumnDefinitions")?.Value);
+        Assert.Equal("52,1", playerRow.Attribute("RowDefinitions")?.Value);
+        Assert.Equal("52,1", statisticRow.Attribute("RowDefinitions")?.Value);
+        Assert.Equal("{Binding Rows}", named["BeerTotalsPlayerNames"].Attribute("BindableLayout.ItemsSource")?.Value);
+        Assert.Equal("{Binding Rows}", named["BeerTotalsPlayerRows"].Attribute("BindableLayout.ItemsSource")?.Value);
+        Assert.Equal(2, scrolls.Length);
+        Assert.Equal("Vertical", named["BeerTotalsVerticalScroll"].Attribute("Orientation")?.Value);
+        Assert.Equal("Horizontal", named["BeerTotalsHorizontalScroll"].Attribute("Orientation")?.Value);
+        Assert.Equal("Always", named["BeerTotalsHorizontalScroll"].Attribute("HorizontalScrollBarVisibility")?.Value);
+        Assert.Contains(named["BeerTotalsVerticalScroll"], named["BeerTotalsHorizontalScroll"].Ancestors());
+        Assert.Empty(named["BeerTotalsHeader"].Ancestors(ns + "ScrollView"));
+        Assert.Equal("OnStatisticsScrolled", named["BeerTotalsHorizontalScroll"].Attribute("Scrolled")?.Value);
+        Assert.Contains("BeerTotalsScrollableHeader.TranslationX = -e.ScrollX", ReadText("Views", "Controls", "BeerTotalsGrid.xaml.cs"));
         Assert.Empty(grid.Descendants(ns + "VisualStateManager.VisualStateGroups"));
         Assert.Equal(new[]
         {
-            "{x:Static strings:AppResources.BeerTotalsPlayerHeader}",
             "{x:Static strings:AppResources.BeerTotalsOwedHeader}",
             "{x:Static strings:AppResources.BeerTotalsBroughtHeader}",
             "{x:Static strings:AppResources.BeerTotalsDboHeader}",
@@ -36,7 +51,10 @@ public sealed class BeerTotalsPresentationTests
             "{x:Static strings:AppResources.BeerTotalsTwoOutsHeader}",
             "{x:Static strings:AppResources.BeerTotalsStrikeoutHeader}",
             "{x:Static strings:AppResources.BeerTotalsLowManHeader}",
-        }, header.Elements(ns + "Label").Select(item => item.Attribute("Text")?.Value));
+        }, named["BeerTotalsScrollableHeader"].Elements(ns + "Label")
+            .Select(item => item.Attribute("Text")?.Value));
+        Assert.Contains(named["BeerTotalsPlayerHeader"].Elements(ns + "Label"), item =>
+            item.Attribute("Text")?.Value == "{x:Static strings:AppResources.BeerTotalsPlayerHeader}");
         Assert.DoesNotContain("StillOwed", grid.ToString(), StringComparison.OrdinalIgnoreCase);
         Assert.DoesNotContain("TeamTotal", grid.ToString(), StringComparison.OrdinalIgnoreCase);
     }
@@ -47,7 +65,10 @@ public sealed class BeerTotalsPresentationTests
         var grid = LoadXaml("Views", "Controls", "BeerTotalsGrid.xaml");
         var ns = grid.Root!.Name.Namespace;
         var x = XNamespace.Get("http://schemas.microsoft.com/winfx/2009/xaml");
-        var row = Assert.Single(NamedElements(grid)["BeerTotalsPlayerRows"]
+        var named = NamedElements(grid);
+        var playerRow = Assert.Single(named["BeerTotalsPlayerNames"]
+            .Descendants(ns + "DataTemplate")).Elements().Single();
+        var row = Assert.Single(named["BeerTotalsPlayerRows"]
             .Descendants(ns + "DataTemplate")).Elements().Single();
         var buttons = row.Descendants(ns + "Button").ToArray();
         var entries = row.Descendants(ns + "Entry").ToArray();
@@ -74,14 +95,14 @@ public sealed class BeerTotalsPresentationTests
         Assert.Equal("Numeric", entrySetters["Keyboard"]);
         Assert.Equal("Done", entrySetters["ReturnType"]);
         Assert.Contains("WarningSurface", entrySetters["BackgroundColor"]);
-        Assert.Contains(row.Elements(ns + "Label"), item =>
+        Assert.Contains(playerRow.Elements(ns + "Label"), item =>
             item.Attribute("Text")?.Value == "{Binding PlayerDisplayName}");
         Assert.Contains(row.Elements(ns + "Label"), item =>
             item.Attribute("Text")?.Value == "{Binding Owed}"
-            && item.Attribute("Grid.Column")?.Value == "2"
+            && item.Attribute("Grid.Column") is null
             && item.Attribute("Style")?.Value == "{StaticResource BeerTotalOwedValue}");
         Assert.Contains(buttons, item => item.Attribute("Text")?.Value == "{Binding Brought}"
-            && item.Parent?.Attribute("Grid.Column")?.Value == "3");
+            && item.Parent?.Attribute("Grid.Column")?.Value == "1");
         Assert.All(entries, entry =>
         {
             Assert.EndsWith("Editing}", entry.Attribute("IsVisible")?.Value);

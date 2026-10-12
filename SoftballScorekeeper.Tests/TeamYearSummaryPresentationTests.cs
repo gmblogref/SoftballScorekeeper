@@ -163,17 +163,80 @@ public sealed class TeamYearSummaryPresentationTests
             .Where(value => value is not null && !value.StartsWith("{Binding")),
             value => Assert.StartsWith("{x:Static strings:AppResources.", value));
 
-        foreach (var relativePath in new[]
+        var battingGrid = XDocument.Load(Path.Combine(RepositoryRoot, "SoftballScorekeeper",
+            "Views", "Controls", "BattingStatisticsGrid.xaml"));
+        var battingScrolls = battingGrid.Descendants()
+            .Where(item => item.Name.LocalName == "ScrollView").ToArray();
+        Assert.Contains(battingScrolls,
+            scroll => scroll.Attribute("Orientation")?.Value == "Vertical");
+        Assert.Contains(battingScrolls,
+            scroll => scroll.Attribute("Orientation")?.Value == "Horizontal"
+                && scroll.Attribute("HorizontalScrollBarVisibility")?.Value == "Always");
+
+        var beerGrid = XDocument.Load(Path.Combine(RepositoryRoot, "SoftballScorekeeper",
+            "Views", "Controls", "TeamYearBeerGrid.xaml"));
+        var beerScrolls = beerGrid.Descendants()
+            .Where(item => item.Name.LocalName == "ScrollView").ToArray();
+        Assert.Contains(beerScrolls,
+            scroll => scroll.Attribute("Orientation")?.Value == "Vertical");
+        Assert.Contains(beerScrolls,
+            scroll => scroll.Attribute("Orientation")?.Value == "Horizontal"
+                && scroll.Attribute("HorizontalScrollBarVisibility")?.Value == "Always");
+    }
+
+    [Fact]
+    public void Beer_grid_freezes_headers_and_player_column_without_adding_totals()
+    {
+        var grid = LoadXaml("Views", "Controls", "TeamYearBeerGrid.xaml");
+        var ns = grid.Root!.Name.Namespace;
+        var x = XNamespace.Get("http://schemas.microsoft.com/winfx/2009/xaml");
+        var named = grid.Descendants().Where(item => item.Attribute(x + "Name") is not null)
+            .ToDictionary(item => item.Attribute(x + "Name")!.Value);
+        var playerRow = Assert.Single(named["TeamYearBeerPlayerNames"]
+            .Descendants(ns + "DataTemplate")).Elements().Single();
+        var statisticRow = Assert.Single(named["TeamYearBeerScrollableRows"]
+            .Descendants(ns + "DataTemplate")).Elements().Single();
+
+        Assert.Equal("Auto,*", named["TeamYearBeerTable"].Attribute("RowDefinitions")?.Value);
+        Assert.Equal("182,*", named["TeamYearBeerHeader"].Attribute("ColumnDefinitions")?.Value);
+        Assert.Equal("182,*", named["TeamYearBeerBody"].Attribute("ColumnDefinitions")?.Value);
+        Assert.Equal("180,2", named["TeamYearBeerPlayerHeader"].Attribute("ColumnDefinitions")?.Value);
+        Assert.Equal("180,2", playerRow.Attribute("ColumnDefinitions")?.Value);
+        Assert.Equal("72,88,72,72,88,100,88,100,88",
+            named["TeamYearBeerScrollableHeader"].Attribute("ColumnDefinitions")?.Value);
+        Assert.Equal("72,88,72,72,88,100,88,100,88",
+            statisticRow.Attribute("ColumnDefinitions")?.Value);
+        Assert.Equal("48,1", playerRow.Attribute("RowDefinitions")?.Value);
+        Assert.Equal("48,1", statisticRow.Attribute("RowDefinitions")?.Value);
+        var playerName = Assert.Single(playerRow.Elements(ns + "Label"));
+        Assert.Equal("Bold", playerName.Attribute("FontAttributes")?.Value);
+        Assert.Equal("TailTruncation", playerName.Attribute("LineBreakMode")?.Value);
+        Assert.Equal("1", playerName.Attribute("MaxLines")?.Value);
+        Assert.Equal("{Binding BeerRows}", named["TeamYearBeerPlayerNames"]
+            .Attribute("BindableLayout.ItemsSource")?.Value);
+        Assert.Equal("{Binding BeerRows}", named["TeamYearBeerScrollableRows"]
+            .Attribute("BindableLayout.ItemsSource")?.Value);
+        Assert.Empty(named["TeamYearBeerHeader"].Ancestors(ns + "ScrollView"));
+        Assert.Contains(named["TeamYearBeerVerticalScroll"],
+            named["TeamYearBeerHorizontalScroll"].Ancestors());
+        Assert.Equal("OnStatisticsScrolled",
+            named["TeamYearBeerHorizontalScroll"].Attribute("Scrolled")?.Value);
+        Assert.Equal(new[]
         {
-            Path.Combine("Views", "Controls", "BattingStatisticsGrid.xaml"),
-            Path.Combine("Views", "Controls", "TeamYearBeerGrid.xaml"),
-        })
-        {
-            var grid = XDocument.Load(Path.Combine(RepositoryRoot, "SoftballScorekeeper", relativePath));
-            var scroll = grid.Descendants().Single(item => item.Name.LocalName == "ScrollView");
-            Assert.Equal("Both", scroll.Attribute("Orientation")?.Value);
-            Assert.Equal("Always", scroll.Attribute("HorizontalScrollBarVisibility")?.Value);
-        }
+            "{x:Static strings:AppResources.BeerTotalsDboHeader}",
+            "{x:Static strings:AppResources.BeerTotalsSoloHomeRunHeader}",
+            "{x:Static strings:AppResources.BeerTotalsDoublePlayHeader}",
+            "{x:Static strings:AppResources.BeerTotalsTriplePlayHeader}",
+            "{x:Static strings:AppResources.BeerTotalsTwoOutsHeader}",
+            "{x:Static strings:AppResources.BeerTotalsStrikeoutHeader}",
+            "{x:Static strings:AppResources.BeerTotalsLowManHeader}",
+            "{x:Static strings:AppResources.BeerTotalsBroughtHeader}",
+            "{x:Static strings:AppResources.BeerTotalsOwedHeader}",
+        }, named["TeamYearBeerScrollableHeader"].Elements(ns + "Label")
+            .Select(item => item.Attribute("Text")?.Value));
+        Assert.Contains("TeamYearBeerScrollableHeader.TranslationX = -e.ScrollX",
+            Read("Views", "Controls", "TeamYearBeerGrid.xaml.cs"));
+        Assert.DoesNotContain("TeamTotal", grid.ToString(), StringComparison.OrdinalIgnoreCase);
     }
 
     private static XDocument LoadXaml(params string[] path) =>

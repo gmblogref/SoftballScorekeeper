@@ -47,91 +47,99 @@
         </Style>
     </ContentView.Resources>
 
-    <ScrollView
-        AutomationId="BeerTotalsScrollView"
-        Orientation="Both"
-        HorizontalScrollBarVisibility="Always">
-        <VerticalStackLayout
-            x:Name="BeerTotalsTable"
-            MinimumWidthRequest="970"
-            HorizontalOptions="Start"
-            Spacing="0">
-            <Grid
-                x:Name="BeerTotalsHeader"
-                Padding="10,6,10,0"
-                ColumnDefinitions="180,2,72,88,72,72,88,100,88,100,88"
-                RowDefinitions="Auto,2">
-                <Label Text="{x:Static strings:AppResources.BeerTotalsPlayerHeader}" Style="{StaticResource BeerTotalHeader}" />
+    <Grid x:Name="BeerTotalsTable" RowDefinitions="Auto,*">
+        <Grid x:Name="BeerTotalsHeader" Padding="10,6,10,0" ColumnDefinitions="182,*">
+            <Grid x:Name="BeerTotalsPlayerHeader" RowDefinitions="Auto,2" ColumnDefinitions="180,2">
+                <Label AutomationId="BeerTotalsPlayerHeader" Text="{x:Static strings:AppResources.BeerTotalsPlayerHeader}" Style="{StaticResource BeerTotalHeader}" />
                 <BoxView Grid.Column="1" Grid.RowSpan="2" BackgroundColor="{AppThemeBinding Light={StaticResource Gray500}, Dark={StaticResource Gray400}}" />
-                <Label Grid.Column="2" Text="{x:Static strings:AppResources.BeerTotalsOwedHeader}" Style="{StaticResource BeerTotalHeader}" />
-                <Label Grid.Column="3" Text="{x:Static strings:AppResources.BeerTotalsBroughtHeader}" Style="{StaticResource BeerTotalHeader}" />
-                <Label Grid.Column="4" Text="{x:Static strings:AppResources.BeerTotalsDboHeader}" Style="{StaticResource BeerTotalHeader}" />
-                <Label Grid.Column="5" Text="{x:Static strings:AppResources.BeerTotalsSoloHomeRunHeader}" Style="{StaticResource BeerTotalHeader}" />
-                <Label Grid.Column="6" Text="{x:Static strings:AppResources.BeerTotalsDoublePlayHeader}" Style="{StaticResource BeerTotalHeader}" />
-                <Label Grid.Column="7" Text="{x:Static strings:AppResources.BeerTotalsTriplePlayHeader}" Style="{StaticResource BeerTotalHeader}" />
-                <Label Grid.Column="8" Text="{x:Static strings:AppResources.BeerTotalsTwoOutsHeader}" Style="{StaticResource BeerTotalHeader}" />
-                <Label Grid.Column="9" Text="{x:Static strings:AppResources.BeerTotalsStrikeoutHeader}" Style="{StaticResource BeerTotalHeader}" />
-                <Label Grid.Column="10" Text="{x:Static strings:AppResources.BeerTotalsLowManHeader}" Style="{StaticResource BeerTotalHeader}" />
-                <BoxView Grid.Row="1" Grid.ColumnSpan="11" BackgroundColor="{AppThemeBinding Light={StaticResource Gray500}, Dark={StaticResource Gray400}}" />
+                <BoxView Grid.Row="1" Grid.ColumnSpan="2" BackgroundColor="{AppThemeBinding Light={StaticResource Gray500}, Dark={StaticResource Gray400}}" />
             </Grid>
-            <VerticalStackLayout
-                x:Name="BeerTotalsPlayerRows"
-                Spacing="0"
-                BindableLayout.ItemsSource="{Binding Rows}">
-                <BindableLayout.ItemTemplate>
-                    <DataTemplate x:DataType="viewModels:TeamBeerTotalRowViewModel">
-                        <Grid
-                            Padding="10,0"
-                            ColumnDefinitions="180,2,72,88,72,72,88,100,88,100,88"
-                            RowDefinitions="52,1">
-                            <Label Text="{Binding PlayerDisplayName}" FontSize="16" FontAttributes="Bold" VerticalTextAlignment="Center" LineBreakMode="TailTruncation" MaxLines="1" />
-                            <BoxView Grid.Column="1" Grid.RowSpan="2" BackgroundColor="{AppThemeBinding Light={StaticResource Gray500}, Dark={StaticResource Gray400}}" />
-                            <Label Grid.Column="2" AutomationId="{Binding PlayerId, StringFormat='BeerTotalsOwed-{0}'}" Text="{Binding Owed}" Style="{StaticResource BeerTotalOwedValue}" />
-                            <Grid Grid.Column="3">
-                                <Grid.Triggers><DataTrigger TargetType="Grid" Binding="{Binding IsBroughtEditing}" Value="True"><Setter Property="BackgroundColor" Value="{AppThemeBinding Light={StaticResource WarningSurface}, Dark={StaticResource WarningSurfaceDark}}" /></DataTrigger></Grid.Triggers>
-                                <Button AutomationId="{Binding PlayerId, StringFormat='BeerTotalsBrought-{0}'}" Text="{Binding Brought}" Clicked="OnBroughtClicked" Style="{StaticResource BeerTotalEditButton}" />
-                                <Entry AutomationId="{Binding PlayerId, StringFormat='BeerTotalsBroughtEdit-{0}'}" Text="{Binding EditValue}" IsVisible="{Binding IsBroughtEditing}" Completed="OnEditCompleted" Style="{StaticResource BeerTotalEditEntry}" />
+
+            <Grid Grid.Column="1" IsClippedToBounds="True">
+                <Grid x:Name="BeerTotalsScrollableHeader" WidthRequest="768" HorizontalOptions="Start" RowDefinitions="Auto,2" ColumnDefinitions="72,88,72,72,88,100,88,100,88">
+                    <Label AutomationId="BeerTotalsOwedHeader" Text="{x:Static strings:AppResources.BeerTotalsOwedHeader}" Style="{StaticResource BeerTotalHeader}" />
+                    <Label AutomationId="BeerTotalsBroughtHeader" Grid.Column="1" Text="{x:Static strings:AppResources.BeerTotalsBroughtHeader}" Style="{StaticResource BeerTotalHeader}" />
+                    <Label AutomationId="BeerTotalsDboHeader" Grid.Column="2" Text="{x:Static strings:AppResources.BeerTotalsDboHeader}" Style="{StaticResource BeerTotalHeader}" />
+                    <Label AutomationId="BeerTotalsSoloHomeRunHeader" Grid.Column="3" Text="{x:Static strings:AppResources.BeerTotalsSoloHomeRunHeader}" Style="{StaticResource BeerTotalHeader}" />
+                    <Label AutomationId="BeerTotalsDoublePlayHeader" Grid.Column="4" Text="{x:Static strings:AppResources.BeerTotalsDoublePlayHeader}" Style="{StaticResource BeerTotalHeader}" />
+                    <Label AutomationId="BeerTotalsTriplePlayHeader" Grid.Column="5" Text="{x:Static strings:AppResources.BeerTotalsTriplePlayHeader}" Style="{StaticResource BeerTotalHeader}" />
+                    <Label AutomationId="BeerTotalsTwoOutsHeader" Grid.Column="6" Text="{x:Static strings:AppResources.BeerTotalsTwoOutsHeader}" Style="{StaticResource BeerTotalHeader}" />
+                    <Label AutomationId="BeerTotalsStrikeoutHeader" Grid.Column="7" Text="{x:Static strings:AppResources.BeerTotalsStrikeoutHeader}" Style="{StaticResource BeerTotalHeader}" />
+                    <Label AutomationId="BeerTotalsLowManHeader" Grid.Column="8" Text="{x:Static strings:AppResources.BeerTotalsLowManHeader}" Style="{StaticResource BeerTotalHeader}" />
+                    <BoxView Grid.Row="1" Grid.ColumnSpan="9" BackgroundColor="{AppThemeBinding Light={StaticResource Gray500}, Dark={StaticResource Gray400}}" />
+                </Grid>
+            </Grid>
+        </Grid>
+
+        <ScrollView x:Name="BeerTotalsVerticalScroll" Grid.Row="1" AutomationId="BeerTotalsVerticalScroll" Orientation="Vertical" VerticalScrollBarVisibility="Default">
+            <Grid x:Name="BeerTotalsBody" Padding="10,0,10,0" ColumnDefinitions="182,*">
+                <VerticalStackLayout x:Name="BeerTotalsPlayerNames" Spacing="0" BindableLayout.ItemsSource="{Binding Rows}">
+                    <BindableLayout.ItemTemplate>
+                        <DataTemplate x:DataType="viewModels:TeamBeerTotalRowViewModel">
+                            <Grid AutomationId="{Binding PlayerId, StringFormat='BeerTotalsRow-{0}'}" RowDefinitions="52,1" ColumnDefinitions="180,2">
+                                <Label Text="{Binding PlayerDisplayName}" FontSize="16" FontAttributes="Bold" VerticalTextAlignment="Center" LineBreakMode="TailTruncation" MaxLines="1" />
+                                <BoxView Grid.Column="1" Grid.RowSpan="2" BackgroundColor="{AppThemeBinding Light={StaticResource Gray500}, Dark={StaticResource Gray400}}" />
+                                <BoxView Grid.Row="1" Grid.ColumnSpan="2" BackgroundColor="{AppThemeBinding Light={StaticResource Gray300}, Dark={StaticResource Gray600}}" />
                             </Grid>
-                            <Grid Grid.Column="4">
-                                <Grid.Triggers><DataTrigger TargetType="Grid" Binding="{Binding IsDboEditing}" Value="True"><Setter Property="BackgroundColor" Value="{AppThemeBinding Light={StaticResource WarningSurface}, Dark={StaticResource WarningSurfaceDark}}" /></DataTrigger></Grid.Triggers>
-                                <Button AutomationId="{Binding PlayerId, StringFormat='BeerTotalsDbo-{0}'}" Text="{Binding DboCount}" CommandParameter="{x:Static models:BeerRuleType.Dbo}" Clicked="OnRuleClicked" Style="{StaticResource BeerTotalEditButton}" />
-                                <Entry AutomationId="{Binding PlayerId, StringFormat='BeerTotalsDboEdit-{0}'}" Text="{Binding EditValue}" IsVisible="{Binding IsDboEditing}" Completed="OnEditCompleted" Style="{StaticResource BeerTotalEditEntry}" />
-                            </Grid>
-                            <Grid Grid.Column="5">
-                                <Grid.Triggers><DataTrigger TargetType="Grid" Binding="{Binding IsSoloHomeRunEditing}" Value="True"><Setter Property="BackgroundColor" Value="{AppThemeBinding Light={StaticResource WarningSurface}, Dark={StaticResource WarningSurfaceDark}}" /></DataTrigger></Grid.Triggers>
-                                <Button AutomationId="{Binding PlayerId, StringFormat='BeerTotalsSoloHomeRun-{0}'}" Text="{Binding SoloHomeRunCount}" CommandParameter="{x:Static models:BeerRuleType.SoloHomeRun}" Clicked="OnRuleClicked" Style="{StaticResource BeerTotalEditButton}" />
-                                <Entry AutomationId="{Binding PlayerId, StringFormat='BeerTotalsSoloHomeRunEdit-{0}'}" Text="{Binding EditValue}" IsVisible="{Binding IsSoloHomeRunEditing}" Completed="OnEditCompleted" Style="{StaticResource BeerTotalEditEntry}" />
-                            </Grid>
-                            <Grid Grid.Column="6">
-                                <Grid.Triggers><DataTrigger TargetType="Grid" Binding="{Binding IsDoublePlayEditing}" Value="True"><Setter Property="BackgroundColor" Value="{AppThemeBinding Light={StaticResource WarningSurface}, Dark={StaticResource WarningSurfaceDark}}" /></DataTrigger></Grid.Triggers>
-                                <Button AutomationId="{Binding PlayerId, StringFormat='BeerTotalsDoublePlay-{0}'}" Text="{Binding DoublePlayCount}" CommandParameter="{x:Static models:BeerRuleType.DoublePlay}" Clicked="OnRuleClicked" Style="{StaticResource BeerTotalEditButton}" />
-                                <Entry AutomationId="{Binding PlayerId, StringFormat='BeerTotalsDoublePlayEdit-{0}'}" Text="{Binding EditValue}" IsVisible="{Binding IsDoublePlayEditing}" Completed="OnEditCompleted" Style="{StaticResource BeerTotalEditEntry}" />
-                            </Grid>
-                            <Grid Grid.Column="7">
-                                <Grid.Triggers><DataTrigger TargetType="Grid" Binding="{Binding IsTriplePlayEditing}" Value="True"><Setter Property="BackgroundColor" Value="{AppThemeBinding Light={StaticResource WarningSurface}, Dark={StaticResource WarningSurfaceDark}}" /></DataTrigger></Grid.Triggers>
-                                <Button AutomationId="{Binding PlayerId, StringFormat='BeerTotalsTriplePlay-{0}'}" Text="{Binding TriplePlayCount}" CommandParameter="{x:Static models:BeerRuleType.TriplePlay}" Clicked="OnRuleClicked" Style="{StaticResource BeerTotalEditButton}" />
-                                <Entry AutomationId="{Binding PlayerId, StringFormat='BeerTotalsTriplePlayEdit-{0}'}" Text="{Binding EditValue}" IsVisible="{Binding IsTriplePlayEditing}" Completed="OnEditCompleted" Style="{StaticResource BeerTotalEditEntry}" />
-                            </Grid>
-                            <Grid Grid.Column="8">
-                                <Grid.Triggers><DataTrigger TargetType="Grid" Binding="{Binding IsTwoOutsEditing}" Value="True"><Setter Property="BackgroundColor" Value="{AppThemeBinding Light={StaticResource WarningSurface}, Dark={StaticResource WarningSurfaceDark}}" /></DataTrigger></Grid.Triggers>
-                                <Button AutomationId="{Binding PlayerId, StringFormat='BeerTotalsTwoOuts-{0}'}" Text="{Binding TwoOutsInOneInningCount}" CommandParameter="{x:Static models:BeerRuleType.TwoOutsInOneInning}" Clicked="OnRuleClicked" Style="{StaticResource BeerTotalEditButton}" />
-                                <Entry AutomationId="{Binding PlayerId, StringFormat='BeerTotalsTwoOutsEdit-{0}'}" Text="{Binding EditValue}" IsVisible="{Binding IsTwoOutsEditing}" Completed="OnEditCompleted" Style="{StaticResource BeerTotalEditEntry}" />
-                            </Grid>
-                            <Grid Grid.Column="9">
-                                <Grid.Triggers><DataTrigger TargetType="Grid" Binding="{Binding IsStrikeoutEditing}" Value="True"><Setter Property="BackgroundColor" Value="{AppThemeBinding Light={StaticResource WarningSurface}, Dark={StaticResource WarningSurfaceDark}}" /></DataTrigger></Grid.Triggers>
-                                <Button AutomationId="{Binding PlayerId, StringFormat='BeerTotalsStrikeout-{0}'}" Text="{Binding StrikeoutCount}" CommandParameter="{x:Static models:BeerRuleType.Strikeout}" Clicked="OnRuleClicked" Style="{StaticResource BeerTotalEditButton}" />
-                                <Entry AutomationId="{Binding PlayerId, StringFormat='BeerTotalsStrikeoutEdit-{0}'}" Text="{Binding EditValue}" IsVisible="{Binding IsStrikeoutEditing}" Completed="OnEditCompleted" Style="{StaticResource BeerTotalEditEntry}" />
-                            </Grid>
-                            <Grid Grid.Column="10">
-                                <Grid.Triggers><DataTrigger TargetType="Grid" Binding="{Binding IsLowManEditing}" Value="True"><Setter Property="BackgroundColor" Value="{AppThemeBinding Light={StaticResource WarningSurface}, Dark={StaticResource WarningSurfaceDark}}" /></DataTrigger></Grid.Triggers>
-                                <Button AutomationId="{Binding PlayerId, StringFormat='BeerTotalsLowMan-{0}'}" Text="{Binding LowManCount}" CommandParameter="{x:Static models:BeerRuleType.LowMan}" Clicked="OnRuleClicked" Style="{StaticResource BeerTotalEditButton}" />
-                                <Entry AutomationId="{Binding PlayerId, StringFormat='BeerTotalsLowManEdit-{0}'}" Text="{Binding EditValue}" IsVisible="{Binding IsLowManEditing}" Completed="OnEditCompleted" Style="{StaticResource BeerTotalEditEntry}" />
-                            </Grid>
-                            <BoxView Grid.Row="1" Grid.ColumnSpan="11" BackgroundColor="{AppThemeBinding Light={StaticResource Gray300}, Dark={StaticResource Gray600}}" />
-                        </Grid>
-                    </DataTemplate>
-                </BindableLayout.ItemTemplate>
-            </VerticalStackLayout>
-        </VerticalStackLayout>
-    </ScrollView>
+                        </DataTemplate>
+                    </BindableLayout.ItemTemplate>
+                </VerticalStackLayout>
+
+                <ScrollView x:Name="BeerTotalsHorizontalScroll" Grid.Column="1" AutomationId="BeerTotalsScrollView" Orientation="Horizontal" HorizontalScrollBarVisibility="Always" Scrolled="OnStatisticsScrolled">
+                    <VerticalStackLayout x:Name="BeerTotalsScrollableRows" WidthRequest="768" HorizontalOptions="Start" Spacing="0">
+                        <VerticalStackLayout x:Name="BeerTotalsPlayerRows" Spacing="0" BindableLayout.ItemsSource="{Binding Rows}">
+                            <BindableLayout.ItemTemplate>
+                                <DataTemplate x:DataType="viewModels:TeamBeerTotalRowViewModel">
+                                    <Grid RowDefinitions="52,1" ColumnDefinitions="72,88,72,72,88,100,88,100,88">
+                                        <Label AutomationId="{Binding PlayerId, StringFormat='BeerTotalsOwed-{0}'}" Text="{Binding Owed}" Style="{StaticResource BeerTotalOwedValue}" />
+                                        <Grid Grid.Column="1">
+                                            <Grid.Triggers><DataTrigger TargetType="Grid" Binding="{Binding IsBroughtEditing}" Value="True"><Setter Property="BackgroundColor" Value="{AppThemeBinding Light={StaticResource WarningSurface}, Dark={StaticResource WarningSurfaceDark}}" /></DataTrigger></Grid.Triggers>
+                                            <Button AutomationId="{Binding PlayerId, StringFormat='BeerTotalsBrought-{0}'}" Text="{Binding Brought}" Clicked="OnBroughtClicked" Style="{StaticResource BeerTotalEditButton}" />
+                                            <Entry AutomationId="{Binding PlayerId, StringFormat='BeerTotalsBroughtEdit-{0}'}" Text="{Binding EditValue}" IsVisible="{Binding IsBroughtEditing}" Completed="OnEditCompleted" Style="{StaticResource BeerTotalEditEntry}" />
+                                        </Grid>
+                                        <Grid Grid.Column="2">
+                                            <Grid.Triggers><DataTrigger TargetType="Grid" Binding="{Binding IsDboEditing}" Value="True"><Setter Property="BackgroundColor" Value="{AppThemeBinding Light={StaticResource WarningSurface}, Dark={StaticResource WarningSurfaceDark}}" /></DataTrigger></Grid.Triggers>
+                                            <Button AutomationId="{Binding PlayerId, StringFormat='BeerTotalsDbo-{0}'}" Text="{Binding DboCount}" CommandParameter="{x:Static models:BeerRuleType.Dbo}" Clicked="OnRuleClicked" Style="{StaticResource BeerTotalEditButton}" />
+                                            <Entry AutomationId="{Binding PlayerId, StringFormat='BeerTotalsDboEdit-{0}'}" Text="{Binding EditValue}" IsVisible="{Binding IsDboEditing}" Completed="OnEditCompleted" Style="{StaticResource BeerTotalEditEntry}" />
+                                        </Grid>
+                                        <Grid Grid.Column="3">
+                                            <Grid.Triggers><DataTrigger TargetType="Grid" Binding="{Binding IsSoloHomeRunEditing}" Value="True"><Setter Property="BackgroundColor" Value="{AppThemeBinding Light={StaticResource WarningSurface}, Dark={StaticResource WarningSurfaceDark}}" /></DataTrigger></Grid.Triggers>
+                                            <Button AutomationId="{Binding PlayerId, StringFormat='BeerTotalsSoloHomeRun-{0}'}" Text="{Binding SoloHomeRunCount}" CommandParameter="{x:Static models:BeerRuleType.SoloHomeRun}" Clicked="OnRuleClicked" Style="{StaticResource BeerTotalEditButton}" />
+                                            <Entry AutomationId="{Binding PlayerId, StringFormat='BeerTotalsSoloHomeRunEdit-{0}'}" Text="{Binding EditValue}" IsVisible="{Binding IsSoloHomeRunEditing}" Completed="OnEditCompleted" Style="{StaticResource BeerTotalEditEntry}" />
+                                        </Grid>
+                                        <Grid Grid.Column="4">
+                                            <Grid.Triggers><DataTrigger TargetType="Grid" Binding="{Binding IsDoublePlayEditing}" Value="True"><Setter Property="BackgroundColor" Value="{AppThemeBinding Light={StaticResource WarningSurface}, Dark={StaticResource WarningSurfaceDark}}" /></DataTrigger></Grid.Triggers>
+                                            <Button AutomationId="{Binding PlayerId, StringFormat='BeerTotalsDoublePlay-{0}'}" Text="{Binding DoublePlayCount}" CommandParameter="{x:Static models:BeerRuleType.DoublePlay}" Clicked="OnRuleClicked" Style="{StaticResource BeerTotalEditButton}" />
+                                            <Entry AutomationId="{Binding PlayerId, StringFormat='BeerTotalsDoublePlayEdit-{0}'}" Text="{Binding EditValue}" IsVisible="{Binding IsDoublePlayEditing}" Completed="OnEditCompleted" Style="{StaticResource BeerTotalEditEntry}" />
+                                        </Grid>
+                                        <Grid Grid.Column="5">
+                                            <Grid.Triggers><DataTrigger TargetType="Grid" Binding="{Binding IsTriplePlayEditing}" Value="True"><Setter Property="BackgroundColor" Value="{AppThemeBinding Light={StaticResource WarningSurface}, Dark={StaticResource WarningSurfaceDark}}" /></DataTrigger></Grid.Triggers>
+                                            <Button AutomationId="{Binding PlayerId, StringFormat='BeerTotalsTriplePlay-{0}'}" Text="{Binding TriplePlayCount}" CommandParameter="{x:Static models:BeerRuleType.TriplePlay}" Clicked="OnRuleClicked" Style="{StaticResource BeerTotalEditButton}" />
+                                            <Entry AutomationId="{Binding PlayerId, StringFormat='BeerTotalsTriplePlayEdit-{0}'}" Text="{Binding EditValue}" IsVisible="{Binding IsTriplePlayEditing}" Completed="OnEditCompleted" Style="{StaticResource BeerTotalEditEntry}" />
+                                        </Grid>
+                                        <Grid Grid.Column="6">
+                                            <Grid.Triggers><DataTrigger TargetType="Grid" Binding="{Binding IsTwoOutsEditing}" Value="True"><Setter Property="BackgroundColor" Value="{AppThemeBinding Light={StaticResource WarningSurface}, Dark={StaticResource WarningSurfaceDark}}" /></DataTrigger></Grid.Triggers>
+                                            <Button AutomationId="{Binding PlayerId, StringFormat='BeerTotalsTwoOuts-{0}'}" Text="{Binding TwoOutsInOneInningCount}" CommandParameter="{x:Static models:BeerRuleType.TwoOutsInOneInning}" Clicked="OnRuleClicked" Style="{StaticResource BeerTotalEditButton}" />
+                                            <Entry AutomationId="{Binding PlayerId, StringFormat='BeerTotalsTwoOutsEdit-{0}'}" Text="{Binding EditValue}" IsVisible="{Binding IsTwoOutsEditing}" Completed="OnEditCompleted" Style="{StaticResource BeerTotalEditEntry}" />
+                                        </Grid>
+                                        <Grid Grid.Column="7">
+                                            <Grid.Triggers><DataTrigger TargetType="Grid" Binding="{Binding IsStrikeoutEditing}" Value="True"><Setter Property="BackgroundColor" Value="{AppThemeBinding Light={StaticResource WarningSurface}, Dark={StaticResource WarningSurfaceDark}}" /></DataTrigger></Grid.Triggers>
+                                            <Button AutomationId="{Binding PlayerId, StringFormat='BeerTotalsStrikeout-{0}'}" Text="{Binding StrikeoutCount}" CommandParameter="{x:Static models:BeerRuleType.Strikeout}" Clicked="OnRuleClicked" Style="{StaticResource BeerTotalEditButton}" />
+                                            <Entry AutomationId="{Binding PlayerId, StringFormat='BeerTotalsStrikeoutEdit-{0}'}" Text="{Binding EditValue}" IsVisible="{Binding IsStrikeoutEditing}" Completed="OnEditCompleted" Style="{StaticResource BeerTotalEditEntry}" />
+                                        </Grid>
+                                        <Grid Grid.Column="8">
+                                            <Grid.Triggers><DataTrigger TargetType="Grid" Binding="{Binding IsLowManEditing}" Value="True"><Setter Property="BackgroundColor" Value="{AppThemeBinding Light={StaticResource WarningSurface}, Dark={StaticResource WarningSurfaceDark}}" /></DataTrigger></Grid.Triggers>
+                                            <Button AutomationId="{Binding PlayerId, StringFormat='BeerTotalsLowMan-{0}'}" Text="{Binding LowManCount}" CommandParameter="{x:Static models:BeerRuleType.LowMan}" Clicked="OnRuleClicked" Style="{StaticResource BeerTotalEditButton}" />
+                                            <Entry AutomationId="{Binding PlayerId, StringFormat='BeerTotalsLowManEdit-{0}'}" Text="{Binding EditValue}" IsVisible="{Binding IsLowManEditing}" Completed="OnEditCompleted" Style="{StaticResource BeerTotalEditEntry}" />
+                                        </Grid>
+                                        <BoxView Grid.Row="1" Grid.ColumnSpan="9" BackgroundColor="{AppThemeBinding Light={StaticResource Gray300}, Dark={StaticResource Gray600}}" />
+                                    </Grid>
+                                </DataTemplate>
+                            </BindableLayout.ItemTemplate>
+                        </VerticalStackLayout>
+                    </VerticalStackLayout>
+                </ScrollView>
+            </Grid>
+        </ScrollView>
+    </Grid>
 </ContentView>

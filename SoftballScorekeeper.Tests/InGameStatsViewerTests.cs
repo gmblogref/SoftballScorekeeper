@@ -97,20 +97,22 @@ public sealed class InGameStatsViewerTests
         Assert.Contains("new InGameStatsDialog(projection.Players)", pageCode);
         Assert.Contains("GetInProgressBattingStatisticsAsync(GameId)", scoringViewModel);
         Assert.Contains("item.Status == GameScoringStatus.InProgress", repository);
-        Assert.Contains("ProjectBattingPlayersAsync(connection, session)", repository);
+        Assert.Contains("connection, session, includeCompletedOverrides: false", repository);
         Assert.DoesNotContain("GetCompletedGameAsync(GameId)", scoringViewModel);
     }
 
     [Fact]
-    public void Shared_grid_preserves_all_columns_scrolling_sorting_and_pinned_total()
+    public void Shared_grid_preserves_all_columns_sorting_and_scrolling_total()
     {
         var grid = LoadXaml("Views", "Controls", "BattingStatisticsGrid.xaml");
         var ns = grid.Root!.Name.Namespace;
         var named = NamedElements(grid);
-        var header = named["CompletedStatsHeader"];
-        var headings = header.Elements(ns + "Button").ToArray();
+        var headings = named["CompletedStatsHeader"].Descendants(ns + "Button").ToArray();
 
-        Assert.Equal("Both", named["CompletedStatsTable"].Parent!.Attribute("Orientation")?.Value);
+        Assert.Equal("Vertical",
+            named["CompletedStatsVerticalScroll"].Attribute("Orientation")?.Value);
+        Assert.Equal("Horizontal",
+            named["CompletedStatsHorizontalScroll"].Attribute("Orientation")?.Value);
         Assert.Equal(14, headings.Length);
         Assert.Equal(
             "{Binding SacrificeFliesStatSortHeader}",
@@ -133,10 +135,10 @@ public sealed class InGameStatsViewerTests
             heading =>
                 Assert.Equal("{Binding SortRowsCommand}", heading.Attribute("Command")?.Value)
         );
-        Assert.Contains(
-            named["CompletedStatsTeamTotal"],
-            named["CompletedStatsPlayerRows"].ElementsAfterSelf()
-        );
+        Assert.Contains(named["CompletedStatsTeamTotal"].Ancestors(),
+            item => item == named["CompletedStatsVerticalScroll"]);
+        Assert.Contains(named["CompletedStatsTeamTotalValues"],
+            named["CompletedStatsPlayerRows"].ElementsAfterSelf());
     }
 
     private static XDocument LoadXaml(params string[] path) =>

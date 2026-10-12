@@ -147,6 +147,10 @@ public sealed class LowManCalculationRepository(AppDatabase database)
                     .Where(item => item.Status == GameScoringStatus.Completed)
                     .ToArray();
                 var completedSessionIds = completedSessions.Select(item => item.Id).ToHashSet();
+                var lineup = transaction.Table<GameScoringLineupPlayer>()
+                    .ToList()
+                    .Where(item => completedSessionIds.Contains(item.GameScoringSessionId))
+                    .ToArray();
                 var appearances = transaction.Table<GamePlateAppearance>()
                     .ToList()
                     .Where(item => completedSessionIds.Contains(item.GameScoringSessionId))
@@ -164,9 +168,27 @@ public sealed class LowManCalculationRepository(AppDatabase database)
                     return;
                 }
 
-                var statLines = BattingStatisticsCalculator.Calculate(
-                        appearances.Select(item =>
-                            new BattingOutcome(item.PlayerId, item.Result!.Value)))
+                var sources = completedSessions.Select(session =>
+                {
+                    var gameAppearances = appearances
+                        .Where(item => item.GameScoringSessionId == session.Id)
+                        .ToArray();
+                    return new CompletedGameBattingSource(
+                        session.GameId,
+                        lineup
+                            .Where(item => item.GameScoringSessionId == session.Id)
+                            .Select(item => item.PlayerId)
+                            .Concat(gameAppearances.Select(item => item.PlayerId))
+                            .Distinct()
+                            .ToArray(),
+                        gameAppearances.Select(item =>
+                            new BattingOutcome(item.PlayerId, item.Result!.Value)).ToArray());
+                }).ToArray();
+                var overrides = transaction.Table<CompletedGameBattingOverride>()
+                    .ToList()
+                    .Where(item => gameIds.Contains(item.GameId))
+                    .ToArray();
+                var statLines = EffectiveCompletedBattingStatistics.Project(sources, overrides)
                     .Where(item => item.PlateAppearances >= 1)
                     .ToArray();
                 var setting = BeerRuleConfigurationRepository.ResolveTeamSettings(

@@ -16,6 +16,9 @@ public partial class BattingStatisticsTableViewModel : ObservableObject
     [ObservableProperty]
     private CompletedBattingStatRowViewModel? teamTotal;
 
+    [ObservableProperty]
+    private bool isEditing;
+
     public ObservableCollection<CompletedBattingStatRowViewModel> Rows { get; } = [];
 
     public BattingStatSortColumn SortColumn
@@ -60,6 +63,7 @@ public partial class BattingStatisticsTableViewModel : ObservableObject
         AppResources.FielderChoicesStatHeading, BattingStatSortColumn.FielderChoices);
     public string SacrificeFliesStatSortHeader => GetSortHeader(
         AppResources.SacrificeFliesStatHeading, BattingStatSortColumn.SacrificeFlies);
+    public string OutsStatHeader => AppResources.OutsStatHeading;
     public string BattingAverageStatSortHeader => GetSortHeader(
         AppResources.BattingAverageStatHeading, BattingStatSortColumn.BattingAverage);
     public string OnBasePercentageStatSortHeader => GetSortHeader(
@@ -82,6 +86,36 @@ public partial class BattingStatisticsTableViewModel : ObservableObject
         LoadCore(players);
     }
 
+    public void BeginEdit()
+    {
+        foreach (var row in Rows) row.BeginEdit();
+        IsEditing = true;
+        SortRowsCommand.NotifyCanExecuteChanged();
+    }
+
+    public void CancelEdit()
+    {
+        foreach (var row in Rows) row.CancelEdit();
+        IsEditing = false;
+        SortRowsCommand.NotifyCanExecuteChanged();
+    }
+
+    public bool TryGetCorrections(out IReadOnlyList<CompletedGameBattingCorrection> corrections)
+    {
+        var result = new List<CompletedGameBattingCorrection>(Rows.Count);
+        foreach (var row in Rows)
+        {
+            if (!row.TryCreateCorrection(out var correction))
+            {
+                corrections = [];
+                return false;
+            }
+            result.Add(correction);
+        }
+        corrections = result;
+        return true;
+    }
+
     private void LoadCore(IReadOnlyList<GameBattingPlayerProjection> players)
     {
         for (var index = 0; index < players.Count; index++)
@@ -90,7 +124,8 @@ public partial class BattingStatisticsTableViewModel : ObservableObject
         TeamTotal = new(
             AppResources.TeamTotalStatLabel,
             BattingStatisticsCalculator.CalculateTeam(
-                players.Select(player => player.BattingStatistics)));
+                players.Select(player => player.BattingStatistics)),
+            players.Sum(player => player.OrdinaryOuts));
     }
 
     public void Clear()
@@ -99,9 +134,11 @@ public partial class BattingStatisticsTableViewModel : ObservableObject
         TeamTotal = null;
         SortColumn = BattingStatSortColumn.OnBasePercentage;
         SortDirection = BattingStatSortDirection.Descending;
+        IsEditing = false;
+        SortRowsCommand.NotifyCanExecuteChanged();
     }
 
-    [RelayCommand]
+    [RelayCommand(CanExecute = nameof(CanSortRows))]
     private void SortRows(BattingStatSortColumn column)
     {
         var next = new BattingStatSortState(SortColumn, SortDirection).Select(column);
@@ -109,6 +146,8 @@ public partial class BattingStatisticsTableViewModel : ObservableObject
         SortDirection = next.Direction;
         ApplySort();
     }
+
+    private bool CanSortRows() => !IsEditing;
 
     private void ApplySort()
     {
