@@ -14,6 +14,7 @@ public partial class GameWorkspaceViewModel : ObservableObject, IQueryAttributab
     private readonly GameRepository gameRepository;
     private readonly GameLineupRepository lineupRepository;
     private readonly GameScoringSessionRepository scoringSessionRepository;
+    private readonly CompletedGameManualOverrideRepository manualOverrideRepository;
     private bool hasValidContext;
 
     [ObservableProperty] private int teamId;
@@ -35,7 +36,11 @@ public partial class GameWorkspaceViewModel : ObservableObject, IQueryAttributab
     private int completedVisitorScore;
     private string completedHomeName = string.Empty;
     private int completedHomeScore;
-    [ObservableProperty, NotifyCanExecuteChangedFor(nameof(EditGameCommand)), NotifyCanExecuteChangedFor(nameof(SetLineupCommand))] private bool isBusy;
+    private string completedVisitorScoreEdit = string.Empty;
+    private string completedHomeScoreEdit = string.Empty;
+    [ObservableProperty] private bool isManualOverrideEditing;
+    [ObservableProperty] private bool hasManualOverrides;
+    [ObservableProperty, NotifyCanExecuteChangedFor(nameof(EditGameCommand)), NotifyCanExecuteChangedFor(nameof(SetLineupCommand)), NotifyCanExecuteChangedFor(nameof(BeginManualOverrideCommand))] private bool isBusy;
     [ObservableProperty, NotifyCanExecuteChangedFor(nameof(EditGameCommand)), NotifyCanExecuteChangedFor(nameof(SetLineupCommand))] private bool isLoaded;
 
     public GameWorkspaceViewModel(
@@ -43,13 +48,15 @@ public partial class GameWorkspaceViewModel : ObservableObject, IQueryAttributab
         SeasonRepository seasonRepository,
         GameRepository gameRepository,
         GameLineupRepository lineupRepository,
-        GameScoringSessionRepository scoringSessionRepository)
+        GameScoringSessionRepository scoringSessionRepository,
+        CompletedGameManualOverrideRepository manualOverrideRepository)
     {
         this.teamRepository = teamRepository;
         this.seasonRepository = seasonRepository;
         this.gameRepository = gameRepository;
         this.lineupRepository = lineupRepository;
         this.scoringSessionRepository = scoringSessionRepository;
+        this.manualOverrideRepository = manualOverrideRepository;
     }
 
     public string LineupActionText => HasLineup ? AppResources.EditLineupButton : AppResources.SetLineupTitle;
@@ -77,6 +84,39 @@ public partial class GameWorkspaceViewModel : ObservableObject, IQueryAttributab
         private set => SetProperty(ref completedHomeScore, value);
     }
 
+    public string CompletedVisitorScoreEdit
+    {
+        get => completedVisitorScoreEdit;
+        set
+        {
+            if (!SetProperty(ref completedVisitorScoreEdit, value ?? string.Empty)) return;
+            OnPropertyChanged(nameof(IsCompletedVisitorScoreDirty));
+            OnPropertyChanged(nameof(CompletedVisitorScoreEditDescription));
+        }
+    }
+
+    public string CompletedHomeScoreEdit
+    {
+        get => completedHomeScoreEdit;
+        set
+        {
+            if (!SetProperty(ref completedHomeScoreEdit, value ?? string.Empty)) return;
+            OnPropertyChanged(nameof(IsCompletedHomeScoreDirty));
+            OnPropertyChanged(nameof(CompletedHomeScoreEditDescription));
+        }
+    }
+
+    public bool IsCompletedVisitorScoreDirty =>
+        !TryParseNonNegative(CompletedVisitorScoreEdit, out var value)
+        || value != CompletedVisitorScore;
+    public bool IsCompletedHomeScoreDirty =>
+        !TryParseNonNegative(CompletedHomeScoreEdit, out var value)
+        || value != CompletedHomeScore;
+    public string CompletedVisitorScoreEditDescription => GetScoreEditDescription(
+        AppResources.ManualOverrideVisitorScoreLabel, IsCompletedVisitorScoreDirty);
+    public string CompletedHomeScoreEditDescription => GetScoreEditDescription(
+        AppResources.ManualOverrideHomeScoreLabel, IsCompletedHomeScoreDirty);
+
     public BattingStatisticsTableViewModel CompletedBattingStatistics { get; } = new();
     public ObservableCollection<CompletedGameHalfInningViewModel> CompletedGamePlays { get; } = [];
     public bool ShowingGameStats => !ShowingGamePlays;
@@ -88,6 +128,12 @@ public partial class GameWorkspaceViewModel : ObservableObject, IQueryAttributab
         && HasScoringSession && !IsScoringCompleted;
     public bool ShowResetGame => IsLoaded && IsTeamYearOpen
         && HasScoringSession && !IsScoringCompleted;
+    public bool ShowManualOverrideActions => ShowCompletedGame && IsTeamYearOpen;
+    public bool ShowBeginManualOverride => ShowManualOverrideActions && !IsManualOverrideEditing;
+    public bool ShowManualOverrideChip => ShowCompletedGame && HasManualOverrides;
+    public bool ShowRevertManualOverrides => ShowManualOverrideActions
+        && HasManualOverrides && !IsManualOverrideEditing;
+    public Func<Task<bool>>? RevertManualOverridesConfirmationRequested { get; set; }
 
     public void ApplyQueryAttributes(IDictionary<string, object> query)
     {
@@ -167,18 +213,8 @@ public partial class GameWorkspaceViewModel : ObservableObject, IQueryAttributab
             IsScoringCompleted = session?.Status == Core.Models.GameScoringStatus.Completed;
             if (IsScoringCompleted)
             {
-                var completed = await scoringSessionRepository.GetCompletedGameAsync(GameId);
-                if (completed is null)
+                if (await RefreshCompletedProjectionAsync(initialLoad: true))
                 {
-                    ValidationMessage = AppResources.CompletedGameLoadFailedMessage;
-                }
-                else
-                {
-                    CompletedVisitorName = completed.VisitorName;
-                    CompletedVisitorScore = completed.VisitorScore;
-                    CompletedHomeName = completed.HomeName;
-                    CompletedHomeScore = completed.HomeScore;
-                    CompletedBattingStatistics.Load(completed.Players);
                     var plays = await scoringSessionRepository
                         .GetCompletedGamePlaysAsync(GameId);
                     if (plays is not null)
@@ -276,6 +312,91 @@ public partial class GameWorkspaceViewModel : ObservableObject, IQueryAttributab
     [RelayCommand]
     private void ShowGamePlays() => ShowingGamePlays = true;
 
+    [RelayCommand(CanExecute = nameof(CanBeginManualOverride))]
+    private void BeginManualOverride()
+    {
+        ShowingGamePlays = false;
+        ValidationMessage = string.Empty;
+        CompletedVisitorScoreEdit = CompletedVisitorScore.ToString(CultureInfo.CurrentCulture);
+        CompletedHomeScoreEdit = CompletedHomeScore.ToString(CultureInfo.CurrentCulture);
+        CompletedBattingStatistics.BeginEdit();
+        IsManualOverrideEditing = true;
+        NotifyManualOverrideStateChanged();
+    }
+
+    private bool CanBeginManualOverride() => ShowManualOverrideActions
+        && !IsManualOverrideEditing && !IsBusy;
+
+    [RelayCommand]
+    private void CancelManualOverride()
+    {
+        CompletedBattingStatistics.CancelEdit();
+        ResetScoreEdits();
+        IsManualOverrideEditing = false;
+        ValidationMessage = string.Empty;
+        NotifyManualOverrideStateChanged();
+    }
+
+    [RelayCommand]
+    private async Task SaveManualOverrideAsync()
+    {
+        if (!IsManualOverrideEditing || IsBusy) return;
+        if (!CompletedBattingStatistics.TryGetCorrections(out var corrections)
+            || !TryParseNonNegative(CompletedVisitorScoreEdit, out var visitorScore)
+            || !TryParseNonNegative(CompletedHomeScoreEdit, out var homeScore))
+        {
+            ValidationMessage = AppResources.ManualOverrideInvalidValueMessage;
+            return;
+        }
+
+        IsBusy = true;
+        try
+        {
+            var result = await manualOverrideRepository.SaveAsync(
+                GameId, corrections, visitorScore, homeScore);
+            if (!result.IsSuccess)
+            {
+                ValidationMessage = result.FailureReason
+                    == CompletedGameManualOverrideFailure.TeamYearFinalized
+                    ? AppResources.TeamYearFinalizedWriteMessage
+                    : result.FailureReason == CompletedGameManualOverrideFailure.InvalidBattingStatistics
+                        ? AppResources.ManualOverrideImpossibleStatsMessage
+                        : AppResources.ManualOverrideSaveFailedMessage;
+                return;
+            }
+            IsManualOverrideEditing = false;
+            await RefreshCompletedProjectionAsync(initialLoad: false);
+            ValidationMessage = string.Empty;
+            NotifyManualOverrideStateChanged();
+        }
+        finally { IsBusy = false; }
+    }
+
+    [RelayCommand]
+    private async Task RevertManualOverridesAsync()
+    {
+        if (!ShowRevertManualOverrides || IsBusy) return;
+        if (RevertManualOverridesConfirmationRequested is not null
+            && !await RevertManualOverridesConfirmationRequested()) return;
+        IsBusy = true;
+        try
+        {
+            var result = await manualOverrideRepository.RevertAsync(GameId);
+            if (!result.IsSuccess)
+            {
+                ValidationMessage = result.FailureReason
+                    == CompletedGameManualOverrideFailure.TeamYearFinalized
+                    ? AppResources.TeamYearFinalizedWriteMessage
+                    : AppResources.ManualOverrideRevertFailedMessage;
+                return;
+            }
+            await RefreshCompletedProjectionAsync(initialLoad: false);
+            ValidationMessage = string.Empty;
+            NotifyManualOverrideStateChanged();
+        }
+        finally { IsBusy = false; }
+    }
+
     private Task NavigateToScoringAsync() => Shell.Current.GoToAsync(
         AppShell.ScoringRoute,
         new ShellNavigationQueryParameters
@@ -293,6 +414,8 @@ public partial class GameWorkspaceViewModel : ObservableObject, IQueryAttributab
     partial void OnHasScoringSessionChanged(bool value) => NotifyStateChanged();
     partial void OnIsScoringCompletedChanged(bool value) => NotifyStateChanged();
     partial void OnIsLoadedChanged(bool value) => NotifyStateChanged();
+    partial void OnIsManualOverrideEditingChanged(bool value) => NotifyManualOverrideStateChanged();
+    partial void OnHasManualOverridesChanged(bool value) => NotifyManualOverrideStateChanged();
     partial void OnIsTeamYearOpenChanged(bool value)
     {
         EditGameCommand.NotifyCanExecuteChanged();
@@ -308,7 +431,52 @@ public partial class GameWorkspaceViewModel : ObservableObject, IQueryAttributab
         OnPropertyChanged(nameof(ShowScoreGame));
         OnPropertyChanged(nameof(ShowResumeGame));
         OnPropertyChanged(nameof(ShowResetGame));
+        NotifyManualOverrideStateChanged();
     }
+
+    private void NotifyManualOverrideStateChanged()
+    {
+        OnPropertyChanged(nameof(ShowManualOverrideActions));
+        OnPropertyChanged(nameof(ShowBeginManualOverride));
+        OnPropertyChanged(nameof(ShowManualOverrideChip));
+        OnPropertyChanged(nameof(ShowRevertManualOverrides));
+        BeginManualOverrideCommand.NotifyCanExecuteChanged();
+    }
+
+    private async Task<bool> RefreshCompletedProjectionAsync(bool initialLoad)
+    {
+        var completed = await scoringSessionRepository.GetCompletedGameAsync(GameId);
+        if (completed is null)
+        {
+            ValidationMessage = AppResources.CompletedGameLoadFailedMessage;
+            return false;
+        }
+        CompletedVisitorName = completed.VisitorName;
+        CompletedVisitorScore = completed.VisitorScore;
+        CompletedHomeName = completed.HomeName;
+        CompletedHomeScore = completed.HomeScore;
+        HasManualOverrides = completed.HasManualOverrides;
+        if (initialLoad) CompletedBattingStatistics.Load(completed.Players);
+        else CompletedBattingStatistics.Reload(completed.Players);
+        ResetScoreEdits();
+        return true;
+    }
+
+    private void ResetScoreEdits()
+    {
+        CompletedVisitorScoreEdit = CompletedVisitorScore.ToString(CultureInfo.CurrentCulture);
+        CompletedHomeScoreEdit = CompletedHomeScore.ToString(CultureInfo.CurrentCulture);
+        OnPropertyChanged(nameof(IsCompletedVisitorScoreDirty));
+        OnPropertyChanged(nameof(IsCompletedHomeScoreDirty));
+        OnPropertyChanged(nameof(CompletedVisitorScoreEditDescription));
+        OnPropertyChanged(nameof(CompletedHomeScoreEditDescription));
+    }
+
+    private static string GetScoreEditDescription(string fieldName, bool isDirty) =>
+        isDirty
+            ? string.Format(CultureInfo.CurrentCulture,
+                AppResources.ManualOverrideUnsavedFieldDescription, fieldName)
+            : fieldName;
 
     private static string DisplayOrTbd(string? value) =>
         string.IsNullOrWhiteSpace(value) ? AppResources.ScheduleTbdText : value.Trim();
@@ -322,6 +490,8 @@ public partial class GameWorkspaceViewModel : ObservableObject, IQueryAttributab
         HasScoringSession = false;
         IsScoringCompleted = false;
         IsTeamYearOpen = false;
+        IsManualOverrideEditing = false;
+        HasManualOverrides = false;
         ClearCompletedGame();
         IsLoaded = false;
         hasValidContext = false;
@@ -331,6 +501,7 @@ public partial class GameWorkspaceViewModel : ObservableObject, IQueryAttributab
     {
         CompletedVisitorName = CompletedHomeName = string.Empty;
         CompletedVisitorScore = CompletedHomeScore = 0;
+        ResetScoreEdits();
         CompletedBattingStatistics.Clear();
         CompletedGamePlays.Clear();
         ShowingGamePlays = false;
@@ -341,4 +512,8 @@ public partial class GameWorkspaceViewModel : ObservableObject, IQueryAttributab
         id = 0;
         return value is int number ? (id = number) > 0 : value is string text && int.TryParse(text, out id) && id > 0;
     }
+
+    private static bool TryParseNonNegative(string value, out int result) =>
+        int.TryParse(value, NumberStyles.None, CultureInfo.CurrentCulture, out result)
+        && result >= 0;
 }

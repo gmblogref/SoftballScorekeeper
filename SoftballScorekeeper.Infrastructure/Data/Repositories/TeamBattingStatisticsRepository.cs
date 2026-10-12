@@ -141,13 +141,25 @@ public sealed class TeamBattingStatisticsRepository(AppDatabase database)
             throw new InvalidOperationException(
                 "A completed Game contains a plate appearance without a final result.");
 
-        var participantIds = lineup.Select(item => item.PlayerId)
-            .Concat(appearances.Select(item => item.PlayerId))
-            .Distinct()
-            .ToArray();
-        var statLines = BattingStatisticsCalculator.Calculate(
-            participantIds,
-            appearances.Select(item => new BattingOutcome(item.PlayerId, item.Result!.Value)));
+        var sources = selected.Select(game =>
+        {
+            var gameLineup = lineup
+                .Where(item => item.GameScoringSessionId == game.ScoringSessionId)
+                .Select(item => item.PlayerId);
+            var gameAppearances = appearances
+                .Where(item => item.GameScoringSessionId == game.ScoringSessionId)
+                .ToArray();
+            return new CompletedGameBattingSource(
+                game.GameId,
+                gameLineup.Concat(gameAppearances.Select(item => item.PlayerId))
+                    .Distinct().ToArray(),
+                gameAppearances.Select(item =>
+                    new BattingOutcome(item.PlayerId, item.Result!.Value)).ToArray());
+        }).ToArray();
+        var overrides = (await connection.Table<CompletedGameBattingOverride>().ToListAsync())
+            .Where(item => selectedIds.Contains(item.GameId)).ToArray();
+        var statLines = EffectiveCompletedBattingStatistics.Project(sources, overrides);
+        var participantIds = statLines.Select(item => item.PlayerId).ToArray();
         var players = (await connection.Table<Player>().ToListAsync())
             .Where(item => participantIds.Contains(item.Id))
             .ToDictionary(item => item.Id);

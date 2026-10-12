@@ -6,4 +6,9 @@ public partial class BattingStatisticsGrid : ContentView
     {
         InitializeComponent();
     }
+
+    private void OnStatisticsScrolled(object? sender, ScrolledEventArgs e)
+    {
+        CompletedStatsScrollableHeader.TranslationX = -e.ScrollX;
+    }
 }

@@ -23,81 +23,137 @@
             <Setter Property="BackgroundColor" Value="Transparent" />
             <Setter Property="TextColor" Value="{AppThemeBinding Light={StaticResource Gray900}, Dark={StaticResource White}}" />
         </Style>
+        <Style x:Key="CompletedStatEdit" TargetType="Entry">
+            <Setter Property="FontSize" Value="16" />
+            <Setter Property="HorizontalTextAlignment" Value="Center" />
+            <Setter Property="VerticalTextAlignment" Value="Center" />
+            <Setter Property="Keyboard" Value="Numeric" />
+            <Setter Property="Margin" Value="2" />
+            <Setter Property="BackgroundColor" Value="Transparent" />
+        </Style>
     </ContentView.Resources>
 
-    <ScrollView AutomationId="CompletedBattingStats"
-                Orientation="Both"
-                HorizontalScrollBarVisibility="Always"
-                VerticalScrollBarVisibility="Default">
-        <VerticalStackLayout x:Name="CompletedStatsTable"
-                             Spacing="0"
-                             MinimumWidthRequest="926"
-                             HorizontalOptions="Start">
-            <Grid x:Name="CompletedStatsHeader"
-                  Padding="10,6,10,0"
-                  RowDefinitions="Auto,2"
-                  ColumnDefinitions="180,2,52,52,52,52,52,52,52,52,52,52,68,68,68">
+    <Grid x:Name="CompletedStatsTable" RowDefinitions="Auto,*">
+        <Grid x:Name="CompletedStatsHeader" Padding="10,6,10,0" ColumnDefinitions="182,*">
+            <Grid x:Name="CompletedStatsPlayerHeader" RowDefinitions="Auto,2" ColumnDefinitions="180,2">
                 <Button AutomationId="CompletedStatsSortPlayer" Text="{Binding PlayerStatSortHeader}" Command="{Binding SortRowsCommand}" CommandParameter="{x:Static statistics:BattingStatSortColumn.Player}" Style="{StaticResource CompletedStatHeaderButton}" />
                 <BoxView Grid.Column="1" Grid.RowSpan="2" BackgroundColor="{AppThemeBinding Light={StaticResource Gray500}, Dark={StaticResource Gray400}}" />
-                <Button AutomationId="CompletedStatsSortPlateAppearances" Grid.Column="2" Text="{Binding PlateAppearancesStatSortHeader}" Command="{Binding SortRowsCommand}" CommandParameter="{x:Static statistics:BattingStatSortColumn.PlateAppearances}" Style="{StaticResource CompletedStatHeaderButton}" />
-                <Button AutomationId="CompletedStatsSortAtBats" Grid.Column="3" Text="{Binding AtBatsStatSortHeader}" Command="{Binding SortRowsCommand}" CommandParameter="{x:Static statistics:BattingStatSortColumn.AtBats}" Style="{StaticResource CompletedStatHeaderButton}" />
-                <Button AutomationId="CompletedStatsSortHits" Grid.Column="4" Text="{Binding HitsStatSortHeader}" Command="{Binding SortRowsCommand}" CommandParameter="{x:Static statistics:BattingStatSortColumn.Hits}" Style="{StaticResource CompletedStatHeaderButton}" />
-                <Button AutomationId="CompletedStatsSortSingles" Grid.Column="5" Text="{Binding SinglesStatSortHeader}" Command="{Binding SortRowsCommand}" CommandParameter="{x:Static statistics:BattingStatSortColumn.Singles}" Style="{StaticResource CompletedStatHeaderButton}" />
-                <Button AutomationId="CompletedStatsSortDoubles" Grid.Column="6" Text="{Binding DoublesStatSortHeader}" Command="{Binding SortRowsCommand}" CommandParameter="{x:Static statistics:BattingStatSortColumn.Doubles}" Style="{StaticResource CompletedStatHeaderButton}" />
-                <Button AutomationId="CompletedStatsSortTriples" Grid.Column="7" Text="{Binding TriplesStatSortHeader}" Command="{Binding SortRowsCommand}" CommandParameter="{x:Static statistics:BattingStatSortColumn.Triples}" Style="{StaticResource CompletedStatHeaderButton}" />
-                <Button AutomationId="CompletedStatsSortHomeRuns" Grid.Column="8" Text="{Binding HomeRunsStatSortHeader}" Command="{Binding SortRowsCommand}" CommandParameter="{x:Static statistics:BattingStatSortColumn.HomeRuns}" Style="{StaticResource CompletedStatHeaderButton}" />
-                <Button AutomationId="CompletedStatsSortWalks" Grid.Column="9" Text="{Binding WalksStatSortHeader}" Command="{Binding SortRowsCommand}" CommandParameter="{x:Static statistics:BattingStatSortColumn.Walks}" Style="{StaticResource CompletedStatHeaderButton}" />
-                <Button AutomationId="CompletedStatsSortFielderChoices" Grid.Column="10" Text="{Binding FielderChoicesStatSortHeader}" Command="{Binding SortRowsCommand}" CommandParameter="{x:Static statistics:BattingStatSortColumn.FielderChoices}" Style="{StaticResource CompletedStatHeaderButton}" />
-                <Button AutomationId="CompletedStatsSortSacrificeFlies" Grid.Column="11" Text="{Binding SacrificeFliesStatSortHeader}" Command="{Binding SortRowsCommand}" CommandParameter="{x:Static statistics:BattingStatSortColumn.SacrificeFlies}" Style="{StaticResource CompletedStatHeaderButton}" />
-                <Button AutomationId="CompletedStatsSortBattingAverage" Grid.Column="12" Text="{Binding BattingAverageStatSortHeader}" Command="{Binding SortRowsCommand}" CommandParameter="{x:Static statistics:BattingStatSortColumn.BattingAverage}" Style="{StaticResource CompletedStatHeaderButton}" />
-                <Button AutomationId="CompletedStatsSortOnBasePercentage" Grid.Column="13" Text="{Binding OnBasePercentageStatSortHeader}" Command="{Binding SortRowsCommand}" CommandParameter="{x:Static statistics:BattingStatSortColumn.OnBasePercentage}" Style="{StaticResource CompletedStatHeaderButton}" />
-                <Button AutomationId="CompletedStatsSortSluggingPercentage" Grid.Column="14" Text="{Binding SluggingPercentageStatSortHeader}" Command="{Binding SortRowsCommand}" CommandParameter="{x:Static statistics:BattingStatSortColumn.SluggingPercentage}" Style="{StaticResource CompletedStatHeaderButton}" />
-                <BoxView Grid.Row="1" Grid.ColumnSpan="15" BackgroundColor="{AppThemeBinding Light={StaticResource Gray500}, Dark={StaticResource Gray400}}" />
+                <BoxView Grid.Row="1" Grid.ColumnSpan="2" BackgroundColor="{AppThemeBinding Light={StaticResource Gray500}, Dark={StaticResource Gray400}}" />
             </Grid>
 
-            <VerticalStackLayout x:Name="CompletedStatsPlayerRows" Spacing="0" BindableLayout.ItemsSource="{Binding Rows}">
-                <BindableLayout.ItemTemplate>
-                    <DataTemplate x:DataType="viewModels:CompletedBattingStatRowViewModel">
-                        <Grid AutomationId="{Binding AutomationId}" Padding="10,0" RowDefinitions="44,1" ColumnDefinitions="180,2,52,52,52,52,52,52,52,52,52,52,68,68,68">
-                            <Label Text="{Binding PlayerName}" FontSize="16" FontAttributes="Bold" VerticalTextAlignment="Center" LineBreakMode="TailTruncation" MaxLines="1" />
-                            <BoxView Grid.Column="1" Grid.RowSpan="2" BackgroundColor="{AppThemeBinding Light={StaticResource Gray500}, Dark={StaticResource Gray400}}" />
-                            <Label AutomationId="{Binding PlateAppearancesAutomationId}" Grid.Column="2" Text="{Binding PlateAppearances}" Style="{StaticResource CompletedStatValue}" />
-                            <Label AutomationId="{Binding AtBatsAutomationId}" Grid.Column="3" Text="{Binding AtBats}" Style="{StaticResource CompletedStatValue}" />
-                            <Label AutomationId="{Binding HitsAutomationId}" Grid.Column="4" Text="{Binding Hits}" Style="{StaticResource CompletedStatValue}" />
-                            <Label Grid.Column="5" Text="{Binding Singles}" Style="{StaticResource CompletedStatValue}" />
-                            <Label Grid.Column="6" Text="{Binding Doubles}" Style="{StaticResource CompletedStatValue}" />
-                            <Label Grid.Column="7" Text="{Binding Triples}" Style="{StaticResource CompletedStatValue}" />
-                            <Label AutomationId="{Binding HomeRunsAutomationId}" Grid.Column="8" Text="{Binding HomeRuns}" Style="{StaticResource CompletedStatValue}" />
-                            <Label Grid.Column="9" Text="{Binding Walks}" Style="{StaticResource CompletedStatValue}" />
-                            <Label Grid.Column="10" Text="{Binding FielderChoices}" Style="{StaticResource CompletedStatValue}" />
-                            <Label Grid.Column="11" Text="{Binding SacrificeFlies}" Style="{StaticResource CompletedStatValue}" />
-                            <Label AutomationId="{Binding BattingAverageAutomationId}" Grid.Column="12" Text="{Binding BattingAverage}" Style="{StaticResource CompletedStatValue}" />
-                            <Label AutomationId="{Binding OnBasePercentageAutomationId}" Grid.Column="13" Text="{Binding OnBasePercentage}" Style="{StaticResource CompletedStatValue}" />
-                            <Label AutomationId="{Binding SluggingPercentageAutomationId}" Grid.Column="14" Text="{Binding SluggingPercentage}" Style="{StaticResource CompletedStatValue}" />
-                            <BoxView Grid.Row="1" Grid.ColumnSpan="15" BackgroundColor="{AppThemeBinding Light={StaticResource Gray300}, Dark={StaticResource Gray600}}" />
+            <Grid Grid.Column="1" IsClippedToBounds="True">
+                <Grid x:Name="CompletedStatsScrollableHeader" WidthRequest="776" HorizontalOptions="Start" RowDefinitions="Auto,2" ColumnDefinitions="52,52,52,52,52,52,52,52,52,52,52,68,68,68">
+                    <Button AutomationId="CompletedStatsSortPlateAppearances" Text="{Binding PlateAppearancesStatSortHeader}" Command="{Binding SortRowsCommand}" CommandParameter="{x:Static statistics:BattingStatSortColumn.PlateAppearances}" Style="{StaticResource CompletedStatHeaderButton}" />
+                    <Button AutomationId="CompletedStatsSortAtBats" Grid.Column="1" Text="{Binding AtBatsStatSortHeader}" Command="{Binding SortRowsCommand}" CommandParameter="{x:Static statistics:BattingStatSortColumn.AtBats}" Style="{StaticResource CompletedStatHeaderButton}" />
+                    <Button AutomationId="CompletedStatsSortHits" Grid.Column="2" Text="{Binding HitsStatSortHeader}" Command="{Binding SortRowsCommand}" CommandParameter="{x:Static statistics:BattingStatSortColumn.Hits}" Style="{StaticResource CompletedStatHeaderButton}" />
+                    <Button AutomationId="CompletedStatsSortSingles" Grid.Column="3" Text="{Binding SinglesStatSortHeader}" Command="{Binding SortRowsCommand}" CommandParameter="{x:Static statistics:BattingStatSortColumn.Singles}" Style="{StaticResource CompletedStatHeaderButton}" />
+                    <Button AutomationId="CompletedStatsSortDoubles" Grid.Column="4" Text="{Binding DoublesStatSortHeader}" Command="{Binding SortRowsCommand}" CommandParameter="{x:Static statistics:BattingStatSortColumn.Doubles}" Style="{StaticResource CompletedStatHeaderButton}" />
+                    <Button AutomationId="CompletedStatsSortTriples" Grid.Column="5" Text="{Binding TriplesStatSortHeader}" Command="{Binding SortRowsCommand}" CommandParameter="{x:Static statistics:BattingStatSortColumn.Triples}" Style="{StaticResource CompletedStatHeaderButton}" />
+                    <Button AutomationId="CompletedStatsSortHomeRuns" Grid.Column="6" Text="{Binding HomeRunsStatSortHeader}" Command="{Binding SortRowsCommand}" CommandParameter="{x:Static statistics:BattingStatSortColumn.HomeRuns}" Style="{StaticResource CompletedStatHeaderButton}" />
+                    <Button AutomationId="CompletedStatsSortWalks" Grid.Column="7" Text="{Binding WalksStatSortHeader}" Command="{Binding SortRowsCommand}" CommandParameter="{x:Static statistics:BattingStatSortColumn.Walks}" Style="{StaticResource CompletedStatHeaderButton}" />
+                    <Button AutomationId="CompletedStatsSortFielderChoices" Grid.Column="8" Text="{Binding FielderChoicesStatSortHeader}" Command="{Binding SortRowsCommand}" CommandParameter="{x:Static statistics:BattingStatSortColumn.FielderChoices}" Style="{StaticResource CompletedStatHeaderButton}" />
+                    <Button AutomationId="CompletedStatsSortSacrificeFlies" Grid.Column="9" Text="{Binding SacrificeFliesStatSortHeader}" Command="{Binding SortRowsCommand}" CommandParameter="{x:Static statistics:BattingStatSortColumn.SacrificeFlies}" Style="{StaticResource CompletedStatHeaderButton}" />
+                    <Label AutomationId="CompletedStatsOutsHeading" Grid.Column="10" Text="{Binding OutsStatHeader}" Style="{StaticResource CompletedStatValue}" FontSize="12" FontAttributes="Bold" />
+                    <Button AutomationId="CompletedStatsSortBattingAverage" Grid.Column="11" Text="{Binding BattingAverageStatSortHeader}" Command="{Binding SortRowsCommand}" CommandParameter="{x:Static statistics:BattingStatSortColumn.BattingAverage}" Style="{StaticResource CompletedStatHeaderButton}" />
+                    <Button AutomationId="CompletedStatsSortOnBasePercentage" Grid.Column="12" Text="{Binding OnBasePercentageStatSortHeader}" Command="{Binding SortRowsCommand}" CommandParameter="{x:Static statistics:BattingStatSortColumn.OnBasePercentage}" Style="{StaticResource CompletedStatHeaderButton}" />
+                    <Button AutomationId="CompletedStatsSortSluggingPercentage" Grid.Column="13" Text="{Binding SluggingPercentageStatSortHeader}" Command="{Binding SortRowsCommand}" CommandParameter="{x:Static statistics:BattingStatSortColumn.SluggingPercentage}" Style="{StaticResource CompletedStatHeaderButton}" />
+                    <BoxView Grid.Row="1" Grid.ColumnSpan="14" BackgroundColor="{AppThemeBinding Light={StaticResource Gray500}, Dark={StaticResource Gray400}}" />
+                </Grid>
+            </Grid>
+        </Grid>
+
+        <ScrollView x:Name="CompletedStatsVerticalScroll" Grid.Row="1" AutomationId="CompletedBattingStatsVerticalScroll" Orientation="Vertical" VerticalScrollBarVisibility="Default">
+            <Grid x:Name="CompletedStatsBody" Padding="10,0,10,0" ColumnDefinitions="182,*">
+                <VerticalStackLayout x:Name="CompletedStatsPlayerColumn" Spacing="0">
+                    <VerticalStackLayout x:Name="CompletedStatsPlayerNames" Spacing="0" BindableLayout.ItemsSource="{Binding Rows}">
+                        <BindableLayout.ItemTemplate>
+                            <DataTemplate x:DataType="viewModels:CompletedBattingStatRowViewModel">
+                                <Grid AutomationId="{Binding AutomationId}" RowDefinitions="44,1" ColumnDefinitions="180,2">
+                                    <Label Text="{Binding PlayerName}" FontSize="16" FontAttributes="Bold" VerticalTextAlignment="Center" LineBreakMode="TailTruncation" MaxLines="1" />
+                                    <BoxView Grid.Column="1" Grid.RowSpan="2" BackgroundColor="{AppThemeBinding Light={StaticResource Gray500}, Dark={StaticResource Gray400}}" />
+                                    <BoxView Grid.Row="1" Grid.ColumnSpan="2" BackgroundColor="{AppThemeBinding Light={StaticResource Gray300}, Dark={StaticResource Gray600}}" />
+                                </Grid>
+                            </DataTemplate>
+                        </BindableLayout.ItemTemplate>
+                    </VerticalStackLayout>
+
+                    <Grid x:Name="CompletedStatsTeamTotal" AutomationId="CompletedBattingTeamTotal" RowDefinitions="2,46" ColumnDefinitions="180,2">
+                        <BoxView Grid.ColumnSpan="2" BackgroundColor="{AppThemeBinding Light={StaticResource Gray600}, Dark={StaticResource Gray300}}" />
+                        <Label Grid.Row="1" Text="{Binding TeamTotal.PlayerName}" FontSize="16" FontAttributes="Bold" VerticalTextAlignment="Center" />
+                        <BoxView Grid.Row="1" Grid.Column="1" BackgroundColor="{AppThemeBinding Light={StaticResource Gray500}, Dark={StaticResource Gray400}}" />
+                    </Grid>
+                </VerticalStackLayout>
+
+                <ScrollView x:Name="CompletedStatsHorizontalScroll" Grid.Column="1" AutomationId="CompletedBattingStats" Orientation="Horizontal" HorizontalScrollBarVisibility="Always" Scrolled="OnStatisticsScrolled">
+                    <VerticalStackLayout x:Name="CompletedStatsScrollableRows" WidthRequest="776" HorizontalOptions="Start" Spacing="0">
+                        <VerticalStackLayout x:Name="CompletedStatsPlayerRows" Spacing="0" BindableLayout.ItemsSource="{Binding Rows}">
+                            <BindableLayout.ItemTemplate>
+                                <DataTemplate x:DataType="viewModels:CompletedBattingStatRowViewModel">
+                                    <Grid RowDefinitions="44,1" ColumnDefinitions="52,52,52,52,52,52,52,52,52,52,52,68,68,68">
+                                        <Label AutomationId="{Binding PlateAppearancesAutomationId}" Text="{Binding PlateAppearances}" Style="{StaticResource CompletedStatValue}" />
+                                        <Label AutomationId="{Binding AtBatsAutomationId}" Grid.Column="1" Text="{Binding AtBats}" Style="{StaticResource CompletedStatValue}" />
+                                        <Label AutomationId="{Binding HitsAutomationId}" Grid.Column="2" Text="{Binding Hits}" Style="{StaticResource CompletedStatValue}" />
+                                        <Label AutomationId="{Binding SinglesAutomationId}" Grid.Column="3" Text="{Binding Singles}" IsVisible="{Binding IsReadOnly}" Style="{StaticResource CompletedStatValue}" />
+                                        <Entry AutomationId="{Binding SinglesAutomationId}" Grid.Column="3" Text="{Binding SinglesEdit}" IsVisible="{Binding IsEditing}" Style="{StaticResource CompletedStatEdit}" SemanticProperties.Description="{Binding SinglesEditDescription}">
+                                            <Entry.Triggers><DataTrigger TargetType="Entry" Binding="{Binding IsSinglesDirty}" Value="True"><Setter Property="BackgroundColor" Value="{AppThemeBinding Light={StaticResource WarningSurface}, Dark={StaticResource WarningSurfaceDark}}" /></DataTrigger></Entry.Triggers>
+                                        </Entry>
+                                        <Label AutomationId="{Binding DoublesAutomationId}" Grid.Column="4" Text="{Binding Doubles}" IsVisible="{Binding IsReadOnly}" Style="{StaticResource CompletedStatValue}" />
+                                        <Entry AutomationId="{Binding DoublesAutomationId}" Grid.Column="4" Text="{Binding DoublesEdit}" IsVisible="{Binding IsEditing}" Style="{StaticResource CompletedStatEdit}" SemanticProperties.Description="{Binding DoublesEditDescription}">
+                                            <Entry.Triggers><DataTrigger TargetType="Entry" Binding="{Binding IsDoublesDirty}" Value="True"><Setter Property="BackgroundColor" Value="{AppThemeBinding Light={StaticResource WarningSurface}, Dark={StaticResource WarningSurfaceDark}}" /></DataTrigger></Entry.Triggers>
+                                        </Entry>
+                                        <Label AutomationId="{Binding TriplesAutomationId}" Grid.Column="5" Text="{Binding Triples}" IsVisible="{Binding IsReadOnly}" Style="{StaticResource CompletedStatValue}" />
+                                        <Entry AutomationId="{Binding TriplesAutomationId}" Grid.Column="5" Text="{Binding TriplesEdit}" IsVisible="{Binding IsEditing}" Style="{StaticResource CompletedStatEdit}" SemanticProperties.Description="{Binding TriplesEditDescription}">
+                                            <Entry.Triggers><DataTrigger TargetType="Entry" Binding="{Binding IsTriplesDirty}" Value="True"><Setter Property="BackgroundColor" Value="{AppThemeBinding Light={StaticResource WarningSurface}, Dark={StaticResource WarningSurfaceDark}}" /></DataTrigger></Entry.Triggers>
+                                        </Entry>
+                                        <Label AutomationId="{Binding HomeRunsAutomationId}" Grid.Column="6" Text="{Binding HomeRuns}" IsVisible="{Binding IsReadOnly}" Style="{StaticResource CompletedStatValue}" />
+                                        <Entry AutomationId="{Binding HomeRunsAutomationId}" Grid.Column="6" Text="{Binding HomeRunsEdit}" IsVisible="{Binding IsEditing}" Style="{StaticResource CompletedStatEdit}" SemanticProperties.Description="{Binding HomeRunsEditDescription}">
+                                            <Entry.Triggers><DataTrigger TargetType="Entry" Binding="{Binding IsHomeRunsDirty}" Value="True"><Setter Property="BackgroundColor" Value="{AppThemeBinding Light={StaticResource WarningSurface}, Dark={StaticResource WarningSurfaceDark}}" /></DataTrigger></Entry.Triggers>
+                                        </Entry>
+                                        <Label AutomationId="{Binding WalksAutomationId}" Grid.Column="7" Text="{Binding Walks}" IsVisible="{Binding IsReadOnly}" Style="{StaticResource CompletedStatValue}" />
+                                        <Entry AutomationId="{Binding WalksAutomationId}" Grid.Column="7" Text="{Binding WalksEdit}" IsVisible="{Binding IsEditing}" Style="{StaticResource CompletedStatEdit}" SemanticProperties.Description="{Binding WalksEditDescription}">
+                                            <Entry.Triggers><DataTrigger TargetType="Entry" Binding="{Binding IsWalksDirty}" Value="True"><Setter Property="BackgroundColor" Value="{AppThemeBinding Light={StaticResource WarningSurface}, Dark={StaticResource WarningSurfaceDark}}" /></DataTrigger></Entry.Triggers>
+                                        </Entry>
+                                        <Label AutomationId="{Binding FielderChoicesAutomationId}" Grid.Column="8" Text="{Binding FielderChoices}" IsVisible="{Binding IsReadOnly}" Style="{StaticResource CompletedStatValue}" />
+                                        <Entry AutomationId="{Binding FielderChoicesAutomationId}" Grid.Column="8" Text="{Binding FielderChoicesEdit}" IsVisible="{Binding IsEditing}" Style="{StaticResource CompletedStatEdit}" SemanticProperties.Description="{Binding FielderChoicesEditDescription}">
+                                            <Entry.Triggers><DataTrigger TargetType="Entry" Binding="{Binding IsFielderChoicesDirty}" Value="True"><Setter Property="BackgroundColor" Value="{AppThemeBinding Light={StaticResource WarningSurface}, Dark={StaticResource WarningSurfaceDark}}" /></DataTrigger></Entry.Triggers>
+                                        </Entry>
+                                        <Label AutomationId="{Binding SacrificeFliesAutomationId}" Grid.Column="9" Text="{Binding SacrificeFlies}" IsVisible="{Binding IsReadOnly}" Style="{StaticResource CompletedStatValue}" />
+                                        <Entry AutomationId="{Binding SacrificeFliesAutomationId}" Grid.Column="9" Text="{Binding SacrificeFliesEdit}" IsVisible="{Binding IsEditing}" Style="{StaticResource CompletedStatEdit}" SemanticProperties.Description="{Binding SacrificeFliesEditDescription}">
+                                            <Entry.Triggers><DataTrigger TargetType="Entry" Binding="{Binding IsSacrificeFliesDirty}" Value="True"><Setter Property="BackgroundColor" Value="{AppThemeBinding Light={StaticResource WarningSurface}, Dark={StaticResource WarningSurfaceDark}}" /></DataTrigger></Entry.Triggers>
+                                        </Entry>
+                                        <Label AutomationId="{Binding OutsAutomationId}" Grid.Column="10" Text="{Binding Outs}" IsVisible="{Binding IsReadOnly}" Style="{StaticResource CompletedStatValue}" />
+                                        <Entry AutomationId="{Binding OutsAutomationId}" Grid.Column="10" Text="{Binding OutsEdit}" IsVisible="{Binding IsEditing}" Style="{StaticResource CompletedStatEdit}" SemanticProperties.Description="{Binding OutsEditDescription}">
+                                            <Entry.Triggers><DataTrigger TargetType="Entry" Binding="{Binding IsOutsDirty}" Value="True"><Setter Property="BackgroundColor" Value="{AppThemeBinding Light={StaticResource WarningSurface}, Dark={StaticResource WarningSurfaceDark}}" /></DataTrigger></Entry.Triggers>
+                                        </Entry>
+                                        <Label AutomationId="{Binding BattingAverageAutomationId}" Grid.Column="11" Text="{Binding BattingAverage}" Style="{StaticResource CompletedStatValue}" />
+                                        <Label AutomationId="{Binding OnBasePercentageAutomationId}" Grid.Column="12" Text="{Binding OnBasePercentage}" Style="{StaticResource CompletedStatValue}" />
+                                        <Label AutomationId="{Binding SluggingPercentageAutomationId}" Grid.Column="13" Text="{Binding SluggingPercentage}" Style="{StaticResource CompletedStatValue}" />
+                                        <BoxView Grid.Row="1" Grid.ColumnSpan="14" BackgroundColor="{AppThemeBinding Light={StaticResource Gray300}, Dark={StaticResource Gray600}}" />
+                                    </Grid>
+                                </DataTemplate>
+                            </BindableLayout.ItemTemplate>
+                        </VerticalStackLayout>
+
+                        <Grid x:Name="CompletedStatsTeamTotalValues" RowDefinitions="2,46" ColumnDefinitions="52,52,52,52,52,52,52,52,52,52,52,68,68,68">
+                            <BoxView Grid.ColumnSpan="14" BackgroundColor="{AppThemeBinding Light={StaticResource Gray600}, Dark={StaticResource Gray300}}" />
+                            <Label AutomationId="{Binding TeamTotal.PlateAppearancesAutomationId}" Grid.Row="1" Text="{Binding TeamTotal.PlateAppearances}" Style="{StaticResource CompletedStatValue}" FontAttributes="Bold" />
+                            <Label AutomationId="{Binding TeamTotal.AtBatsAutomationId}" Grid.Row="1" Grid.Column="1" Text="{Binding TeamTotal.AtBats}" Style="{StaticResource CompletedStatValue}" FontAttributes="Bold" />
+                            <Label AutomationId="{Binding TeamTotal.HitsAutomationId}" Grid.Row="1" Grid.Column="2" Text="{Binding TeamTotal.Hits}" Style="{StaticResource CompletedStatValue}" FontAttributes="Bold" />
+                            <Label Grid.Row="1" Grid.Column="3" Text="{Binding TeamTotal.Singles}" Style="{StaticResource CompletedStatValue}" FontAttributes="Bold" />
+                            <Label Grid.Row="1" Grid.Column="4" Text="{Binding TeamTotal.Doubles}" Style="{StaticResource CompletedStatValue}" FontAttributes="Bold" />
+                            <Label Grid.Row="1" Grid.Column="5" Text="{Binding TeamTotal.Triples}" Style="{StaticResource CompletedStatValue}" FontAttributes="Bold" />
+                            <Label AutomationId="{Binding TeamTotal.HomeRunsAutomationId}" Grid.Row="1" Grid.Column="6" Text="{Binding TeamTotal.HomeRuns}" Style="{StaticResource CompletedStatValue}" FontAttributes="Bold" />
+                            <Label Grid.Row="1" Grid.Column="7" Text="{Binding TeamTotal.Walks}" Style="{StaticResource CompletedStatValue}" FontAttributes="Bold" />
+                            <Label Grid.Row="1" Grid.Column="8" Text="{Binding TeamTotal.FielderChoices}" Style="{StaticResource CompletedStatValue}" FontAttributes="Bold" />
+                            <Label Grid.Row="1" Grid.Column="9" Text="{Binding TeamTotal.SacrificeFlies}" Style="{StaticResource CompletedStatValue}" FontAttributes="Bold" />
+                            <Label Grid.Row="1" Grid.Column="10" Text="{Binding TeamTotal.Outs}" Style="{StaticResource CompletedStatValue}" FontAttributes="Bold" />
+                            <Label AutomationId="{Binding TeamTotal.BattingAverageAutomationId}" Grid.Row="1" Grid.Column="11" Text="{Binding TeamTotal.BattingAverage}" Style="{StaticResource CompletedStatValue}" FontAttributes="Bold" />
+                            <Label AutomationId="{Binding TeamTotal.OnBasePercentageAutomationId}" Grid.Row="1" Grid.Column="12" Text="{Binding TeamTotal.OnBasePercentage}" Style="{StaticResource CompletedStatValue}" FontAttributes="Bold" />
+                            <Label AutomationId="{Binding TeamTotal.SluggingPercentageAutomationId}" Grid.Row="1" Grid.Column="13" Text="{Binding TeamTotal.SluggingPercentage}" Style="{StaticResource CompletedStatValue}" FontAttributes="Bold" />
                         </Grid>
-                    </DataTemplate>
-                </BindableLayout.ItemTemplate>
-            </VerticalStackLayout>
-
-            <Grid x:Name="CompletedStatsTeamTotal" AutomationId="CompletedBattingTeamTotal" Padding="10,0" RowDefinitions="2,46" ColumnDefinitions="180,2,52,52,52,52,52,52,52,52,52,52,68,68,68">
-                <BoxView Grid.ColumnSpan="15" BackgroundColor="{AppThemeBinding Light={StaticResource Gray600}, Dark={StaticResource Gray300}}" />
-                <Label Grid.Row="1" Text="{Binding TeamTotal.PlayerName}" FontSize="16" FontAttributes="Bold" VerticalTextAlignment="Center" />
-                <BoxView Grid.Row="1" Grid.Column="1" BackgroundColor="{AppThemeBinding Light={StaticResource Gray500}, Dark={StaticResource Gray400}}" />
-                <Label AutomationId="{Binding TeamTotal.PlateAppearancesAutomationId}" Grid.Row="1" Grid.Column="2" Text="{Binding TeamTotal.PlateAppearances}" Style="{StaticResource CompletedStatValue}" FontAttributes="Bold" />
-                <Label AutomationId="{Binding TeamTotal.AtBatsAutomationId}" Grid.Row="1" Grid.Column="3" Text="{Binding TeamTotal.AtBats}" Style="{StaticResource CompletedStatValue}" FontAttributes="Bold" />
-                <Label AutomationId="{Binding TeamTotal.HitsAutomationId}" Grid.Row="1" Grid.Column="4" Text="{Binding TeamTotal.Hits}" Style="{StaticResource CompletedStatValue}" FontAttributes="Bold" />
-                <Label Grid.Row="1" Grid.Column="5" Text="{Binding TeamTotal.Singles}" Style="{StaticResource CompletedStatValue}" FontAttributes="Bold" />
-                <Label Grid.Row="1" Grid.Column="6" Text="{Binding TeamTotal.Doubles}" Style="{StaticResource CompletedStatValue}" FontAttributes="Bold" />
-                <Label Grid.Row="1" Grid.Column="7" Text="{Binding TeamTotal.Triples}" Style="{StaticResource CompletedStatValue}" FontAttributes="Bold" />
-                <Label AutomationId="{Binding TeamTotal.HomeRunsAutomationId}" Grid.Row="1" Grid.Column="8" Text="{Binding TeamTotal.HomeRuns}" Style="{StaticResource CompletedStatValue}" FontAttributes="Bold" />
-                <Label Grid.Row="1" Grid.Column="9" Text="{Binding TeamTotal.Walks}" Style="{StaticResource CompletedStatValue}" FontAttributes="Bold" />
-                <Label Grid.Row="1" Grid.Column="10" Text="{Binding TeamTotal.FielderChoices}" Style="{StaticResource CompletedStatValue}" FontAttributes="Bold" />
-                <Label Grid.Row="1" Grid.Column="11" Text="{Binding TeamTotal.SacrificeFlies}" Style="{StaticResource CompletedStatValue}" FontAttributes="Bold" />
-                <Label AutomationId="{Binding TeamTotal.BattingAverageAutomationId}" Grid.Row="1" Grid.Column="12" Text="{Binding TeamTotal.BattingAverage}" Style="{StaticResource CompletedStatValue}" FontAttributes="Bold" />
-                <Label AutomationId="{Binding TeamTotal.OnBasePercentageAutomationId}" Grid.Row="1" Grid.Column="13" Text="{Binding TeamTotal.OnBasePercentage}" Style="{StaticResource CompletedStatValue}" FontAttributes="Bold" />
-                <Label AutomationId="{Binding TeamTotal.SluggingPercentageAutomationId}" Grid.Row="1" Grid.Column="14" Text="{Binding TeamTotal.SluggingPercentage}" Style="{StaticResource CompletedStatValue}" FontAttributes="Bold" />
+                    </VerticalStackLayout>
+                </ScrollView>
             </Grid>
-        </VerticalStackLayout>
-    </ScrollView>
+        </ScrollView>
+    </Grid>
 </ContentView>

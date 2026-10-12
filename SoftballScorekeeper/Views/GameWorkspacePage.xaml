@@ -181,8 +181,9 @@
                                          HomeNameAutomationId="CompletedHomeName"
                                          HomeScoreAutomationId="CompletedHomeScore" />
 
-                <HorizontalStackLayout x:Name="CompletedViewButtons"
-                                       Grid.Row="1" HorizontalOptions="Center" Spacing="16">
+                <VerticalStackLayout x:Name="CompletedViewButtons"
+                                     Grid.Row="1" HorizontalOptions="Center" Spacing="8">
+                    <HorizontalStackLayout HorizontalOptions="Center" Spacing="16">
                     <Button AutomationId="GameStatsButton" Text="{x:Static strings:AppResources.GameStatsButton}"
                             Command="{Binding ShowGameStatsCommand}"
                             MinimumHeightRequest="48"
@@ -209,7 +210,64 @@
                             </DataTrigger>
                         </Button.Triggers>
                     </Button>
-                </HorizontalStackLayout>
+                    </HorizontalStackLayout>
+
+                    <Border AutomationId="ManualOverrideChip"
+                            IsVisible="{Binding ShowManualOverrideChip}"
+                            HorizontalOptions="Center" Padding="12,5"
+                            BackgroundColor="{AppThemeBinding Light={StaticResource WarningSurface}, Dark={StaticResource WarningSurfaceDark}}"
+                            StrokeShape="RoundRectangle 12">
+                        <Label Text="{x:Static strings:AppResources.ManualOverrideChip}"
+                               FontAttributes="Bold"
+                               TextColor="{AppThemeBinding Light={StaticResource WarningText}, Dark={StaticResource WarningTextDark}}" />
+                    </Border>
+
+                    <HorizontalStackLayout HorizontalOptions="Center" Spacing="12"
+                                           IsVisible="{Binding ShowBeginManualOverride}">
+                        <Button AutomationId="BeginManualOverrideButton"
+                                Text="{x:Static strings:AppResources.ManualOverrideEditStatsButton}"
+                                Command="{Binding BeginManualOverrideCommand}"
+                                MinimumHeightRequest="48" />
+                        <Button AutomationId="RevertManualOverridesButton"
+                                Text="{x:Static strings:AppResources.RevertToGamePlaysStatsButton}"
+                                Command="{Binding RevertManualOverridesCommand}"
+                                IsVisible="{Binding ShowRevertManualOverrides}"
+                                MinimumHeightRequest="48" />
+                    </HorizontalStackLayout>
+
+                    <VerticalStackLayout IsVisible="{Binding IsManualOverrideEditing}" Spacing="8">
+                        <Grid ColumnDefinitions="Auto,90,Auto,90" ColumnSpacing="10"
+                              HorizontalOptions="Center" VerticalOptions="Center">
+                            <Label Text="{x:Static strings:AppResources.ManualOverrideVisitorScoreLabel}"
+                                   VerticalTextAlignment="Center" />
+                            <Entry AutomationId="ManualOverrideVisitorScore"
+                                   Grid.Column="1" Text="{Binding CompletedVisitorScoreEdit}"
+                                   Keyboard="Numeric" HorizontalTextAlignment="Center"
+                                   SemanticProperties.Description="{Binding CompletedVisitorScoreEditDescription}">
+                                <Entry.Triggers><DataTrigger TargetType="Entry" Binding="{Binding IsCompletedVisitorScoreDirty}" Value="True"><Setter Property="BackgroundColor" Value="{AppThemeBinding Light={StaticResource WarningSurface}, Dark={StaticResource WarningSurfaceDark}}" /></DataTrigger></Entry.Triggers>
+                            </Entry>
+                            <Label Grid.Column="2"
+                                   Text="{x:Static strings:AppResources.ManualOverrideHomeScoreLabel}"
+                                   VerticalTextAlignment="Center" />
+                            <Entry AutomationId="ManualOverrideHomeScore"
+                                   Grid.Column="3" Text="{Binding CompletedHomeScoreEdit}"
+                                   Keyboard="Numeric" HorizontalTextAlignment="Center"
+                                   SemanticProperties.Description="{Binding CompletedHomeScoreEditDescription}">
+                                <Entry.Triggers><DataTrigger TargetType="Entry" Binding="{Binding IsCompletedHomeScoreDirty}" Value="True"><Setter Property="BackgroundColor" Value="{AppThemeBinding Light={StaticResource WarningSurface}, Dark={StaticResource WarningSurfaceDark}}" /></DataTrigger></Entry.Triggers>
+                            </Entry>
+                        </Grid>
+                        <HorizontalStackLayout HorizontalOptions="Center" Spacing="12">
+                            <Button AutomationId="SaveManualOverrideButton"
+                                    Text="{x:Static strings:AppResources.SaveButton}"
+                                    Command="{Binding SaveManualOverrideCommand}"
+                                    MinimumHeightRequest="48" MinimumWidthRequest="120" />
+                            <Button AutomationId="CancelManualOverrideButton"
+                                    Text="{x:Static strings:AppResources.CancelButton}"
+                                    Command="{Binding CancelManualOverrideCommand}"
+                                    MinimumHeightRequest="48" MinimumWidthRequest="120" />
+                        </HorizontalStackLayout>
+                    </VerticalStackLayout>
+                </VerticalStackLayout>
 
                 <Label x:Name="CompletedStatsHeading"
                        Grid.Row="2" Text="{x:Static strings:AppResources.BattingStatisticsHeading}"

@@ -979,9 +979,11 @@ namespace SoftballScorekeeper.Resources.Strings {
         public static string WalksStatHeading { get { return ResourceManager.GetString("WalksStatHeading", resourceCulture); } }
         public static string FielderChoicesStatHeading { get { return ResourceManager.GetString("FielderChoicesStatHeading", resourceCulture); } }
         public static string SacrificeFliesStatHeading { get { return ResourceManager.GetString("SacrificeFliesStatHeading", resourceCulture); } }
+        public static string OutsStatHeading { get { return ResourceManager.GetString("OutsStatHeading", resourceCulture); } }
         public static string BattingAverageStatHeading { get { return ResourceManager.GetString("BattingAverageStatHeading", resourceCulture); } }
         public static string OnBasePercentageStatHeading { get { return ResourceManager.GetString("OnBasePercentageStatHeading", resourceCulture); } }
         public static string SluggingPercentageStatHeading { get { return ResourceManager.GetString("SluggingPercentageStatHeading", resourceCulture); } }
+        public static string ManualOverrideUnsavedFieldDescription { get { return ResourceManager.GetString("ManualOverrideUnsavedFieldDescription", resourceCulture); } }
         public static string CompletedGameLoadFailedMessage { get { return ResourceManager.GetString("CompletedGameLoadFailedMessage", resourceCulture); } }
         public static string ExitGameButton { get { return ResourceManager.GetString("ExitGameButton", resourceCulture); } }
         public static string ScoringMenuAccessibility { get { return ResourceManager.GetString("ScoringMenuAccessibility", resourceCulture); } }
@@ -1323,5 +1325,18 @@ namespace SoftballScorekeeper.Resources.Strings {
         public static string ApplicationWorkflowBusyTitle { get { return ResourceManager.GetString("ApplicationWorkflowBusyTitle", resourceCulture); } }
         public static string ApplicationWorkflowBusyMessage { get { return ResourceManager.GetString("ApplicationWorkflowBusyMessage", resourceCulture); } }
         public static string PortableDataProductionOnlyMessage { get { return ResourceManager.GetString("PortableDataProductionOnlyMessage", resourceCulture); } }
+        public static string ManualOverrideEditStatsButton { get { return ResourceManager.GetString("ManualOverrideEditStatsButton", resourceCulture); } }
+        public static string ManualOverrideChip { get { return ResourceManager.GetString("ManualOverrideChip", resourceCulture); } }
+        public static string RevertToGamePlaysStatsButton { get { return ResourceManager.GetString("RevertToGamePlaysStatsButton", resourceCulture); } }
+        public static string ManualOverrideVisitorScoreLabel { get { return ResourceManager.GetString("ManualOverrideVisitorScoreLabel", resourceCulture); } }
+        public static string ManualOverrideHomeScoreLabel { get { return ResourceManager.GetString("ManualOverrideHomeScoreLabel", resourceCulture); } }
+        public static string ManualOverrideInvalidValueMessage { get { return ResourceManager.GetString("ManualOverrideInvalidValueMessage", resourceCulture); } }
+        public static string ManualOverrideImpossibleStatsMessage { get { return ResourceManager.GetString("ManualOverrideImpossibleStatsMessage", resourceCulture); } }
+        public static string ManualOverrideSaveFailedMessage { get { return ResourceManager.GetString("ManualOverrideSaveFailedMessage", resourceCulture); } }
+        public static string ManualOverrideRevertFailedMessage { get { return ResourceManager.GetString("ManualOverrideRevertFailedMessage", resourceCulture); } }
+        public static string ManualOverrideRevertTitle { get { return ResourceManager.GetString("ManualOverrideRevertTitle", resourceCulture); } }
+        public static string ManualOverrideRevertMessage { get { return ResourceManager.GetString("ManualOverrideRevertMessage", resourceCulture); } }
+        public static string ManualOverrideRevertConfirmButton { get { return ResourceManager.GetString("ManualOverrideRevertConfirmButton", resourceCulture); } }
+        public static string TeamYearFinalizedWriteMessage { get { return ResourceManager.GetString("TeamYearFinalizedWriteMessage", resourceCulture); } }
     }
 }

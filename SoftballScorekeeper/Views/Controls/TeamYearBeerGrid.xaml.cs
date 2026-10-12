@@ -6,4 +6,9 @@ public partial class TeamYearBeerGrid : ContentView
     {
         InitializeComponent();
     }
+
+    private void OnStatisticsScrolled(object? sender, ScrolledEventArgs e)
+    {
+        TeamYearBeerScrollableHeader.TranslationX = -e.ScrollX;
+    }
 }

@@ -4,152 +4,199 @@ namespace SoftballScorekeeper.Tests;
 
 public sealed class CompletedGameStatGridRefinementTests
 {
-    private const string ExpectedColumns =
-        "180,2,52,52,52,52,52,52,52,52,52,52,68,68,68";
+    private const string PlayerColumns = "180,2";
+    private const string StatisticColumns =
+        "52,52,52,52,52,52,52,52,52,52,52,68,68,68";
 
     [Fact]
-    public void Portrait_and_landscape_share_one_scrollable_scorebook_grid()
+    public void Shared_grid_freezes_header_and_player_column_with_one_owner_per_scroll_axis()
     {
         var page = LoadGrid();
-        var workspace = LoadWorkspace();
-        var ns = page.Root!.Name.Namespace;
         var named = NamedElements(page);
         var table = named["CompletedStatsTable"];
+        var header = named["CompletedStatsHeader"];
+        var vertical = named["CompletedStatsVerticalScroll"];
+        var horizontal = named["CompletedStatsHorizontalScroll"];
 
-        Assert.Equal("Both", table.Parent!.Attribute("Orientation")?.Value);
-        Assert.Equal("CompletedBattingStats",
-            table.Parent.Attribute("AutomationId")?.Value);
-        Assert.Equal("926", table.Attribute("MinimumWidthRequest")?.Value);
-        Assert.Equal("Start", table.Attribute("HorizontalOptions")?.Value);
-        Assert.Empty(table.Descendants(ns + "Border"));
-        Assert.Single(page.Descendants().Where(element =>
-            element.Attribute("BindableLayout.ItemsSource")?.Value
-                == "{Binding Rows}"));
-        Assert.DoesNotContain(page.Descendants(ns + "Setter"), setter =>
-            setter.Attribute("TargetName")?.Value.Contains("Stats", StringComparison.Ordinal)
-                == true);
-        var sharedGrid = Assert.Single(workspace.Descendants().Where(element =>
-            element.Name.LocalName == "BattingStatisticsGrid"));
-        Assert.Equal("{Binding CompletedBattingStatistics}",
-            sharedGrid.Attribute("BindingContext")?.Value);
+        Assert.Equal("Auto,*", table.Attribute("RowDefinitions")?.Value);
+        Assert.Equal(table, header.Parent);
+        Assert.Equal(table, vertical.Parent);
+        Assert.Equal("1", vertical.Attribute("Grid.Row")?.Value);
+        Assert.Equal("Vertical", vertical.Attribute("Orientation")?.Value);
+        Assert.Equal("Horizontal", horizontal.Attribute("Orientation")?.Value);
+        Assert.Equal("CompletedBattingStats", horizontal.Attribute("AutomationId")?.Value);
+        Assert.Equal("OnStatisticsScrolled", horizontal.Attribute("Scrolled")?.Value);
+        Assert.DoesNotContain(header.Ancestors(), item => item.Name.LocalName == "ScrollView");
+        Assert.Contains(horizontal.Ancestors(), item => item == vertical);
+        Assert.Single(page.Descendants().Where(item =>
+            item.Name.LocalName == "ScrollView"
+            && item.Attribute("Orientation")?.Value == "Vertical"));
+        Assert.Single(page.Descendants().Where(item =>
+            item.Name.LocalName == "ScrollView"
+            && item.Attribute("Orientation")?.Value == "Horizontal"));
     }
 
     [Fact]
-    public void Shared_scrollable_table_exposes_rate_columns_after_sacrifice_flies()
+    public void Player_names_and_statistics_share_vertical_scrolling_and_fixed_row_heights()
     {
         var page = LoadGrid();
         var ns = page.Root!.Name.Namespace;
         var named = NamedElements(page);
-        var header = named["CompletedStatsHeader"];
-        var playerGrid = named["CompletedStatsPlayerRows"]
-            .Descendants(ns + "DataTemplate").Single().Elements().Single();
-        var teamTotal = named["CompletedStatsTeamTotal"];
+        var playerTemplate = ItemTemplateGrid(named["CompletedStatsPlayerNames"], ns);
+        var statisticTemplate = ItemTemplateGrid(named["CompletedStatsPlayerRows"], ns);
 
-        AssertColumns(header, "Button", new[]
-        {
-            ("{Binding SacrificeFliesStatSortHeader}", "11"),
-            ("{Binding BattingAverageStatSortHeader}", "12"),
-            ("{Binding OnBasePercentageStatSortHeader}", "13"),
-            ("{Binding SluggingPercentageStatSortHeader}", "14"),
-        });
-        AssertColumns(playerGrid, "Label", new[]
-        {
-            ("{Binding SacrificeFlies}", "11"),
-            ("{Binding BattingAverage}", "12"),
-            ("{Binding OnBasePercentage}", "13"),
-            ("{Binding SluggingPercentage}", "14"),
-        });
-        AssertColumns(teamTotal, "Label", new[]
-        {
-            ("{Binding TeamTotal.SacrificeFlies}", "11"),
-            ("{Binding TeamTotal.BattingAverage}", "12"),
-            ("{Binding TeamTotal.OnBasePercentage}", "13"),
-            ("{Binding TeamTotal.SluggingPercentage}", "14"),
-        });
+        Assert.Equal("{Binding Rows}", named["CompletedStatsPlayerNames"]
+            .Attribute("BindableLayout.ItemsSource")?.Value);
+        Assert.Equal("{Binding Rows}", named["CompletedStatsPlayerRows"]
+            .Attribute("BindableLayout.ItemsSource")?.Value);
+        Assert.Equal("44,1", playerTemplate.Attribute("RowDefinitions")?.Value);
+        Assert.Equal("44,1", statisticTemplate.Attribute("RowDefinitions")?.Value);
+        Assert.Equal(PlayerColumns, playerTemplate.Attribute("ColumnDefinitions")?.Value);
+        Assert.Equal(StatisticColumns,
+            statisticTemplate.Attribute("ColumnDefinitions")?.Value);
+        Assert.Contains(named["CompletedStatsPlayerNames"].Ancestors(),
+            item => item == named["CompletedStatsVerticalScroll"]);
+        Assert.Contains(named["CompletedStatsPlayerRows"].Ancestors(),
+            item => item == named["CompletedStatsVerticalScroll"]);
+        Assert.Contains(named["CompletedStatsPlayerRows"].Ancestors(),
+            item => item == named["CompletedStatsHorizontalScroll"]);
     }
 
     [Fact]
-    public void Header_player_rows_and_team_total_use_the_same_ordered_columns()
+    public void Fixed_and_scrolling_headers_match_body_column_widths_and_order()
     {
         var page = LoadGrid();
         var ns = page.Root!.Name.Namespace;
         var named = NamedElements(page);
-        var header = named["CompletedStatsHeader"];
-        var playerRows = named["CompletedStatsPlayerRows"];
-        var playerGrid = Assert.Single(playerRows.Descendants(ns + "DataTemplate")).Elements()
-            .Single();
-        var teamTotal = named["CompletedStatsTeamTotal"];
+        var playerHeader = named["CompletedStatsPlayerHeader"];
+        var statisticHeader = named["CompletedStatsScrollableHeader"];
+        var statisticRow = ItemTemplateGrid(named["CompletedStatsPlayerRows"], ns);
+        var totalValues = named["CompletedStatsTeamTotalValues"];
 
-        Assert.Equal(ExpectedColumns, header.Attribute("ColumnDefinitions")?.Value);
-        Assert.Equal(ExpectedColumns, playerGrid.Attribute("ColumnDefinitions")?.Value);
-        Assert.Equal(ExpectedColumns, teamTotal.Attribute("ColumnDefinitions")?.Value);
+        Assert.Equal("182,*", named["CompletedStatsHeader"]
+            .Attribute("ColumnDefinitions")?.Value);
+        Assert.Equal("182,*", named["CompletedStatsBody"]
+            .Attribute("ColumnDefinitions")?.Value);
+        Assert.Equal(PlayerColumns, playerHeader.Attribute("ColumnDefinitions")?.Value);
+        Assert.Equal(PlayerColumns, named["CompletedStatsTeamTotal"]
+            .Attribute("ColumnDefinitions")?.Value);
+        Assert.Equal(StatisticColumns, statisticHeader
+            .Attribute("ColumnDefinitions")?.Value);
+        Assert.Equal(StatisticColumns, statisticRow
+            .Attribute("ColumnDefinitions")?.Value);
+        Assert.Equal(StatisticColumns, totalValues
+            .Attribute("ColumnDefinitions")?.Value);
+        Assert.Equal("776", statisticHeader.Attribute("WidthRequest")?.Value);
+        Assert.Equal("776", named["CompletedStatsScrollableRows"]
+            .Attribute("WidthRequest")?.Value);
 
-        var headings = header.Elements(ns + "Button")
-            .Select(button => button.Attribute("Text")?.Value)
-            .ToArray();
-        Assert.Equal(new[]
+        AssertColumns(statisticHeader, "Button", new[]
         {
-            "{Binding PlayerStatSortHeader}",
-            "{Binding PlateAppearancesStatSortHeader}",
-            "{Binding AtBatsStatSortHeader}",
-            "{Binding HitsStatSortHeader}",
-            "{Binding SinglesStatSortHeader}",
-            "{Binding DoublesStatSortHeader}",
-            "{Binding TriplesStatSortHeader}",
-            "{Binding HomeRunsStatSortHeader}",
-            "{Binding WalksStatSortHeader}",
-            "{Binding FielderChoicesStatSortHeader}",
-            "{Binding SacrificeFliesStatSortHeader}",
-            "{Binding BattingAverageStatSortHeader}",
-            "{Binding OnBasePercentageStatSortHeader}",
-            "{Binding SluggingPercentageStatSortHeader}",
-        }, headings);
-        Assert.All(header.Elements(ns + "Button"), button =>
+            ("{Binding SacrificeFliesStatSortHeader}", "9"),
+            ("{Binding BattingAverageStatSortHeader}", "11"),
+            ("{Binding OnBasePercentageStatSortHeader}", "12"),
+            ("{Binding SluggingPercentageStatSortHeader}", "13"),
+        });
+        AssertColumns(statisticHeader, "Label",
+            new[] { ("{Binding OutsStatHeader}", "10") });
+        AssertColumns(statisticRow, "Label", new[]
         {
-            Assert.Equal("{Binding SortRowsCommand}",
-                button.Attribute("Command")?.Value);
+            ("{Binding SacrificeFlies}", "9"),
+            ("{Binding Outs}", "10"),
+            ("{Binding BattingAverage}", "11"),
+            ("{Binding OnBasePercentage}", "12"),
+            ("{Binding SluggingPercentage}", "13"),
+        });
+        AssertColumns(totalValues, "Label", new[]
+        {
+            ("{Binding TeamTotal.SacrificeFlies}", "9"),
+            ("{Binding TeamTotal.Outs}", "10"),
+            ("{Binding TeamTotal.BattingAverage}", "11"),
+            ("{Binding TeamTotal.OnBasePercentage}", "12"),
+            ("{Binding TeamTotal.SluggingPercentage}", "13"),
+        });
+    }
+
+    [Fact]
+    public void Horizontal_owner_drives_clipped_header_translation()
+    {
+        var page = LoadGrid();
+        var named = NamedElements(page);
+        var headerViewport = named["CompletedStatsScrollableHeader"].Parent!;
+        var codeBehind = File.ReadAllText(Path.Combine(RepositoryRoot,
+            "SoftballScorekeeper", "Views", "Controls",
+            "BattingStatisticsGrid.xaml.cs"));
+
+        Assert.Equal("True", headerViewport.Attribute("IsClippedToBounds")?.Value);
+        Assert.Contains("OnStatisticsScrolled", codeBehind);
+        Assert.Contains("CompletedStatsScrollableHeader.TranslationX = -e.ScrollX;",
+            codeBehind);
+    }
+
+    [Fact]
+    public void Team_total_is_the_final_scrolling_row_and_is_not_a_sticky_footer()
+    {
+        var page = LoadGrid();
+        var named = NamedElements(page);
+        var playerTotal = named["CompletedStatsTeamTotal"];
+        var statisticTotal = named["CompletedStatsTeamTotalValues"];
+
+        Assert.Equal(named["CompletedStatsPlayerColumn"], playerTotal.Parent);
+        Assert.Equal(named["CompletedStatsScrollableRows"], statisticTotal.Parent);
+        Assert.Equal(playerTotal, named["CompletedStatsPlayerNames"].ElementsAfterSelf().Last());
+        Assert.Equal(statisticTotal,
+            named["CompletedStatsPlayerRows"].ElementsAfterSelf().Last());
+        Assert.Contains(playerTotal.Ancestors(),
+            item => item == named["CompletedStatsVerticalScroll"]);
+        Assert.Contains(statisticTotal.Ancestors(),
+            item => item == named["CompletedStatsVerticalScroll"]);
+        Assert.Contains(statisticTotal.Ancestors(),
+            item => item == named["CompletedStatsHorizontalScroll"]);
+        Assert.Equal("2,46", playerTotal.Attribute("RowDefinitions")?.Value);
+        Assert.Equal("2,46", statisticTotal.Attribute("RowDefinitions")?.Value);
+        Assert.DoesNotContain(playerTotal.Ancestors(), item => item == named["CompletedStatsHeader"]);
+    }
+
+    [Fact]
+    public void Sorting_remains_bound_to_whole_rows_and_is_disabled_during_editing()
+    {
+        var page = LoadGrid();
+        var ns = page.Root!.Name.Namespace;
+        var named = NamedElements(page);
+        var headings = named["CompletedStatsHeader"].Descendants(ns + "Button").ToArray();
+        var tableViewModel = File.ReadAllText(Path.Combine(RepositoryRoot,
+            "SoftballScorekeeper", "ViewModels", "BattingStatisticsTableViewModel.cs"));
+
+        Assert.Equal(14, headings.Length);
+        Assert.All(headings, heading =>
+        {
+            Assert.Equal("{Binding SortRowsCommand}", heading.Attribute("Command")?.Value);
             Assert.StartsWith("{x:Static statistics:BattingStatSortColumn.",
-                button.Attribute("CommandParameter")?.Value);
-            Assert.Equal("{StaticResource CompletedStatHeaderButton}",
-                button.Attribute("Style")?.Value);
+                heading.Attribute("CommandParameter")?.Value);
         });
-        Assert.Equal(
-            Enum.GetNames<SoftballScorekeeper.Core.Statistics.BattingStatSortColumn>()
-                .Select(name =>
-                    $"{{x:Static statistics:BattingStatSortColumn.{name}}}"),
-            header.Elements(ns + "Button")
-                .Select(button => button.Attribute("CommandParameter")?.Value));
-
-        Assert.Contains(teamTotal, playerRows.ElementsAfterSelf());
-        Assert.Equal("{Binding TeamTotal.PlayerName}",
-            teamTotal.Elements(ns + "Label").First().Attribute("Text")?.Value);
+        Assert.Contains("Rows.Move", tableViewModel);
+        Assert.Contains("private bool CanSortRows() => !IsEditing;", tableViewModel);
+        Assert.Contains("BattingStatSortColumn.OnBasePercentage", tableViewModel);
+        Assert.Contains("BattingStatSortDirection.Descending", tableViewModel);
+        Assert.Contains("SortRowsCommand.NotifyCanExecuteChanged();", tableViewModel);
     }
 
     [Fact]
-    public void Plate_appearances_and_all_stats_are_centered_in_explicit_columns()
+    public void Shared_grid_consumers_keep_one_responsive_control_instance()
     {
-        var page = LoadGrid();
-        var ns = page.Root!.Name.Namespace;
-        var named = NamedElements(page);
-        var valueStyle = page.Descendants(ns + "Style").Single(style =>
-            style.Attribute(XName.Get("Key", "http://schemas.microsoft.com/winfx/2009/xaml"))?.Value
-                == "CompletedStatValue");
-        var playerGrid = named["CompletedStatsPlayerRows"]
-            .Descendants(ns + "DataTemplate").Single().Elements().Single();
-        var pa = playerGrid.Elements(ns + "Label").Single(label =>
-            label.Attribute("Text")?.Value == "{Binding PlateAppearances}");
+        AssertConsumer("GameWorkspacePage.xaml", "{Binding CompletedBattingStatistics}");
+        AssertConsumer("TeamStatsPage.xaml", "{Binding Statistics}");
+        AssertConsumer("TeamYearSummaryPage.xaml", "{Binding Statistics}");
 
-        Assert.Equal("2", pa.Attribute("Grid.Column")?.Value);
-        Assert.Equal("{Binding PlateAppearancesAutomationId}",
-            pa.Attribute("AutomationId")?.Value);
-        Assert.Equal("{StaticResource CompletedStatValue}", pa.Attribute("Style")?.Value);
-        Assert.Contains(valueStyle.Elements(ns + "Setter"), IsCenteredSetter);
-        Assert.All(playerGrid.Elements(ns + "Label").Skip(1), label =>
-            Assert.Equal("{StaticResource CompletedStatValue}", label.Attribute("Style")?.Value));
+        var grid = LoadGrid();
+        var table = NamedElements(grid)["CompletedStatsTable"];
+        Assert.Null(table.Attribute("WidthRequest"));
+        Assert.Null(table.Attribute("HeightRequest"));
+        Assert.Equal("Auto,*", table.Attribute("RowDefinitions")?.Value);
     }
 
     [Fact]
-    public void Grid_separators_team_total_loading_error_and_no_resume_behavior_are_preserved()
+    public void Grid_separators_calculation_loading_error_and_no_resume_behavior_are_preserved()
     {
         var page = LoadGrid();
         var workspace = LoadWorkspace();
@@ -159,45 +206,32 @@ public sealed class CompletedGameStatGridRefinementTests
             "SoftballScorekeeper", "ViewModels", "GameWorkspaceViewModel.cs"));
         var tableViewModel = File.ReadAllText(Path.Combine(RepositoryRoot,
             "SoftballScorekeeper", "ViewModels", "BattingStatisticsTableViewModel.cs"));
-        var resources = XDocument.Load(Path.Combine(RepositoryRoot,
-            "SoftballScorekeeper", "Resources", "Strings", "AppResources.resx"));
 
-        Assert.Contains(named["CompletedStatsHeader"].Elements(ns + "BoxView"), box =>
+        Assert.Contains(named["CompletedStatsPlayerHeader"].Elements(ns + "BoxView"), box =>
             box.Attribute("Grid.Column")?.Value == "1"
                 && box.Attribute("Grid.RowSpan")?.Value == "2");
-        Assert.Contains(named["CompletedStatsHeader"].Elements(ns + "BoxView"), box =>
+        Assert.Contains(named["CompletedStatsScrollableHeader"].Elements(ns + "BoxView"), box =>
             box.Attribute("Grid.Row")?.Value == "1"
-                && box.Attribute("Grid.ColumnSpan")?.Value == "15");
-        Assert.Contains(named["CompletedStatsPlayerRows"].Descendants(ns + "BoxView"), box =>
-            box.Attribute("Grid.Row")?.Value == "1"
-                && box.Attribute("Grid.ColumnSpan")?.Value == "15");
-        Assert.Equal("2,46", named["CompletedStatsTeamTotal"]
-            .Attribute("RowDefinitions")?.Value);
+                && box.Attribute("Grid.ColumnSpan")?.Value == "14");
         Assert.Contains("BattingStatisticsCalculator.CalculateTeam", tableViewModel);
         Assert.Contains("AppResources.CompletedGameLoadFailedMessage", workspaceViewModel);
         Assert.Contains("HasScoringSession && !IsScoringCompleted", workspaceViewModel);
-        Assert.Contains("BattingStatSortColumn.OnBasePercentage", tableViewModel);
-        Assert.Contains("BattingStatSortDirection.Descending", tableViewModel);
-        Assert.Contains("Rows.Move", tableViewModel);
-        Assert.Contains("BattingStatSortState", tableViewModel);
-        Assert.Contains(".Select(column)", tableViewModel);
-        Assert.Contains("AppResources.ActiveStatSortHeaderFormat", tableViewModel);
-        Assert.Contains("AppResources.SortAscendingIndicator", tableViewModel);
-        Assert.Contains("AppResources.SortDescendingIndicator", tableViewModel);
-        Assert.Contains(resources.Descendants("data"), item =>
-            item.Attribute("name")?.Value == "SortAscendingIndicator"
-                && item.Element("value")?.Value == "▲");
-        Assert.Contains(resources.Descendants("data"), item =>
-            item.Attribute("name")?.Value == "SortDescendingIndicator"
-                && item.Element("value")?.Value == "▼");
         var workspaceNamed = NamedElements(workspace);
-        Assert.DoesNotContain(workspaceNamed["CompletedGameGrid"].Descendants(ns + "Button"), button =>
-            button.Attribute("AutomationId")?.Value == "ResumeGameButton");
+        Assert.DoesNotContain(workspaceNamed["CompletedGameGrid"].Descendants(ns + "Button"),
+            button => button.Attribute("AutomationId")?.Value == "ResumeGameButton");
     }
 
-    private static bool IsCenteredSetter(XElement setter) =>
-        setter.Attribute("Property")?.Value == "HorizontalTextAlignment"
-            && setter.Attribute("Value")?.Value == "Center";
+    private static void AssertConsumer(string fileName, string bindingContext)
+    {
+        var page = XDocument.Load(Path.Combine(RepositoryRoot,
+            "SoftballScorekeeper", "Views", fileName));
+        var control = Assert.Single(page.Descendants().Where(item =>
+            item.Name.LocalName == "BattingStatisticsGrid"));
+        Assert.Equal(bindingContext, control.Attribute("BindingContext")?.Value);
+    }
+
+    private static XElement ItemTemplateGrid(XElement layout, XNamespace ns) =>
+        Assert.Single(layout.Descendants(ns + "DataTemplate")).Elements().Single();
 
     private static void AssertColumns(
         XElement grid,
@@ -207,9 +241,9 @@ public sealed class CompletedGameStatGridRefinementTests
         var ns = grid.Name.Namespace;
         foreach (var (binding, column) in expected)
         {
-            var label = grid.Elements(ns + elementName).Single(item =>
-                item.Attribute("Text")?.Value == binding);
-            Assert.Equal(column, label.Attribute("Grid.Column")?.Value);
+            var item = grid.Elements(ns + elementName).Single(element =>
+                element.Attribute("Text")?.Value == binding);
+            Assert.Equal(column, item.Attribute("Grid.Column")?.Value ?? "0");
         }
     }
 

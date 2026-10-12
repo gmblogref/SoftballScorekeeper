@@ -13,6 +13,12 @@ internal static class AndroidAutomationConstants
     public const string MissingGameTestSeedRequestFileName = "android-ui-test-missing-game";
     public const string CompletedStatisticsSortingTestSeedRequestFileName =
         "android-ui-test-completed-statistics-sorting";
+    public const string FinalizedManualOverrideTestSeedRequestFileName =
+        "android-ui-test-finalized-manual-override";
+    public const string DynamicManualOverrideTestSeedRequestFileName =
+        "android-ui-test-dynamic-manual-override";
+    public const string FinalStory14AcceptanceTestSeedRequestFileName =
+        "android-ui-test-final-story-14-acceptance";
     public const string TeamRecordTestSeedRequestFileName = "android-ui-test-team-record";
     public const string BeerTotalsTestSeedRequestFileName = "android-ui-test-beer-totals";
     public const string TeamStatsTestSeedRequestFileName = "android-ui-test-team-stats";
@@ -33,6 +39,9 @@ internal static class AndroidAutomationConstants
         TestSeedRequestFileName,
         MissingGameTestSeedRequestFileName,
         CompletedStatisticsSortingTestSeedRequestFileName,
+        FinalizedManualOverrideTestSeedRequestFileName,
+        DynamicManualOverrideTestSeedRequestFileName,
+        FinalStory14AcceptanceTestSeedRequestFileName,
         TeamRecordTestSeedRequestFileName,
         BeerTotalsTestSeedRequestFileName,
         TeamStatsTestSeedRequestFileName,

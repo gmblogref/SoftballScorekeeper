@@ -15,6 +15,12 @@ public sealed class AndroidUiTestDataInitializer
     internal const string MissingGameRequestFileName = "android-ui-test-missing-game";
     internal const string CompletedStatisticsSortingRequestFileName =
         "android-ui-test-completed-statistics-sorting";
+    internal const string FinalizedManualOverrideRequestFileName =
+        "android-ui-test-finalized-manual-override";
+    internal const string DynamicManualOverrideRequestFileName =
+        "android-ui-test-dynamic-manual-override";
+    internal const string FinalStory14AcceptanceRequestFileName =
+        "android-ui-test-final-story-14-acceptance";
     internal const string TeamRecordRequestFileName = "android-ui-test-team-record";
     internal const string BeerTotalsRequestFileName = "android-ui-test-beer-totals";
     internal const string TeamStatsRequestFileName = "android-ui-test-team-stats";
@@ -34,6 +40,9 @@ public sealed class AndroidUiTestDataInitializer
         RequestFileName,
         MissingGameRequestFileName,
         CompletedStatisticsSortingRequestFileName,
+        FinalizedManualOverrideRequestFileName,
+        DynamicManualOverrideRequestFileName,
+        FinalStory14AcceptanceRequestFileName,
         TeamRecordRequestFileName,
         BeerTotalsRequestFileName,
         TeamStatsRequestFileName,
@@ -55,6 +64,7 @@ public sealed class AndroidUiTestDataInitializer
     private readonly GameLineupRepository lineupRepository;
     private readonly GameScoringSessionRepository scoringRepository;
     private readonly BeerAccountingRepository beerAccountingRepository;
+    private readonly LowManCalculationRepository lowManCalculationRepository;
     private readonly SeasonBackupReminderRepository seasonBackupReminderRepository;
 
     public AndroidUiTestDataInitializer(
@@ -65,6 +75,7 @@ public sealed class AndroidUiTestDataInitializer
         GameLineupRepository lineupRepository,
         GameScoringSessionRepository scoringRepository,
         BeerAccountingRepository beerAccountingRepository,
+        LowManCalculationRepository lowManCalculationRepository,
         SeasonBackupReminderRepository seasonBackupReminderRepository
     )
     {
@@ -75,6 +86,7 @@ public sealed class AndroidUiTestDataInitializer
         this.lineupRepository = lineupRepository;
         this.scoringRepository = scoringRepository;
         this.beerAccountingRepository = beerAccountingRepository;
+        this.lowManCalculationRepository = lowManCalculationRepository;
         this.seasonBackupReminderRepository = seasonBackupReminderRepository;
     }
 
@@ -107,6 +119,18 @@ public sealed class AndroidUiTestDataInitializer
         var completedStatisticsSortingRequestPath = Path.Combine(
             FileSystem.AppDataDirectory,
             CompletedStatisticsSortingRequestFileName
+        );
+        var finalizedManualOverrideRequestPath = Path.Combine(
+            FileSystem.AppDataDirectory,
+            FinalizedManualOverrideRequestFileName
+        );
+        var dynamicManualOverrideRequestPath = Path.Combine(
+            FileSystem.AppDataDirectory,
+            DynamicManualOverrideRequestFileName
+        );
+        var finalStory14AcceptanceRequestPath = Path.Combine(
+            FileSystem.AppDataDirectory,
+            FinalStory14AcceptanceRequestFileName
         );
         var teamRecordRequestPath = Path.Combine(
             FileSystem.AppDataDirectory,
@@ -157,7 +181,12 @@ public sealed class AndroidUiTestDataInitializer
             LiveLineupRequestFileName
         );
         var useMissingGame = File.Exists(missingGameRequestPath);
-        var useCompletedStatisticsSorting = File.Exists(completedStatisticsSortingRequestPath);
+        var useFinalizedManualOverride = File.Exists(finalizedManualOverrideRequestPath);
+        var useDynamicManualOverride = File.Exists(dynamicManualOverrideRequestPath);
+        var useFinalStory14Acceptance = File.Exists(finalStory14AcceptanceRequestPath);
+        var useCompletedStatisticsSorting = File.Exists(completedStatisticsSortingRequestPath)
+            || useFinalizedManualOverride || useDynamicManualOverride
+            || useFinalStory14Acceptance;
         var useTeamRecord = File.Exists(teamRecordRequestPath);
         var useBeerTotals = File.Exists(beerTotalsRequestPath);
         var useTeamStats = File.Exists(teamStatsRequestPath);
@@ -174,6 +203,9 @@ public sealed class AndroidUiTestDataInitializer
             !File.Exists(requestPath)
             && !useMissingGame
             && !useCompletedStatisticsSorting
+            && !useFinalizedManualOverride
+            && !useDynamicManualOverride
+            && !useFinalStory14Acceptance
             && !useTeamRecord
             && !useBeerTotals
             && !useTeamStats
@@ -195,6 +227,12 @@ public sealed class AndroidUiTestDataInitializer
             File.Delete(missingGameRequestPath);
         if (useCompletedStatisticsSorting)
             File.Delete(completedStatisticsSortingRequestPath);
+        if (useFinalizedManualOverride)
+            File.Delete(finalizedManualOverrideRequestPath);
+        if (useDynamicManualOverride)
+            File.Delete(dynamicManualOverrideRequestPath);
+        if (useFinalStory14Acceptance)
+            File.Delete(finalStory14AcceptanceRequestPath);
         if (useTeamRecord)
             File.Delete(teamRecordRequestPath);
         if (useBeerTotals)
@@ -260,7 +298,7 @@ public sealed class AndroidUiTestDataInitializer
         EnsureSingleRow(await teamRepository.CreateAsync(team), "team");
 
         var playerIds = new List<int>();
-        var firstNames = useCompletedStatisticsSorting
+        var firstNames = useCompletedStatisticsSorting && !useFinalStory14Acceptance
             ? new[] { "Alex", "Blake", "Casey" }
             : new[]
             {
@@ -294,7 +332,7 @@ public sealed class AndroidUiTestDataInitializer
         var gameResult = await gameRepository.CreateForTeamAsync(
             team.Id,
             new Season { Name = "Automation", Year = 2026 },
-            useCompletedStatisticsSorting
+            useCompletedStatisticsSorting && !useFinalStory14Acceptance
                 ?
                 [
                     new Game
@@ -330,8 +368,14 @@ public sealed class AndroidUiTestDataInitializer
         if (!lineupResult.IsSuccess)
             throw new InvalidOperationException("Could not seed the Android UI-test lineup.");
 
-        if (useCompletedStatisticsSorting)
+        if (useFinalStory14Acceptance)
+            await SeedFinalStory14AcceptanceAsync(team, gameId, playerIds);
+        else if (useDynamicManualOverride)
+            await SeedDynamicManualOverrideGameAsync(team.Id, gameId, playerIds);
+        else if (useCompletedStatisticsSorting)
             await SeedCompletedStatisticsSortingGameAsync(team.Id, gameId, playerIds);
+        if (useFinalizedManualOverride)
+            await SeedFinalizedManualOverrideAsync(team.Id, gameId, playerIds[0]);
 
         return new AndroidUiTestContext(team.Id, useMissingGame ? gameId + 1 : gameId, false);
     }
@@ -911,6 +955,24 @@ public sealed class AndroidUiTestDataInitializer
             await playerRepository.CreateAsync(historicalPlayer),
             "Beer-totals historical Player"
         );
+        foreach (var firstName in new[]
+        {
+            "Casey", "Drew", "Evan", "Finley", "Gray", "Harper", "Indigo", "Jordan",
+        })
+        {
+            var player = await playerRepository.CreateForTeamAsync(
+                new Player
+                {
+                    FirstName = firstName,
+                    LastName = "Automation",
+                    IsActive = true,
+                },
+                team.Id
+            );
+            if (!player.IsSuccess)
+                throw new InvalidOperationException("Could not seed a Beer-totals Player.");
+            playerIds.Add(player.PlayerId);
+        }
         await using (var operation = await database.BeginOperationAsync())
         {
             EnsureSingleRow(
@@ -946,7 +1008,11 @@ public sealed class AndroidUiTestDataInitializer
         EnsureSingleRow(await teamRepository.CreateAsync(team), "Team-year-summary Team");
 
         var playerIds = new List<int>();
-        foreach (var firstName in new[] { "Alex", "Blake" })
+        foreach (var firstName in new[]
+        {
+            "Alex", "Blake", "Casey", "Drew", "Evan",
+            "Finley", "Gray", "Harper", "Indigo", "Jordan",
+        })
         {
             var player = await playerRepository.CreateForTeamAsync(
                 new Player
@@ -1900,6 +1966,137 @@ public sealed class AndroidUiTestDataInitializer
             throw new InvalidOperationException(
                 "Could not complete the Android statistics-sorting Game."
             );
+    }
+
+    private async Task SeedFinalStory14AcceptanceAsync(
+        Team team,
+        int gameId,
+        IReadOnlyList<int> playerIds)
+    {
+        var initialized = await scoringRepository.InitializeAsync(
+            team.Id,
+            gameId,
+            TeamGameSide.Away);
+        if (!initialized.IsSuccess)
+            throw new InvalidOperationException(
+                "Could not initialize the final Story 14 acceptance Game.");
+
+        var results = new[]
+        {
+            BatterResult.Single,
+            BatterResult.Out,
+            BatterResult.Out,
+            BatterResult.Out,
+        };
+        await using (var operation = await database.BeginOperationAsync())
+        {
+            for (var index = 0; index < results.Length; index++)
+                EnsureSingleRow(await operation.Connection.InsertAsync(
+                    new GamePlateAppearance
+                    {
+                        GameScoringSessionId = initialized.Session!.Id,
+                        PlayerId = playerIds[0],
+                        BattingPosition = 1,
+                        PlateAppearanceNumber = index + 1,
+                        Inning = 1,
+                        Result = results[index],
+                    }), "final Story 14 acceptance plate appearance");
+        }
+
+        if (!(await scoringRepository.CompleteGameAsync(gameId)).IsSuccess)
+            throw new InvalidOperationException(
+                "Could not complete the final Story 14 acceptance Game.");
+
+        var initialLowMan = await lowManCalculationRepository.CalculateAsync(
+            team.Id,
+            new DateTime(2026, 8, 27));
+        if (!initialLowMan.IsSuccess
+            || !initialLowMan.PlayerIds.SequenceEqual([playerIds[0]]))
+            throw new InvalidOperationException(
+                "Could not seed the final Story 14 acceptance Low Man result.");
+
+        await using (var operation = await database.BeginOperationAsync())
+        {
+            EnsureSingleRow(await operation.Connection.InsertAsync(
+                new Team
+                {
+                    Name = team.Name,
+                    Year = team.Year + 1,
+                    TeamLineageId = team.TeamLineageId,
+                    PreviousTeamId = team.Id,
+                    IsActive = true,
+                }), "final Story 14 acceptance successor Team");
+        }
+
+        await DismissEligibleSeasonBackupRemindersAsync();
+    }
+
+    private async Task SeedDynamicManualOverrideGameAsync(
+        int teamId,
+        int gameId,
+        IReadOnlyList<int> playerIds)
+    {
+        var initialized = await scoringRepository.InitializeAsync(
+            teamId,
+            gameId,
+            TeamGameSide.Away);
+        if (!initialized.IsSuccess)
+            throw new InvalidOperationException(
+                "Could not initialize the Android dynamic Manual Override Game.");
+
+        var results = new[]
+        {
+            BatterResult.Single,
+            BatterResult.Out,
+            BatterResult.Out,
+            BatterResult.Out,
+        };
+        await using (var operation = await database.BeginOperationAsync())
+        {
+            for (var index = 0; index < results.Length; index++)
+                EnsureSingleRow(await operation.Connection.InsertAsync(
+                    new GamePlateAppearance
+                    {
+                        GameScoringSessionId = initialized.Session!.Id,
+                        PlayerId = playerIds[0],
+                        BattingPosition = 1,
+                        PlateAppearanceNumber = index + 1,
+                        Inning = 1,
+                        Result = results[index],
+                    }), "dynamic Manual Override plate appearance");
+        }
+
+        if (!(await scoringRepository.CompleteGameAsync(gameId)).IsSuccess)
+            throw new InvalidOperationException(
+                "Could not complete the Android dynamic Manual Override Game.");
+    }
+
+    private async Task SeedFinalizedManualOverrideAsync(int teamId, int gameId, int playerId)
+    {
+        await using var operation = await database.BeginOperationAsync();
+        EnsureSingleRow(await operation.Connection.InsertAsync(new CompletedGameBattingOverride
+        {
+            GameId = gameId,
+            PlayerId = playerId,
+            Singles = 2,
+            Doubles = 1,
+            Triples = 0,
+            HomeRuns = 1,
+            Walks = 1,
+            FielderChoices = 0,
+            SacrificeFlies = 0,
+        }), "finalized Manual Override batting row");
+        EnsureSingleRow(await operation.Connection.InsertAsync(new CompletedGameScoreOverride
+        {
+            GameId = gameId,
+            VisitorScore = 2,
+            HomeScore = 0,
+        }), "finalized Manual Override score row");
+        var team = await operation.Connection.FindAsync<Team>(teamId)
+            ?? throw new InvalidOperationException("Could not reload finalized Manual Override Team.");
+        team.IsYearOver = true;
+        EnsureSingleRow(await operation.Connection.UpdateAsync(team),
+            "finalized Manual Override Team");
     }
 
     private static void EnsureSingleRow(int affectedRows, string entityName)

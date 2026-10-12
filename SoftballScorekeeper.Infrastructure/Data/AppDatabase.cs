@@ -6,7 +6,7 @@ namespace SoftballScorekeeper.Infrastructure.Data;
 public sealed class AppDatabase
 {
     public const int MinimumSupportedSchemaVersion = 0;
-    public const int CurrentSchemaVersion = 4;
+    public const int CurrentSchemaVersion = 6;
 
     internal static readonly TimeSpan ScoringHistoryRetention = TimeSpan.FromDays(21);
     private SQLiteAsyncConnection connection;
@@ -125,6 +125,12 @@ public sealed class AppDatabase
             await connection.CreateTableAsync<TeamBeerRuleConfiguration>();
             await connection.CreateTableAsync<GameScoringBeerRuleConfiguration>();
             await connection.CreateTableAsync<SeasonBackupReminderCheckpoint>();
+            await connection.CreateTableAsync<CompletedGameBattingOverride>();
+            await connection.CreateTableAsync<CompletedGameScoreOverride>();
+            await AddColumnIfMissingAsync<CompletedGameBattingOverride>(
+                nameof(CompletedGameBattingOverride.Outs),
+                "INTEGER NOT NULL DEFAULT 0"
+            );
             await AddColumnIfMissingAsync<TeamPlayer>(nameof(TeamPlayer.JerseyNumber), "INTEGER");
             await AddColumnIfMissingAsync<GameScoringSession>(
                 nameof(GameScoringSession.CompletedAtUtc),
@@ -167,6 +173,8 @@ public sealed class AppDatabase
                 UpgradeStory79TeamYearCompletion(transaction);
                 UpgradeStory85SeasonBackupReminders(transaction);
                 UpgradeStory10LiveLineup(transaction);
+                UpgradeStory14ManualOverrides(transaction);
+                UpgradeStory14DynamicPlateAppearances(transaction);
                 if (legacyScoringRules)
                     transaction.Execute(
                         "UPDATE GameScoringSession SET HomeRunLimit = ?",
@@ -246,6 +254,45 @@ public sealed class AppDatabase
             return;
 
         transaction.Execute("PRAGMA user_version = 4");
+    }
+
+    private static void UpgradeStory14ManualOverrides(SQLiteConnection transaction)
+    {
+        if (transaction.ExecuteScalar<int>("PRAGMA user_version") >= 5)
+            return;
+
+        transaction.Execute("PRAGMA user_version = 5");
+    }
+
+    private static void UpgradeStory14DynamicPlateAppearances(SQLiteConnection transaction)
+    {
+        if (transaction.ExecuteScalar<int>("PRAGMA user_version") >= 6)
+            return;
+
+        foreach (var row in transaction.Table<CompletedGameBattingOverride>().ToList())
+        {
+            var session = transaction.Table<GameScoringSession>()
+                .FirstOrDefault(item => item.GameId == row.GameId);
+            if (session is null)
+                throw new InvalidOperationException(
+                    "A completed batting override has no scoring session.");
+
+            var appearances = transaction.Table<GamePlateAppearance>()
+                .Where(item => item.GameScoringSessionId == session.Id
+                    && item.PlayerId == row.PlayerId)
+                .ToList();
+            var specialOuts = appearances.Count(item => item.Result is
+                BatterResult.DoublePlay or BatterResult.TriplePlay
+                or BatterResult.Strikeout or BatterResult.DeadBallOut);
+            row.Outs = checked(appearances.Count - specialOuts
+                - row.Singles - row.Doubles - row.Triples - row.HomeRuns
+                - row.Walks - row.FielderChoices - row.SacrificeFlies);
+            if (row.Outs < 0 || transaction.Update(row) != 1)
+                throw new InvalidOperationException(
+                    "A schema-5 batting override cannot be migrated safely.");
+        }
+
+        transaction.Execute("PRAGMA user_version = 6");
     }
 
     private static void UpgradeStory77TeamYearsAndLineage(SQLiteConnection transaction)

@@ -361,6 +361,8 @@ public sealed class BackupPackageServiceTests
             "TeamBeerRuleConfiguration",
             "GameScoringBeerRuleConfiguration",
             "SeasonBackupReminderCheckpoint",
+            "CompletedGameBattingOverride",
+            "CompletedGameScoreOverride",
         };
         var connection = new SQLiteAsyncConnection(
             databasePath,
@@ -436,6 +438,14 @@ public sealed class BackupPackageServiceTests
                 SeasonBackupReminderCheckpointDisposition.Dismissed,
                 reminderCheckpoint.Disposition
             );
+            var battingOverride = Assert.Single(
+                await connection.Table<CompletedGameBattingOverride>().ToListAsync());
+            Assert.Equal((1, 1, 2),
+                (battingOverride.GameId, battingOverride.PlayerId, battingOverride.Singles));
+            var scoreOverride = Assert.Single(
+                await connection.Table<CompletedGameScoreOverride>().ToListAsync());
+            Assert.Equal((1, 7, 6),
+                (scoreOverride.GameId, scoreOverride.VisitorScore, scoreOverride.HomeScore));
         }
         finally
         {
@@ -713,6 +723,23 @@ public sealed class BackupPackageServiceTests
                     CheckpointId = "representative-checkpoint",
                     SeasonId = 1,
                     Disposition = SeasonBackupReminderCheckpointDisposition.Dismissed,
+                }
+            );
+            await connection.InsertAsync(
+                new CompletedGameBattingOverride
+                {
+                    Id = 1,
+                    GameId = 1,
+                    PlayerId = 1,
+                    Singles = 2,
+                }
+            );
+            await connection.InsertAsync(
+                new CompletedGameScoreOverride
+                {
+                    GameId = 1,
+                    VisitorScore = 7,
+                    HomeScore = 6,
                 }
             );
             return 0;

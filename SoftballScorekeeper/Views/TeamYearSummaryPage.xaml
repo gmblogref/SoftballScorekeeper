@@ -15,7 +15,7 @@
             </VerticalStackLayout>
             <ActivityIndicator Grid.Column="1" IsRunning="{Binding IsBusy}" IsVisible="{Binding IsBusy}" />
         </Grid>
-        <ScrollView Grid.Row="1" Orientation="Vertical" VerticalScrollBarVisibility="Always">
+        <ScrollView Grid.Row="1" AutomationId="TeamYearSummaryPageScroll" Orientation="Vertical" VerticalScrollBarVisibility="Always">
             <VerticalStackLayout Spacing="18">
                 <VerticalStackLayout AutomationId="TeamYearResultSection" Spacing="8">
                     <Label Text="{x:Static strings:AppResources.TeamYearResultSummaryHeading}" Style="{StaticResource SubHeadline}" />

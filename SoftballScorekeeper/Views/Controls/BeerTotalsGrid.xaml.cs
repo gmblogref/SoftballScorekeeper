@@ -12,6 +12,11 @@ public partial class BeerTotalsGrid : ContentView
 
     public BeerTotalsGrid() => InitializeComponent();
 
+    private void OnStatisticsScrolled(object? sender, ScrolledEventArgs e)
+    {
+        BeerTotalsScrollableHeader.TranslationX = -e.ScrollX;
+    }
+
     public Func<TeamBeerTotalRowViewModel, BeerRuleType?, string?, Task<string?>>?
         SaveRequested { get; set; }
 

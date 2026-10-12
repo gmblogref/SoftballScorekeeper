@@ -80,6 +80,9 @@ internal sealed class TemporaryTestDatabase : IAsyncDisposable
 
     public GameScoringSessionRepository CreateGameScoringSessionRepository() => new(Database);
 
+    public CompletedGameManualOverrideRepository CreateCompletedGameManualOverrideRepository() =>
+        new(Database);
+
     public BeerLedgerRepository CreateBeerLedgerRepository() => new(Database);
 
     public BeerRuleConfigurationRepository CreateBeerRuleConfigurationRepository() => new(Database);
@@ -128,6 +131,14 @@ internal sealed class TemporaryTestDatabase : IAsyncDisposable
         UseSeedingConnectionAsync(connection =>
             connection.Table<GameScoringSession>().OrderBy(item => item.Id).ToListAsync()
         );
+
+    public Task<List<CompletedGameBattingOverride>> GetCompletedGameBattingOverridesAsync() =>
+        UseSeedingConnectionAsync(connection => connection
+            .Table<CompletedGameBattingOverride>().OrderBy(item => item.Id).ToListAsync());
+
+    public Task<List<CompletedGameScoreOverride>> GetCompletedGameScoreOverridesAsync() =>
+        UseSeedingConnectionAsync(connection => connection
+            .Table<CompletedGameScoreOverride>().OrderBy(item => item.GameId).ToListAsync());
 
     public Task<List<GameScoringLineupPlayer>> GetGameScoringLineupPlayersAsync() =>
         UseSeedingConnectionAsync(connection =>

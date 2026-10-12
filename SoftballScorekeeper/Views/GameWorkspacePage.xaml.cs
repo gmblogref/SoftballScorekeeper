@@ -18,6 +18,11 @@ public partial class GameWorkspacePage : ContentPage
     {
         InitializeComponent();
         this.viewModel = viewModel;
+        viewModel.RevertManualOverridesConfirmationRequested = () => DisplayAlert(
+            AppResources.ManualOverrideRevertTitle,
+            AppResources.ManualOverrideRevertMessage,
+            AppResources.ManualOverrideRevertConfirmButton,
+            AppResources.CancelButton);
         BindingContext = viewModel;
     }
 
