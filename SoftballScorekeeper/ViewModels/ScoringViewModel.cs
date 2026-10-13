@@ -19,6 +19,7 @@ public partial class ScoringViewModel : ObservableObject, IQueryAttributable
     private int? createdLiveLineupPlayerId;
     private bool hasValidContext;
     private int currentBatterPlayerId;
+    private int nextBatterPlayerId;
     private TeamGameSide currentTeamSide;
     private IReadOnlyDictionary<int, string> participantRoleLabels = new Dictionary<int, string>();
 
@@ -212,6 +213,7 @@ public partial class ScoringViewModel : ObservableObject, IQueryAttributable
     public bool CanEditParticipantOutcomes =>
         HasPendingPlay && DecisionRequirement != PlayDecisionRequirement.RetirementSelection;
     public int CurrentBatterPlayerId => currentBatterPlayerId;
+    public int NextBatterPlayerId => nextBatterPlayerId;
 
     public string GetParticipantRoleLabel(int playerId) =>
         participantRoleLabels.GetValueOrDefault(playerId, string.Empty);
@@ -240,6 +242,12 @@ public partial class ScoringViewModel : ObservableObject, IQueryAttributable
         var state = await sessionRepository.GetStateForGameAsync(GameId);
         if (state is null)
             return [];
+        var upcoming = state.GetUpcomingPlayerIds();
+        var currentPlayerId = state
+            .BattingSequence.FirstOrDefault(item =>
+                item.BattingPosition == state.Session.CurrentBatterPosition
+            )
+            ?.PlayerId;
         return state
             .BattingSequence.OrderBy(item => item.BattingPosition)
             .Select(item =>
@@ -247,7 +255,9 @@ public partial class ScoringViewModel : ObservableObject, IQueryAttributable
                     ? new LiveLineupPlayerOption(
                         item.PlayerId,
                         FormatPlayerName(player.FirstName, player.LastName),
-                        item.BattingPosition
+                        item.BattingPosition,
+                        IsCurrentBatter: item.PlayerId == currentPlayerId,
+                        IsNextBatter: item.PlayerId == upcoming?.OnDeckPlayerId
                     )
                     : null
             )
@@ -896,6 +906,7 @@ public partial class ScoringViewModel : ObservableObject, IQueryAttributable
         AvailableBatterResults = PlateAppearanceResultDefinitions.GetSelectableResults(0);
         OnPropertyChanged(nameof(AvailableBatterResults));
         currentBatterPlayerId = 0;
+        nextBatterPlayerId = 0;
         currentTeamSide = default;
         CanChangeTeamSide = false;
         IsAwaitingOpponentHalfInning = false;
@@ -909,7 +920,13 @@ public partial class ScoringViewModel : ObservableObject, IQueryAttributable
     {
         var upcoming = state.GetUpcomingPlayerIds();
         if (upcoming is null)
+        {
+            nextBatterPlayerId = 0;
+            OnDeckDisplayName = string.Empty;
+            InTheHoleDisplayName = string.Empty;
             return;
+        }
+        nextBatterPlayerId = upcoming.Value.OnDeckPlayerId;
         OnDeckDisplayName = ResolvePlayerName(state, upcoming.Value.OnDeckPlayerId);
         InTheHoleDisplayName = ResolvePlayerName(state, upcoming.Value.InTheHolePlayerId);
     }
@@ -1218,13 +1235,26 @@ public sealed record LiveLineupPlayerOption(
     string DisplayName,
     int BattingPosition,
     bool IsRostered = true,
-    bool ShowsMembershipStatus = false
+    bool ShowsMembershipStatus = false,
+    bool IsCurrentBatter = false,
+    bool IsNextBatter = false
 )
 {
     public string MembershipDisplay =>
         IsRostered ? AppResources.RosteredPlayerStatus : AppResources.NonRosteredPlayerStatus;
 
     public string SelectionAutomationId => $"LiveLineupPlayerOption-{PlayerId}";
+
+    public string ViewRowAutomationId => $"ViewLineupRow-{BattingPosition}";
+
+    public string ViewNameAutomationId => $"ViewLineupName-{BattingPosition}";
+
+    public string CurrentMarkerAutomationId => $"ViewLineupCurrent-{BattingPosition}";
+
+    public string NextMarkerAutomationId => $"ViewLineupNext-{BattingPosition}";
+
+    public string PositionAndNameDisplay =>
+        string.Format(AppResources.LiveLineupPlayerPositionFormat, BattingPosition, DisplayName);
 
     public string SelectionDisplay =>
         ShowsMembershipStatus

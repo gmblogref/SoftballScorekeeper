@@ -34,6 +34,7 @@ internal static class AndroidAutomationConstants
         "android-ui-test-season-backup-reminder";
     public const string PhaseALineupTestSeedRequestFileName = "android-ui-test-phase-a-lineup";
     public const string LiveLineupTestSeedRequestFileName = "android-ui-test-live-lineup";
+    public const string ViewLineupTestSeedRequestFileName = "android-ui-test-view-lineup";
     public static readonly IReadOnlyList<string> TestSeedRequestFileNames =
     [
         TestSeedRequestFileName,
@@ -54,6 +55,7 @@ internal static class AndroidAutomationConstants
         SeasonBackupReminderTestSeedRequestFileName,
         PhaseALineupTestSeedRequestFileName,
         LiveLineupTestSeedRequestFileName,
+        ViewLineupTestSeedRequestFileName,
     ];
     public const string FirstBatterName = "Alex Automation";
     public const string SecondBatterName = "Blake Automation";
