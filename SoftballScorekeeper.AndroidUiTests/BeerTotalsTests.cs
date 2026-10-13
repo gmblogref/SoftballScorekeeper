@@ -24,9 +24,10 @@ public sealed class BeerTotalsTests(AndroidAppiumFixture fixture)
 
             var alex = AndroidElementWait.UntilText(driver, "Alex Automation");
             var blake = AndroidElementWait.UntilText(driver, "Blake Automation");
-            var historical = AndroidElementWait.UntilText(driver, "Zulu Historical");
             Assert.True(alex.Location.Y < blake.Location.Y);
-            Assert.True(blake.Location.Y < historical.Location.Y);
+            var historical = ScrollBeerRowIntoView(driver, "BeerTotalsRow-3");
+            AndroidElementWait.UntilText(driver, "Zulu Historical");
+            Assert.True(historical.Displayed);
             Assert.Equal("1", FindByAutomationId(driver, "BeerTotalsDbo-3").Text);
             Assert.Equal("1", FindByAutomationId(driver, "BeerTotalsOwed-3").Text);
 

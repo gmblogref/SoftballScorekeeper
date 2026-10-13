@@ -84,10 +84,15 @@ public sealed class TeamYearSummaryTests(AndroidAppiumFixture fixture)
         AndroidElementWait.UntilAutomationIdText(driver, "TeamYearLosses", "1");
         AndroidElementWait.UntilAutomationIdText(driver, "TeamYearTies", "1");
 
-        Assert.Equal("3", ScrollTo(driver, "CompletedBattingPlateAppearancesPosition1").Text);
-        Assert.Equal("2", ScrollTo(driver, "CompletedBattingHitsPosition1").Text);
-        Assert.Equal("1", ScrollTo(driver, "CompletedBattingHomeRunsPosition1").Text);
-        Assert.True(ScrollTo(driver, "CompletedBattingTeamTotal").Displayed);
+        ScrollTo(driver, "TeamYearBattingSection");
+        ScrollBattingRowIntoView(driver, "CompletedBattingRowPosition1");
+        Assert.Equal("3", ScrollBattingStatisticIntoView(
+            driver, "CompletedBattingPlateAppearancesPosition1").Text);
+        Assert.Equal("2", ScrollBattingStatisticIntoView(
+            driver, "CompletedBattingHitsPosition1").Text);
+        Assert.Equal("1", ScrollBattingStatisticIntoView(
+            driver, "CompletedBattingHomeRunsPosition1").Text);
+        Assert.True(ScrollBattingRowIntoView(driver, "CompletedBattingTeamTotal").Displayed);
 
         var beerGrid = ScrollTo(driver, "TeamYearBeerSummaryGrid");
         ScrollTo(driver, "TeamYearBeerRow-1");
@@ -290,6 +295,26 @@ public sealed class TeamYearSummaryTests(AndroidAppiumFixture fixture)
     private static string ResourceId(string automationId) =>
         $"{AndroidAutomationConstants.AppPackage}:id/{automationId}";
 
+    private static IWebElement ScrollBattingStatisticIntoView(
+        AndroidDriver driver,
+        string automationId)
+    {
+        driver.FindElement(MobileBy.AndroidUIAutomator(
+            $"new UiScrollable(new UiSelector().resourceId(\"{ResourceId("CompletedBattingStats")}\"))."
+                + $"setAsHorizontalList().scrollIntoView(new UiSelector().resourceId(\"{ResourceId(automationId)}\"))"));
+        return FindDisplayedAutomationElement(driver, automationId);
+    }
+
+    private static IWebElement ScrollBattingRowIntoView(
+        AndroidDriver driver,
+        string automationId)
+    {
+        driver.FindElement(MobileBy.AndroidUIAutomator(
+            $"new UiScrollable(new UiSelector().resourceId(\"{ResourceId("CompletedBattingStatsVerticalScroll")}\"))."
+                + $"setAsVerticalList().scrollIntoView(new UiSelector().resourceId(\"{ResourceId(automationId)}\"))"));
+        return FindDisplayedAutomationElement(driver, automationId);
+    }
+
     private static IWebElement ScrollTo(AndroidDriver driver, string automationId)
     {
         var resourceId = $"{AndroidAutomationConstants.AppPackage}:id/{automationId}";
@@ -299,7 +324,7 @@ public sealed class TeamYearSummaryTests(AndroidAppiumFixture fixture)
             return displayed;
 
         return driver.FindElement(MobileBy.AndroidUIAutomator(
-            "new UiScrollable(new UiSelector().scrollable(true).instance(0))"
+            $"new UiScrollable(new UiSelector().resourceId(\"{ResourceId("TeamYearSummaryPageScroll")}\"))"
                 + $".scrollIntoView(new UiSelector().resourceId(\"{resourceId}\"))"));
     }
 

@@ -44,22 +44,15 @@ internal static class PhaseAUiWorkflow
         string sectionText,
         string destinationText)
     {
-        var nextTapUtc = DateTime.MinValue;
-        Wait(driver).Until(current =>
+        var flyoutAutomationId = sectionText switch
         {
-            if (current.FindElements(By.XPath($"//*[@text={XPathLiteral(destinationText)}]"))
-                .Any(item => item.Displayed))
-                return true;
-            if (DateTime.UtcNow < nextTapUtc)
-                return false;
-
-            var section = current.FindElements(By.XPath($"//*[@text={XPathLiteral(sectionText)}]"))
-                .FirstOrDefault(item => item.Displayed);
-            if (section is not null)
-                TapCenter(driver, section);
-            nextTapUtc = DateTime.UtcNow.AddSeconds(1);
-            return false;
-        });
+            "Teams" => "TeamsFlyoutMenuItem",
+            "Players" => "PlayersFlyoutMenuItem",
+            _ => throw new ArgumentOutOfRangeException(nameof(sectionText)),
+        };
+        OpenShellFlyout(driver);
+        AndroidElementWait.UntilAutomationId(driver, flyoutAutomationId).Click();
+        Text(driver, destinationText);
     }
 
     public static IWebElement[] Visible(AndroidDriver driver, string className) =>
