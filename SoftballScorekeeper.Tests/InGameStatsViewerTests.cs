@@ -18,6 +18,7 @@ public sealed class InGameStatsViewerTests
             "OnGameRulesClicked",
             "OnBeerRulesClicked",
             "OnStatsClicked",
+            "OnViewLineupClicked",
                 "OnManageLineupClicked",
             "OnExitGameClicked",
             "OnGameOverClicked",
