@@ -773,6 +773,10 @@
   <data name="LineupObpDisplayFormat" xml:space="preserve"><value>OBP: {0}</value></data>
   <data name="ManageLiveLineupButton" xml:space="preserve"><value>Manage Lineup</value></data>
   <data name="ManageLiveLineupTitle" xml:space="preserve"><value>Manage Live Lineup</value></data>
+  <data name="ViewLineupButton" xml:space="preserve"><value>View Lineup</value></data>
+  <data name="ViewLineupTitle" xml:space="preserve"><value>Current Lineup</value></data>
+  <data name="ViewLineupCurrentMarker" xml:space="preserve"><value>CURRENT</value></data>
+  <data name="ViewLineupNextMarker" xml:space="preserve"><value>NEXT</value></data>
   <data name="RemovePlayerButton" xml:space="preserve"><value>Remove Player</value></data>
   <data name="ReplacePlayerButton" xml:space="preserve"><value>Replace Player</value></data>
   <data name="SelectReplacementPlayerTitle" xml:space="preserve"><value>Select Replacement Player</value></data>

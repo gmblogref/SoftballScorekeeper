@@ -4,6 +4,126 @@ namespace SoftballScorekeeper.AndroidUiTests;
 public sealed class LiveLineupManagementTests(AndroidAppiumFixture fixture)
 {
     [AndroidUiFact]
+    public void Manage_lineup_cancel_returns_to_scoring_and_remove_still_opens_explicitly()
+    {
+        Run(
+            nameof(Manage_lineup_cancel_returns_to_scoring_and_remove_still_opens_explicitly),
+            driver =>
+            {
+                OpenScoring(driver);
+                var initialState = CaptureScoringState(driver);
+
+                OpenManageLineup(driver);
+                AndroidElementWait.UntilText(driver, "Cancel").Click();
+                AndroidElementWait.UntilAutomationIdText(driver, "CurrentBatter", "Alex Live");
+                Assert.Empty(
+                    driver
+                        .FindElements(OpenQA.Selenium.By.XPath("//*[@text='1. Alex Live']"))
+                        .Where(element => element.Displayed)
+                );
+                AssertScoringState(driver, initialState);
+
+                OpenManageLineup(driver);
+                AndroidElementWait.UntilText(driver, "Remove Player").Click();
+                AndroidElementWait.UntilText(driver, "1. Alex Live");
+                AndroidElementWait.UntilText(driver, "Cancel").Click();
+
+                AndroidElementWait.UntilAutomationIdText(driver, "CurrentBatter", "Alex Live");
+                AssertScoringState(driver, initialState);
+            }
+        );
+    }
+
+    [AndroidUiFact]
+    public void View_lineup_tracks_live_order_and_batters_without_changing_scoring()
+    {
+        PhaseAUiWorkflow.Run(
+            fixture,
+            nameof(View_lineup_tracks_live_order_and_batters_without_changing_scoring),
+            driver =>
+            {
+                OpenScoring(driver);
+                var initialState = CaptureScoringState(driver);
+
+                OpenViewLineup(driver);
+                AssertLineupPlayer(driver, 1, "Alex Live");
+                AssertLineupPlayer(driver, 2, "Blake Live");
+                AssertLineupPlayer(driver, 3, "Casey Live");
+                AssertLineupPlayer(driver, 10, "Jordan Live");
+                AssertMarker(driver, "ViewLineupCurrent-1", "CURRENT");
+                AssertMarker(driver, "ViewLineupNext-2", "NEXT");
+                fixture.SetOrientation(OpenQA.Selenium.ScreenOrientation.Portrait);
+                AssertLineupPlayer(driver, 10, "Jordan Live");
+                AssertCloseWithinViewport(driver);
+                driver.Navigate().Back();
+                AssertScoringState(driver, initialState);
+                Assert.False(
+                    AndroidElementWait.UntilAutomationId(driver, "UndoScoringButton").Enabled
+                );
+
+                fixture.SetOrientation(OpenQA.Selenium.ScreenOrientation.Landscape);
+                OpenManageLineup(driver);
+                AndroidElementWait.UntilText(driver, "Replace Player").Click();
+                AndroidElementWait.UntilText(driver, "2. Blake Live").Click();
+                AndroidElementWait.UntilText(driver, "Bailey Live").Click();
+                AndroidElementWait.UntilAutomationId(driver, "UndoScoringButton").Click();
+                Assert.True(
+                    AndroidElementWait.UntilAutomationId(driver, "RedoScoringButton").Enabled
+                );
+
+                OpenViewLineup(driver);
+                AssertLineupPlayer(driver, 2, "Blake Live");
+                CloseViewLineup(driver);
+                Assert.True(
+                    AndroidElementWait.UntilAutomationId(driver, "RedoScoringButton").Enabled
+                );
+                AndroidElementWait.UntilAutomationId(driver, "RedoScoringButton").Click();
+
+                OpenViewLineup(driver);
+                AssertLineupPlayer(driver, 2, "Bailey Live");
+                AssertMarker(driver, "ViewLineupCurrent-1", "CURRENT");
+                AssertMarker(driver, "ViewLineupNext-2", "NEXT");
+                CloseViewLineup(driver);
+
+                OpenManageLineup(driver);
+                AndroidElementWait.UntilText(driver, "Remove Player").Click();
+                AndroidElementWait.UntilText(driver, "1. Alex Live").Click();
+                AndroidElementWait.UntilAutomationIdText(driver, "CurrentBatter", "Bailey Live");
+                OpenManageLineup(driver);
+                AndroidElementWait.UntilText(driver, "Add Player").Click();
+                AndroidElementWait.UntilText(driver, "Alex Live").Click();
+                AndroidElementWait.UntilTextContaining(driver, "Before Casey Live").Click();
+
+                OpenViewLineup(driver);
+                AssertLineupPlayer(driver, 1, "Bailey Live");
+                AssertLineupPlayer(driver, 2, "Alex Live");
+                AssertLineupPlayer(driver, 10, "Jordan Live");
+                AssertMarker(driver, "ViewLineupCurrent-1", "CURRENT");
+                AssertMarker(driver, "ViewLineupNext-2", "NEXT");
+                CloseViewLineup(driver);
+
+                AndroidScoringWorkflow.SelectResult(driver, "Home Run");
+                AndroidElementWait.UntilAutomationIdText(driver, "CurrentBatter", "Alex Live");
+                OpenViewLineup(driver);
+                AssertMarker(driver, "ViewLineupCurrent-2", "CURRENT");
+                AssertMarker(driver, "ViewLineupNext-3", "NEXT");
+                CloseViewLineup(driver);
+
+                AndroidScoringWorkflow.ExitAndResume(driver);
+                AndroidElementWait.UntilAutomationIdText(driver, "CurrentBatter", "Alex Live");
+                OpenViewLineup(driver);
+                AssertLineupPlayer(driver, 1, "Bailey Live");
+                AssertLineupPlayer(driver, 2, "Alex Live");
+                AssertLineupPlayer(driver, 10, "Jordan Live");
+                AssertMarker(driver, "ViewLineupCurrent-2", "CURRENT");
+                AssertMarker(driver, "ViewLineupNext-3", "NEXT");
+                CloseViewLineup(driver);
+            },
+            AndroidAutomationConstants.ViewLineupTestSeedRequestFileName
+        );
+    }
+
+    [AndroidUiFact]
     public void Existing_global_player_joins_team_through_replace_and_remains_undoable()
     {
         Run(
@@ -301,6 +421,103 @@ public sealed class LiveLineupManagementTests(AndroidAppiumFixture fixture)
         AndroidElementWait.UntilAutomationId(driver, "ManageLiveLineupButton").Click();
         AndroidElementWait.UntilText(driver, "Manage Live Lineup");
     }
+
+    private static void OpenViewLineup(
+        OpenQA.Selenium.Appium.Android.AndroidDriver driver
+    )
+    {
+        AndroidElementWait.UntilAutomationId(driver, "ScoringMenuButton").Click();
+        AndroidElementWait.UntilAutomationId(driver, "ViewLineupButton").Click();
+        AndroidElementWait.UntilAutomationId(driver, "ViewLineupDialog");
+    }
+
+    private static void CloseViewLineup(
+        OpenQA.Selenium.Appium.Android.AndroidDriver driver
+    ) => AndroidElementWait.UntilAutomationId(driver, "ViewLineupCloseButton").Click();
+
+    private static void AssertLineupPlayer(
+        OpenQA.Selenium.Appium.Android.AndroidDriver driver,
+        int position,
+        string playerName
+    )
+    {
+        var automationId = $"ViewLineupName-{position}";
+        var resourceId = $"{AndroidAutomationConstants.AppPackage}:id/{automationId}";
+        driver.FindElement(
+            OpenQA.Selenium.Appium.MobileBy.AndroidUIAutomator(
+                $"new UiScrollable(new UiSelector().resourceId(\"{AndroidAutomationConstants.AppPackage}:id/ViewLineupList\")).setAsVerticalList().scrollIntoView(new UiSelector().resourceId(\"{resourceId}\"))"
+            )
+        );
+        AndroidElementWait.UntilAutomationIdText(
+            driver,
+            automationId,
+            $"{position}. {playerName}"
+        );
+    }
+
+    private static void AssertMarker(
+        OpenQA.Selenium.Appium.Android.AndroidDriver driver,
+        string automationId,
+        string text
+    ) => AndroidElementWait.UntilAutomationIdText(driver, automationId, text);
+
+    private static void AssertCloseWithinViewport(
+        OpenQA.Selenium.Appium.Android.AndroidDriver driver
+    )
+    {
+        var close = AndroidElementWait.UntilAutomationId(driver, "ViewLineupCloseButton");
+        var viewport = driver.Manage().Window.Size;
+        Assert.True(close.Displayed);
+        Assert.InRange(close.Location.X, 0, viewport.Width - 1);
+        Assert.InRange(close.Location.Y, 0, viewport.Height - 1);
+        Assert.InRange(close.Location.X + close.Size.Width, 1, viewport.Width);
+        Assert.InRange(close.Location.Y + close.Size.Height, 1, viewport.Height);
+    }
+
+    private static ScoringStateSnapshot CaptureScoringState(
+        OpenQA.Selenium.Appium.Android.AndroidDriver driver
+    ) =>
+        new(
+            AndroidElementWait.UntilAutomationId(driver, "CurrentBatter").Text,
+            AndroidElementWait.UntilAutomationId(driver, "VisitorScoreValue").Text,
+            AndroidElementWait.UntilAutomationId(driver, "HomeScoreValue").Text,
+            GetInningAndOuts(driver),
+            AndroidElementWait.UntilAutomationId(driver, "FirstBaseRunnerButton").Text,
+            AndroidElementWait.UntilAutomationId(driver, "SecondBaseRunnerButton").Text,
+            AndroidElementWait.UntilAutomationId(driver, "ThirdBaseRunnerButton").Text,
+            AndroidElementWait.UntilAutomationId(driver, "UndoScoringButton").Enabled,
+            AndroidElementWait.UntilAutomationId(driver, "RedoScoringButton").Enabled
+        );
+
+    private static void AssertScoringState(
+        OpenQA.Selenium.Appium.Android.AndroidDriver driver,
+        ScoringStateSnapshot expected
+    ) => Assert.Equal(expected, CaptureScoringState(driver));
+
+    private static string GetInningAndOuts(
+        OpenQA.Selenium.Appium.Android.AndroidDriver driver
+    )
+    {
+        var combinedId =
+            $"{AndroidAutomationConstants.AppPackage}:id/InningOutStateLabel";
+        var combined = driver
+            .FindElements(OpenQA.Selenium.By.Id(combinedId))
+            .FirstOrDefault(element => element.Displayed);
+        return combined?.Text
+            ?? $"{AndroidElementWait.UntilAutomationId(driver, "InningStateLabel").Text}    {AndroidElementWait.UntilAutomationId(driver, "OutsStateLabel").Text}";
+    }
+
+    private sealed record ScoringStateSnapshot(
+        string CurrentBatter,
+        string VisitorScore,
+        string HomeScore,
+        string InningAndOuts,
+        string FirstBase,
+        string SecondBase,
+        string ThirdBase,
+        bool CanUndo,
+        bool CanRedo
+    );
 
     private static void ExitToWorkspace(OpenQA.Selenium.Appium.Android.AndroidDriver driver)
     {

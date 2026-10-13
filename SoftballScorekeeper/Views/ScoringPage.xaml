@@ -507,6 +507,12 @@
                     BackgroundColor="Transparent" TextColor="Black"
                     MinimumHeightRequest="52" MinimumWidthRequest="180" Padding="20,12" />
             <BoxView BackgroundColor="Black" HeightRequest="1" />
+            <Button AutomationId="ViewLineupButton"
+                    Text="{x:Static strings:AppResources.ViewLineupButton}"
+                    Clicked="OnViewLineupClicked"
+                    BackgroundColor="Transparent" TextColor="Black"
+                    MinimumHeightRequest="52" MinimumWidthRequest="180" Padding="20,12" />
+            <BoxView BackgroundColor="Black" HeightRequest="1" />
             <Button AutomationId="ManageLiveLineupButton"
                     Text="{x:Static strings:AppResources.ManageLiveLineupButton}"
                     Clicked="OnManageLineupClicked"

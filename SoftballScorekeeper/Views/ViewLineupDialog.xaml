@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:strings="clr-namespace:SoftballScorekeeper.Resources.Strings"
+             xmlns:viewModels="clr-namespace:SoftballScorekeeper.ViewModels"
+             x:Class="SoftballScorekeeper.Views.ViewLineupDialog"
+             AutomationId="ViewLineupDialog"
+             Shell.NavBarIsVisible="False"
+             BackgroundColor="#99000000">
+    <Grid Padding="16">
+        <Border Padding="20"
+                MaximumWidthRequest="720"
+                MaximumHeightRequest="700"
+                HorizontalOptions="Center"
+                VerticalOptions="Center"
+                BackgroundColor="{AppThemeBinding Light=White, Dark={StaticResource Gray900}}"
+                StrokeShape="RoundRectangle 16">
+            <Grid RowDefinitions="Auto,*,Auto" RowSpacing="12">
+                <Label Text="{x:Static strings:AppResources.ViewLineupTitle}"
+                       FontSize="24"
+                       FontAttributes="Bold"
+                       HorizontalTextAlignment="Center"
+                       SemanticProperties.HeadingLevel="Level1" />
+                <CollectionView x:Name="LineupCollection"
+                                Grid.Row="1"
+                                AutomationId="ViewLineupList"
+                                SelectionMode="None">
+                    <CollectionView.ItemTemplate>
+                        <DataTemplate x:DataType="viewModels:LiveLineupPlayerOption">
+                            <Border AutomationId="{Binding ViewRowAutomationId}"
+                                    Padding="12,8"
+                                    Margin="0,3"
+                                    Stroke="{StaticResource Gray300}"
+                                    StrokeShape="RoundRectangle 8">
+                                <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
+                                    <Label AutomationId="{Binding ViewNameAutomationId}"
+                                           Text="{Binding PositionAndNameDisplay}"
+                                           FontSize="18"
+                                           VerticalTextAlignment="Center"
+                                           LineBreakMode="TailTruncation" />
+                                    <HorizontalStackLayout Grid.Column="1"
+                                                           Spacing="8"
+                                                           VerticalOptions="Center">
+                                        <Label AutomationId="{Binding CurrentMarkerAutomationId}"
+                                               Text="{x:Static strings:AppResources.ViewLineupCurrentMarker}"
+                                               IsVisible="{Binding IsCurrentBatter}"
+                                               FontAttributes="Bold" />
+                                        <Label AutomationId="{Binding NextMarkerAutomationId}"
+                                               Text="{x:Static strings:AppResources.ViewLineupNextMarker}"
+                                               IsVisible="{Binding IsNextBatter}"
+                                               FontAttributes="Bold" />
+                                    </HorizontalStackLayout>
+                                </Grid>
+                            </Border>
+                        </DataTemplate>
+                    </CollectionView.ItemTemplate>
+                </CollectionView>
+                <Button Grid.Row="2"
+                        AutomationId="ViewLineupCloseButton"
+                        Text="{x:Static strings:AppResources.CloseButton}"
+                        Clicked="OnCloseClicked"
+                        MinimumHeightRequest="52"
+                        MinimumWidthRequest="140"
+                        HorizontalOptions="Center"
+                        Padding="20,12" />
+            </Grid>
+        </Border>
+    </Grid>
+</ContentPage>

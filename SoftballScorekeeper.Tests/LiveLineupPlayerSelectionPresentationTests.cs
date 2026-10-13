@@ -72,6 +72,37 @@ public sealed class LiveLineupPlayerSelectionPresentationTests
         );
     }
 
+    [Fact]
+    public void Manage_lineup_cancel_and_dismissal_exit_before_player_selection()
+    {
+        var pageCode = File.ReadAllText(
+            Path.Combine(
+                RepositoryRoot,
+                "SoftballScorekeeper",
+                "Views",
+                "ScoringPage.xaml.cs"
+            )
+        );
+        var removeGuard = pageCode.IndexOf(
+            "action != AppResources.RemovePlayerButton",
+            StringComparison.Ordinal
+        );
+        var replaceGuard = pageCode.IndexOf(
+            "action != AppResources.ReplacePlayerButton",
+            StringComparison.Ordinal
+        );
+        var playerSelection = pageCode.IndexOf(
+            "var active = await viewModel.GetLiveLineupPlayersAsync();",
+            StringComparison.Ordinal
+        );
+
+        Assert.True(removeGuard >= 0);
+        Assert.True(replaceGuard > removeGuard);
+        Assert.True(playerSelection > replaceGuard);
+        Assert.Contains("action == AppResources.RemovePlayerButton", pageCode);
+        Assert.Contains("action != AppResources.ReplacePlayerButton", pageCode);
+    }
+
     private static XElement ByAutomationId(XDocument page, string id) =>
         page.Descendants().Single(element => element.Attribute("AutomationId")?.Value == id);
 

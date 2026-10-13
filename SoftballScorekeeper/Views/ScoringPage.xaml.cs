@@ -136,6 +136,13 @@ public partial class ScoringPage : ContentPage
         await new InGameStatsDialog(projection.Players).ShowAsync(Navigation);
     }
 
+    private async void OnViewLineupClicked(object sender, EventArgs e)
+    {
+        ScoringMenu.IsVisible = false;
+        var lineup = await viewModel.GetLiveLineupPlayersAsync();
+        await new ViewLineupDialog(lineup).ShowAsync(Navigation);
+    }
+
     private async void OnManageLineupClicked(object sender, EventArgs e)
     {
         ScoringMenu.IsVisible = false;
@@ -169,6 +176,12 @@ public partial class ScoringPage : ContentPage
                 await AddPlayerAtSelectedPositionAsync(replacement);
             return;
         }
+
+        if (
+            action != AppResources.RemovePlayerButton
+            && action != AppResources.ReplacePlayerButton
+        )
+            return;
 
         var active = await viewModel.GetLiveLineupPlayersAsync();
         var outgoing = await SelectPlayerAsync(

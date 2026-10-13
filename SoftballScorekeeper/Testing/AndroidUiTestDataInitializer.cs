@@ -35,6 +35,7 @@ public sealed class AndroidUiTestDataInitializer
         "android-ui-test-season-backup-reminder";
     internal const string PhaseALineupRequestFileName = "android-ui-test-phase-a-lineup";
     internal const string LiveLineupRequestFileName = "android-ui-test-live-lineup";
+    internal const string ViewLineupRequestFileName = "android-ui-test-view-lineup";
     private static readonly string[] RequestFileNames =
     [
         RequestFileName,
@@ -55,6 +56,7 @@ public sealed class AndroidUiTestDataInitializer
         SeasonBackupReminderRequestFileName,
         PhaseALineupRequestFileName,
         LiveLineupRequestFileName,
+        ViewLineupRequestFileName,
     ];
 
     private readonly AppDatabase database;
@@ -180,6 +182,10 @@ public sealed class AndroidUiTestDataInitializer
             FileSystem.AppDataDirectory,
             LiveLineupRequestFileName
         );
+        var viewLineupRequestPath = Path.Combine(
+            FileSystem.AppDataDirectory,
+            ViewLineupRequestFileName
+        );
         var useMissingGame = File.Exists(missingGameRequestPath);
         var useFinalizedManualOverride = File.Exists(finalizedManualOverrideRequestPath);
         var useDynamicManualOverride = File.Exists(dynamicManualOverrideRequestPath);
@@ -199,6 +205,7 @@ public sealed class AndroidUiTestDataInitializer
         var useSeasonBackupReminder = File.Exists(seasonBackupReminderRequestPath);
         var usePhaseALineup = File.Exists(phaseALineupRequestPath);
         var useLiveLineup = File.Exists(liveLineupRequestPath);
+        var useViewLineup = File.Exists(viewLineupRequestPath);
         if (
             !File.Exists(requestPath)
             && !useMissingGame
@@ -218,6 +225,7 @@ public sealed class AndroidUiTestDataInitializer
             && !useSeasonBackupReminder
             && !usePhaseALineup
             && !useLiveLineup
+            && !useViewLineup
         )
             return null;
 
@@ -257,6 +265,11 @@ public sealed class AndroidUiTestDataInitializer
             File.Delete(phaseALineupRequestPath);
         if (useLiveLineup)
             File.Delete(liveLineupRequestPath);
+        if (useViewLineup)
+            File.Delete(viewLineupRequestPath);
+
+        if (useViewLineup)
+            return await SeedLiveLineupAsync(includeScrollableLineup: true);
 
         if (useLiveLineup)
             return await SeedLiveLineupAsync();
@@ -380,7 +393,7 @@ public sealed class AndroidUiTestDataInitializer
         return new AndroidUiTestContext(team.Id, useMissingGame ? gameId + 1 : gameId, false);
     }
 
-    private async Task<AndroidUiTestContext> SeedLiveLineupAsync()
+    private async Task<AndroidUiTestContext> SeedLiveLineupAsync(bool includeScrollableLineup = false)
     {
         var team = new Team
         {
@@ -391,7 +404,14 @@ public sealed class AndroidUiTestDataInitializer
         EnsureSingleRow(await teamRepository.CreateAsync(team), "live-lineup Team");
 
         var playerIds = new List<int>();
-        foreach (var firstName in new[] { "Alex", "Blake", "Casey", "Bailey", "Riley" })
+        var firstNames = includeScrollableLineup
+            ? new[]
+            {
+                "Alex", "Blake", "Casey", "Drew", "Evan", "Flynn", "Gale", "Hayden",
+                "Indy", "Jordan", "Bailey", "Riley",
+            }
+            : new[] { "Alex", "Blake", "Casey", "Bailey", "Riley" };
+        foreach (var firstName in firstNames)
         {
             var result = await playerRepository.CreateForTeamAsync(
                 new Player
@@ -438,7 +458,11 @@ public sealed class AndroidUiTestDataInitializer
             throw new InvalidOperationException("Could not seed the live-lineup Game.");
 
         var gameId = gameResult.CreatedGameIds.Single();
-        var lineup = await lineupRepository.SaveInitialAsync(team.Id, gameId, playerIds.Take(3));
+        var lineup = await lineupRepository.SaveInitialAsync(
+            team.Id,
+            gameId,
+            playerIds.Take(includeScrollableLineup ? 10 : 3)
+        );
         if (!lineup.IsSuccess)
             throw new InvalidOperationException("Could not seed the live lineup.");
         return new AndroidUiTestContext(team.Id, gameId, false);

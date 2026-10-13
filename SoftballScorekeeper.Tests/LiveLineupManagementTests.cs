@@ -7,6 +7,138 @@ namespace SoftballScorekeeper.Tests;
 public sealed partial class GameScoringSessionRepositoryTests
 {
     [Fact]
+    public async Task Reading_live_lineup_and_upcoming_batters_does_not_mutate_scoring_state()
+    {
+        await using var db = await TemporaryTestDatabase.CreateAsync();
+        var context = await CreateReadyGameAsync(db, DateTime.Today, null, null, 3);
+        var frozenBefore = (await db.GetGameLineupPlayersAsync())
+            .Select(item => (item.PlayerId, item.BattingOrder))
+            .ToArray();
+        var replacement = await CreateEligiblePlayerAsync(db, context.Team.Id, "Replacement");
+        var repository = db.CreateGameScoringSessionRepository();
+        await repository.InitializeAsync(context.Team.Id, context.Game.Id, TeamGameSide.Away);
+        Assert.True(
+            (
+                await repository.ReplaceLiveLineupPlayerAsync(
+                    context.Game.Id,
+                    frozenBefore[1].PlayerId,
+                    replacement.Id
+                )
+            ).IsSuccess
+        );
+        Assert.True((await repository.UndoAsync(context.Game.Id)).IsSuccess);
+
+        var before = (await repository.GetStateForGameAsync(context.Game.Id))!;
+        var sessionBefore = (
+            before.Session.Status,
+            before.Session.TeamSide,
+            before.Session.HomeScore,
+            before.Session.VisitorScore,
+            before.Session.CurrentBatterPosition,
+            before.Session.CurrentInning,
+            before.Session.CurrentOuts
+        );
+        var availabilityBefore = await repository.GetUndoRedoAvailabilityAsync(context.Game.Id);
+        var historyBefore = await CountHistoryRowsAsync(db, before.Session.Id);
+        var snapshotsBefore = await CountHistorySnapshotsAsync(db, before.Session.Id);
+
+        var viewed = (await repository.GetStateForGameAsync(context.Game.Id))!;
+        var upcoming = viewed.GetUpcomingPlayerIds();
+
+        Assert.Equal(
+            frozenBefore.Select(item => item.PlayerId),
+            viewed.BattingSequence.Select(item => item.PlayerId)
+        );
+        Assert.Equal(frozenBefore[0].PlayerId, viewed.BattingSequence[0].PlayerId);
+        Assert.Equal(frozenBefore[1].PlayerId, upcoming!.Value.OnDeckPlayerId);
+        Assert.Equal(frozenBefore[2].PlayerId, upcoming.Value.InTheHolePlayerId);
+        Assert.Equal(
+            availabilityBefore,
+            await repository.GetUndoRedoAvailabilityAsync(context.Game.Id)
+        );
+        Assert.Equal(historyBefore, await CountHistoryRowsAsync(db, before.Session.Id));
+        Assert.Equal(snapshotsBefore, await CountHistorySnapshotsAsync(db, before.Session.Id));
+        Assert.Equal(
+            frozenBefore,
+            (await db.GetGameLineupPlayersAsync())
+                .Select(item => (item.PlayerId, item.BattingOrder))
+                .ToArray()
+        );
+        Assert.Empty(await db.GetGameScoringBaseRunnersAsync());
+        Assert.Equal(
+            sessionBefore,
+            (
+                viewed.Session.Status,
+                viewed.Session.TeamSide,
+                viewed.Session.HomeScore,
+                viewed.Session.VisitorScore,
+                viewed.Session.CurrentBatterPosition,
+                viewed.Session.CurrentInning,
+                viewed.Session.CurrentOuts
+            )
+        );
+
+        Assert.True((await repository.RedoAsync(context.Game.Id)).IsSuccess);
+        await CompleteHitAsync(repository, context.Game.Id, BatterResult.HomeRun);
+        await CompleteHitAsync(repository, context.Game.Id, BatterResult.HomeRun);
+        var wrapped = (await repository.GetStateForGameAsync(context.Game.Id))!;
+        Assert.Equal(3, wrapped.Session.CurrentBatterPosition);
+        Assert.Equal(
+            frozenBefore[0].PlayerId,
+            wrapped.GetUpcomingPlayerIds()!.Value.OnDeckPlayerId
+        );
+
+        Assert.True(
+            (await repository.SelectBatterResultAsync(context.Game.Id, BatterResult.Single))
+                .IsSuccess
+        );
+        var pendingBefore = (await repository.GetStateForGameAsync(context.Game.Id))!;
+        var pendingJson = System.Text.Json.JsonSerializer.Serialize(pendingBefore.PendingPlay);
+        var pendingHistoryCount = await CountHistoryRowsAsync(db, pendingBefore.Session.Id);
+        var pendingSnapshotCount = await CountHistorySnapshotsAsync(db, pendingBefore.Session.Id);
+
+        var pendingViewed = (await repository.GetStateForGameAsync(context.Game.Id))!;
+
+        Assert.Equal(
+            pendingJson,
+            System.Text.Json.JsonSerializer.Serialize(pendingViewed.PendingPlay)
+        );
+        Assert.Equal(
+            pendingHistoryCount,
+            await CountHistoryRowsAsync(db, pendingBefore.Session.Id)
+        );
+        Assert.Equal(
+            pendingSnapshotCount,
+            await CountHistorySnapshotsAsync(db, pendingBefore.Session.Id)
+        );
+        Assert.Equal(
+            frozenBefore,
+            (await db.GetGameLineupPlayersAsync())
+                .Select(item => (item.PlayerId, item.BattingOrder))
+                .ToArray()
+        );
+    }
+
+    private static Task<int> CountHistoryRowsAsync(TemporaryTestDatabase db, int sessionId) =>
+        db.UseConnectionAsync(connection =>
+            connection.ExecuteScalarAsync<int>(
+                "SELECT COUNT(*) FROM GameScoringHistory WHERE GameScoringSessionId = ?",
+                sessionId
+            )
+        );
+
+    private static Task<int> CountHistorySnapshotsAsync(
+        TemporaryTestDatabase db,
+        int sessionId
+    ) =>
+        db.UseConnectionAsync(connection =>
+            connection.ExecuteScalarAsync<int>(
+                "SELECT COUNT(*) FROM GameScoringHistorySnapshot WHERE GameScoringSessionId = ?",
+                sessionId
+            )
+        );
+
+    [Fact]
     public async Task Existing_global_player_joins_team_once_then_live_lineup_preserves_frozen_and_undo_redo()
     {
         await using var db = await TemporaryTestDatabase.CreateAsync();

@@ -36,6 +36,18 @@ internal static class AndroidElementWait
             ?? throw new NoSuchElementException());
     }
 
+    public static IWebElement UntilTextContaining(
+        AndroidDriver driver,
+        string text,
+        TimeSpan? timeout = null)
+    {
+        var wait = CreateWait(driver, timeout);
+        return wait.Until(currentDriver =>
+            currentDriver.FindElements(By.XPath($"//*[contains(@text,{ToXPathLiteral(text)})]"))
+                .FirstOrDefault(element => element.Displayed)
+            ?? throw new NoSuchElementException());
+    }
+
     public static IWebElement UntilAutomationIdText(
         AndroidDriver driver,
         string automationId,
