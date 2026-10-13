@@ -3648,6 +3648,16 @@ Dedicated Double Play/Triple Play presentation, sacrifice results, HR-limit/dead
 - Story 14 must merge before the definitive Release Candidate is packaged.
 - Feature complete does not mean released. Version 1.0 has not been publicly released, and the definitive Release Candidate APK has not yet been generated.
 
+## Story 15 — Release Version 1.0.0
+
+**Release preparation validated — final release pending**
+
+- Version 1.0 remains feature-frozen. Release preparation is on `task/1.0.0-release` from original source baseline `78149dfa130b45de2720094fd711a14e6ce764ec`. Application display version is `1.0.0`, Android version code is `2`, SQLite schema version remains `6`, and backup format version remains `1`.
+- Final emulator-independent regression passed 1,142 of 1,142 with zero failures or skips. The complete Android/Appium regression discovered and passed all 78 scenarios with zero failures or skips in 58 minutes 13 seconds and required zero retries, using only the dedicated `softball_tablet_ui_tests_api_35` AVD.
+- Android Release built with zero warnings or errors. Windows Release built successfully with 146 previously existing `MVVMTK0045` warnings. The Android UI-test project build passed.
+- Broad-regression investigation corrected only Android automation assumptions: Shell sections now use stable flyout identifiers, frozen statistics and Beer rows/columns are explicitly scrolled into their bounded owners before interaction, manual-override checks dismiss the keyboard before horizontal navigation, and Team Year Summary targets its named page and nested grid scroll owners. No accepted assertion or Version 1.0 product behavior was weakened.
+- No production defect was found. Production data and the reserved development AVD remained untouched. The definitive signed Release APK, release-candidate physical-tablet acceptance, `v1.0.0` release tag, and GitHub Release remain pending; Version 1.0 has not been published.
+
 ## Maintenance Rules
 
 Every future story must update this file before the story is committed. A story is not complete until its accurate feature-history entry is included in the same story-focused commit as its implementation.

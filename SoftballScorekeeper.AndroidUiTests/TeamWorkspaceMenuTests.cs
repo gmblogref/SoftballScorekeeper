@@ -16,7 +16,7 @@ public sealed class TeamWorkspaceMenuTests(AndroidAppiumFixture fixture)
             var teamCardId = $"{AndroidAutomationConstants.AppPackage}:id/TeamCard-1";
             if (!driver.FindElements(By.Id(teamCardId)).Any(element => element.Displayed))
             {
-                AndroidElementWait.UntilText(driver, "Teams").Click();
+                PhaseAUiWorkflow.NavigateSection(driver, "Teams", "Create Team");
             }
             AndroidElementWait.UntilAutomationId(driver, "TeamCard-1").Click();
 
@@ -75,7 +75,7 @@ public sealed class TeamWorkspaceMenuTests(AndroidAppiumFixture fixture)
             var teamCardId = $"{AndroidAutomationConstants.AppPackage}:id/TeamCard-1";
             if (!driver.FindElements(By.Id(teamCardId)).Any(element => element.Displayed))
             {
-                AndroidElementWait.UntilText(driver, "Teams").Click();
+                PhaseAUiWorkflow.NavigateSection(driver, "Teams", "Create Team");
             }
             AndroidElementWait.UntilAutomationIdText(driver, "TeamYear-1", "2026");
             AndroidElementWait.UntilAutomationId(driver, "TeamCard-1").Click();

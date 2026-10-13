@@ -219,6 +219,7 @@ public sealed class ManualOverrideAcceptanceTests(AndroidAppiumFixture fixture)
             AndroidElementWait.UntilText(
                 driver, "SCORE — Automation Team: 0 | Automation Opponent: 0");
             AndroidElementWait.UntilAutomationId(driver, "GameStatsButton").Click();
+            ScrollStatisticIntoView(driver, "CompletedBattingPlateAppearancesPosition1");
             AndroidElementWait.UntilAutomationId(
                 driver, "CompletedBattingPlateAppearancesPosition1");
 
@@ -260,10 +261,12 @@ public sealed class ManualOverrideAcceptanceTests(AndroidAppiumFixture fixture)
         Assert.Contains("1B, unsaved change", singles.Text, StringComparison.Ordinal);
         AndroidElementWait.UntilAutomationIdText(
             driver, "CompletedBattingHitsPosition1", "1");
+        HideKeyboard(driver);
+        ScrollStatisticIntoView(driver, "CompletedBattingPlateAppearancesPosition1");
         AndroidElementWait.UntilAutomationIdText(
             driver, "CompletedBattingPlateAppearancesPosition1", "4");
-        HideKeyboard(driver);
         AndroidElementWait.UntilAutomationId(driver, "CancelManualOverrideButton").Click();
+        ScrollStatisticIntoView(driver, "CompletedBattingSinglesPosition1");
         AndroidElementWait.UntilAutomationIdText(
             driver, "CompletedBattingSinglesPosition1", "1");
         AssertNotDisplayed(driver, "ManualOverrideChip");
@@ -355,11 +358,13 @@ public sealed class ManualOverrideAcceptanceTests(AndroidAppiumFixture fixture)
             driver, "CompletedBattingOutsPosition1");
         ReplaceText(outs, "2");
         Assert.Contains("OUT, unsaved change", outs.Text, StringComparison.Ordinal);
+        HideKeyboard(driver);
+        ScrollStatisticIntoView(driver, "CompletedBattingPlateAppearancesPosition1");
         AndroidElementWait.UntilAutomationIdText(
             driver, "CompletedBattingPlateAppearancesPosition1", "5");
+        ScrollStatisticIntoView(driver, "CompletedBattingHitsPosition1");
         AndroidElementWait.UntilAutomationIdText(
             driver, "CompletedBattingHitsPosition1", "2");
-        HideKeyboard(driver);
         AndroidElementWait.UntilAutomationId(driver, "SaveManualOverrideButton").Click();
         AndroidElementWait.UntilAutomationId(driver, "ManualOverrideChip");
     }
@@ -383,6 +388,7 @@ public sealed class ManualOverrideAcceptanceTests(AndroidAppiumFixture fixture)
         AndroidElementWait.UntilText(driver,
             "SCORE — Automation Team: 0 | Automation Opponent: 0");
         AndroidElementWait.UntilAutomationId(driver, "GameStatsButton").Click();
+        ScrollStatisticIntoView(driver, "CompletedBattingPlateAppearancesPosition1");
         AndroidElementWait.UntilAutomationId(driver,
             "CompletedBattingPlateAppearancesPosition1");
     }
@@ -462,6 +468,7 @@ public sealed class ManualOverrideAcceptanceTests(AndroidAppiumFixture fixture)
         Assert.DoesNotContain("Blake Automation", driver.PageSource,
             StringComparison.Ordinal);
         AndroidElementWait.UntilAutomationId(driver, "GameStatsButton").Click();
+        ScrollStatisticIntoView(driver, "CompletedBattingPlateAppearancesPosition1");
         AndroidElementWait.UntilAutomationId(
             driver, "CompletedBattingPlateAppearancesPosition1");
     }

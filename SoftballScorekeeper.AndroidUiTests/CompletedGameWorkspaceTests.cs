@@ -1,4 +1,5 @@
 using OpenQA.Selenium;
+using OpenQA.Selenium.Appium;
 using OpenQA.Selenium.Appium.Android;
 using OpenQA.Selenium.Support.UI;
 
@@ -202,19 +203,23 @@ public sealed class CompletedGameWorkspaceTests
         AndroidElementWait.UntilAutomationIdText(
             driver, "CompletedHomeName", "Automation Opponent");
         AndroidElementWait.UntilAutomationIdText(driver, "CompletedHomeScore", "0");
+        ScrollStatisticIntoView(driver, "CompletedBattingPlateAppearancesPosition1");
         AndroidElementWait.UntilAutomationIdText(
             driver, "CompletedBattingPlateAppearancesPosition1", "1");
         AndroidElementWait.UntilAutomationIdText(
             driver, "CompletedBattingAtBatsPosition1", "1");
         AndroidElementWait.UntilAutomationIdText(
             driver, "CompletedBattingHitsPosition1", "1");
+        ScrollStatisticIntoView(driver, "CompletedBattingHomeRunsPosition1");
         AndroidElementWait.UntilAutomationIdText(
             driver, "CompletedBattingHomeRunsPosition1", "1");
+        ScrollStatisticIntoView(driver, "CompletedBattingBattingAveragePosition1");
         AndroidElementWait.UntilAutomationIdText(
             driver, "CompletedBattingBattingAveragePosition1", "1.000");
-        ScrollStatisticsToRateColumns(driver);
+        ScrollStatisticIntoView(driver, "CompletedBattingOnBasePercentagePosition1");
         AndroidElementWait.UntilAutomationIdText(
             driver, "CompletedBattingOnBasePercentagePosition1", "1.000");
+        ScrollStatisticIntoView(driver, "CompletedBattingSluggingPercentagePosition1");
         AndroidElementWait.UntilAutomationIdText(
             driver, "CompletedBattingSluggingPercentagePosition1", "4.000");
         AssertNotDisplayed(driver, "ResumeGameButton");
@@ -226,10 +231,31 @@ public sealed class CompletedGameWorkspaceTests
         string expectedHeaderText,
         params int[] expectedBattingPositions)
     {
+        ScrollStatisticIntoView(driver, HeaderValueAutomationId(headerAutomationId));
         AndroidElementWait.UntilAutomationId(driver, headerAutomationId).Click();
         AssertHeaderAndOrder(
             driver, headerAutomationId, expectedHeaderText, expectedBattingPositions);
     }
+
+    private static string HeaderValueAutomationId(string headerAutomationId) =>
+        headerAutomationId switch
+        {
+            "CompletedStatsSortPlayer" => "CompletedBattingPlateAppearancesPosition1",
+            "CompletedStatsSortPlateAppearances" => "CompletedBattingPlateAppearancesPosition1",
+            "CompletedStatsSortAtBats" => "CompletedBattingAtBatsPosition1",
+            "CompletedStatsSortHits" => "CompletedBattingHitsPosition1",
+            "CompletedStatsSortSingles" => "CompletedBattingSinglesPosition1",
+            "CompletedStatsSortDoubles" => "CompletedBattingDoublesPosition1",
+            "CompletedStatsSortTriples" => "CompletedBattingTriplesPosition1",
+            "CompletedStatsSortHomeRuns" => "CompletedBattingHomeRunsPosition1",
+            "CompletedStatsSortWalks" => "CompletedBattingWalksPosition1",
+            "CompletedStatsSortFielderChoices" => "CompletedBattingFielderChoicesPosition1",
+            "CompletedStatsSortSacrificeFlies" => "CompletedBattingSacrificeFliesPosition1",
+            "CompletedStatsSortBattingAverage" => "CompletedBattingBattingAveragePosition1",
+            "CompletedStatsSortOnBasePercentage" => "CompletedBattingOnBasePercentagePosition1",
+            "CompletedStatsSortSluggingPercentage" => "CompletedBattingSluggingPercentagePosition1",
+            _ => throw new ArgumentOutOfRangeException(nameof(headerAutomationId)),
+        };
 
     private static void AssertHeaderAndOrder(
         AndroidDriver driver,
@@ -269,6 +295,7 @@ public sealed class CompletedGameWorkspaceTests
                 "CompletedBattingSluggingPercentagePosition1"),
         })
         {
+            ScrollStatisticIntoView(driver, valueId);
             var header = AndroidElementWait.UntilAutomationId(driver, headerId);
             var value = AndroidElementWait.UntilAutomationId(driver, valueId);
             Assert.InRange(Math.Abs(CenterX(header) - CenterX(value)), 0, 2);
@@ -291,6 +318,15 @@ public sealed class CompletedGameWorkspaceTests
                 ["direction"] = "left",
                 ["percent"] = 0.85,
             });
+    }
+
+    private static void ScrollStatisticIntoView(AndroidDriver driver, string automationId)
+    {
+        var containerId = $"{AndroidAutomationConstants.AppPackage}:id/CompletedBattingStats";
+        var targetId = $"{AndroidAutomationConstants.AppPackage}:id/{automationId}";
+        driver.FindElement(MobileBy.AndroidUIAutomator(
+            $"new UiScrollable(new UiSelector().resourceId(\"{containerId}\"))"
+            + $".setAsHorizontalList().scrollIntoView(new UiSelector().resourceId(\"{targetId}\"))"));
     }
 
     private static IWebElement? FindDisplayed(AndroidDriver driver, string automationId)
