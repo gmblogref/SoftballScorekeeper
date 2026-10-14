@@ -1,108 +1,126 @@
 # Softball Scorekeeper
 
-## Project Overview
+<p align="center">
+  <img src="SoftballScorekeeper/Resources/AppIcon/softball_scorekeeper_icon.png" alt="Softball Scorekeeper logo" width="140">
+</p>
 
-Softball Scorekeeper is a lightweight, fully offline scorekeeper for live adult slow-pitch softball games. It is focused on fast entry, minimal taps, automatic statistics, custom beer-rule tracking, and simple correction of unusual plays.
+Softball Scorekeeper is a fast, offline-first scorekeeping application for live adult slow-pitch softball. It is designed around a touch-friendly Android tablet workflow with quick scoring, automatic runner-movement defaults, easy corrections, automatic statistics, and configurable Beer Rules.
 
-The primary deployment and UX target is a 10-inch Android tablet, with a landscape-first scoring experience unless real-device testing supports a different decision. Windows remains a supported secondary platform for development, debugging, validation, and convenience.
+Version 1.0.0 is the current public release.
 
-## Tablet-First Experience
+## Download and Install on Android
 
-Android tablet behavior is the primary UI and interaction acceptance standard. The interface prioritizes large finger-friendly touch targets, clear readability at normal tablet viewing distance, minimal interaction steps, one-handed use where practical, stable control placement, touch-appropriate spacing, and reliable offline operation. Desktop conventions must not drive the primary experience when they conflict with Android tablet usability.
+Android tablet is the primary supported deployment for Version 1.0.
 
-## Current Status
+1. Open the [Softball Scorekeeper v1.0.0 GitHub Release](https://github.com/gmblogref/SoftballScorekeeper/releases/tag/v1.0.0).
+2. Under **Assets**, download `SoftballScorekeeper-1.0.0.apk`.
+3. Open the downloaded APK on the Android device.
+4. If Android requests permission to install apps from that source, enable it for the installer you used and continue the installation.
 
-- **Foundation phase:** Complete
-- **Latest completed story:** Story 3.0 — Layered Solution Restructure
-- **Completed stories:** Stories 0.0 through 3.0
+The application is distributed directly through GitHub rather than an app store. Windows remains a supported source-build target, but no Windows installer is currently distributed.
 
-The application has foundational presentation, dependency-injection, persistence, resource, configuration, and documentation infrastructure. Team and Player management workflows are implemented. Game, roster, lineup, scorekeeping, statistics, and beer-rule workflows remain planned.
+## Version 1.0 Features
 
-## Technology Stack
+### Teams, Seasons, and Games
 
-- .NET MAUI
-- C#
-- XAML
-- CommunityToolkit.Mvvm
-- SQLite through `sqlite-net-pcl`
-- Built-in .NET dependency injection
+- Manage Players, Team rosters, Team Years, League Seasons, and scheduled Games.
+- Create starting lineups manually or reuse a previous lineup.
+- Copy a Team into its next year with its roster, season definitions, Beer settings, and unresolved Beer balances while preserving prior-year history.
+- Finalize a Team Year and review its read-only Team Year Summary.
 
-## Repository Structure
+### Live Scoring and Lineups
 
-The solution uses three focused production projects with one-way project references plus one automated test project.
+- Score as the Home or Away team with inning, out, score, and batting-order tracking.
+- Record hits, walks, outs, fielder's choices, sacrifice flies, strikeouts, dead-ball outs, double plays, and triple plays.
+- Resolve base-runner movement with normal defaults and corrections for unusual outcomes.
+- Apply Home Run limits and one-up rules.
+- Undo and redo committed scoring actions and in-progress runner decisions.
+- Exit and resume an active Game without losing scoring progress.
+- Add, remove, replace, and re-enter Players in the live batting sequence without changing the frozen starting lineup.
+- View the effective live lineup with CURRENT and NEXT batter indicators.
 
-- `SoftballScorekeeper` — .NET MAUI composition root, configuration, Views, ViewModels, resources, and platform assets.
-- `SoftballScorekeeper.Core` — Platform-independent Team and Player models and shared domain types.
-- `SoftballScorekeeper.Infrastructure` — Device-local SQLite initialization and Team and Player repositories; references Core.
-- `SoftballScorekeeper.Tests` — xUnit repository tests for Core models and Infrastructure persistence behavior; references Core and Infrastructure only.
+### Statistics and Game History
 
-## Architecture Direction
+- View the canonical chronological Game Plays recorded during scoring.
+- View Completed Game Stats, in-game statistics, and filterable Team Stats.
+- Sort shared batting-statistics grids and review Team totals.
+- Apply completed-game Manual Overrides to official batting totals and final scores without rewriting the original Game Plays.
 
-The MAUI project references Core and Infrastructure, Infrastructure references Core, and Core references no other solution project. The Tests project references Core and Infrastructure without referencing MAUI. `MauiProgram` remains the only composition root. An Application project remains deferred until a later story requires it; clear dependency direction and testability matter more than unnecessary interfaces and abstractions.
+### Beer Rules
 
-## Project Documentation
+- Configure Team Beer Rule defaults and prospective in-game settings.
+- Automatically track supported scoring-derived Beer consequences.
+- Record manual rule adjustments and BROUGHT credits.
+- Review Beer Totals, calculate Low Man for a playing date, and carry unresolved balances into the next Team Year.
 
-- [AGENTS.md](AGENTS.md) contains repository-wide implementation, architecture, coding, resource, configuration, validation, Git, and documentation guidance.
-- [FEATURE_HISTORY.md](FEATURE_HISTORY.md) is the canonical record of completed stories, implementation summaries, validation results, reusable components, and current project state.
+### Data Management
 
-## Build Requirements
+- Create and restore portable backups of the complete production database.
+- Use an isolated Product Test Mode without changing Production data.
+- Receive schedule-aware backup reminders after a League Season is complete.
 
-Development requires:
+## Offline and Local Data
 
-- Visual Studio with .NET MAUI development support
-- The .NET MAUI workload
-- Windows development support for the Windows target
-- An Android SDK plus an emulator or physical Android device for the Android target
+Softball Scorekeeper remains fully functional without an internet connection. Teams, Players, Games, scoring history, statistics, Beer accounting, settings, and backup-reminder state are stored in a local SQLite database on the device.
 
-Open `SoftballScorekeeper.sln` in Visual Studio, select either the Windows target or an available Android emulator/device, and run the application through the IDE.
+There are no user accounts, server-side services, cloud database, or automatic cloud synchronization. Backup and Restore use files explicitly selected by the user; a document or cloud provider may store a chosen backup file, but the application does not depend on that provider during normal use.
+
+## Platform Support
+
+- **Android:** Primary Version 1.0 deployment and UI acceptance target, optimized for a 10-inch tablet with responsive portrait and landscape layouts. The project declares Android API 21 as its minimum supported platform version.
+- **Windows:** Supported for development, debugging, validation, and convenience through a source build. No installable Windows package is published with Version 1.0.0.
+
+## Developer Setup
+
+### Prerequisites
+
+- .NET 9 SDK
+- Visual Studio with .NET MAUI development support, or an equivalent .NET MAUI toolchain
+- .NET MAUI Android workload and Android SDK for Android builds
+- .NET MAUI Windows workload and Windows development tooling for Windows builds
+- An Android emulator or physical Android device for Android runtime validation
+
+Clone the repository and open `SoftballScorekeeper.sln` in Visual Studio, then select the Android or Windows target and run the application. Command-line builds can also be run from the repository root:
+
+```powershell
+dotnet restore SoftballScorekeeper.sln
+dotnet build SoftballScorekeeper/SoftballScorekeeper.csproj --framework net9.0-android
+dotnet build SoftballScorekeeper/SoftballScorekeeper.csproj --framework net9.0-windows10.0.19041.0
+```
 
 ## Testing
 
-`SoftballScorekeeper.Tests` contains automated tests for Core models exercised through Infrastructure persistence, temporary SQLite database initialization and cleanup, `TeamRepository`, and `PlayerRepository`. Repository tests use isolated temporary file-backed SQLite databases, never use the real application database, and remove their temporary database files after execution.
+The emulator-independent xUnit suite exercises domain rules, SQLite repositories, scoring, statistics, Beer accounting, backup and restore, lifecycle behavior, and presentation contracts against isolated temporary databases:
 
-Run the automated suite from the repository root:
-
-```text
-dotnet test
+```powershell
+dotnet test SoftballScorekeeper.Tests/SoftballScorekeeper.Tests.csproj
 ```
 
-The suite does not currently include MAUI UI automation, Android instrumentation tests, Windows UI automation, a general ViewModel test suite, code-coverage threshold enforcement, or continuous-integration test execution. Manual Android and Windows validation therefore remains part of the workflow where appropriate. Android validation is the primary UI standard; emulator validation is useful, with real-device validation expected for major tablet interaction and scoring workflows when the target device is available.
+The repository also includes an opt-in Android/Appium acceptance suite and its PowerShell runner. See the [Android UI test documentation](SoftballScorekeeper.AndroidUiTests/README.md) for its prerequisites, isolation rules, and supported commands. Android UI tests must use their dedicated test database and emulator; they are not part of the normal emulator-independent test command.
 
-## Current Functionality
+## Architecture and Repository Structure
 
-The current implementation includes:
+The solution uses three production projects and two test projects:
 
-- A three-project solution with a .NET MAUI application targeting Android and Windows, a platform-independent Core library, and an Infrastructure library
-- XAML and CommunityToolkit.Mvvm infrastructure
-- Dependency-injection registrations and constructor injection
-- Device-local SQLite connection and asynchronous initialization
-- Centralized strongly typed `.resx` resources for user-facing text
-- Strongly typed application settings registered through dependency injection
-- Repository implementation guidance and canonical feature-history documentation
-- A tablet-friendly landing page that loads active Teams
-- Local Team creation and editing with validation and persistence
+- `SoftballScorekeeper` — .NET MAUI presentation layer and composition root for Android and Windows.
+- `SoftballScorekeeper.Core` — platform-independent domain models and softball rules.
+- `SoftballScorekeeper.Infrastructure` — SQLite persistence, repositories, backup and restore, and application workflow coordination; references Core.
+- `SoftballScorekeeper.Tests` — emulator-independent xUnit coverage for Core, Infrastructure, and presentation contracts without referencing the MAUI project.
+- `SoftballScorekeeper.AndroidUiTests` — opt-in Android/Appium acceptance tests.
 
-More advanced softball workflows remain planned and must not be treated as implemented before their stories are completed.
+The MAUI project references Core and Infrastructure, Infrastructure references Core, and Core references no other solution project. `MauiProgram` is the composition root. The architecture favors clear dependency direction and independently testable business rules without unnecessary project or interface layers.
 
-## Planned Features
+The application uses .NET MAUI, C#, XAML, CommunityToolkit.Mvvm, built-in dependency injection, and `sqlite-net-pcl`.
 
-Planned functionality includes:
+## Project Documentation
 
-- Team, roster, and player management
-- Game and doubleheader management
-- Lineup creation
-- In-game scorekeeping
-- Automatic player and team statistics
-- Custom beer-rule tracking
-
-## Branding Direction
-
-The default .NET application icon and splash screen will be replaced early in the feature phase. Initial branding may be simple and generated so it establishes project ownership without delaying functional development, and Android and Windows assets should remain visually consistent.
+- [AGENTS.md](AGENTS.md) contains repository-wide architecture, implementation, validation, Git, and documentation requirements.
+- [FEATURE_HISTORY.md](FEATURE_HISTORY.md) is the canonical record of completed stories, implementation decisions, validation, and current repository state.
 
 ## Project Boundaries
 
-The application is device-local and offline-first. The current product scope excludes cloud synchronization, user accounts, and server-side services. Messaging, live streaming, opponent roster management, and similar platform-scale features are also outside the current scope.
+The application is intentionally device-local and offline-first. Version 1.0 does not provide cloud synchronization, user accounts, server-side services, messaging, live streaming, opponent roster management, or multi-user editing.
 
 ## Contributing
 
-Before implementing changes, contributors and AI coding assistants must read [AGENTS.md](AGENTS.md) and [FEATURE_HISTORY.md](FEATURE_HISTORY.md). Keep changes focused on the current story, reuse established patterns, and update `FEATURE_HISTORY.md` with the completed implementation and validation results before committing.
+Before making changes, read [AGENTS.md](AGENTS.md) and [FEATURE_HISTORY.md](FEATURE_HISTORY.md). Keep work focused on the approved story, preserve the established dependency direction, validate changes proportionately, and update the feature history before committing completed work.

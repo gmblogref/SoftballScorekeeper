@@ -716,8 +716,10 @@ Do not expand a story beyond its approved scope to prepare for these features.
 
 ## Current Implementation Status
 
-The repository currently contains three production projects and one automated test project: a .NET MAUI application targeting Android and Windows, a platform-independent Core library, an Infrastructure library for SQLite persistence, and Tests for current repository behavior. Inspect `FEATURE_HISTORY.md` and the current repository before describing specific features or foundations as implemented.
+Version 1.0.0 is published for Android through the repository's GitHub Release. Android tablet remains the primary deployment and acceptance target. Windows remains a supported source-build target for development, debugging, validation, and convenience; no Windows installer is currently distributed.
 
-The automated test project covers the current Team and Player repository behavior using isolated temporary SQLite databases. An Application project remains planned, not implemented merely because it is documented here. Complex roster and lineup workflows, scoring rules, statistics, and beer rules remain deferred until their stories are implemented.
+The repository contains three production projects and two test projects: the Android- and Windows-targeted .NET 9 MAUI application, platform-independent Core, SQLite-backed Infrastructure, the emulator-independent Tests project, and the opt-in Android UI/Appium test project. Version 1.0 implements Team, Player, roster, Team Year, Season, Game, lineup, scoring, statistics, Beer Rules, Backup/Restore, and isolated Product Test Mode workflows. Inspect `FEATURE_HISTORY.md` and the current repository before describing detailed behavior or validation as current.
+
+An Application project remains planned rather than implemented. Do not claim that the documented preferred Application-layer boundary already exists.
 
 AI assistants must inspect the current repository before assuming any deferred feature exists.
