@@ -17,7 +17,32 @@ Android tablet is the primary supported deployment for Version 1.0.
 3. Open the downloaded APK on the Android device.
 4. If Android requests permission to install apps from that source, enable it for the installer you used and continue the installation.
 
-The application is distributed directly through GitHub rather than an app store. Windows remains a supported source-build target, but no Windows installer is currently distributed.
+The application is distributed directly through GitHub rather than an app store.
+
+## Download and Run on Windows
+
+Windows x64 is supported through a self-contained portable ZIP. No installer is required.
+
+1. Open the [Softball Scorekeeper v1.0.0 GitHub Release](https://github.com/gmblogref/SoftballScorekeeper/releases/tag/v1.0.0).
+2. Under **Assets**, download `SoftballScorekeeper-1.0.0-windows-x64-portable.zip`.
+3. Extract the entire ZIP to a folder where you want to keep the application.
+4. Open that folder and run `SoftballScorekeeper.exe`.
+
+Keep all extracted files and directories together. The ZIP includes the .NET 9 and Windows App SDK runtime dependencies used by the application. The portable release has been validated on a Windows development computer; clean-machine validation remains pending.
+
+The portable executable is unsigned, so Windows may identify it as an unrecognized downloaded application or display a security warning. Verify that the ZIP came from the release page, and follow any organizational security requirements; do not bypass policies that prohibit running unsigned software.
+
+### Windows Data and Removal
+
+Windows application data is stored separately from the extracted program folder under:
+
+```text
+%LOCALAPPDATA%\User Name\com.companyname.softballscorekeeper\Data\
+```
+
+Production data is stored in `SoftballScorekeeper.db3`; Test Mode uses the separate `SoftballScorekeeper.Test.db3`. Use **Backup Data** and **Restore Data** for supported data transfer between devices or installations.
+
+To remove the portable application, close it and delete its extracted folder. Deleting that folder does not delete the separately stored application data. Create a backup before removing the application or manually deleting saved data so that the database can be restored later.
 
 ## Version 1.0 Features
 
@@ -68,7 +93,7 @@ There are no user accounts, server-side services, cloud database, or automatic c
 ## Platform Support
 
 - **Android:** Primary Version 1.0 deployment and UI acceptance target, optimized for a 10-inch tablet with responsive portrait and landscape layouts. The project declares Android API 21 as its minimum supported platform version.
-- **Windows:** Supported for development, debugging, validation, and convenience through a source build. No installable Windows package is published with Version 1.0.0.
+- **Windows x64:** Supported through a self-contained portable ZIP with no installer or MSIX registration. The portable release has been validated on a Windows development computer; clean-machine validation remains pending.
 
 ## Developer Setup
 
