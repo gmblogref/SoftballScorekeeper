@@ -10,13 +10,13 @@ Stable product and architecture decisions belong in the project architecture doc
 
 ## Current Project Status
 
-- **Latest completed story:** Story 16 — View Current Batting Lineup During Active Scoring (implementation, lower-level validation, dedicated-emulator acceptance, and user-confirmed physical-tablet acceptance complete)
-- **Completed stories:** Stories 0.0 through 6.9.5, Stories 7.0 through 7.9 except Story 7.6, Stories 8.0 through 8.5, Stories 9.0 through 14, and Story 16; Story 15 release preparation is validated but final release remains pending
-- **Current story:** Story 15 — Release Version 1.0.0
-- **Current phase:** Version 1.0 remains feature-frozen. The definitive APK and its physical-tablet acceptance are verified, and Release Finding 001 is closed. Story 15 remains open because the `v1.0.0` tag and GitHub Release remain pending; Version 1.0 has not been publicly released.
+- **Latest completed story:** Story 17 — GitHub README Refresh
+- **Completed stories:** Stories 0.0 through 6.9.5, Stories 7.0 through 7.9 except Story 7.6, Stories 8.0 through 8.5, and Stories 9.0 through 17
+- **Current story:** Story 17 — GitHub README Refresh
+- **Current phase:** Version 1.0.0 is publicly released for Android. The definitive APK, physical-tablet acceptance, `v1.0.0` tag, and GitHub Release are complete; Version 1.0 remains feature-frozen.
 - **Foundation status:** Complete
 
-The repository contains a five-project .NET 9 solution: the Android- and Windows-targeted .NET MAUI application, platform-independent Core, Infrastructure, the emulator-independent automated test project, and the opt-in Android UI test project. Its implemented foundation includes repository guidance, pragmatic layered dependencies, CommunityToolkit.Mvvm, MAUI dependency injection, device-local SQLite initialization, centralized user-facing resources, strongly typed application settings, and isolated xUnit repository integration tests. Team Workspace contains local Games and Roster sections, supports adding or removing existing active Players, and supports creating a global Player with immediate TeamPlayer membership from the Team-scoped Add Players workflow. Player Workspace shows active Team memberships, and Player Manager retains bulk lifecycle actions; Game schedule management and other later softball workflows remain deferred.
+The repository contains a five-project .NET 9 solution: the Android- and Windows-targeted .NET MAUI application, platform-independent Core, Infrastructure, the emulator-independent automated test project, and the opt-in Android UI test project. Version 1.0 implements the offline Team, Player, roster, Team Year, Season, Game, lineup, scoring, statistics, Beer Rules, Backup/Restore, and isolated Product Test Mode workflows recorded below. Android tablet is the primary deployment and acceptance target. Windows remains a supported source-build target, but no Windows installer is distributed.
 
 ## Approved Project-Wide Direction
 
@@ -3681,7 +3681,13 @@ Dedicated Double Play/Triple Play presentation, sacrifice results, HR-limit/dead
 - Final emulator-independent regression passed 1,146 of 1,146 with zero failures or skips. The earlier broad Appium suite passed 78 of 78 before Story 16. Story 16 targeted Appium acceptance passed after one investigated retry; the complete post-Story-16 Appium suite was intentionally not rerun. Android Release and the Android UI-test project built successfully. Windows Release built successfully with the 146 previously accepted `MVVMTK0045` warnings.
 - The user confirmed that the definitive APK installed successfully as an in-place update over RC2 and preserved the existing Product Test Mode selection and data, Teams, Games, completed Game Stats, and Game Plays. Physical-tablet checks passed for the read-only effective View Lineup with CURRENT/NEXT indicators, Manage Live Lineup Cancel returning to scoring without opening Remove Player, portrait and landscape behavior, scoring, runner advancement, Undo/Redo, and preservation of scoring state through Exit/Resume and application restart. **Final physical acceptance: PASSED for the checks performed.** **Release Finding 001: CLOSED.**
 - The Android system Backup and Restore document pickers were physically verified on RC1, including Android Back-swipe cancellation of both workflows. A complete physical Backup/Restore migration was not performed, and no full physical Backup/Restore acceptance is claimed for the definitive APK.
-- The `v1.0.0` tag is **PENDING**, the GitHub Release is **PENDING**, and Version 1.0.0 publication is **NOT YET COMPLETE**. Version 1.0.0 must not be marked released until the tag exists at the APK-producing commit and the GitHub Release contains an APK matching the accepted SHA-256.
+- The annotated `v1.0.0` tag was created at the APK-producing commit `6a6ca0008d1a1660b5e3294347c3f75329b5bd59`. The public, non-prerelease GitHub Release was published with `SoftballScorekeeper-1.0.0.apk`; its 34,937,677-byte size and SHA-256 matched the accepted definitive artifact. **Version 1.0.0 publication: COMPLETE.**
+
+## Story 17 — GitHub README Refresh
+
+- Replaced the pre-feature README with a concise public Version 1.0.0 landing page that prioritizes the verified Android GitHub Release and APK installation before developer information. It now documents the shipped feature set, offline/local-data model, Android-first support, Windows source-build boundary, .NET 9 prerequisites, focused build and test commands, current five-project structure, architecture, project documentation, and contribution workflow.
+- Reused only the tracked application icon; no screenshots, generated artwork, decorative badges, release artifacts, product code, configuration, tests, database state, version identifiers, tags, or GitHub Release content changed. Ignored Appium screenshots remain unpublished.
+- Reconciled the stale release status in this file and the stale Current Implementation Status section in `AGENTS.md` while preserving historical pre-release entries and all engineering rules. Documentation validation confirmed repository-relative links, the public `v1.0.0` release URL, the `SoftballScorekeeper-1.0.0.apk` filename, Android/Windows support wording, Markdown formatting, and a clean `git diff --check`. No product tests or builds were run because the story changes documentation only.
 
 ## Maintenance Rules
 
