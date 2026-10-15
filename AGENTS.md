@@ -680,16 +680,12 @@ When completing a story, add its reviewed history entry to `FEATURE_HISTORY.md` 
 
 ## Version 1 Project Boundaries
 
-Version 1.0 feature implementation is complete and the feature set is frozen.
-Until Version 1.0 is released, work is limited to release-blocking bug fixes,
+Version 1.0.0 has been released, and the Version 1.0 feature set remains frozen.
+Work on the released Version 1.0 line is limited to release-blocking bug fixes,
 regression validation, physical-device acceptance follow-ups,
 build/signing/package validation, release documentation, and
-deployment/release preparation. New feature requests belong in a
+deployment/release maintenance. New feature requests belong in a
 post-Version-1.0 backlog unless explicitly approved as release blockers.
-Story 14 must merge before the definitive Release Candidate is packaged.
-Feature complete does not mean released; do not claim Version 1.0 is publicly
-released or that the definitive Release Candidate exists until those actions
-have actually occurred.
 
 Do not implement the following unless a later story explicitly includes them:
 
@@ -716,7 +712,7 @@ Do not expand a story beyond its approved scope to prepare for these features.
 
 ## Current Implementation Status
 
-Version 1.0.0 is published for Android through the repository's GitHub Release. Android tablet remains the primary deployment and acceptance target. Windows remains a supported source-build target for development, debugging, validation, and convenience; no Windows installer is currently distributed.
+Version 1.0.0 is published through the repository's GitHub Release with an Android APK and a Windows x64 portable ZIP. Android tablet remains the primary deployment and acceptance target. Windows is supported through the portable ZIP and as a source-build target for development, debugging, validation, and convenience; no Windows installer or MSIX is currently distributed.
 
 The repository contains three production projects and two test projects: the Android- and Windows-targeted .NET 9 MAUI application, platform-independent Core, SQLite-backed Infrastructure, the emulator-independent Tests project, and the opt-in Android UI/Appium test project. Version 1.0 implements Team, Player, roster, Team Year, Season, Game, lineup, scoring, statistics, Beer Rules, Backup/Restore, and isolated Product Test Mode workflows. Inspect `FEATURE_HISTORY.md` and the current repository before describing detailed behavior or validation as current.
 

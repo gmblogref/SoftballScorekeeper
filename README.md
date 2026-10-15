@@ -141,10 +141,20 @@ The application uses .NET MAUI, C#, XAML, CommunityToolkit.Mvvm, built-in depend
 
 - [AGENTS.md](AGENTS.md) contains repository-wide architecture, implementation, validation, Git, and documentation requirements.
 - [FEATURE_HISTORY.md](FEATURE_HISTORY.md) is the canonical record of completed stories, implementation decisions, validation, and current repository state.
+- [CONTRIBUTING.md](CONTRIBUTING.md) explains the pull-request workflow and contribution licensing.
+- [SECURITY.md](SECURITY.md) defines supported versions and private vulnerability-reporting guidance.
 
 ## Project Boundaries
 
 The application is intentionally device-local and offline-first. Version 1.0 does not provide cloud synchronization, user accounts, server-side services, messaging, live streaming, opponent roster management, or multi-user editing.
+
+## License
+
+Softball Scorekeeper is free to use for noncommercial purposes permitted by the [PolyForm Noncommercial License 1.0.0](LICENSE). Its source code will be publicly inspectable when the repository is published, and noncommercial use, modification, and redistribution are permitted subject to the license terms.
+
+Commercial use requires separate permission from the copyright holder. Selling the original application, or a commercial derivative that uses the licensed Softball Scorekeeper code, is not authorized by this license; attribution alone does not authorize commercial use.
+
+This is source-available software, not OSI-approved open-source software. Third-party software and fonts retain their own licenses and notices, documented separately in [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md).
 
 ## Contributing
 
