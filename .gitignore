@@ -371,3 +371,36 @@ MigrationBackup/
 
 # Fody - auto-generated XML schema
 FodyWeavers.xsd
+
+# Local environment and configuration overrides
+.env
+.env.*
+!.env.example
+!.env.sample
+!.env.template
+**/appsettings.[Ll]ocal.json
+**/appsettings.*.[Ll]ocal.json
+**/local.settings.json
+**/secrets.json
+**/*.secrets.json
+
+# Signing credentials and private keys
+*.jks
+*.keystore
+*.p12
+*.p8
+*.pem
+*.key
+
+# Android packages and generated signatures
+*.apk
+*.aab
+*.idsig
+
+# Softball Scorekeeper portable backup artifacts
+SoftballScorekeeper-[Bb]ackup-*.zip
+
+# Android diagnostic dumps
+/SoftballScorekeeper/activities.txt
+/SoftballScorekeeper/input.txt
+/SoftballScorekeeper/window.txt
