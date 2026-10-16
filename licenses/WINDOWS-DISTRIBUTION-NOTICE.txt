@@ -1,0 +1,28 @@
+SOFTBALL SCOREKEEPER - WINDOWS DISTRIBUTION LICENSE INFORMATION
+
+Softball Scorekeeper is provided free of charge for noncommercial use under
+the PolyForm Noncommercial License 1.0.0. The complete application license is
+included as LICENSE.txt.
+
+By downloading, installing, or using Softball Scorekeeper, you acknowledge
+that the application is provided subject to its applicable license terms,
+including the separate licenses governing third-party components.
+
+Microsoft components and other third-party components remain subject to
+their own license agreements and are not relicensed under PolyForm Noncommercial.
+The applicable third-party notices are included as THIRD-PARTY-NOTICES.txt,
+with complete component license documents under licenses/common/ and
+licenses/windows/.
+
+By downloading or using this Windows distribution, you agree to comply with
+applicable third-party licensing conditions, including redistribution
+restrictions, required notices, and other conditions in the accompanying
+license documents.
+
+Commercial use of Softball Scorekeeper requires separate authorization from
+the copyright holder.
+
+This notice summarizes where the applicable terms are provided. It does not
+replace or modify any license agreement, guarantee legally binding acceptance,
+or establish that every Microsoft downstream-license obligation has been
+satisfied.
