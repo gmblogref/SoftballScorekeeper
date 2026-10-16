@@ -17,7 +17,7 @@
       "license_identifier": "Apache-2.0",
       "copyright_holder_or_source": "Digitized data copyright 2010-2011 Google Corporation; exact font notices are preserved in THIRD-PARTY-NOTICES.md",
       "authoritative_source": "https://www.apache.org/licenses/LICENSE-2.0.txt",
-      "required_notice_files": ["licenses/OpenSans-Apache-2.0.txt", "THIRD-PARTY-NOTICES.md"],
+      "required_notice_files": ["licenses/distribution/common/Apache-2.0-LICENSE.txt", "THIRD-PARTY-NOTICES.md"],
       "packaged_destination_paths": ["licenses/common/Apache-2.0-LICENSE.txt", "THIRD-PARTY-NOTICES.txt"],
       "verification_status": "verified-existing-repository-notice"
     },
