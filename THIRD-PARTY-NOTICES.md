@@ -5,7 +5,7 @@ Scorekeeper. It is separate from, and does not change, the license selected for
 Softball Scorekeeper's own source code.
 
 The inventory below is based on the repository assets and the restored .NET 9
-NuGet graph inspected on October 14, 2026. Build and runtime dependency graphs
+NuGet graph inspected on October 14–15, 2026. Build and runtime dependency graphs
 can change when the SDK, workloads, or packages are updated. Release packaging
 must therefore regenerate and review the dependency inventory and carry forward
 the applicable upstream license and notice files.
@@ -67,6 +67,12 @@ dependency groups require release-time notice handling:
   composite `MIT AND Apache-2.0` licenses. The Glide binding family additionally
   declares BSD-2-Clause material. Their package-provided third-party notices
   must be preserved when the corresponding material is distributed.
+- The Android Release build contains the arm64 and x86_64 variants of the .NET
+  Mono Android runtime 9.0.21. The exact
+  `Microsoft.NETCore.App.Runtime.Mono.android-arm64` and
+  `Microsoft.NETCore.App.Runtime.Mono.android-x64` 9.0.21 packages supply
+  byte-identical MIT license and third-party-notice files; the inventory retains
+  one verified copy of each shared legal document and records both packages.
 - The Windows target resolves Microsoft Windows App SDK 1.7.250606001,
   Microsoft WebView2 1.0.3179.45, and Microsoft Graphics Win2D 1.3.2. These
   packages provide product-specific license or notice terms that must accompany
@@ -78,6 +84,55 @@ that every transitive binary and native component has received a completed legal
 audit. A future release must inventory the actual final APK and Windows ZIP,
 copy all applicable package-provided license and notice texts into the
 distribution, and verify that build-only packages are excluded.
+
+## Version 1.0.1 notice collection
+
+The version-specific production inventory and preserved upstream files collected
+for the planned v1.0.1 maintenance release are under
+[`licenses/distribution`](licenses/distribution). The structured
+[`production-license-manifest.json`](licenses/distribution/production-license-manifest.json)
+records exact package versions, platform scope, sources, notice files, intended
+package destinations, exclusions, and verification status. `SHA256SUMS.txt`
+records the preserved files' repository hashes.
+
+This collection is wired into the Android APK and Windows portable-ZIP
+packaging. Every runtime component identified by the v1.0.1 production
+inventory has a mapped license or notice source. Release validation must still
+compare the final artifacts to this inventory and investigate any added or
+changed components.
+
+## Microsoft Windows component terms
+
+The Microsoft terms below apply to their identified components independently of
+Softball Scorekeeper's PolyForm Noncommercial license. The application license
+does not replace, amend, or grant rights under these Microsoft agreements.
+
+- `Microsoft.Graphics.Win2D` 1.3.2 requires license acceptance in its exact
+  NuGet metadata and links the Microsoft Win2D EULA. The original Microsoft URL
+  no longer serves that agreement, so the byte-preserved
+  [`Microsoft.Graphics.Win2D-1.3.2-EULA.html`](licenses/distribution/windows/Microsoft.Graphics.Win2D-1.3.2-EULA.html)
+  is from the Internet Archive capture dated January 13, 2025 at 18:09:23 UTC,
+  before version 1.3.2 was published. It is not represented as MIT-only.
+- `Microsoft.WindowsAppSDK` 1.7.250606001 has an exact package-supplied
+  [`LICENSE.txt`](licenses/distribution/windows/Microsoft.WindowsAppSDK-1.7.250606001-LICENSE.txt)
+  and [`NOTICE.txt`](licenses/distribution/windows/Microsoft.WindowsAppSDK-1.7.250606001-NOTICE.txt).
+  The NOTICE includes the package's incorporated third-party attribution.
+- `Microsoft.Windows.SDK.NET.Ref` 10.0.19041.57 links the preserved
+  [`Microsoft Windows SDK RTF`](licenses/distribution/windows/Microsoft.Windows.SDK.NET.Ref-10.0.19041.57-LICENSE.rtf).
+  The RTF has no package-version marker, but the exact package points to it and
+  Microsoft's Windows SDK REDIST list identifies the package files as
+  distributable unmodified as part of an application.
+- `Microsoft.Web.WebView2` 1.0.3179.45 has an exact package-supplied
+  [`LICENSE.txt`](licenses/distribution/windows/Microsoft.Web.WebView2-1.0.3179.45-LICENSE.txt)
+  and [`NOTICE.txt`](licenses/distribution/windows/Microsoft.Web.WebView2-1.0.3179.45-NOTICE.txt).
+  The NOTICE preserves its BSD and LGPL-related upstream material.
+
+The Win2D, Windows App SDK, and Windows SDK terms require downstream users to
+agree to sufficiently protective terms. Whether making the exact agreements
+available in a portable ZIP, with use-based acceptance language, satisfies that
+requirement remains unresolved. This inventory records the terms but does not
+claim that question has been answered; obtain Microsoft clarification or
+qualified legal review before publishing v1.0.1.
 
 ## Test-only dependencies
 

@@ -26,4 +26,9 @@
 		<Using Include="Xunit" />
 	</ItemGroup>
 
+	<ItemGroup>
+		<Compile Include="..\SoftballScorekeeper\Services\LicenseDocumentLoader.cs"
+		         Link="Services\LicenseDocumentLoader.cs" />
+	</ItemGroup>
+
 </Project>

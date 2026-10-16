@@ -23,6 +23,7 @@
         public const string SetLineupRoute = "set-lineup";
         public const string ScoringRoute = "scoring";
         public const string DataManagementRoute = "data-management";
+        public const string LicensesRoute = "licenses";
         public const string TeamIdQueryParameter = "teamId";
         public const string PlayerIdQueryParameter = "playerId";
         public const string GameIdQueryParameter = "gameId";
@@ -59,6 +60,11 @@
             Routing.RegisterRoute(SetLineupRoute, typeof(Views.SetLineupPage));
             Routing.RegisterRoute(ScoringRoute, typeof(Views.ScoringPage));
             Routing.RegisterRoute(DataManagementRoute, typeof(Views.DataManagementPage));
+            Routing.RegisterRoute(LicensesRoute, typeof(Views.LicensesPage));
+            Shell.SetFlyoutItemIsVisible(
+                LicensesMenuItem,
+                DeviceInfo.Platform == DevicePlatform.Android
+            );
             MainShellContent.Content = mainPage;
         }
 
@@ -90,6 +96,12 @@
         {
             FlyoutIsPresented = false;
             await GoToAsync(DataManagementRoute);
+        }
+
+        private async void OnLicensesClicked(object sender, EventArgs e)
+        {
+            FlyoutIsPresented = false;
+            await GoToAsync(LicensesRoute);
         }
 
         private async void OnEnterTestModeClicked(object sender, EventArgs e)

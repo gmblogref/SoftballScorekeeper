@@ -1,0 +1,366 @@
+{
+  "schema_version": 1,
+  "inventory_date": "2026-10-15",
+  "release_target": "v1.0.1",
+  "inventory_basis": "Versions verified from the v1.0.0 production artifacts during Story 19 Step 19A, the corresponding pinned/restored production graph, and the current v1.0.1 Android and Windows Release builds. The final v1.0.1 artifact inventory must match these entries or this manifest must be reviewed and updated before release.",
+  "coverage_status": "complete-for-identified-v1.0.1-runtime-components-with-unresolved-microsoft-downstream-acceptance",
+  "application_license": {
+    "source": "LICENSE",
+    "packaged_destination": "LICENSE.txt",
+    "license_identifier": "LicenseRef-PolyForm-Noncommercial-1.0.0"
+  },
+  "components": [
+    {
+      "component": "Open Sans Regular and Semibold",
+      "version": "1.10",
+      "platform": ["android", "windows"],
+      "license_identifier": "Apache-2.0",
+      "copyright_holder_or_source": "Digitized data copyright 2010-2011 Google Corporation; exact font notices are preserved in THIRD-PARTY-NOTICES.md",
+      "authoritative_source": "https://www.apache.org/licenses/LICENSE-2.0.txt",
+      "required_notice_files": ["licenses/distribution/common/Apache-2.0-LICENSE.txt", "THIRD-PARTY-NOTICES.md"],
+      "packaged_destination_paths": ["licenses/common/Apache-2.0-LICENSE.txt", "THIRD-PARTY-NOTICES.txt"],
+      "verification_status": "verified-existing-repository-notice"
+    },
+    {
+      "component": "CommunityToolkit.Mvvm",
+      "version": "8.4.2",
+      "package": "CommunityToolkit.Mvvm/8.4.2",
+      "platform": ["android", "windows"],
+      "license_identifier": "MIT",
+      "copyright_holder_or_source": ".NET Foundation and Contributors",
+      "authoritative_source": "https://www.nuget.org/packages/CommunityToolkit.Mvvm/8.4.2",
+      "required_notice_files": [
+        "licenses/distribution/common/CommunityToolkit.Mvvm-8.4.2-LICENSE.md",
+        "licenses/distribution/common/CommunityToolkit.Mvvm-8.4.2-THIRD-PARTY-NOTICES.txt"
+      ],
+      "packaged_destination_paths": [
+        "licenses/common/CommunityToolkit.Mvvm-8.4.2-LICENSE.md",
+        "licenses/common/CommunityToolkit.Mvvm-8.4.2-THIRD-PARTY-NOTICES.txt"
+      ],
+      "verification_status": "verified-from-exact-nuget-package"
+    },
+    {
+      "component": ".NET MAUI runtime assemblies",
+      "version": "9.0.111",
+      "packages": [
+        "Microsoft.Maui.Controls/9.0.111",
+        "Microsoft.Maui.Controls.Core/9.0.111",
+        "Microsoft.Maui.Controls.Xaml/9.0.111",
+        "Microsoft.Maui.Core/9.0.111",
+        "Microsoft.Maui.Essentials/9.0.111",
+        "Microsoft.Maui.Graphics/9.0.111",
+        "Microsoft.Maui.Graphics.Win2D.WinUI.Desktop/9.0.111"
+      ],
+      "platform": ["android", "windows"],
+      "license_identifier": "MIT",
+      "copyright_holder_or_source": "Microsoft Corporation; exact attribution and incorporated-project notices are in the package files",
+      "authoritative_source": "https://www.nuget.org/packages/Microsoft.Maui.Controls/9.0.111",
+      "required_notice_files": [
+        "licenses/distribution/common/DotNet-MIT-LICENSE.txt",
+        "licenses/distribution/common/Microsoft.Maui-9.0.111-THIRD-PARTY-NOTICES.txt"
+      ],
+      "packaged_destination_paths": [
+        "licenses/common/DotNet-MIT-LICENSE.txt",
+        "licenses/common/Microsoft.Maui-9.0.111-THIRD-PARTY-NOTICES.txt"
+      ],
+      "verification_status": "verified-from-exact-nuget-package"
+    },
+    {
+      "component": "Microsoft.Extensions runtime assemblies",
+      "version": "9.0.8, except Microsoft.Extensions.Logging.Debug 9.0.0",
+      "packages": [
+        "Microsoft.Extensions.Configuration/9.0.8",
+        "Microsoft.Extensions.Configuration.Abstractions/9.0.8",
+        "Microsoft.Extensions.DependencyInjection/9.0.8",
+        "Microsoft.Extensions.DependencyInjection.Abstractions/9.0.8",
+        "Microsoft.Extensions.Logging/9.0.8",
+        "Microsoft.Extensions.Logging.Abstractions/9.0.8",
+        "Microsoft.Extensions.Logging.Debug/9.0.0",
+        "Microsoft.Extensions.Options/9.0.8",
+        "Microsoft.Extensions.Primitives/9.0.8"
+      ],
+      "platform": ["android", "windows"],
+      "license_identifier": "MIT",
+      "copyright_holder_or_source": "Microsoft Corporation; exact package license files are byte-identical to the preserved .NET MIT text",
+      "authoritative_source": "https://www.nuget.org/packages/Microsoft.Extensions.Logging/9.0.8",
+      "required_notice_files": ["licenses/distribution/common/DotNet-MIT-LICENSE.txt"],
+      "packaged_destination_paths": ["licenses/common/DotNet-MIT-LICENSE.txt"],
+      "verification_status": "verified-from-each-exact-nuget-package"
+    },
+    {
+      "component": "sqlite-net-pcl",
+      "version": "1.11.285",
+      "package": "sqlite-net-pcl/1.11.285",
+      "platform": ["android", "windows"],
+      "license_identifier": "MIT",
+      "copyright_holder_or_source": "Krueger Systems, Inc.",
+      "authoritative_source": "https://www.nuget.org/packages/sqlite-net-pcl/1.11.285",
+      "required_notice_files": ["licenses/distribution/common/sqlite-net-pcl-1.11.285-LICENSE.txt"],
+      "packaged_destination_paths": ["licenses/common/sqlite-net-pcl-1.11.285-LICENSE.txt"],
+      "verification_status": "verified-from-exact-nuget-package"
+    },
+    {
+      "component": "SQLitePCLRaw",
+      "version": "3.0.3",
+      "packages": ["SQLitePCLRaw.core/3.0.3", "SQLitePCLRaw.provider.e_sqlite3/3.0.3"],
+      "platform": ["android", "windows"],
+      "license_identifier": "Apache-2.0",
+      "copyright_holder_or_source": "Copyright 2014-2025 SourceGear, LLC",
+      "authoritative_source": "https://www.nuget.org/packages/SQLitePCLRaw.core/3.0.3",
+      "required_notice_files": ["licenses/distribution/common/Apache-2.0-LICENSE.txt"],
+      "packaged_destination_paths": ["licenses/common/Apache-2.0-LICENSE.txt"],
+      "verification_status": "verified-from-exact-nuget-metadata-and-apache-text"
+    },
+    {
+      "component": "SQLite native library packaged by SourceGear",
+      "version": "3.53.3",
+      "package": "SourceGear.sqlite3/3.53.3",
+      "platform": ["android", "windows"],
+      "license_identifier": "Public-Domain",
+      "copyright_holder_or_source": "SQLite public-domain dedication; package copyright Copyright 2014-2026 SourceGear, LLC",
+      "authoritative_source": "https://www.nuget.org/packages/SourceGear.sqlite3/3.53.3",
+      "required_notice_files": ["licenses/distribution/common/SQLite-PUBLIC-DOMAIN.txt"],
+      "packaged_destination_paths": ["licenses/common/SQLite-PUBLIC-DOMAIN.txt"],
+      "verification_status": "verified-from-exact-nuget-package"
+    },
+    {
+      "component": ".NET Mono Android arm64 and x86_64 runtimes",
+      "version": "9.0.21",
+      "packages": [
+        "Microsoft.NETCore.App.Runtime.Mono.android-arm64/9.0.21",
+        "Microsoft.NETCore.App.Runtime.Mono.android-x64/9.0.21"
+      ],
+      "platform": ["android"],
+      "license_identifier": "MIT",
+      "copyright_holder_or_source": "© Microsoft Corporation. All rights reserved.; contributors identified in the exact runtime notice",
+      "authoritative_sources": [
+        "https://www.nuget.org/packages/Microsoft.NETCore.App.Runtime.Mono.android-arm64/9.0.21",
+        "https://www.nuget.org/packages/Microsoft.NETCore.App.Runtime.Mono.android-x64/9.0.21"
+      ],
+      "package_sha256": {
+        "Microsoft.NETCore.App.Runtime.Mono.android-arm64/9.0.21": "B4075B47F3B5B9503E0F4CA8890E8C51C350C213DF969A9DD6E4C2370E3F41A0",
+        "Microsoft.NETCore.App.Runtime.Mono.android-x64/9.0.21": "2DAE9DF69C0744EA06317372B217C2596639D15252674AE5A07DD35CB050BA5D"
+      },
+      "required_notice_files": [
+        "licenses/distribution/android/DotNet-Android-MIT-LICENSE.txt",
+        "licenses/distribution/android/Microsoft.NETCore.App.Runtime.Mono.android-9.0.21-THIRD-PARTY-NOTICES.txt"
+      ],
+      "packaged_destination_paths": [
+        "licenses/android/DotNet-Android-MIT-LICENSE.txt",
+        "licenses/android/Microsoft.NETCore.App.Runtime.Mono.android-9.0.21-THIRD-PARTY-NOTICES.txt"
+      ],
+      "verification_status": "verified-from-both-downloaded-exact-nuget-packages; ABI license and notice files are byte-identical"
+    },
+    {
+      "component": "Microsoft.Android runtime",
+      "version": "35.0.78",
+      "package": "Microsoft.Android.Runtime.35.android-arm64/35.0.78",
+      "platform": ["android"],
+      "license_identifier": "MIT-and-package-third-party-terms",
+      "copyright_holder_or_source": "Microsoft Corporation and upstream authors identified in the exact runtime notice",
+      "authoritative_source": "https://www.nuget.org/packages/Microsoft.Android.Runtime.35.android-arm64/35.0.78",
+      "required_notice_files": [
+        "licenses/distribution/android/DotNet-Android-MIT-LICENSE.txt",
+        "licenses/distribution/android/Microsoft.Android.Runtime.35.android-arm64-35.0.78-THIRD-PARTY-NOTICES.txt"
+      ],
+      "packaged_destination_paths": [
+        "licenses/android/DotNet-Android-MIT-LICENSE.txt",
+        "licenses/android/Microsoft.Android.Runtime.35.android-arm64-35.0.78-THIRD-PARTY-NOTICES.txt"
+      ],
+      "verification_status": "verified-from-installed-exact-workload-pack"
+    },
+    {
+      "component": "Microsoft Android bindings: AndroidX and general Google dependencies",
+      "version": "exact package versions listed",
+      "packages": [
+        "Xamarin.AndroidX.Activity/1.10.1.1", "Xamarin.AndroidX.Activity.Ktx/1.10.1.1",
+        "Xamarin.AndroidX.Annotation/1.9.1.3", "Xamarin.AndroidX.Annotation.Experimental/1.4.1.9", "Xamarin.AndroidX.Annotation.Jvm/1.9.1.3",
+        "Xamarin.AndroidX.AppCompat/1.7.0.6", "Xamarin.AndroidX.AppCompat.AppCompatResources/1.7.0.6",
+        "Xamarin.AndroidX.Arch.Core.Common/2.2.0.16", "Xamarin.AndroidX.Arch.Core.Runtime/2.2.0.16",
+        "Xamarin.AndroidX.Browser/1.8.0.9", "Xamarin.AndroidX.CardView/1.0.0.34",
+        "Xamarin.AndroidX.Collection/1.5.0.1", "Xamarin.AndroidX.Collection.Jvm/1.5.0.1", "Xamarin.AndroidX.Collection.Ktx/1.5.0.1",
+        "Xamarin.AndroidX.Concurrent.Futures/1.2.0.6", "Xamarin.AndroidX.ConstraintLayout/2.2.1.1", "Xamarin.AndroidX.ConstraintLayout.Core/1.1.1.1",
+        "Xamarin.AndroidX.CoordinatorLayout/1.3.0.1", "Xamarin.AndroidX.Core/1.16.0.1", "Xamarin.AndroidX.Core.Core.Ktx/1.16.0.1", "Xamarin.AndroidX.Core.ViewTree/1.0.0.1",
+        "Xamarin.AndroidX.CursorAdapter/1.0.0.32", "Xamarin.AndroidX.CustomView/1.1.0.31", "Xamarin.AndroidX.CustomView.PoolingContainer/1.0.0.18",
+        "Xamarin.AndroidX.DrawerLayout/1.2.0.16", "Xamarin.AndroidX.DynamicAnimation/1.1.0.1",
+        "Xamarin.AndroidX.Emoji2/1.5.0.4", "Xamarin.AndroidX.Emoji2.ViewsHelper/1.5.0.4", "Xamarin.AndroidX.ExifInterface/1.4.0.1",
+        "Xamarin.AndroidX.Fragment/1.8.6.1", "Xamarin.AndroidX.Fragment.Ktx/1.8.6.1", "Xamarin.AndroidX.Interpolator/1.0.0.32",
+        "Xamarin.AndroidX.Lifecycle.Common/2.8.7.3", "Xamarin.AndroidX.Lifecycle.Common.Jvm/2.8.7.3",
+        "Xamarin.AndroidX.Lifecycle.LiveData/2.8.7.3", "Xamarin.AndroidX.Lifecycle.LiveData.Core/2.8.7.3", "Xamarin.AndroidX.Lifecycle.LiveData.Core.Ktx/2.8.7.3",
+        "Xamarin.AndroidX.Lifecycle.Process/2.8.7.3", "Xamarin.AndroidX.Lifecycle.Runtime/2.8.7.3", "Xamarin.AndroidX.Lifecycle.Runtime.Android/2.8.7.3",
+        "Xamarin.AndroidX.Lifecycle.Runtime.Ktx/2.8.7.3", "Xamarin.AndroidX.Lifecycle.Runtime.Ktx.Android/2.8.7.3",
+        "Xamarin.AndroidX.Lifecycle.ViewModel/2.8.7.3", "Xamarin.AndroidX.Lifecycle.ViewModel.Android/2.8.7.3", "Xamarin.AndroidX.Lifecycle.ViewModel.Ktx/2.8.7.3", "Xamarin.AndroidX.Lifecycle.ViewModelSavedState/2.8.7.3",
+        "Xamarin.AndroidX.Loader/1.1.0.32",
+        "Xamarin.AndroidX.Navigation.Common/2.8.9.1", "Xamarin.AndroidX.Navigation.Fragment/2.8.9.1", "Xamarin.AndroidX.Navigation.Runtime/2.8.9.1", "Xamarin.AndroidX.Navigation.UI/2.8.9.1",
+        "Xamarin.AndroidX.ProfileInstaller.ProfileInstaller/1.4.1.3", "Xamarin.AndroidX.RecyclerView/1.4.0.1", "Xamarin.AndroidX.ResourceInspection.Annotation/1.0.1.20",
+        "Xamarin.AndroidX.SavedState/1.2.1.16", "Xamarin.AndroidX.SavedState.SavedState.Ktx/1.2.1.16", "Xamarin.AndroidX.Security.SecurityCrypto/1.1.0.3-alpha07",
+        "Xamarin.AndroidX.SlidingPaneLayout/1.2.0.20", "Xamarin.AndroidX.Startup.StartupRuntime/1.2.0.3", "Xamarin.AndroidX.SwipeRefreshLayout/1.1.0.27",
+        "Xamarin.AndroidX.Tracing.Tracing/1.2.0.10", "Xamarin.AndroidX.Transition/1.5.1.5",
+        "Xamarin.AndroidX.VectorDrawable/1.2.0.6", "Xamarin.AndroidX.VectorDrawable.Animated/1.2.0.6", "Xamarin.AndroidX.VersionedParcelable/1.2.1.1",
+        "Xamarin.AndroidX.ViewPager/1.1.0.2", "Xamarin.AndroidX.ViewPager2/1.1.0.6", "Xamarin.AndroidX.Window/1.3.0.6", "Xamarin.AndroidX.Window.Extensions.Core.Core/1.0.0.14",
+        "Xamarin.Google.Android.Material/1.12.0.3", "Xamarin.Google.Code.FindBugs.JSR305/3.0.2.19", "Xamarin.Google.Guava.ListenableFuture/1.0.0.27"
+      ],
+      "platform": ["android"],
+      "license_identifier": "MIT AND Apache-2.0",
+      "copyright_holder_or_source": "Microsoft binding copyright and upstream attributions preserved verbatim in the package notice",
+      "authoritative_source": "https://github.com/xamarin/AndroidX/tree/ab1f55fefaeed55a0dd6786ec93f4af50f7b43c0",
+      "required_notice_files": [
+        "licenses/distribution/android/Xamarin.AndroidBindings-LICENSE.md",
+        "licenses/distribution/android/Xamarin.AndroidBindings-standard-THIRD-PARTY-NOTICES.txt"
+      ],
+      "packaged_destination_paths": [
+        "licenses/android/Xamarin.AndroidBindings-LICENSE.md",
+        "licenses/android/Xamarin.AndroidBindings-standard-THIRD-PARTY-NOTICES.txt"
+      ],
+      "verification_status": "verified-byte-identical-license-and-notice-files-across-listed-packages"
+    },
+    {
+      "component": "Microsoft Android binding special-notice groups",
+      "version": "exact package versions listed",
+      "package_notice_groups": [
+        {
+          "packages": ["Xamarin.Android.Glide/4.16.0.12", "Xamarin.Android.Glide.Annotations/4.16.0.12", "Xamarin.Android.Glide.DiskLruCache/4.16.0.12", "Xamarin.Android.Glide.GifDecoder/4.16.0.12"],
+          "license_identifier": "MIT AND BSD-2-Clause AND Apache-2.0",
+          "notice": "licenses/distribution/android/Xamarin.Android.Glide-4.16.0.12-THIRD-PARTY-NOTICES.txt"
+        },
+        {
+          "packages": ["GoogleGson/2.13.0.1"],
+          "license_identifier": "MIT AND Apache-2.0",
+          "notice": "licenses/distribution/android/GoogleGson-2.13.0.1-THIRD-PARTY-NOTICES.txt"
+        },
+        {
+          "packages": ["Xamarin.Google.Crypto.Tink.Android/1.17.0.1"],
+          "license_identifier": "MIT AND Apache-2.0",
+          "notice": "licenses/distribution/android/Xamarin.Google.Crypto.Tink.Android-1.17.0.1-THIRD-PARTY-NOTICES.txt"
+        },
+        {
+          "packages": ["Xamarin.Google.ErrorProne.Annotations/2.37.0.1", "Xamarin.Google.ErrorProne.TypeAnnotations/2.37.0.1"],
+          "license_identifier": "MIT AND Apache-2.0",
+          "notice": "licenses/distribution/android/Xamarin.Google.ErrorProne-2.37.0.1-THIRD-PARTY-NOTICES.txt"
+        },
+        {
+          "packages": ["Xamarin.Jetbrains.Annotations/26.0.2.1", "Xamarin.KotlinX.AtomicFU/0.26.1.2", "Xamarin.KotlinX.AtomicFU.Jvm/0.26.1.2", "Xamarin.KotlinX.Coroutines.Android/1.9.0.3", "Xamarin.KotlinX.Coroutines.Core/1.9.0.3", "Xamarin.KotlinX.Coroutines.Core.Jvm/1.9.0.3", "Xamarin.KotlinX.Serialization.Core/1.7.3.4", "Xamarin.KotlinX.Serialization.Core.Jvm/1.7.3.4"],
+          "license_identifier": "MIT AND Apache-2.0",
+          "notice": "licenses/distribution/android/Xamarin.Kotlin-JetBrains-THIRD-PARTY-NOTICES.txt"
+        },
+        {
+          "packages": ["Xamarin.JSpecify/1.0.0.2", "Xamarin.Kotlin.StdLib/2.0.21.3"],
+          "license_identifier": "MIT AND Apache-2.0",
+          "notice": "licenses/distribution/android/Xamarin.Kotlin-JSpecify-THIRD-PARTY-NOTICES.txt"
+        }
+      ],
+      "platform": ["android"],
+      "license_identifier": "per-package-expression-listed-above",
+      "copyright_holder_or_source": "Microsoft binding copyright and upstream attributions preserved verbatim in each exact notice variant",
+      "authoritative_source": "https://github.com/xamarin/AndroidX/tree/ab1f55fefaeed55a0dd6786ec93f4af50f7b43c0",
+      "required_notice_files": [
+        "licenses/distribution/android/Xamarin.AndroidBindings-LICENSE.md",
+        "licenses/distribution/android/Xamarin.Android.Glide-4.16.0.12-THIRD-PARTY-NOTICES.txt",
+        "licenses/distribution/android/GoogleGson-2.13.0.1-THIRD-PARTY-NOTICES.txt",
+        "licenses/distribution/android/Xamarin.Google.Crypto.Tink.Android-1.17.0.1-THIRD-PARTY-NOTICES.txt",
+        "licenses/distribution/android/Xamarin.Google.ErrorProne-2.37.0.1-THIRD-PARTY-NOTICES.txt",
+        "licenses/distribution/android/Xamarin.Kotlin-JetBrains-THIRD-PARTY-NOTICES.txt",
+        "licenses/distribution/android/Xamarin.Kotlin-JSpecify-THIRD-PARTY-NOTICES.txt"
+      ],
+      "packaged_destination_paths": ["licenses/android/"],
+      "verification_status": "verified-from-each-exact-nuget-package-and-deduplicated-only-when-sha256-identical"
+    },
+    {
+      "component": ".NET Windows x64 runtime",
+      "version": "9.0.21",
+      "package": "Microsoft.NETCore.App.Runtime.win-x64/9.0.21",
+      "platform": ["windows"],
+      "license_identifier": "MIT",
+      "copyright_holder_or_source": "Microsoft Corporation and contributors identified in the exact runtime notice",
+      "authoritative_source": "https://www.nuget.org/packages/Microsoft.NETCore.App.Runtime.win-x64/9.0.21",
+      "required_notice_files": [
+        "licenses/distribution/common/DotNet-MIT-LICENSE.txt",
+        "licenses/distribution/windows/Microsoft.NETCore.App.Runtime.win-x64-9.0.21-THIRD-PARTY-NOTICES.txt"
+      ],
+      "packaged_destination_paths": ["licenses/common/DotNet-MIT-LICENSE.txt", "licenses/windows/Microsoft.NETCore.App.Runtime.win-x64-9.0.21-THIRD-PARTY-NOTICES.txt"],
+      "verification_status": "verified-from-exact-nuget-package"
+    },
+    {
+      "component": "Microsoft Windows App SDK",
+      "version": "1.7.250606001",
+      "package": "Microsoft.WindowsAppSDK/1.7.250606001",
+      "platform": ["windows"],
+      "license_identifier": "LicenseRef-Microsoft-Windows-App-SDK",
+      "copyright_holder_or_source": "Microsoft Corporation; upstream notices preserved verbatim",
+      "authoritative_source": "https://www.nuget.org/packages/Microsoft.WindowsAppSDK/1.7.250606001",
+      "required_notice_files": [
+        "licenses/distribution/windows/Microsoft.WindowsAppSDK-1.7.250606001-LICENSE.txt",
+        "licenses/distribution/windows/Microsoft.WindowsAppSDK-1.7.250606001-NOTICE.txt"
+      ],
+      "packaged_destination_paths": ["licenses/windows/"],
+      "verification_status": "verified-from-exact-nuget-package; tools/NOTICE.txt excluded because tools are not redistributed"
+    },
+    {
+      "component": "Microsoft WebView2 SDK and loader",
+      "version": "1.0.3179.45",
+      "package": "Microsoft.Web.WebView2/1.0.3179.45",
+      "platform": ["windows"],
+      "license_identifier": "LicenseRef-Microsoft-WebView2",
+      "copyright_holder_or_source": "Microsoft Corporation; BSD and LGPL-related text preserved in the exact package notice",
+      "authoritative_source": "https://www.nuget.org/packages/Microsoft.Web.WebView2/1.0.3179.45",
+      "required_notice_files": [
+        "licenses/distribution/windows/Microsoft.Web.WebView2-1.0.3179.45-LICENSE.txt",
+        "licenses/distribution/windows/Microsoft.Web.WebView2-1.0.3179.45-NOTICE.txt"
+      ],
+      "packaged_destination_paths": ["licenses/windows/"],
+      "verification_status": "verified-from-exact-nuget-package"
+    },
+    {
+      "component": "Microsoft.Graphics.Win2D",
+      "version": "1.3.2",
+      "package": "Microsoft.Graphics.Win2D/1.3.2",
+      "platform": ["windows"],
+      "license_identifier": "LicenseRef-Microsoft-Win2D-EULA",
+      "copyright_holder_or_source": "Microsoft Corporation according to the package metadata",
+      "authoritative_source": "http://www.microsoft.com/web/webpi/eula/eula_win2d_10012014.htm",
+      "archive_url": "https://web.archive.org/web/20250113180923id_/https://www.microsoft.com/web/webpi/eula/eula_win2d_10012014.htm",
+      "archive_capture_date_utc": "2025-01-13T18:09:23Z",
+      "retrieval_date": "2026-10-15",
+      "sha256": "7B10B2C7D15A3062037D3820BFD5528235F8A287DED3D131E22C2F5286E61633",
+      "required_notice_files": ["licenses/distribution/windows/Microsoft.Graphics.Win2D-1.3.2-EULA.html"],
+      "packaged_destination_paths": ["licenses/windows/Microsoft.Graphics.Win2D-1.3.2-EULA.html"],
+      "verification_status": "verified from the exact NuGet package metadata and the archived Microsoft page captured before package 1.3.2 was published; the package requires license acceptance and is not classified as MIT-only. Whether passive inclusion in a portable ZIP satisfies the EULA's downstream-acceptance requirement remains unresolved and requires Microsoft clarification or qualified legal review."
+    },
+    {
+      "component": "Microsoft Windows SDK .NET projections",
+      "version": "10.0.19041.57",
+      "package": "Microsoft.Windows.SDK.NET.Ref/10.0.19041.57",
+      "platform": ["windows"],
+      "license_identifier": "LicenseRef-Microsoft-Windows-SDK",
+      "copyright_holder_or_source": "Microsoft Corporation",
+      "authoritative_source": "https://aka.ms/WinSDKLicenseURL",
+      "required_notice_files": ["licenses/distribution/windows/Microsoft.Windows.SDK.NET.Ref-10.0.19041.57-LICENSE.rtf"],
+      "packaged_destination_paths": ["licenses/windows/Microsoft.Windows.SDK.NET.Ref-10.0.19041.57-LICENSE.rtf"],
+      "verification_status": "verified-through-the-exact-package-license-url-on-2026-10-15; the package contains no embedded license or notice file and the linked RTF has no package-version marker"
+    },
+    {
+      "component": "Microsoft.IO.RecyclableMemoryStream",
+      "version": "3.0.1",
+      "package": "Microsoft.IO.RecyclableMemoryStream/3.0.1",
+      "platform": ["windows"],
+      "license_identifier": "MIT",
+      "copyright_holder_or_source": "Copyright 2015-2016 Microsoft",
+      "authoritative_source": "https://github.com/microsoft/Microsoft.IO.RecyclableMemoryStream/blob/e29a28387da9018fa9605a1dcb3f7a0435aa9974/LICENSE",
+      "required_notice_files": ["licenses/distribution/windows/Microsoft.IO.RecyclableMemoryStream-3.0.1-LICENSE.txt"],
+      "packaged_destination_paths": ["licenses/windows/Microsoft.IO.RecyclableMemoryStream-3.0.1-LICENSE.txt"],
+      "verification_status": "verified-from-the-exact-repository-commit-recorded-by-the-nuget-package"
+    }
+  ],
+  "excluded_non_runtime_dependencies": [
+    "Microsoft.Maui.Controls.Build.Tasks/9.0.111",
+    "Microsoft.Maui.Resizetizer/9.0.111",
+    "Microsoft.NET.ILLink.Tasks/9.0.21",
+    "Microsoft.Windows.SDK.BuildTools/10.0.22621.756",
+    "Microsoft.NET.Test.Sdk/17.8.0",
+    "xunit/2.5.3",
+    "xunit.runner.visualstudio/2.5.3",
+    "Appium.WebDriver/8.3.2",
+    "Selenium.Support/4.46.0",
+    "Selenium.WebDriver/4.46.0"
+  ]
+}
