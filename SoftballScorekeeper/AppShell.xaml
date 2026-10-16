@@ -51,6 +51,12 @@
         Clicked="OnDataManagementClicked" />
 
     <MenuItem
+        x:Name="LicensesMenuItem"
+        AutomationId="LicensesMenuItem"
+        Text="{x:Static strings:AppResources.LicensesTitle}"
+        Clicked="OnLicensesClicked" />
+
+    <MenuItem
         x:Name="EnterTestModeMenuItem"
         AutomationId="EnterTestModeMenuItem"
         Text="{x:Static strings:AppResources.EnterTestModeMenuItem}"

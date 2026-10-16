@@ -27,8 +27,8 @@
 		<ApplicationId>com.companyname.softballscorekeeper</ApplicationId>
 
 		<!-- Versions -->
-		<ApplicationDisplayVersion>1.0.0</ApplicationDisplayVersion>
-		<ApplicationVersion>4</ApplicationVersion>
+		<ApplicationDisplayVersion>1.0.1</ApplicationDisplayVersion>
+		<ApplicationVersion>5</ApplicationVersion>
 
 		<SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'ios'">11.0</SupportedOSPlatformVersion>
 		<SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'maccatalyst'">13.1</SupportedOSPlatformVersion>
@@ -53,6 +53,24 @@
 
 		<!-- Raw Assets (also remove the "Resources\Raw" prefix) -->
 		<MauiAsset Include="Resources\Raw\**" LogicalName="%(RecursiveDir)%(Filename)%(Extension)" />
+	</ItemGroup>
+
+	<ItemGroup Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'android'">
+		<MauiAsset Include="..\LICENSE"
+		           Link="Resources\Raw\licenses\application\LICENSE.txt"
+		           LogicalName="licenses/application/LICENSE.txt" />
+		<MauiAsset Include="..\THIRD-PARTY-NOTICES.md"
+		           Link="Resources\Raw\licenses\THIRD-PARTY-NOTICES.txt"
+		           LogicalName="licenses/THIRD-PARTY-NOTICES.txt" />
+		<MauiAsset Include="..\licenses\OpenSans-Apache-2.0.txt"
+		           Link="Resources\Raw\licenses\common\OpenSans-Apache-2.0.txt"
+		           LogicalName="licenses/common/OpenSans-Apache-2.0.txt" />
+		<MauiAsset Include="..\licenses\distribution\common\*"
+		           Link="Resources\Raw\licenses\common\%(Filename)%(Extension)"
+		           LogicalName="licenses/common/%(Filename)%(Extension)" />
+		<MauiAsset Include="..\licenses\distribution\android\*"
+		           Link="Resources\Raw\licenses\android\%(Filename)%(Extension)"
+		           LogicalName="licenses/android/%(Filename)%(Extension)" />
 	</ItemGroup>
 
 	<ItemGroup>

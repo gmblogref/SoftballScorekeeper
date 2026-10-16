@@ -854,6 +854,33 @@
   <data name="TeamYearBattingEmptyState" xml:space="preserve"><value>No Completed Games are available for this Team Year.</value></data>
   <data name="TeamYearBeerEmptyState" xml:space="preserve"><value>No Beer totals are available for this Team Year.</value></data>
   <data name="DataManagementTitle" xml:space="preserve"><value>Data Management</value></data>
+  <data name="LicensesTitle" xml:space="preserve"><value>Licenses</value></data>
+  <data name="LicensesDescription" xml:space="preserve"><value>Softball Scorekeeper and third-party licensing documents are available here without an internet connection.</value></data>
+  <data name="LicensesRequiredNotice" xml:space="preserve"><value>Required Notice: Copyright 2026 gmblogref. Softball Scorekeeper.</value></data>
+  <data name="LicenseDocumentPickerLabel" xml:space="preserve"><value>Document</value></data>
+  <data name="LicenseDocumentPickerTitle" xml:space="preserve"><value>Select a license or notice</value></data>
+  <data name="LicenseDocumentUnavailable" xml:space="preserve"><value>This licensing document could not be loaded. The installed application may be incomplete.</value></data>
+  <data name="LicenseDocumentApplication" xml:space="preserve"><value>Softball Scorekeeper — PolyForm Noncommercial 1.0.0</value></data>
+  <data name="LicenseDocumentThirdPartyNotices" xml:space="preserve"><value>Consolidated Third-Party Notices</value></data>
+  <data name="LicenseDocumentOpenSans" xml:space="preserve"><value>Open Sans 1.10 — Apache 2.0</value></data>
+  <data name="LicenseDocumentApache" xml:space="preserve"><value>Apache License 2.0</value></data>
+  <data name="LicenseDocumentCommunityToolkitLicense" xml:space="preserve"><value>CommunityToolkit.Mvvm 8.4.2 — MIT</value></data>
+  <data name="LicenseDocumentCommunityToolkitNotices" xml:space="preserve"><value>CommunityToolkit.Mvvm 8.4.2 — Third-Party Notices</value></data>
+  <data name="LicenseDocumentDotNet" xml:space="preserve"><value>.NET and .NET MAUI — MIT</value></data>
+  <data name="LicenseDocumentMauiNotices" xml:space="preserve"><value>.NET MAUI 9.0.111 — Third-Party Notices</value></data>
+  <data name="LicenseDocumentSqliteNet" xml:space="preserve"><value>sqlite-net-pcl 1.11.285 — MIT</value></data>
+  <data name="LicenseDocumentSqlite" xml:space="preserve"><value>SQLite — Public Domain</value></data>
+  <data name="LicenseDocumentDotNetAndroid" xml:space="preserve"><value>.NET for Android — MIT</value></data>
+  <data name="LicenseDocumentGsonNotices" xml:space="preserve"><value>Google Gson 2.13.0.1 — Third-Party Notices</value></data>
+  <data name="LicenseDocumentAndroidRuntimeNotices" xml:space="preserve"><value>Microsoft.Android Runtime 35.0.78 — Third-Party Notices</value></data>
+  <data name="LicenseDocumentMonoAndroidNotices" xml:space="preserve"><value>.NET Mono Android Runtimes 9.0.21 — Third-Party Notices</value></data>
+  <data name="LicenseDocumentGlideNotices" xml:space="preserve"><value>Glide Bindings 4.16.0.12 — Third-Party Notices</value></data>
+  <data name="LicenseDocumentAndroidBindingsLicense" xml:space="preserve"><value>Microsoft Android Bindings — MIT</value></data>
+  <data name="LicenseDocumentAndroidBindingsNotices" xml:space="preserve"><value>AndroidX and Google Bindings — Third-Party Notices</value></data>
+  <data name="LicenseDocumentTinkNotices" xml:space="preserve"><value>Google Tink 1.17.0.1 — Third-Party Notices</value></data>
+  <data name="LicenseDocumentErrorProneNotices" xml:space="preserve"><value>Error Prone 2.37.0.1 — Third-Party Notices</value></data>
+  <data name="LicenseDocumentKotlinJetBrainsNotices" xml:space="preserve"><value>Kotlin and JetBrains — Third-Party Notices</value></data>
+  <data name="LicenseDocumentKotlinJSpecifyNotices" xml:space="preserve"><value>Kotlin and JSpecify — Third-Party Notices</value></data>
   <data name="BackupDataButton" xml:space="preserve"><value>Backup Data</value></data>
   <data name="BackupDataDescription" xml:space="preserve"><value>Create a portable backup and choose where to save it.</value></data>
   <data name="BackupDataSucceeded" xml:space="preserve"><value>Backup saved successfully.</value></data>

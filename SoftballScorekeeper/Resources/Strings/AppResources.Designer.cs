@@ -1294,6 +1294,33 @@ namespace SoftballScorekeeper.Resources.Strings {
         public static string TeamYearBattingEmptyState { get { return ResourceManager.GetString("TeamYearBattingEmptyState", resourceCulture); } }
         public static string TeamYearBeerEmptyState { get { return ResourceManager.GetString("TeamYearBeerEmptyState", resourceCulture); } }
         public static string DataManagementTitle { get { return ResourceManager.GetString("DataManagementTitle", resourceCulture); } }
+        public static string LicensesTitle { get { return ResourceManager.GetString("LicensesTitle", resourceCulture); } }
+        public static string LicensesDescription { get { return ResourceManager.GetString("LicensesDescription", resourceCulture); } }
+        public static string LicensesRequiredNotice { get { return ResourceManager.GetString("LicensesRequiredNotice", resourceCulture); } }
+        public static string LicenseDocumentPickerLabel { get { return ResourceManager.GetString("LicenseDocumentPickerLabel", resourceCulture); } }
+        public static string LicenseDocumentPickerTitle { get { return ResourceManager.GetString("LicenseDocumentPickerTitle", resourceCulture); } }
+        public static string LicenseDocumentUnavailable { get { return ResourceManager.GetString("LicenseDocumentUnavailable", resourceCulture); } }
+        public static string LicenseDocumentApplication { get { return ResourceManager.GetString("LicenseDocumentApplication", resourceCulture); } }
+        public static string LicenseDocumentThirdPartyNotices { get { return ResourceManager.GetString("LicenseDocumentThirdPartyNotices", resourceCulture); } }
+        public static string LicenseDocumentOpenSans { get { return ResourceManager.GetString("LicenseDocumentOpenSans", resourceCulture); } }
+        public static string LicenseDocumentApache { get { return ResourceManager.GetString("LicenseDocumentApache", resourceCulture); } }
+        public static string LicenseDocumentCommunityToolkitLicense { get { return ResourceManager.GetString("LicenseDocumentCommunityToolkitLicense", resourceCulture); } }
+        public static string LicenseDocumentCommunityToolkitNotices { get { return ResourceManager.GetString("LicenseDocumentCommunityToolkitNotices", resourceCulture); } }
+        public static string LicenseDocumentDotNet { get { return ResourceManager.GetString("LicenseDocumentDotNet", resourceCulture); } }
+        public static string LicenseDocumentMauiNotices { get { return ResourceManager.GetString("LicenseDocumentMauiNotices", resourceCulture); } }
+        public static string LicenseDocumentSqliteNet { get { return ResourceManager.GetString("LicenseDocumentSqliteNet", resourceCulture); } }
+        public static string LicenseDocumentSqlite { get { return ResourceManager.GetString("LicenseDocumentSqlite", resourceCulture); } }
+        public static string LicenseDocumentDotNetAndroid { get { return ResourceManager.GetString("LicenseDocumentDotNetAndroid", resourceCulture); } }
+        public static string LicenseDocumentGsonNotices { get { return ResourceManager.GetString("LicenseDocumentGsonNotices", resourceCulture); } }
+        public static string LicenseDocumentAndroidRuntimeNotices { get { return ResourceManager.GetString("LicenseDocumentAndroidRuntimeNotices", resourceCulture); } }
+        public static string LicenseDocumentMonoAndroidNotices { get { return ResourceManager.GetString("LicenseDocumentMonoAndroidNotices", resourceCulture); } }
+        public static string LicenseDocumentGlideNotices { get { return ResourceManager.GetString("LicenseDocumentGlideNotices", resourceCulture); } }
+        public static string LicenseDocumentAndroidBindingsLicense { get { return ResourceManager.GetString("LicenseDocumentAndroidBindingsLicense", resourceCulture); } }
+        public static string LicenseDocumentAndroidBindingsNotices { get { return ResourceManager.GetString("LicenseDocumentAndroidBindingsNotices", resourceCulture); } }
+        public static string LicenseDocumentTinkNotices { get { return ResourceManager.GetString("LicenseDocumentTinkNotices", resourceCulture); } }
+        public static string LicenseDocumentErrorProneNotices { get { return ResourceManager.GetString("LicenseDocumentErrorProneNotices", resourceCulture); } }
+        public static string LicenseDocumentKotlinJetBrainsNotices { get { return ResourceManager.GetString("LicenseDocumentKotlinJetBrainsNotices", resourceCulture); } }
+        public static string LicenseDocumentKotlinJSpecifyNotices { get { return ResourceManager.GetString("LicenseDocumentKotlinJSpecifyNotices", resourceCulture); } }
         public static string BackupDataButton { get { return ResourceManager.GetString("BackupDataButton", resourceCulture); } }
         public static string BackupDataDescription { get { return ResourceManager.GetString("BackupDataDescription", resourceCulture); } }
         public static string BackupDataSucceeded { get { return ResourceManager.GetString("BackupDataSucceeded", resourceCulture); } }

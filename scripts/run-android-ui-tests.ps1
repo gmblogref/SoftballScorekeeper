@@ -4,6 +4,7 @@ param(
     [string]$AvdName,
     [switch]$KeepEmulatorRunning,
     [string]$TestFilter,
+    [switch]$ReleaseAcceptance,
     [string]$AppiumServerUrl,
     [string]$AppiumCommand = 'appium',
     [string]$AdbPath
@@ -17,6 +18,9 @@ $originalDeviceId = $env:SOFTBALL_ANDROID_DEVICE_ID
 $originalAppiumServerUrl = $env:SOFTBALL_APPIUM_SERVER_URL
 $originalAdbPath = $env:SOFTBALL_ADB_PATH
 $originalRunAndroidUiTests = $env:SOFTBALL_RUN_ANDROID_UI_TESTS
+$originalReleaseAcceptance = $env:SOFTBALL_ANDROID_RELEASE_ACCEPTANCE
+$originalReleaseV100Apk = $env:SOFTBALL_RELEASE_V100_APK
+$originalReleaseV101Apk = $env:SOFTBALL_RELEASE_V101_APK
 $exitCode = 0
 $startedEmulator = $false
 $selectedEmulatorId = $null
@@ -27,6 +31,7 @@ $appiumStandardOutputPath = $null
 $appiumStandardErrorPath = $null
 $defaultAndroidUiTestAvdName = 'softball_tablet_ui_tests_api_35'
 $reservedDevelopmentAvdName = 'softball_tablet_api_35'
+$releaseAcceptanceAvdName = 'softball_tablet_release_acceptance_api_35'
 
 function Write-Stage {
     param([string]$Message)
@@ -566,31 +571,53 @@ try {
 
     Write-Stage "Using device: $DeviceId"
 
-    $appProject = Join-Path $repositoryRoot 'SoftballScorekeeper\SoftballScorekeeper.csproj'
-    Write-Stage 'Building embedded-assembly Android APK...'
-    Invoke-RequiredCommand -Description 'Android build' -FilePath $dotnetExecutable -Arguments @(
-        'build',
-        $appProject,
-        '--framework', 'net9.0-android',
-        '--no-restore',
-        '--no-incremental',
-        '--property:EmbedAssembliesIntoApk=true',
-        '--maxcpucount:1'
-    )
+    if ($ReleaseAcceptance) {
+        if (-not [string]::Equals($selectedAvdName, $releaseAcceptanceAvdName, [StringComparison]::OrdinalIgnoreCase)) {
+            throw "Release acceptance is restricted to Android AVD '$releaseAcceptanceAvdName'; selected '$selectedAvdName'."
+        }
+        if ([string]::IsNullOrWhiteSpace($TestFilter) -or $TestFilter -notmatch 'ReleaseUpgradeAcceptanceTests') {
+            throw 'Release acceptance requires a focused ReleaseUpgradeAcceptanceTests filter.'
+        }
 
-    $apkPath = Join-Path $repositoryRoot 'SoftballScorekeeper\bin\Debug\net9.0-android\com.companyname.softballscorekeeper-Signed.apk'
-    if (-not (Test-Path -LiteralPath $apkPath -PathType Leaf)) {
-        throw "Android build succeeded but the expected APK was not found at '$apkPath'."
+        $releaseV100Apk = Join-Path $repositoryRoot 'artifacts\release\final\SoftballScorekeeper-1.0.0.apk'
+        $releaseV101Apk = Join-Path $repositoryRoot 'artifacts\release\v1.0.1-rc\SoftballScorekeeper-1.0.1.apk'
+        foreach ($releaseApk in @($releaseV100Apk, $releaseV101Apk)) {
+            if (-not (Test-Path -LiteralPath $releaseApk -PathType Leaf)) {
+                throw "Required release APK was not found at '$releaseApk'."
+            }
+        }
+        $env:SOFTBALL_ANDROID_RELEASE_ACCEPTANCE = '1'
+        $env:SOFTBALL_RELEASE_V100_APK = $releaseV100Apk
+        $env:SOFTBALL_RELEASE_V101_APK = $releaseV101Apk
+        Write-Stage 'Release-acceptance mode: preserving the clean AVD and delegating signed APK installation to the focused test.'
     }
+    else {
+        $appProject = Join-Path $repositoryRoot 'SoftballScorekeeper\SoftballScorekeeper.csproj'
+        Write-Stage 'Building embedded-assembly Android APK...'
+        Invoke-RequiredCommand -Description 'Android build' -FilePath $dotnetExecutable -Arguments @(
+            'build',
+            $appProject,
+            '--framework', 'net9.0-android',
+            '--no-restore',
+            '--no-incremental',
+            '--property:EmbedAssembliesIntoApk=true',
+            '--maxcpucount:1'
+        )
 
-    Write-Stage "Installing APK on $DeviceId..."
-    $installOutput = & $adbExecutable -s $DeviceId install -r $apkPath
-    $installExitCode = $LASTEXITCODE
-    $installOutput | ForEach-Object { Write-Host $_ }
-    if ($installExitCode -ne 0 -or ($installOutput -join "`n") -notmatch '(?m)^Success\s*$') {
-        $exception = [InvalidOperationException]::new("APK installation failed with exit code $installExitCode.")
-        $exception.Data['ExitCode'] = if ($installExitCode -eq 0) { 1 } else { $installExitCode }
-        throw $exception
+        $apkPath = Join-Path $repositoryRoot 'SoftballScorekeeper\bin\Debug\net9.0-android\com.companyname.softballscorekeeper-Signed.apk'
+        if (-not (Test-Path -LiteralPath $apkPath -PathType Leaf)) {
+            throw "Android build succeeded but the expected APK was not found at '$apkPath'."
+        }
+
+        Write-Stage "Installing APK on $DeviceId..."
+        $installOutput = & $adbExecutable -s $DeviceId install -r $apkPath
+        $installExitCode = $LASTEXITCODE
+        $installOutput | ForEach-Object { Write-Host $_ }
+        if ($installExitCode -ne 0 -or ($installOutput -join "`n") -notmatch '(?m)^Success\s*$') {
+            $exception = [InvalidOperationException]::new("APK installation failed with exit code $installExitCode.")
+            $exception.Data['ExitCode'] = if ($installExitCode -eq 0) { 1 } else { $installExitCode }
+            throw $exception
+        }
     }
 
     $env:SOFTBALL_ANDROID_DEVICE_ID = $DeviceId
@@ -701,6 +728,9 @@ finally {
     $env:SOFTBALL_APPIUM_SERVER_URL = $originalAppiumServerUrl
     $env:SOFTBALL_ADB_PATH = $originalAdbPath
     $env:SOFTBALL_RUN_ANDROID_UI_TESTS = $originalRunAndroidUiTests
+    $env:SOFTBALL_ANDROID_RELEASE_ACCEPTANCE = $originalReleaseAcceptance
+    $env:SOFTBALL_RELEASE_V100_APK = $originalReleaseV100Apk
+    $env:SOFTBALL_RELEASE_V101_APK = $originalReleaseV101Apk
     Set-Location -LiteralPath $originalLocation
 }
 

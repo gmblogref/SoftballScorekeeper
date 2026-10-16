@@ -61,3 +61,8 @@
 #*.PDF   diff=astextplain
 #*.rtf   diff=astextplain
 #*.RTF   diff=astextplain
+
+# Preserve copied upstream licensing artifacts byte-for-byte.
+licenses/distribution/common/* -text
+licenses/distribution/android/* -text
+licenses/distribution/windows/* -text

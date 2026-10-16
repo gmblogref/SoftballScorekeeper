@@ -107,6 +107,9 @@ namespace SoftballScorekeeper
             builder.Services.AddSingleton<IRestoreSource, MauiRestoreSource>();
             builder.Services.AddSingleton<DatabaseRestoreService>();
             builder.Services.AddSingleton<ManualRestoreService>();
+            builder.Services.AddSingleton(
+                new LicenseDocumentLoader((path, _) => FileSystem.OpenAppPackageFileAsync(path))
+            );
 #if DEBUG
             builder.Services.AddSingleton<AndroidUiTestDataInitializer>();
 #endif
@@ -147,6 +150,7 @@ namespace SoftballScorekeeper
             builder.Services.AddTransient<SetLineupPage>();
             builder.Services.AddTransient<ScoringPage>();
             builder.Services.AddTransient<DataManagementPage>();
+            builder.Services.AddTransient<LicensesPage>();
             builder.Services.AddSingleton<MainPage>();
 
             return builder.Build();
