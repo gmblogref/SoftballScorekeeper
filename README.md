@@ -6,16 +6,15 @@
 
 Softball Scorekeeper is a fast, offline-first scorekeeping application for live adult slow-pitch softball. It is designed around a touch-friendly Android tablet workflow with quick scoring, automatic runner-movement defaults, easy corrections, automatic statistics, and configurable Beer Rules.
 
-Version 1.0.0 is the current public release.
+Version 1.0.1 is the latest published release.
 
 ## Download and Install on Android
 
 Android tablet is the primary supported deployment for Version 1.0.
 
-1. Open the [Softball Scorekeeper v1.0.0 GitHub Release](https://github.com/gmblogref/SoftballScorekeeper/releases/tag/v1.0.0).
-2. Under **Assets**, download `SoftballScorekeeper-1.0.0.apk`.
-3. Open the downloaded APK on the Android device.
-4. If Android requests permission to install apps from that source, enable it for the installer you used and continue the installation.
+1. Download the verified [`SoftballScorekeeper-1.0.1.apk`](https://github.com/gmblogref/SoftballScorekeeper/releases/download/v1.0.1/SoftballScorekeeper-1.0.1.apk) release asset.
+2. Open the downloaded APK on the Android device.
+3. If Android requests permission to install apps from that source, enable it for the installer you used and continue the installation.
 
 The application is distributed directly through GitHub rather than an app store.
 
@@ -23,10 +22,9 @@ The application is distributed directly through GitHub rather than an app store.
 
 Windows x64 is supported through a self-contained portable ZIP. No installer is required.
 
-1. Open the [Softball Scorekeeper v1.0.0 GitHub Release](https://github.com/gmblogref/SoftballScorekeeper/releases/tag/v1.0.0).
-2. Under **Assets**, download `SoftballScorekeeper-1.0.0-windows-x64-portable.zip`.
-3. Extract the entire ZIP to a folder where you want to keep the application.
-4. Open that folder and run `SoftballScorekeeper.exe`.
+1. Download the verified [`SoftballScorekeeper-1.0.1-windows-x64-portable.zip`](https://github.com/gmblogref/SoftballScorekeeper/releases/download/v1.0.1/SoftballScorekeeper-1.0.1-windows-x64-portable.zip) release asset.
+2. Extract the entire ZIP to a folder where you want to keep the application.
+3. Open that folder and run `SoftballScorekeeper.exe`.
 
 Keep all extracted files and directories together. The ZIP includes the .NET 9 and Windows App SDK runtime dependencies used by the application. The portable release has been validated on a Windows development computer; clean-machine validation remains pending.
 
@@ -150,7 +148,7 @@ The application is intentionally device-local and offline-first. Version 1.0 doe
 
 ## License
 
-Softball Scorekeeper is free to use for noncommercial purposes permitted by the [PolyForm Noncommercial License 1.0.0](LICENSE). Its source code will be publicly inspectable when the repository is published, and noncommercial use, modification, and redistribution are permitted subject to the license terms.
+Softball Scorekeeper is free to use for noncommercial purposes permitted by the [PolyForm Noncommercial License 1.0.0](LICENSE). The source code is provided in this repository for inspection, and noncommercial use, modification, and redistribution are permitted subject to the license terms.
 
 Commercial use requires separate permission from the copyright holder. Selling the original application, or a commercial derivative that uses the licensed Softball Scorekeeper code, is not authorized by this license; attribution alone does not authorize commercial use.
 
