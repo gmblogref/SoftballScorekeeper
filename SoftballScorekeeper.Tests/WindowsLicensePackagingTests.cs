@@ -38,6 +38,7 @@ public sealed class WindowsLicensePackagingTests : IDisposable
         var expectedLicenseSources = new Dictionary<string, string>(StringComparer.Ordinal)
         {
             ["LICENSE.txt"] = "LICENSE",
+            ["LICENSE-INFO.txt"] = "licenses/WINDOWS-DISTRIBUTION-NOTICE.txt",
             ["THIRD-PARTY-NOTICES.txt"] = "THIRD-PARTY-NOTICES.md",
             ["licenses/common/Apache-2.0-LICENSE.txt"] = "licenses/distribution/common/Apache-2.0-LICENSE.txt",
             ["licenses/common/CommunityToolkit.Mvvm-8.4.2-LICENSE.md"] = "licenses/distribution/common/CommunityToolkit.Mvvm-8.4.2-LICENSE.md",
@@ -65,7 +66,7 @@ public sealed class WindowsLicensePackagingTests : IDisposable
 
         var actualLicenseEntries = entries.Keys
             .Where(name =>
-                name is "LICENSE.txt" or "THIRD-PARTY-NOTICES.txt"
+                name is "LICENSE.txt" or "LICENSE-INFO.txt" or "THIRD-PARTY-NOTICES.txt"
                 || name.StartsWith("licenses/", StringComparison.Ordinal)
             )
             .Order(StringComparer.Ordinal)
@@ -80,6 +81,13 @@ public sealed class WindowsLicensePackagingTests : IDisposable
                 Convert.ToHexString(SHA256.HashData(entryStream))
             );
         }
+
+        using var noticeReader = new StreamReader(entries["LICENSE-INFO.txt"].Open());
+        var notice = noticeReader.ReadToEnd();
+        Assert.Contains("PolyForm Noncommercial", notice, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("third-party licensing conditions", notice, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("Microsoft", notice, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("noncommercial use", notice, StringComparison.OrdinalIgnoreCase);
     }
 
     [Fact]
@@ -138,6 +146,49 @@ public sealed class WindowsLicensePackagingTests : IDisposable
 
         Assert.NotEqual(0, result.ExitCode);
         Assert.Contains("Distribution checksum mismatch", result.CombinedOutput);
+        Assert.False(File.Exists(outputZip));
+    }
+
+    [Fact]
+    public void Package_WhenDistributionNoticeIsMissing_FailsWithoutCreatingOutput()
+    {
+        var fixtureRoot = Path.Combine(_testRoot, "missing-notice-fixture");
+        CopyLicenseFixture(fixtureRoot);
+        var publishDirectory = CreateFakePublishDirectory(Path.Combine(_testRoot, "missing-notice"));
+        var outputZip = Path.Combine(_testRoot, "missing-notice.zip");
+        File.Delete(Path.Combine(fixtureRoot, "licenses", "WINDOWS-DISTRIBUTION-NOTICE.txt"));
+
+        var result = RunPackager(
+            Path.Combine(fixtureRoot, "scripts", "package-windows-portable.ps1"),
+            publishDirectory,
+            outputZip
+        );
+
+        Assert.NotEqual(0, result.ExitCode);
+        Assert.Contains("license source is missing", result.CombinedOutput, StringComparison.OrdinalIgnoreCase);
+        Assert.False(File.Exists(outputZip));
+    }
+
+    [Fact]
+    public void Package_WhenDistributionNoticeHashChanges_FailsWithoutCreatingOutput()
+    {
+        var fixtureRoot = Path.Combine(_testRoot, "notice-checksum-fixture");
+        CopyLicenseFixture(fixtureRoot);
+        var publishDirectory = CreateFakePublishDirectory(Path.Combine(_testRoot, "notice-checksum"));
+        var outputZip = Path.Combine(_testRoot, "notice-checksum-mismatch.zip");
+        File.AppendAllText(
+            Path.Combine(fixtureRoot, "licenses", "WINDOWS-DISTRIBUTION-NOTICE.txt"),
+            "changed"
+        );
+
+        var result = RunPackager(
+            Path.Combine(fixtureRoot, "scripts", "package-windows-portable.ps1"),
+            publishDirectory,
+            outputZip
+        );
+
+        Assert.NotEqual(0, result.ExitCode);
+        Assert.Contains("Windows distribution notice SHA-256 does not match", result.CombinedOutput);
         Assert.False(File.Exists(outputZip));
     }
 

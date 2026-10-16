@@ -150,6 +150,7 @@ function Add-LicenseMapping {
     $normalizedDestination = $DestinationRelativePath.Replace('\', '/')
     $isAllowedDestination =
         $normalizedDestination -ceq 'LICENSE.txt' -or
+        $normalizedDestination -ceq 'LICENSE-INFO.txt' -or
         $normalizedDestination -ceq 'THIRD-PARTY-NOTICES.txt' -or
         $normalizedDestination.StartsWith('licenses/common/', [System.StringComparison]::Ordinal) -or
         $normalizedDestination.StartsWith('licenses/windows/', [System.StringComparison]::Ordinal)
@@ -209,6 +210,24 @@ function Get-WindowsLicenseMappings {
         -RepositoryRoot $RepositoryRoot `
         -SourceRelativePath ([string]$Manifest.application_license.source) `
         -DestinationRelativePath ([string]$Manifest.application_license.packaged_destination)
+
+    $noticeSource = [string]$Manifest.windows_distribution_notice.source
+    $noticeDestination = [string]$Manifest.windows_distribution_notice.packaged_destination
+    $noticeExpectedHash = [string]$Manifest.windows_distribution_notice.sha256
+    if ($noticeExpectedHash -notmatch '^[0-9A-Fa-f]{64}$') {
+        throw 'Production license manifest does not record a valid Windows distribution notice SHA-256.'
+    }
+
+    Add-LicenseMapping `
+        -Mappings $mappings `
+        -RepositoryRoot $RepositoryRoot `
+        -SourceRelativePath $noticeSource `
+        -DestinationRelativePath $noticeDestination
+
+    $normalizedNoticeDestination = $noticeDestination.Replace('\', '/')
+    if ($mappings[$normalizedNoticeDestination].SourceHash -cne $noticeExpectedHash.ToUpperInvariant()) {
+        throw "Windows distribution notice SHA-256 does not match '$noticeSource'."
+    }
 
     $windowsComponents = @($Manifest.components | Where-Object { @($_.platform) -contains 'windows' })
     if ($windowsComponents.Count -eq 0) {
@@ -271,6 +290,7 @@ function Get-WindowsLicenseMappings {
 
     $requiredDestinations = @(
         'LICENSE.txt',
+        'LICENSE-INFO.txt',
         'THIRD-PARTY-NOTICES.txt',
         'licenses/common/Apache-2.0-LICENSE.txt',
         'licenses/common/CommunityToolkit.Mvvm-8.4.2-LICENSE.md',
@@ -304,7 +324,7 @@ function Assert-PublishDirectorySafe {
         [string]$PublishRoot
     )
 
-    $reservedRootNames = @('LICENSE.txt', 'THIRD-PARTY-NOTICES.txt', 'licenses')
+    $reservedRootNames = @('LICENSE.txt', 'LICENSE-INFO.txt', 'THIRD-PARTY-NOTICES.txt', 'licenses')
     foreach ($reservedName in $reservedRootNames) {
         if (Test-Path -LiteralPath (Join-Path $PublishRoot $reservedName)) {
             throw "Publish directory already contains reserved packaging path '$reservedName'. Use an unmodified publish output."
@@ -467,6 +487,7 @@ function Test-ZipContents {
 
             $licenseEntryNames = @($entryNames | Where-Object {
                 $_ -ceq 'LICENSE.txt' -or
+                $_ -ceq 'LICENSE-INFO.txt' -or
                 $_ -ceq 'THIRD-PARTY-NOTICES.txt' -or
                 $_.StartsWith('licenses/', [System.StringComparison]::Ordinal)
             })

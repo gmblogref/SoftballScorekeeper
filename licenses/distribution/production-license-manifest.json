@@ -9,6 +9,11 @@
     "packaged_destination": "LICENSE.txt",
     "license_identifier": "LicenseRef-PolyForm-Noncommercial-1.0.0"
   },
+  "windows_distribution_notice": {
+    "source": "licenses/WINDOWS-DISTRIBUTION-NOTICE.txt",
+    "packaged_destination": "LICENSE-INFO.txt",
+    "sha256": "E3B1595DF13763A9387F1CD08194127F32670824D777072F7A5C2C534B4191CE"
+  },
   "components": [
     {
       "component": "Open Sans Regular and Semibold",

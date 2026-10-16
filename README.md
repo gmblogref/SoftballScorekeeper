@@ -156,6 +156,12 @@ Commercial use requires separate permission from the copyright holder. Selling t
 
 This is source-available software, not OSI-approved open-source software. Third-party software and fonts retain their own licenses and notices, documented separately in [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md).
 
+### Windows Portable Distribution
+
+Windows portable ZIPs produced by the release packager include the PolyForm license, the consolidated third-party notices, a root `LICENSE-INFO.txt`, and the applicable component agreements under `licenses/common/` and `licenses/windows/`. Microsoft components remain governed by their separate Microsoft license agreements and notices; they are not relicensed under PolyForm Noncommercial.
+
+By downloading or using the Windows distribution, users agree to comply with the applicable third-party licensing conditions, including redistribution restrictions and required notices. The packaged notice summarizes these terms and their locations; it does not replace or modify an agreement, guarantee legally binding acceptance, or claim that every Microsoft downstream-license obligation has been satisfied.
+
 ## Contributing
 
 Before making changes, read [AGENTS.md](AGENTS.md) and [FEATURE_HISTORY.md](FEATURE_HISTORY.md). Keep work focused on the approved story, preserve the established dependency direction, validate changes proportionately, and update the feature history before committing completed work.

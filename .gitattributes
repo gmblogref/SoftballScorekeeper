@@ -66,3 +66,6 @@
 licenses/distribution/common/* -text
 licenses/distribution/android/* -text
 licenses/distribution/windows/* -text
+
+# Keep the checksum-pinned Windows distribution notice byte-stable.
+licenses/WINDOWS-DISTRIBUTION-NOTICE.txt -text
