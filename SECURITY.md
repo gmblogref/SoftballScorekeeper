@@ -20,17 +20,10 @@ Do not publish vulnerability details, proof-of-concept exploits, credentials,
 private data, or personal information in a public issue, pull request, or
 discussion.
 
-GitHub Private Vulnerability Reporting is not currently enabled. Enabling a
-private reporting channel remains a repository-configuration blocker before
-public conversion.
+GitHub Private Vulnerability Reporting is enabled for this repository. Use the
+**Report a vulnerability** option under the repository's Security advisories to
+submit a report privately. Include the affected version, impact, reproduction
+steps, and any suggested mitigation.
 
-If the **Report a vulnerability** option is available under the repository's
-Security advisories, use that form to submit the report privately. Include the
-affected version, impact, reproduction steps, and any suggested mitigation. If
-that option is absent, do not publish sensitive details. Ask the repository
-owner for a private reporting channel without including vulnerability details;
-if necessary, a public issue may contain only a request to establish private
-contact and must not identify the vulnerability or its impact.
-
-After private reporting is configured, please allow reasonable time for the
-owner to assess and address the issue before public disclosure.
+Please allow reasonable time for the owner to assess and address the issue
+before public disclosure.
