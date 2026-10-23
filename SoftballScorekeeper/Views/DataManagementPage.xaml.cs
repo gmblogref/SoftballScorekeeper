@@ -42,7 +42,7 @@ public partial class DataManagementPage : ContentPage
             metadata.CreatedAt.ToLocalTime(),
             metadata.AppVersion
         );
-        return DisplayAlert(
+        return DisplayAlertAsync(
             AppResources.RestoreDataConfirmationTitle,
             message,
             AppResources.RestoreDataConfirmButton,
@@ -51,7 +51,7 @@ public partial class DataManagementPage : ContentPage
     }
 
     private Task ShowRestoreCompletedAsync() =>
-        DisplayAlert(
+        DisplayAlertAsync(
             AppResources.RestoreDataSucceededTitle,
             AppResources.RestoreDataSucceeded,
             AppResources.OkButton

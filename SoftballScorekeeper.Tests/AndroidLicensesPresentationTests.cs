@@ -83,7 +83,7 @@ public sealed class AndroidLicensesPresentationTests
     }
 
     [Fact]
-    public void Mono_android_inventory_records_both_release_abis_at_version_9_0_21()
+    public void Mono_android_inventory_records_both_release_abis_at_version_10_0_13()
     {
         using var manifest = JsonDocument.Parse(
             Read("licenses", "distribution", "production-license-manifest.json")
@@ -96,11 +96,11 @@ public sealed class AndroidLicensesPresentationTests
                     == ".NET Mono Android arm64 and x86_64 runtimes"
             );
 
-        Assert.Equal("9.0.21", component.GetProperty("version").GetString());
+        Assert.Equal("10.0.13", component.GetProperty("version").GetString());
         Assert.Equal(
             [
-                "Microsoft.NETCore.App.Runtime.Mono.android-arm64/9.0.21",
-                "Microsoft.NETCore.App.Runtime.Mono.android-x64/9.0.21",
+                "Microsoft.NETCore.App.Runtime.Mono.android-arm64/10.0.13",
+                "Microsoft.NETCore.App.Runtime.Mono.android-x64/10.0.13",
             ],
             component
                 .GetProperty("packages")
@@ -115,7 +115,7 @@ public sealed class AndroidLicensesPresentationTests
             .Select(item => item.GetString())
             .Single(path => path!.Contains("THIRD-PARTY-NOTICES", StringComparison.Ordinal));
         Assert.EndsWith(
-            "Microsoft.NETCore.App.Runtime.Mono.android-9.0.21-THIRD-PARTY-NOTICES.txt",
+            "Microsoft.NETCore.App.Runtime.Mono.android-10.0.13-THIRD-PARTY-NOTICES.txt",
             noticePath,
             StringComparison.Ordinal
         );

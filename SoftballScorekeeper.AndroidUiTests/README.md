@@ -10,7 +10,7 @@ broken.
 
 ## Prerequisites
 
-- .NET 9 SDK with the Android workload
+- .NET 10 SDK 10.0.402 with the Android workload and JDK 21
 - Android SDK and `adb`
 - The Android `emulator` CLI on `PATH`
 - Node.js and npm
@@ -172,8 +172,8 @@ For troubleshooting, the runner's build, install, and focused workflow can be ru
 separately:
 
 ```powershell
-dotnet build SoftballScorekeeper/SoftballScorekeeper.csproj --framework net9.0-android --no-restore --no-incremental --property:EmbedAssembliesIntoApk=true --maxcpucount:1
-adb -s emulator-5554 install -r SoftballScorekeeper/bin/Debug/net9.0-android/com.companyname.softballscorekeeper-Signed.apk
+dotnet build SoftballScorekeeper/SoftballScorekeeper.csproj --framework net10.0-android --no-restore --no-incremental --property:EmbedAssembliesIntoApk=true --maxcpucount:1
+adb -s emulator-5554 install -r SoftballScorekeeper/bin/Debug/net10.0-android/com.companyname.softballscorekeeper-Signed.apk
 $env:SOFTBALL_ANDROID_DEVICE_ID = 'emulator-5554'
 $env:SOFTBALL_RUN_ANDROID_UI_TESTS = '1'
 dotnet test SoftballScorekeeper.AndroidUiTests/SoftballScorekeeper.AndroidUiTests.csproj --filter 'FullyQualifiedName~ScoringResumeWorkflowTests'

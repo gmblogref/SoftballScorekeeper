@@ -37,7 +37,7 @@ public partial class MainPage : ContentPage
         var result = await backupReminderService.RunAtStartupAsync(RequestBackupReminderChoiceAsync);
         if (result == SeasonBackupReminderResult.BackupSaved)
         {
-            await DisplayAlert(
+            await DisplayAlertAsync(
                 AppResources.DataManagementTitle,
                 AppResources.BackupDataSucceeded,
                 AppResources.OkButton
@@ -45,7 +45,7 @@ public partial class MainPage : ContentPage
         }
         else if (result == SeasonBackupReminderResult.BackupFailed)
         {
-            await DisplayAlert(
+            await DisplayAlertAsync(
                 AppResources.DataManagementTitle,
                 AppResources.BackupDataFailed,
                 AppResources.OkButton
@@ -57,7 +57,7 @@ public partial class MainPage : ContentPage
 
     private async Task<SeasonBackupReminderChoice> RequestBackupReminderChoiceAsync()
     {
-        var selection = await DisplayActionSheet(
+        var selection = await DisplayActionSheetAsync(
             AppResources.SeasonBackupReminderMessage,
             AppResources.SeasonBackupReminderRemindLater,
             AppResources.SeasonBackupReminderDismiss,

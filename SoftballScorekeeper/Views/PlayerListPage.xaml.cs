@@ -34,7 +34,7 @@ public partial class PlayerListPage : ContentPage
             messageTemplate,
             selectedPlayerCount);
 
-        var confirmed = await DisplayAlert(
+        var confirmed = await DisplayAlertAsync(
             AppResources.DeactivatePlayersConfirmationTitle,
             message,
             AppResources.ConfirmDeactivatePlayersButton,

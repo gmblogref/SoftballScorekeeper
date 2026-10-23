@@ -28,7 +28,7 @@ public partial class TeamWorkspacePage : ContentPage
                 : AppResources.RemoveGamesConfirmationMessage;
         var message = string.Format(CultureInfo.CurrentCulture, messageTemplate, selectedGameCount);
 
-        var confirmed = await DisplayAlert(
+        var confirmed = await DisplayAlertAsync(
             AppResources.RemoveGamesConfirmationTitle,
             message,
             AppResources.ConfirmRemoveGamesButton,
@@ -54,7 +54,7 @@ public partial class TeamWorkspacePage : ContentPage
             teamName
         );
 
-        var confirmed = await DisplayAlert(
+        var confirmed = await DisplayAlertAsync(
             AppResources.RemovePlayersFromTeamConfirmationTitle,
             message,
             AppResources.ConfirmRemovePlayersFromTeamButton,
@@ -83,7 +83,7 @@ public partial class TeamWorkspacePage : ContentPage
         var settings = await viewModel.LoadBeerRulesAsync();
         if (settings is null)
         {
-            await DisplayAlert(
+            await DisplayAlertAsync(
                 AppResources.TeamBeerRulesTitle,
                 AppResources.BeerRulesLoadFailed,
                 AppResources.OkButton
@@ -163,7 +163,7 @@ public partial class TeamWorkspacePage : ContentPage
             sourceYear,
             destinationYear
         );
-        var confirmed = await DisplayAlert(
+        var confirmed = await DisplayAlertAsync(
             AppResources.CopyTeamConfirmationTitle,
             message,
             AppResources.CopyTeamConfirmButton,
@@ -181,7 +181,7 @@ public partial class TeamWorkspacePage : ContentPage
             teamName,
             teamYear
         );
-        var continued = await DisplayAlert(
+        var continued = await DisplayAlertAsync(
             AppResources.MarkTeamYearOverConfirmationTitle,
             message,
             AppResources.MarkTeamYearOverConfirmButton,
@@ -190,7 +190,7 @@ public partial class TeamWorkspacePage : ContentPage
         if (!continued)
             return;
 
-        var confirmed = await DisplayAlert(
+        var confirmed = await DisplayAlertAsync(
             AppResources.MarkTeamYearOverFinalConfirmationTitle,
             AppResources.MarkTeamYearOverFinalConfirmationMessage,
             AppResources.MarkTeamYearOverFinalConfirmButton,
@@ -208,7 +208,7 @@ public partial class TeamWorkspacePage : ContentPage
             teamName
         );
 
-        var confirmed = await DisplayAlert(
+        var confirmed = await DisplayAlertAsync(
             AppResources.DeactivateTeamConfirmationTitle,
             message,
             AppResources.ConfirmDeactivateTeamButton,

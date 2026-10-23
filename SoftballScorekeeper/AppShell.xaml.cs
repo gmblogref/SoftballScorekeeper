@@ -108,7 +108,7 @@
         {
             FlyoutIsPresented = false;
             var result = await databaseModeService.EnterTestModeAsync(() =>
-                DisplayAlert(
+                DisplayAlertAsync(
                     global::SoftballScorekeeper
                         .Resources
                         .Strings
@@ -135,7 +135,7 @@
             FlyoutIsPresented = false;
             var result = await databaseModeService.ExitTestModeAsync(async () =>
             {
-                var selection = await DisplayActionSheet(
+                var selection = await DisplayActionSheetAsync(
                     global::SoftballScorekeeper
                         .Resources
                         .Strings
@@ -178,7 +178,7 @@
             }
 
             if (result == Infrastructure.Data.DatabaseModeChangeResult.RecoveryFailed)
-                await DisplayAlert(
+                await DisplayAlertAsync(
                     global::SoftballScorekeeper
                         .Resources
                         .Strings
@@ -192,7 +192,7 @@
                     global::SoftballScorekeeper.Resources.Strings.AppResources.OkButton
                 );
             else if (result == Infrastructure.Data.DatabaseModeChangeResult.Failed)
-                await DisplayAlert(
+                await DisplayAlertAsync(
                     global::SoftballScorekeeper
                         .Resources
                         .Strings
@@ -206,7 +206,7 @@
                     global::SoftballScorekeeper.Resources.Strings.AppResources.OkButton
                 );
             else if (result == Infrastructure.Data.DatabaseModeChangeResult.AlreadyInProgress)
-                await DisplayAlert(
+                await DisplayAlertAsync(
                     global::SoftballScorekeeper
                         .Resources
                         .Strings

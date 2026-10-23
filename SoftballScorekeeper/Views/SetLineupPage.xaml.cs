@@ -159,7 +159,7 @@ public partial class SetLineupPage : ContentPage
         var template = selectedCount == 1
             ? AppResources.LineupRemovalConfirmationSingular
             : AppResources.LineupRemovalConfirmationPlural;
-        var confirmed = await DisplayAlert(
+        var confirmed = await DisplayAlertAsync(
             AppResources.LineupRemovalConfirmationTitle,
             string.Format(CultureInfo.CurrentCulture, template, selectedCount),
             AppResources.ConfirmRemoveLineupPlayersButton,
@@ -168,7 +168,7 @@ public partial class SetLineupPage : ContentPage
             await viewModel.ConfirmRemovalCommand.ExecuteAsync(null);
     }
 
-    private Task<bool> ConfirmPreviousLineupReplacementAsync() => DisplayAlert(
+    private Task<bool> ConfirmPreviousLineupReplacementAsync() => DisplayAlertAsync(
         AppResources.PreviousLineupReplacementTitle,
         AppResources.PreviousLineupReplacementMessage,
         AppResources.ConfirmPreviousLineupReplacementButton,

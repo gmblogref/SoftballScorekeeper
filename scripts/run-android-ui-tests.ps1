@@ -597,14 +597,14 @@ try {
         Invoke-RequiredCommand -Description 'Android build' -FilePath $dotnetExecutable -Arguments @(
             'build',
             $appProject,
-            '--framework', 'net9.0-android',
+            '--framework', 'net10.0-android',
             '--no-restore',
             '--no-incremental',
             '--property:EmbedAssembliesIntoApk=true',
             '--maxcpucount:1'
         )
 
-        $apkPath = Join-Path $repositoryRoot 'SoftballScorekeeper\bin\Debug\net9.0-android\com.companyname.softballscorekeeper-Signed.apk'
+        $apkPath = Join-Path $repositoryRoot 'SoftballScorekeeper\bin\Debug\net10.0-android\com.companyname.softballscorekeeper-Signed.apk'
         if (-not (Test-Path -LiteralPath $apkPath -PathType Leaf)) {
             throw "Android build succeeded but the expected APK was not found at '$apkPath'."
         }

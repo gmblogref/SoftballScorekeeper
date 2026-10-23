@@ -107,7 +107,7 @@ public partial class ScoringPage : ContentPage
         var settings = await viewModel.LoadBeerRulesAsync();
         if (settings is null)
         {
-            await DisplayAlert(
+            await DisplayAlertAsync(
                 AppResources.GameBeerRulesTitle,
                 AppResources.BeerRulesLoadFailed,
                 AppResources.OkButton
@@ -125,7 +125,7 @@ public partial class ScoringPage : ContentPage
         var projection = await viewModel.LoadInGameBattingStatisticsAsync();
         if (projection is null)
         {
-            await DisplayAlert(
+            await DisplayAlertAsync(
                 AppResources.BattingStatisticsHeading,
                 AppResources.InGameStatisticsLoadFailedMessage,
                 AppResources.OkButton
@@ -146,7 +146,7 @@ public partial class ScoringPage : ContentPage
     private async void OnManageLineupClicked(object sender, EventArgs e)
     {
         ScoringMenu.IsVisible = false;
-        var action = await DisplayActionSheet(
+        var action = await DisplayActionSheetAsync(
             AppResources.ManageLiveLineupTitle,
             AppResources.CancelButton,
             null,
@@ -234,7 +234,7 @@ public partial class ScoringPage : ContentPage
             )
             .Append(string.Format(AppResources.LiveLineupEndPositionFormat, lineup.Count + 1))
             .ToArray();
-        var selection = await DisplayActionSheet(
+        var selection = await DisplayActionSheetAsync(
             string.Format(AppResources.LiveLineupInsertionTitleFormat, player.DisplayName),
             AppResources.CancelButton,
             null,
@@ -257,7 +257,7 @@ public partial class ScoringPage : ContentPage
         var allPlayers = await viewModel.GetAllEligibleLiveLineupPlayersAsync();
         if (rostered.Count == 0 && allPlayers.Count == 0 && !allowCreate)
         {
-            await DisplayAlert(
+            await DisplayAlertAsync(
                 title,
                 AppResources.NoEligibleLiveLineupPlayers,
                 AppResources.OkButton
@@ -297,7 +297,7 @@ public partial class ScoringPage : ContentPage
                     : item.DisplayName
             )
             .ToArray();
-        var selection = await DisplayActionSheet(title, AppResources.CancelButton, null, labels);
+        var selection = await DisplayActionSheetAsync(title, AppResources.CancelButton, null, labels);
         var index = Array.IndexOf(labels, selection);
         return index < 0 ? null : players[index];
     }
@@ -305,7 +305,7 @@ public partial class ScoringPage : ContentPage
     private async void OnGameOverClicked(object sender, EventArgs e)
     {
         ScoringMenu.IsVisible = false;
-        var confirmed = await DisplayAlert(
+        var confirmed = await DisplayAlertAsync(
             AppResources.GameOverTitle,
             AppResources.GameOverConfirmationMessage,
             AppResources.GameOverButton,
@@ -317,7 +317,7 @@ public partial class ScoringPage : ContentPage
         if (failure == Infrastructure.Data.Repositories.GameScoringLifecycleFailure.None)
             await viewModel.ExitGameAsync();
         else
-            await DisplayAlert(
+            await DisplayAlertAsync(
                 AppResources.GameOverTitle,
                 viewModel.ValidationMessage,
                 AppResources.OkButton
@@ -331,7 +331,7 @@ public partial class ScoringPage : ContentPage
     {
         var results = viewModel.AvailableBatterResults;
         var options = results.Select(ScoringViewModel.FormatResult).ToList();
-        var selection = await DisplayActionSheet(
+        var selection = await DisplayActionSheetAsync(
             string.Format(AppResources.BatterResultMenuFormat, viewModel.CurrentBatterDisplayName),
             AppResources.CancelButton,
             null,
@@ -488,7 +488,7 @@ public partial class ScoringPage : ContentPage
         var rulings = new Dictionary<int, bool>();
         foreach (var ruling in requiredRulings)
         {
-            var counts = await DisplayAlert(
+            var counts = await DisplayAlertAsync(
                 AppResources.RunRulingTitle,
                 string.Format(AppResources.RunCountQuestionFormat, ruling.PlayerName),
                 AppResources.RunCountsButton,
@@ -544,7 +544,7 @@ public partial class ScoringPage : ContentPage
                     return;
                 if (!transition.TeamSummaryAcknowledged)
                 {
-                    await DisplayAlert(
+                    await DisplayAlertAsync(
                         transition.SummaryTitle,
                         transition.SummaryMessage,
                         AppResources.OkButton

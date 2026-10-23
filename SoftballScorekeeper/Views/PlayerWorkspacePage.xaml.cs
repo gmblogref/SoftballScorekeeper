@@ -29,7 +29,7 @@ public partial class PlayerWorkspacePage : ContentPage
             AppResources.DeactivateSinglePlayerConfirmationMessage,
             playerName);
 
-        var confirmed = await DisplayAlert(
+        var confirmed = await DisplayAlertAsync(
             AppResources.DeactivatePlayerConfirmationTitle,
             message,
             AppResources.ConfirmDeactivatePlayersButton,

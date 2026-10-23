@@ -32,7 +32,7 @@ public partial class InactiveTeamsPage : ContentPage
             AppResources.ReactivateTeamConfirmationMessage,
             team.Name);
 
-        var confirmed = await DisplayAlert(
+        var confirmed = await DisplayAlertAsync(
             AppResources.ReactivateTeamConfirmationTitle,
             message,
             AppResources.ConfirmReactivateTeamButton,
