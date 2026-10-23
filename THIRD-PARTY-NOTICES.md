@@ -4,8 +4,8 @@ This document identifies verified third-party material used by Softball
 Scorekeeper. It is separate from, and does not change, the license selected for
 Softball Scorekeeper's own source code.
 
-The inventory below is based on the repository assets and the restored .NET 9
-NuGet graph inspected on October 14–15, 2026. Build and runtime dependency graphs
+The inventory below is based on the repository assets and the restored .NET 10
+NuGet graphs inspected on October 23, 2026. Build and runtime dependency graphs
 can change when the SDK, workloads, or packages are updated. Release packaging
 must therefore regenerate and review the dependency inventory and carry forward
 the applicable upstream license and notice files.
@@ -51,12 +51,12 @@ The application projects directly reference the following production packages:
 | Package | Resolved version | Verified package license |
 | --- | --- | --- |
 | CommunityToolkit.Mvvm | 8.4.2 | MIT; package also contains `ThirdPartyNotices.txt` |
-| Microsoft.Maui.Controls | 9.0.111 | MIT; package also contains `THIRD-PARTY-NOTICES.TXT` |
-| Microsoft.Extensions.Logging.Debug | 9.0.0 | MIT |
+| Microsoft.Maui.Controls | 10.0.110 | MIT; package also contains `THIRD-PARTY-NOTICES.TXT` |
+| Microsoft.Extensions.Logging.Debug | 10.0.13 | MIT |
 | sqlite-net-pcl | 1.11.285 | MIT, copyright Krueger Systems, Inc. |
 
-The restored production graph contains 119 package/version entries, including
-build-only packages and target-specific dependencies. The following distributed
+The restored production graphs include build-only packages and target-specific
+dependencies. The following distributed
 dependency groups require release-time notice handling:
 
 - .NET MAUI, .NET Community Toolkit, and Microsoft.Extensions assemblies use
@@ -68,13 +68,13 @@ dependency groups require release-time notice handling:
   declares BSD-2-Clause material. Their package-provided third-party notices
   must be preserved when the corresponding material is distributed.
 - The Android Release build contains the arm64 and x86_64 variants of the .NET
-  Mono Android runtime 9.0.21. The exact
+  Mono Android runtime 10.0.13 and .NET for Android runtime 36.1.118. The exact
   `Microsoft.NETCore.App.Runtime.Mono.android-arm64` and
-  `Microsoft.NETCore.App.Runtime.Mono.android-x64` 9.0.21 packages supply
+  `Microsoft.NETCore.App.Runtime.Mono.android-x64` 10.0.13 packs supply
   byte-identical MIT license and third-party-notice files; the inventory retains
   one verified copy of each shared legal document and records both packages.
-- The Windows target resolves Microsoft Windows App SDK 1.7.250606001,
-  Microsoft WebView2 1.0.3179.45, and Microsoft Graphics Win2D 1.3.2. These
+- The Windows target resolves Microsoft Windows App SDK 1.8.260529003,
+  Microsoft WebView2 1.0.3179.45, and Microsoft Graphics Win2D 1.4.0. These
   packages provide product-specific license or notice terms that must accompany
   any redistributed components; they must not be represented as covered solely
   by the application's license or by a generic MIT notice.
@@ -107,16 +107,21 @@ The Microsoft terms below apply to their identified components independently of
 Softball Scorekeeper's PolyForm Noncommercial license. The application license
 does not replace, amend, or grant rights under these Microsoft agreements.
 
-- `Microsoft.Graphics.Win2D` 1.3.2 requires license acceptance in its exact
+- `Microsoft.Graphics.Win2D` 1.4.0 requires license acceptance in its exact
   NuGet metadata and links the Microsoft Win2D EULA. The original Microsoft URL
   no longer serves that agreement, so the byte-preserved
-  [`Microsoft.Graphics.Win2D-1.3.2-EULA.html`](licenses/distribution/windows/Microsoft.Graphics.Win2D-1.3.2-EULA.html)
+  [`Microsoft.Graphics.Win2D-1.4.0-EULA.html`](licenses/distribution/windows/Microsoft.Graphics.Win2D-1.4.0-EULA.html)
   is from the Internet Archive capture dated January 13, 2025 at 18:09:23 UTC,
-  before version 1.3.2 was published. It is not represented as MIT-only.
-- `Microsoft.WindowsAppSDK` 1.7.250606001 has an exact package-supplied
-  [`LICENSE.txt`](licenses/distribution/windows/Microsoft.WindowsAppSDK-1.7.250606001-LICENSE.txt)
-  and [`NOTICE.txt`](licenses/distribution/windows/Microsoft.WindowsAppSDK-1.7.250606001-NOTICE.txt).
-  The NOTICE includes the package's incorporated third-party attribution.
+  before version 1.4.0 was published. It is not represented as MIT-only.
+- `Microsoft.WindowsAppSDK` 1.8.260529003 has an exact package-supplied
+  [`LICENSE.txt`](licenses/distribution/windows/Microsoft.WindowsAppSDK-1.8.260529003-LICENSE.txt)
+  and [`NOTICE.txt`](licenses/distribution/windows/Microsoft.WindowsAppSDK-1.8.260529003-NOTICE.txt).
+  The NOTICE includes the package's incorporated third-party attribution. The
+  split Windows App SDK graph also supplies a distinct
+  [`DWrite/Widgets license`](licenses/distribution/windows/Microsoft.WindowsAppSDK.DWrite-1.8.25122902-LICENSE.txt),
+  plus the ML package's exact
+  [`license`](licenses/distribution/windows/Microsoft.WindowsAppSDK.ML-1.8.2197-LICENSE.txt)
+  and [`third-party notices`](licenses/distribution/windows/Microsoft.WindowsAppSDK.ML-1.8.2197-THIRD-PARTY-NOTICES.txt).
 - `Microsoft.Windows.SDK.NET.Ref` 10.0.19041.57 links the preserved
   [`Microsoft Windows SDK RTF`](licenses/distribution/windows/Microsoft.Windows.SDK.NET.Ref-10.0.19041.57-LICENSE.rtf).
   The RTF has no package-version marker, but the exact package points to it and
@@ -139,12 +144,12 @@ qualified legal review before publishing v1.0.1.
 The following direct packages are used only by automated test projects and are
 not application distribution dependencies:
 
-- Microsoft.NET.Test.Sdk 17.8.0
-- xunit 2.5.3
-- xunit.runner.visualstudio 2.5.3
-- Appium.WebDriver 8.3.2
-- Selenium.Support 4.46.0
-- Selenium.WebDriver 4.46.0
+- Microsoft.NET.Test.Sdk 18.11.0
+- xunit 2.9.3
+- xunit.runner.visualstudio 4.0.1
+- Appium.WebDriver 9.0.0
+- Selenium.Support 4.51.0
+- Selenium.WebDriver 4.51.0
 
 Their licenses remain applicable to anyone redistributing those packages or
 their contents, but they are not notices for the Android APK or Windows portable

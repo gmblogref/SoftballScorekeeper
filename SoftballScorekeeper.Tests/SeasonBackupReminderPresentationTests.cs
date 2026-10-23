@@ -32,7 +32,7 @@ public sealed class SeasonBackupReminderPresentationTests
             mainPage.IndexOf("await ReloadAsync()", StringComparison.Ordinal)
             < mainPage.IndexOf("RunAtStartupAsync", StringComparison.Ordinal)
         );
-        Assert.Contains("DisplayActionSheet(", mainPage);
+        Assert.Contains("DisplayActionSheetAsync(", mainPage);
         Assert.Contains("AppResources.OkButton", mainPage);
         Assert.Contains("AppResources.SeasonBackupReminderRemindLater", mainPage);
         Assert.Contains("AppResources.SeasonBackupReminderDismiss", mainPage);

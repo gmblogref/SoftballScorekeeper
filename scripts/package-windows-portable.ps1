@@ -296,17 +296,20 @@ function Get-WindowsLicenseMappings {
         'licenses/common/CommunityToolkit.Mvvm-8.4.2-LICENSE.md',
         'licenses/common/CommunityToolkit.Mvvm-8.4.2-THIRD-PARTY-NOTICES.txt',
         'licenses/common/DotNet-MIT-LICENSE.txt',
-        'licenses/common/Microsoft.Maui-9.0.111-THIRD-PARTY-NOTICES.txt',
+        'licenses/common/Microsoft.Maui-10.0.110-THIRD-PARTY-NOTICES.txt',
         'licenses/common/sqlite-net-pcl-1.11.285-LICENSE.txt',
         'licenses/common/SQLite-PUBLIC-DOMAIN.txt',
-        'licenses/windows/Microsoft.Graphics.Win2D-1.3.2-EULA.html',
+        'licenses/windows/Microsoft.Graphics.Win2D-1.4.0-EULA.html',
         'licenses/windows/Microsoft.IO.RecyclableMemoryStream-3.0.1-LICENSE.txt',
-        'licenses/windows/Microsoft.NETCore.App.Runtime.win-x64-9.0.21-THIRD-PARTY-NOTICES.txt',
+        'licenses/windows/Microsoft.NETCore.App.Runtime.win-x64-10.0.13-THIRD-PARTY-NOTICES.txt',
         'licenses/windows/Microsoft.Web.WebView2-1.0.3179.45-LICENSE.txt',
         'licenses/windows/Microsoft.Web.WebView2-1.0.3179.45-NOTICE.txt',
         'licenses/windows/Microsoft.Windows.SDK.NET.Ref-10.0.19041.57-LICENSE.rtf',
-        'licenses/windows/Microsoft.WindowsAppSDK-1.7.250606001-LICENSE.txt',
-        'licenses/windows/Microsoft.WindowsAppSDK-1.7.250606001-NOTICE.txt'
+        'licenses/windows/Microsoft.WindowsAppSDK-1.8.260529003-LICENSE.txt',
+        'licenses/windows/Microsoft.WindowsAppSDK-1.8.260529003-NOTICE.txt',
+        'licenses/windows/Microsoft.WindowsAppSDK.DWrite-1.8.25122902-LICENSE.txt',
+        'licenses/windows/Microsoft.WindowsAppSDK.ML-1.8.2197-LICENSE.txt',
+        'licenses/windows/Microsoft.WindowsAppSDK.ML-1.8.2197-THIRD-PARTY-NOTICES.txt'
     )
 
     foreach ($requiredDestination in $requiredDestinations) {

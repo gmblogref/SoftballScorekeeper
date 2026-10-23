@@ -26,7 +26,7 @@ Windows x64 is supported through a self-contained portable ZIP. No installer is 
 2. Extract the entire ZIP to a folder where you want to keep the application.
 3. Open that folder and run `SoftballScorekeeper.exe`.
 
-Keep all extracted files and directories together. The ZIP includes the .NET 9 and Windows App SDK runtime dependencies used by the application. The portable release has been validated on a Windows development computer; clean-machine validation remains pending.
+Keep all extracted files and directories together. The ZIP includes the .NET 10 and Windows App SDK runtime dependencies used by the application. The portable release has been validated on a Windows development computer; clean-machine validation remains pending.
 
 The portable executable is unsigned, so Windows may identify it as an unrecognized downloaded application or display a security warning. Verify that the ZIP came from the release page, and follow any organizational security requirements; do not bypass policies that prohibit running unsigned software.
 
@@ -97,9 +97,10 @@ There are no user accounts, server-side services, cloud database, or automatic c
 
 ### Prerequisites
 
-- .NET 9 SDK
+- .NET 10 SDK 10.0.402
 - Visual Studio with .NET MAUI development support, or an equivalent .NET MAUI toolchain
 - .NET MAUI Android workload and Android SDK for Android builds
+- JDK 21 for Android command-line builds
 - .NET MAUI Windows workload and Windows development tooling for Windows builds
 - An Android emulator or physical Android device for Android runtime validation
 
@@ -107,8 +108,8 @@ Clone the repository and open `SoftballScorekeeper.sln` in Visual Studio, then s
 
 ```powershell
 dotnet restore SoftballScorekeeper.sln
-dotnet build SoftballScorekeeper/SoftballScorekeeper.csproj --framework net9.0-android
-dotnet build SoftballScorekeeper/SoftballScorekeeper.csproj --framework net9.0-windows10.0.19041.0
+dotnet build SoftballScorekeeper/SoftballScorekeeper.csproj --framework net10.0-android
+dotnet build SoftballScorekeeper/SoftballScorekeeper.csproj --framework net10.0-windows10.0.19041.0
 ```
 
 ## Testing

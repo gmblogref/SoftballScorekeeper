@@ -867,18 +867,18 @@
   <data name="LicenseDocumentCommunityToolkitLicense" xml:space="preserve"><value>CommunityToolkit.Mvvm 8.4.2 — MIT</value></data>
   <data name="LicenseDocumentCommunityToolkitNotices" xml:space="preserve"><value>CommunityToolkit.Mvvm 8.4.2 — Third-Party Notices</value></data>
   <data name="LicenseDocumentDotNet" xml:space="preserve"><value>.NET and .NET MAUI — MIT</value></data>
-  <data name="LicenseDocumentMauiNotices" xml:space="preserve"><value>.NET MAUI 9.0.111 — Third-Party Notices</value></data>
+  <data name="LicenseDocumentMauiNotices" xml:space="preserve"><value>.NET MAUI 10.0.110 — Third-Party Notices</value></data>
   <data name="LicenseDocumentSqliteNet" xml:space="preserve"><value>sqlite-net-pcl 1.11.285 — MIT</value></data>
   <data name="LicenseDocumentSqlite" xml:space="preserve"><value>SQLite — Public Domain</value></data>
   <data name="LicenseDocumentDotNetAndroid" xml:space="preserve"><value>.NET for Android — MIT</value></data>
-  <data name="LicenseDocumentGsonNotices" xml:space="preserve"><value>Google Gson 2.13.0.1 — Third-Party Notices</value></data>
-  <data name="LicenseDocumentAndroidRuntimeNotices" xml:space="preserve"><value>Microsoft.Android Runtime 35.0.78 — Third-Party Notices</value></data>
-  <data name="LicenseDocumentMonoAndroidNotices" xml:space="preserve"><value>.NET Mono Android Runtimes 9.0.21 — Third-Party Notices</value></data>
-  <data name="LicenseDocumentGlideNotices" xml:space="preserve"><value>Glide Bindings 4.16.0.12 — Third-Party Notices</value></data>
+  <data name="LicenseDocumentGsonNotices" xml:space="preserve"><value>Google Gson 2.13.1.1 — Third-Party Notices</value></data>
+  <data name="LicenseDocumentAndroidRuntimeNotices" xml:space="preserve"><value>Microsoft.Android Runtime 36.1.118 — Third-Party Notices</value></data>
+  <data name="LicenseDocumentMonoAndroidNotices" xml:space="preserve"><value>.NET Mono Android Runtimes 10.0.13 — Third-Party Notices</value></data>
+  <data name="LicenseDocumentGlideNotices" xml:space="preserve"><value>Glide Bindings 4.16.0.14 — Third-Party Notices</value></data>
   <data name="LicenseDocumentAndroidBindingsLicense" xml:space="preserve"><value>Microsoft Android Bindings — MIT</value></data>
   <data name="LicenseDocumentAndroidBindingsNotices" xml:space="preserve"><value>AndroidX and Google Bindings — Third-Party Notices</value></data>
-  <data name="LicenseDocumentTinkNotices" xml:space="preserve"><value>Google Tink 1.17.0.1 — Third-Party Notices</value></data>
-  <data name="LicenseDocumentErrorProneNotices" xml:space="preserve"><value>Error Prone 2.37.0.1 — Third-Party Notices</value></data>
+  <data name="LicenseDocumentTinkNotices" xml:space="preserve"><value>Google Tink 1.18.0.1 — Third-Party Notices</value></data>
+  <data name="LicenseDocumentErrorProneNotices" xml:space="preserve"><value>Error Prone 2.41.0.1 — Third-Party Notices</value></data>
   <data name="LicenseDocumentKotlinJetBrainsNotices" xml:space="preserve"><value>Kotlin and JetBrains — Third-Party Notices</value></data>
   <data name="LicenseDocumentKotlinJSpecifyNotices" xml:space="preserve"><value>Kotlin and JSpecify — Third-Party Notices</value></data>
   <data name="BackupDataButton" xml:space="preserve"><value>Backup Data</value></data>

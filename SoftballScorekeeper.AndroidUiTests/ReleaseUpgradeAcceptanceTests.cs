@@ -81,7 +81,7 @@ public sealed class ReleaseUpgradeAcceptanceTests(AndroidAppiumFixture fixture)
             fixture.ExecuteAdb("shell", "cmd", "connectivity", "airplane-mode", "enable");
             networkDisabled = true;
             Assert.Contains("enabled", fixture.ExecuteAdb("shell", "cmd", "connectivity", "airplane-mode"), StringComparison.OrdinalIgnoreCase);
-            SelectLicense(driver, "Microsoft.Android Runtime 35.0.78 — Third-Party Notices");
+            SelectLicense(driver, "Microsoft.Android Runtime 36.1.118 — Third-Party Notices");
             AssertLicenseContent(driver, "xamarin-android");
 
             fixture.SetOrientation(ScreenOrientation.Portrait);
@@ -149,7 +149,7 @@ public sealed class ReleaseUpgradeAcceptanceTests(AndroidAppiumFixture fixture)
                 fixture.ExecuteAdb("shell", "cmd", "connectivity", "airplane-mode"),
                 StringComparison.OrdinalIgnoreCase
             );
-            SelectLicense(driver, "Microsoft.Android Runtime 35.0.78 — Third-Party Notices");
+            SelectLicense(driver, "Microsoft.Android Runtime 36.1.118 — Third-Party Notices");
             AssertLicenseContent(driver, "xamarin-android");
 
             fixture.SetOrientation(ScreenOrientation.Portrait);

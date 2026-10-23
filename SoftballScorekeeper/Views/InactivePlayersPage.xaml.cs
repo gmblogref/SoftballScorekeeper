@@ -32,7 +32,7 @@ public partial class InactivePlayersPage : ContentPage
             messageTemplate,
             selectedPlayerCount);
 
-        var confirmed = await DisplayAlert(
+        var confirmed = await DisplayAlertAsync(
             AppResources.ReactivatePlayersConfirmationTitle,
             message,
             AppResources.ConfirmReactivatePlayersButton,

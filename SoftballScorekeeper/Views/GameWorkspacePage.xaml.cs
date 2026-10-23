@@ -18,7 +18,7 @@ public partial class GameWorkspacePage : ContentPage
     {
         InitializeComponent();
         this.viewModel = viewModel;
-        viewModel.RevertManualOverridesConfirmationRequested = () => DisplayAlert(
+        viewModel.RevertManualOverridesConfirmationRequested = () => DisplayAlertAsync(
             AppResources.ManualOverrideRevertTitle,
             AppResources.ManualOverrideRevertMessage,
             AppResources.ManualOverrideRevertConfirmButton,
@@ -71,13 +71,13 @@ public partial class GameWorkspacePage : ContentPage
 
     private async void OnResetGameClicked(object sender, EventArgs e)
     {
-        var firstConfirmation = await DisplayAlert(
+        var firstConfirmation = await DisplayAlertAsync(
             AppResources.ResetGameTitle,
             AppResources.ResetGameFirstConfirmation,
             AppResources.ContinueButton,
             AppResources.CancelButton);
         if (!firstConfirmation) return;
-        var finalConfirmation = await DisplayAlert(
+        var finalConfirmation = await DisplayAlertAsync(
             AppResources.ResetGameTitle,
             AppResources.ResetGameFinalConfirmation,
             AppResources.ResetGameButton,

@@ -37,7 +37,7 @@ public static class LicenseDocumentCatalog
             ),
             new(
                 AppResources.LicenseDocumentMauiNotices,
-                "licenses/common/Microsoft.Maui-9.0.111-THIRD-PARTY-NOTICES.txt"
+                "licenses/common/Microsoft.Maui-10.0.110-THIRD-PARTY-NOTICES.txt"
             ),
             new(
                 AppResources.LicenseDocumentSqliteNet,
@@ -53,19 +53,19 @@ public static class LicenseDocumentCatalog
             ),
             new(
                 AppResources.LicenseDocumentGsonNotices,
-                "licenses/android/GoogleGson-2.13.0.1-THIRD-PARTY-NOTICES.txt"
+                "licenses/android/GoogleGson-2.13.1.1-THIRD-PARTY-NOTICES.txt"
             ),
             new(
                 AppResources.LicenseDocumentAndroidRuntimeNotices,
-                "licenses/android/Microsoft.Android.Runtime.35.android-arm64-35.0.78-THIRD-PARTY-NOTICES.txt"
+                "licenses/android/Microsoft.Android.Runtime.Mono.36.android-arm64-36.1.118-THIRD-PARTY-NOTICES.txt"
             ),
             new(
                 AppResources.LicenseDocumentMonoAndroidNotices,
-                "licenses/android/Microsoft.NETCore.App.Runtime.Mono.android-9.0.21-THIRD-PARTY-NOTICES.txt"
+                "licenses/android/Microsoft.NETCore.App.Runtime.Mono.android-10.0.13-THIRD-PARTY-NOTICES.txt"
             ),
             new(
                 AppResources.LicenseDocumentGlideNotices,
-                "licenses/android/Xamarin.Android.Glide-4.16.0.12-THIRD-PARTY-NOTICES.txt"
+                "licenses/android/Xamarin.Android.Glide-4.16.0.14-THIRD-PARTY-NOTICES.txt"
             ),
             new(
                 AppResources.LicenseDocumentAndroidBindingsLicense,
@@ -77,11 +77,11 @@ public static class LicenseDocumentCatalog
             ),
             new(
                 AppResources.LicenseDocumentTinkNotices,
-                "licenses/android/Xamarin.Google.Crypto.Tink.Android-1.17.0.1-THIRD-PARTY-NOTICES.txt"
+                "licenses/android/Xamarin.Google.Crypto.Tink.Android-1.18.0.1-THIRD-PARTY-NOTICES.txt"
             ),
             new(
                 AppResources.LicenseDocumentErrorProneNotices,
-                "licenses/android/Xamarin.Google.ErrorProne-2.37.0.1-THIRD-PARTY-NOTICES.txt"
+                "licenses/android/Xamarin.Google.ErrorProne-2.41.0.1-THIRD-PARTY-NOTICES.txt"
             ),
             new(
                 AppResources.LicenseDocumentKotlinJetBrainsNotices,

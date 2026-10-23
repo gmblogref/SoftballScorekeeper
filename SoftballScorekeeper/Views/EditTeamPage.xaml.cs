@@ -31,7 +31,7 @@ public partial class EditTeamPage : ContentPage
             AppResources.DeactivateTeamConfirmationMessage,
             teamName);
 
-        var confirmed = await DisplayAlert(
+        var confirmed = await DisplayAlertAsync(
             AppResources.DeactivateTeamConfirmationTitle,
             message,
             AppResources.ConfirmDeactivateTeamButton,

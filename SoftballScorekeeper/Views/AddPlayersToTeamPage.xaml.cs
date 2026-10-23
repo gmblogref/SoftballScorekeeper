@@ -28,7 +28,7 @@ public partial class AddPlayersToTeamPage : ContentPage
             ? AppResources.AddPlayerToTeamConfirmationMessage
             : AppResources.AddPlayersToTeamConfirmationMessage;
         var message = string.Format(CultureInfo.CurrentCulture, template, selectedCount, teamName);
-        var confirmed = await DisplayAlert(
+        var confirmed = await DisplayAlertAsync(
             AppResources.AddPlayersToTeamConfirmationTitle,
             message,
             AppResources.ConfirmAddPlayersToTeamButton,
