@@ -1412,6 +1412,39 @@ public sealed partial class WalkFielderChoiceScoringTests
         Assert.Contains("OutsThisInning.Clear();", viewModelCode);
     }
 
+    [Fact]
+    public void Landscape_scoring_keeps_field_controls_above_spanning_information_panel()
+    {
+        var repositoryRoot = Path.GetFullPath(Path.Combine(
+            AppContext.BaseDirectory, "..", "..", "..", ".."));
+        var page = XDocument.Load(Path.Combine(repositoryRoot, "SoftballScorekeeper", "Views",
+            "ScoringPage.xaml"));
+        var ns = page.Root!.Name.Namespace;
+        var x = XNamespace.Get("http://schemas.microsoft.com/winfx/2009/xaml");
+        var namedElements = page.Descendants().Where(item =>
+                item.Attribute(x + "Name") is not null)
+            .ToDictionary(item => item.Attribute(x + "Name")!.Value);
+        var fieldSection = namedElements["FieldSection"];
+        var informationPanels = namedElements["PortraitInfoPanels"];
+        var currentBatterButton = page.Descendants(ns + "Button")
+            .Single(item => item.Attribute("AutomationId")?.Value == "CurrentBatterButton");
+
+        Assert.Equal("1", fieldSection.Attribute("ZIndex")?.Value);
+        Assert.Null(informationPanels.Attribute("ZIndex"));
+        Assert.Equal(fieldSection, currentBatterButton.Ancestors().First(item =>
+            item.Attribute(x + "Name")?.Value == "FieldSection"));
+        Assert.Equal("OnBatterClicked", currentBatterButton.Attribute("Clicked")?.Value);
+        Assert.All(new[] { "LandscapeScoreboard", "CompactLandscapeScoreboard" }, stateName =>
+        {
+            var state = page.Descendants(ns + "VisualState")
+                .Single(item => item.Attribute(x + "Name")?.Value == stateName);
+            Assert.Contains(state.Descendants(ns + "Setter"), item =>
+                item.Attribute("TargetName")?.Value == "PortraitInfoPanels"
+                && item.Attribute("Property")?.Value == "Grid.ColumnSpan"
+                && item.Attribute("Value")?.Value == "5");
+        });
+    }
+
     private static async Task SeedBasesAsync(
         TemporaryTestDatabase db,
         int sessionId,

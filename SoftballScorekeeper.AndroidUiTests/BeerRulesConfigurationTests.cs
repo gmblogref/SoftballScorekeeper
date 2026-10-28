@@ -277,9 +277,21 @@ public sealed class BeerRulesConfigurationTests
 
     private static void SetAmount(AndroidDriver driver, string ruleName, string amount)
     {
-        var entry = ScrollToAutomationId(driver, $"BeerRule{ruleName}Amount");
-        entry.Clear();
-        entry.SendKeys(amount);
+        var automationId = $"BeerRule{ruleName}Amount";
+        var entry = ScrollToAutomationId(driver, automationId);
+        driver.ExecuteScript(
+            "mobile: replaceElementValue",
+            new Dictionary<string, object>
+            {
+                ["elementId"] = ((AppiumElement)entry).Id,
+                ["text"] = amount,
+            });
+
+        var wait = new WebDriverWait(driver, TimeSpan.FromSeconds(5));
+        var replacedEntry = wait.Until(current =>
+            current.FindElements(By.Id(ResourceId(automationId)))
+                .FirstOrDefault(candidate => candidate.Displayed && candidate.Text == amount));
+        Assert.Equal(amount, replacedEntry!.Text);
         try
         {
             driver.HideKeyboard();

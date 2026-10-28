@@ -59,6 +59,41 @@ public sealed class IsolatedTestModePresentationTests
     }
 
     [Fact]
+    public void Test_mode_indicator_detaches_windows_content_before_wrapping_it()
+    {
+        var indicator = File.ReadAllText(
+            ReadPath("SoftballScorekeeper", "Services", "TestModeIndicator.cs")
+        );
+        var originalContentCapture = indicator.IndexOf(
+            "var originalContent = page.Content;",
+            StringComparison.Ordinal
+        );
+        var windowsGuard = indicator.IndexOf("#if WINDOWS", StringComparison.Ordinal);
+        var contentDetach = indicator.IndexOf("page.Content = null;", StringComparison.Ordinal);
+        var indicatorBinding = indicator.IndexOf(
+            "nameof(DatabaseModeState.IsTestMode)",
+            StringComparison.Ordinal
+        );
+        var originalContentWrap = indicator.IndexOf(
+            "layout.Add(originalContent, 0, 1);",
+            StringComparison.Ordinal
+        );
+        var wrappedContentAssignment = indicator.IndexOf(
+            "page.Content = layout;",
+            StringComparison.Ordinal
+        );
+
+        Assert.True(originalContentCapture >= 0);
+        Assert.True(windowsGuard > originalContentCapture);
+        Assert.True(contentDetach > windowsGuard);
+        Assert.True(originalContentWrap > contentDetach);
+        Assert.True(wrappedContentAssignment > originalContentWrap);
+        Assert.True(indicatorBinding >= 0);
+        Assert.Contains("(bool)page.GetValue(IsWrappedProperty)", indicator);
+        Assert.Contains("page.SetValue(IsWrappedProperty, true)", indicator);
+    }
+
+    [Fact]
     public void Data_management_commands_and_services_have_test_mode_guards()
     {
         var viewModel = File.ReadAllText(

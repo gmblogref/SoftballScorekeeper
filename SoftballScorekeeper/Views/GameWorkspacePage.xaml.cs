@@ -13,6 +13,7 @@ public partial class GameWorkspacePage : ContentPage
     private string? lastCompletedLayoutLog;
     private double allocatedWidth;
     private double allocatedHeight;
+    private bool isScoringSetupPresented;
 
     public GameWorkspacePage(GameWorkspaceViewModel viewModel)
     {
@@ -55,7 +56,8 @@ public partial class GameWorkspacePage : ContentPage
     protected override async void OnAppearing()
     {
         base.OnAppearing();
-        await viewModel.LoadAsync();
+        if (!isScoringSetupPresented)
+            await viewModel.LoadAsync();
         QueueCompletedLayoutLog();
     }
 
@@ -63,7 +65,16 @@ public partial class GameWorkspacePage : ContentPage
     {
         var dialog = new GameRulesDialog(true,
             Core.Models.GameScoringSession.DefaultHomeRunLimit, false);
-        var setup = await dialog.ShowAsync(Navigation);
+        GameRulesDialogResult? setup;
+        isScoringSetupPresented = true;
+        try
+        {
+            setup = await dialog.ShowAsync(Navigation);
+        }
+        finally
+        {
+            isScoringSetupPresented = false;
+        }
         if (setup is not null)
             await viewModel.InitializeScoringAsync(setup.TeamSide,
                 setup.HomeRunLimit, setup.IsOneUpEnabled);

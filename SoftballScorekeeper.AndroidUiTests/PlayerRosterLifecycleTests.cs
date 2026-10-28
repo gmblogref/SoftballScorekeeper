@@ -74,7 +74,7 @@ public sealed class PlayerRosterLifecycleTests(AndroidAppiumFixture fixture)
                 PhaseAUiWorkflow.AssertTextAbsent(driver, "Phase Edited Foundation");
 
                 PhaseAUiWorkflow.OpenShellFlyout(driver);
-                AndroidElementWait.UntilText(driver, "Players").Click();
+                AndroidElementWait.UntilAutomationId(driver, "PlayersFlyoutMenuItem").Click();
                 PhaseAUiWorkflow.ScrollToText(driver, "Phase Edited Foundation");
                 PhaseAUiWorkflow.AssertSingleVisibleText(driver, "Phase Edited Foundation");
                 PhaseAUiWorkflow.TapCenter(driver, AndroidElementWait.UntilText(driver, "Teams"));
@@ -96,7 +96,7 @@ public sealed class PlayerRosterLifecycleTests(AndroidAppiumFixture fixture)
                 PhaseAUiWorkflow.ScrollToText(driver, "Phase Edited Foundation");
 
                 PhaseAUiWorkflow.OpenShellFlyout(driver);
-                AndroidElementWait.UntilText(driver, "Players").Click();
+                AndroidElementWait.UntilAutomationId(driver, "PlayersFlyoutMenuItem").Click();
                 OpenByRealTap(driver, "Phase Edited Foundation");
                 AndroidElementWait.UntilText(driver, "Deactivate Player").Click();
                 AndroidElementWait.UntilText(driver, "Deactivate Player");
