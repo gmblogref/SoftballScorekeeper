@@ -196,8 +196,8 @@ function Get-WindowsLicenseMappings {
         throw "Unsupported production license manifest schema '$($Manifest.schema_version)'. Expected schema 1."
     }
 
-    if ($Manifest.release_target -cne 'v1.0.1') {
-        throw "Production license manifest targets '$($Manifest.release_target)', not v1.0.1."
+    if ($Manifest.release_target -cne 'v2.0.0') {
+        throw "Production license manifest targets '$($Manifest.release_target)', not v2.0.0."
     }
 
     if ([string]::IsNullOrWhiteSpace([string]$Manifest.coverage_status)) {
