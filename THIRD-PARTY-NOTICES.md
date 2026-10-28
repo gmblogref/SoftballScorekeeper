@@ -85,10 +85,10 @@ audit. A future release must inventory the actual final APK and Windows ZIP,
 copy all applicable package-provided license and notice texts into the
 distribution, and verify that build-only packages are excluded.
 
-## Version 1.0.1 notice collection
+## Version 2.0.0 notice collection
 
 The version-specific production inventory and preserved upstream files collected
-for the planned v1.0.1 maintenance release are under
+for the upcoming v2.0.0 release are under
 [`licenses/distribution`](licenses/distribution). The structured
 [`production-license-manifest.json`](licenses/distribution/production-license-manifest.json)
 records exact package versions, platform scope, sources, notice files, intended
@@ -96,7 +96,7 @@ package destinations, exclusions, and verification status. `SHA256SUMS.txt`
 records the preserved files' repository hashes.
 
 This collection is wired into the Android APK and Windows portable-ZIP
-packaging. Every runtime component identified by the v1.0.1 production
+packaging. Every runtime component identified by the v2.0.0 production
 inventory has a mapped license or notice source. Release validation must still
 compare the final artifacts to this inventory and investigate any added or
 changed components.
@@ -137,7 +137,7 @@ agree to sufficiently protective terms. Whether making the exact agreements
 available in a portable ZIP, with use-based acceptance language, satisfies that
 requirement remains unresolved. This inventory records the terms but does not
 claim that question has been answered; obtain Microsoft clarification or
-qualified legal review before publishing v1.0.1.
+qualified legal review before publishing v2.0.0.
 
 ## Test-only dependencies
 

@@ -1,9 +1,9 @@
 {
   "schema_version": 1,
-  "inventory_date": "2026-10-23",
-  "release_target": "v1.0.1",
-  "inventory_basis": "Versions verified from the restored .NET 10 Android and Windows production graphs and the current v1.0.1 Android and Windows Release builds during Story 2.0. The final v1.0.1 artifact inventory must match these entries or this manifest must be reviewed and updated before release.",
-  "coverage_status": "complete-for-identified-v1.0.1-runtime-components-with-unresolved-microsoft-downstream-acceptance",
+  "inventory_date": "2026-10-28",
+  "release_target": "v2.0.0",
+  "inventory_basis": "Initial versions were verified from the accepted Story 2.0 restored .NET 10 Android and Windows production graphs. Story 2.2 preliminary Windows publish inspection verified Microsoft.NETCore.App.Runtime.win-x64 10.0.14 and reconciled its exact package SHA-256 plus byte-identical MIT license and third-party notice; the independently verified Android Mono runtime remains 10.0.13. Final v2.0.0 artifacts built from merged main must be reconciled against this inventory before release.",
+  "coverage_status": "complete-for-identified-v2.0.0-runtime-components-with-unresolved-microsoft-downstream-acceptance",
   "application_license": {
     "source": "LICENSE",
     "packaged_destination": "LICENSE.txt",
@@ -274,19 +274,19 @@
     },
     {
       "component": ".NET Windows x64 runtime",
-      "version": "10.0.13",
-      "package": "Microsoft.NETCore.App.Runtime.win-x64/10.0.13",
+      "version": "10.0.14",
+      "package": "Microsoft.NETCore.App.Runtime.win-x64/10.0.14",
       "platform": ["windows"],
       "license_identifier": "MIT",
       "copyright_holder_or_source": "Microsoft Corporation and contributors identified in the exact runtime notice",
-      "authoritative_source": "https://www.nuget.org/packages/Microsoft.NETCore.App.Runtime.win-x64/10.0.13",
-      "package_sha256": "C66885D464697BE75676B4D1FBCA38B8806F3AF01D65D27205B3F06ADD094444",
+      "authoritative_source": "https://www.nuget.org/packages/Microsoft.NETCore.App.Runtime.win-x64/10.0.14",
+      "package_sha256": "A3EA61B4A2DA6D28E562DD1CDACF80EB4DD6B9727B0A2B47F9D6ABA90DBBCB1F",
       "required_notice_files": [
         "licenses/distribution/common/DotNet-MIT-LICENSE.txt",
         "licenses/distribution/windows/Microsoft.NETCore.App.Runtime.win-x64-10.0.13-THIRD-PARTY-NOTICES.txt"
       ],
       "packaged_destination_paths": ["licenses/common/DotNet-MIT-LICENSE.txt", "licenses/windows/Microsoft.NETCore.App.Runtime.win-x64-10.0.13-THIRD-PARTY-NOTICES.txt"],
-      "verification_status": "verified-from-exact-nuget-package"
+      "verification_status": "verified-from-exact-10.0.14-nuget-package; retained 10.0.13-named license resources are byte-identical"
     },
     {
       "component": "Microsoft Windows App SDK",

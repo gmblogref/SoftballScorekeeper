@@ -8,6 +8,10 @@ namespace SoftballScorekeeper.AndroidUiTests;
 [Collection(AndroidUiTestCollection.Name)]
 public sealed class ReleaseUpgradeAcceptanceTests(AndroidAppiumFixture fixture)
 {
+    private const string SourceApkSha256 =
+        "638220D9C91F15D8565A06D694D35390B5FE0EDF90DA855CB6FD21057CC3A361";
+    private const string ReleaseCertificateSha256 =
+        "D55EFDC1E25B341F4408BC3014ECFF31D94255113EDD6F9B5F3CE98E833E4E05";
     private static readonly string RunId = DateTime.UtcNow.ToString("HHmmss");
     private static readonly string TeamName = $"RELEASE 19L1 TEAM {RunId}";
     private static readonly string PlayerFirstName = $"Release{RunId}";
@@ -18,16 +22,16 @@ public sealed class ReleaseUpgradeAcceptanceTests(AndroidAppiumFixture fixture)
     public void Signed_release_upgrade_preserves_data_and_licenses_work_offline()
     {
         Assert.Equal("1", Environment.GetEnvironmentVariable("SOFTBALL_ANDROID_RELEASE_ACCEPTANCE"));
-        var v100 = RequiredApk("SOFTBALL_RELEASE_V100_APK");
-        var v101 = RequiredApk("SOFTBALL_RELEASE_V101_APK");
-        Assert.Equal(
-            "C2FA4B8368954CFC16DE64106AE0F68C7BBFA0E50C2794742A1FD9035378DC4D",
-            Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(File.ReadAllBytes(v100)))
-        );
-        Assert.Equal(
-            "638220D9C91F15D8565A06D694D35390B5FE0EDF90DA855CB6FD21057CC3A361",
-            Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(File.ReadAllBytes(v101)))
-        );
+        var sourceApk = RequiredApk("SOFTBALL_RELEASE_SOURCE_APK");
+        var destinationApk = RequiredApk("SOFTBALL_RELEASE_DESTINATION_APK");
+        var sourceSha256 = RequiredSha256("SOFTBALL_RELEASE_SOURCE_SHA256");
+        var destinationSha256 = RequiredSha256("SOFTBALL_RELEASE_DESTINATION_SHA256");
+        var certificateSha256 = RequiredSha256("SOFTBALL_RELEASE_CERTIFICATE_SHA256");
+        Assert.Equal(SourceApkSha256, sourceSha256);
+        Assert.Equal(ReleaseCertificateSha256, certificateSha256);
+        Assert.NotEqual(sourceSha256, destinationSha256);
+        AssertApkHash(sourceApk, sourceSha256);
+        AssertApkHash(destinationApk, destinationSha256);
 
         var installedPackages = fixture.ExecuteAdb(
             "shell",
@@ -38,14 +42,14 @@ public sealed class ReleaseUpgradeAcceptanceTests(AndroidAppiumFixture fixture)
         );
         if (installedPackages.Contains(AndroidAutomationConstants.AppPackage, StringComparison.Ordinal))
         {
-            AssertVersion("4", "1.0.0");
-            Install(v100, replace: true);
+            AssertVersion("5", "1.0.1");
+            Install(sourceApk, replace: true);
         }
         else
         {
-            Install(v100);
+            Install(sourceApk);
         }
-        AssertVersion("4", "1.0.0");
+        AssertVersion("5", "1.0.1");
 
         fixture.SetOrientation(ScreenOrientation.Landscape);
         fixture.RelaunchApplicationWithoutReset();
@@ -59,8 +63,8 @@ public sealed class ReleaseUpgradeAcceptanceTests(AndroidAppiumFixture fixture)
             AssertPersistedData(driver);
 
             fixture.ExecuteAdb("logcat", "-c");
-            Install(v101, replace: true);
-            AssertVersion("5", "1.0.1");
+            Install(destinationApk, replace: true);
+            AssertVersion("6", "2.0.0");
             fixture.RelaunchApplicationWithoutReset();
             driver = fixture.Driver;
             AssertPersistedData(driver);
@@ -119,10 +123,10 @@ public sealed class ReleaseUpgradeAcceptanceTests(AndroidAppiumFixture fixture)
     }
 
     [AndroidUiFact]
-    public void Signed_v101_licenses_work_offline_in_both_orientations()
+    public void Signed_v200_licenses_work_offline_in_both_orientations()
     {
         Assert.Equal("1", Environment.GetEnvironmentVariable("SOFTBALL_ANDROID_RELEASE_ACCEPTANCE"));
-        AssertVersion("5", "1.0.1");
+        AssertVersion("6", "2.0.0");
         fixture.SetOrientation(ScreenOrientation.Landscape);
         fixture.RelaunchApplicationWithoutReset();
         var driver = fixture.Driver;
@@ -167,11 +171,11 @@ public sealed class ReleaseUpgradeAcceptanceTests(AndroidAppiumFixture fixture)
         catch (Exception exception)
         {
             var artifacts = fixture.CaptureFailureArtifacts(
-                nameof(Signed_v101_licenses_work_offline_in_both_orientations),
+                nameof(Signed_v200_licenses_work_offline_in_both_orientations),
                 exception
             );
             throw new Xunit.Sdk.XunitException(
-                $"Signed v1.0.1 license acceptance failed. Diagnostics: {artifacts}{Environment.NewLine}{exception}"
+                $"Signed v2.0.0 license acceptance failed. Diagnostics: {artifacts}{Environment.NewLine}{exception}"
             );
         }
         finally
@@ -203,6 +207,20 @@ public sealed class ReleaseUpgradeAcceptanceTests(AndroidAppiumFixture fixture)
         Assert.True(File.Exists(path), $"Release APK not found: {path}");
         return path!;
     }
+
+    private static string RequiredSha256(string variable)
+    {
+        var value = Environment.GetEnvironmentVariable(variable);
+        Assert.False(string.IsNullOrWhiteSpace(value));
+        Assert.Matches("^[0-9A-Fa-f]{64}$", value!);
+        return value!.ToUpperInvariant();
+    }
+
+    private static void AssertApkHash(string path, string expectedSha256) =>
+        Assert.Equal(
+            expectedSha256,
+            Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(File.ReadAllBytes(path)))
+        );
 
     private static void EnterProductTestMode(AndroidDriver driver)
     {

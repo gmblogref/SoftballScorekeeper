@@ -8,6 +8,14 @@ Softball Scorekeeper is a fast, offline-first scorekeeping application for live 
 
 Version 1.0.1 is the latest published release.
 
+## Upcoming Version 2.0.0
+
+Version 2.0.0 is being prepared but has not been published. The preparation target uses .NET 10, Visual Studio Community 2026 version 18.11.2, MAUI 10.0.110, Android version name 2.0.0/code 6, and Windows version 2.0.0.0. It preserves Android and Windows Release identity `com.companyname.softballscorekeeper`, SQLite schema version 6, and backup format version 1. Existing Version 1 backups are expected to remain compatible, but final Backup/Restore and v1.0.1-to-v2.0.0 upgrade acceptance are still pending.
+
+Release preparation occurs on `task/v2-release`; definitive binaries must be built only after that preparation is reviewed and merged into clean `main`. Final acceptance must verify the permanent Android signing certificate, in-place upgrade without uninstalling or clearing data, Production/Test Mode isolation on the dedicated `softball_tablet_release_acceptance_api_35` AVD, and physical-tablet behavior when separately authorized. Windows remains a self-contained, unpackaged, portable x64 ZIP distribution.
+
+The planned release assets are `SoftballScorekeeper-2.0.0.apk` and `SoftballScorekeeper-2.0.0-windows-x64-portable.zip`. Their definitive SHA-256 values will be recorded only after merged-main builds and acceptance. The production licensing inventory targets v2.0.0, but final artifacts must still be reconciled against it, and the documented Microsoft downstream-license interpretation remains unresolved. Only after those checks may the exact artifact-producing commit be tagged `v2.0.0` and published through GitHub Releases.
+
 ## Download and Install on Android
 
 Android tablet is the primary supported deployment for Version 1.0.
@@ -26,7 +34,7 @@ Windows x64 is supported through a self-contained portable ZIP. No installer is 
 2. Extract the entire ZIP to a folder where you want to keep the application.
 3. Open that folder and run `SoftballScorekeeper.exe`.
 
-Keep all extracted files and directories together. The ZIP includes the .NET 10 and Windows App SDK runtime dependencies used by the application. The portable release has been validated on a Windows development computer; clean-machine validation remains pending.
+Keep all extracted files and directories together. The published v1.0.1 ZIP was produced from the .NET 9 release workflow and includes its required .NET and Windows App SDK runtime dependencies. Its package integrity and licensing inventory were verified, but isolated runtime-launch acceptance was not completed and is not claimed.
 
 The portable executable is unsigned, so Windows may identify it as an unrecognized downloaded application or display a security warning. Verify that the ZIP came from the release page, and follow any organizational security requirements; do not bypass policies that prohibit running unsigned software.
 
@@ -91,14 +99,14 @@ There are no user accounts, server-side services, cloud database, or automatic c
 ## Platform Support
 
 - **Android:** Primary Version 1.0 deployment and UI acceptance target, optimized for a 10-inch tablet with responsive portrait and landscape layouts. The project declares Android API 21 as its minimum supported platform version.
-- **Windows x64:** Supported through a self-contained portable ZIP with no installer or MSIX registration. The portable release has been validated on a Windows development computer; clean-machine validation remains pending.
+- **Windows x64:** Supported through a self-contained portable ZIP with no installer or MSIX registration. The published v1.0.1 ZIP passed package-integrity and licensing validation, but isolated runtime-launch acceptance was not completed.
 
 ## Developer Setup
 
 ### Prerequisites
 
-- .NET 10 SDK 10.0.402
-- Visual Studio with .NET MAUI development support, or an equivalent .NET MAUI toolchain
+- .NET 10 SDK 10.0.403 (`global.json` requests 10.0.402 with `latestPatch` roll-forward)
+- Visual Studio Community 2026 version 18.11.2 with MAUI 10.0.110, or an equivalent .NET MAUI toolchain
 - .NET MAUI Android workload and Android SDK for Android builds
 - JDK 21 for Android command-line builds
 - .NET MAUI Windows workload and Windows development tooling for Windows builds
@@ -111,6 +119,27 @@ dotnet restore SoftballScorekeeper.sln
 dotnet build SoftballScorekeeper/SoftballScorekeeper.csproj --framework net10.0-android
 dotnet build SoftballScorekeeper/SoftballScorekeeper.csproj --framework net10.0-windows10.0.19041.0
 ```
+
+### Windows v2.0.0 portable release preparation
+
+The validated .NET 10 preparation workflow restores the Windows ReadyToRun runtime pack before publishing. The Windows-specific restore below supplies `TargetFramework` globally, which also overwrites the referenced Core and Infrastructure asset graphs with the Windows target. The two following native project restores are therefore required to restore their `net10.0` graphs. This exact sequence was validated; an alternative project-reference-suppression command has not been validated and is not documented here.
+
+```powershell
+dotnet restore SoftballScorekeeper/SoftballScorekeeper.csproj --property:TargetFramework=net10.0-windows10.0.19041.0 --property:RuntimeIdentifier=win-x64 --property:PublishReadyToRun=true --property:WindowsPackageType=None --property:WindowsAppSDKSelfContained=true --disable-parallel
+dotnet restore SoftballScorekeeper.Core/SoftballScorekeeper.Core.csproj --disable-parallel
+dotnet restore SoftballScorekeeper.Infrastructure/SoftballScorekeeper.Infrastructure.csproj --disable-parallel
+```
+
+Before publishing, verify that Core and Infrastructure each have a `net10.0` target in their `obj/project.assets.json`, that the application has `net10.0-windows10.0.19041.0/win-x64`, and that its asset graph contains `Microsoft.NETCore.App.Crossgen2.win-x64`.
+
+The validated preliminary publish and package commands are:
+
+```powershell
+dotnet publish SoftballScorekeeper/SoftballScorekeeper.csproj --framework net10.0-windows10.0.19041.0 --configuration Release --runtime win-x64 --self-contained true -p:WindowsPackageType=None -p:WindowsAppSDKSelfContained=true -p:PublishReadyToRun=true -m:1 -nodeReuse:false --no-restore --output artifacts/release/v2.0.0-rc/windows-publish-preliminary
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts/package-windows-portable.ps1 -PublishDirectory artifacts/release/v2.0.0-rc/windows-publish-preliminary -OutputZip artifacts/release/v2.0.0-rc/SoftballScorekeeper-2.0.0-windows-x64-portable-preliminary.zip -StagingDirectory artifacts/release/v2.0.0-rc/windows-package-stage-preliminary
+```
+
+The packager validates the v2.0.0 licensing manifest, recorded checksums, required notices, ZIP inventory, deterministic output, overwrite protection, and sensitive-file exclusions. Independently confirm the executable version and identity, fully inspect the ZIP, record its size and SHA-256, and reconcile its runtime payload with the production licensing inventory. These task-branch paths produce preliminary validation output only. Definitive binaries must be rebuilt from clean merged `main` into new non-existing release paths, receive final runtime acceptance, and be hashed before tagging or publication.
 
 ## Testing
 
