@@ -44,10 +44,7 @@ public partial class SetLineupPage : ContentPage
 
         ResetDragPresentationState();
         if (!viewModel.CanReorderLineup
-            || sender is not DragGestureRecognizer
-            {
-                BindingContext: LineupPlayerSelectionItem item,
-            })
+            || ResolveLineupItem(sender) is not { } item)
         {
             draggedPlayerId = null;
             e.Cancel = true;
@@ -65,10 +62,7 @@ public partial class SetLineupPage : ContentPage
         if (!isDragInProgress
             || isCompletingDrop
             || draggedItem is null
-            || sender is not DropGestureRecognizer
-            {
-                BindingContext: LineupPlayerSelectionItem target,
-            }
+            || ResolveLineupItem(sender) is not { } target
             || ReferenceEquals(draggedItem, target))
         {
             ClearDropTarget();
@@ -87,10 +81,7 @@ public partial class SetLineupPage : ContentPage
 
     private void OnLineupPlayerDragLeave(object sender, DragEventArgs e)
     {
-        if (sender is DropGestureRecognizer
-            {
-                BindingContext: LineupPlayerSelectionItem target,
-            }
+        if (ResolveLineupItem(sender) is { } target
             && ReferenceEquals(dropTargetItem, target))
         {
             ClearDropTarget();
@@ -100,10 +91,7 @@ public partial class SetLineupPage : ContentPage
     private async void OnLineupPlayerDrop(object sender, DropEventArgs e)
     {
         if (draggedPlayerId is not int sourcePlayerId
-            || sender is not DropGestureRecognizer
-            {
-                BindingContext: LineupPlayerSelectionItem target,
-            })
+            || ResolveLineupItem(sender) is not { } target)
         {
             ResetDragPresentationState();
             return;
@@ -153,6 +141,9 @@ public partial class SetLineupPage : ContentPage
         item.IsDropGapBefore = false;
         item.IsDropGapAfter = false;
     }
+
+    private static LineupPlayerSelectionItem? ResolveLineupItem(object sender) =>
+        (sender as BindableObject)?.BindingContext as LineupPlayerSelectionItem;
 
     private async Task ConfirmRemovalAsync(int selectedCount)
     {

@@ -654,23 +654,57 @@ public sealed class ManualOverrideAcceptanceTests(AndroidAppiumFixture fixture)
 
     private static void NavigateToTeamWorkspace(AndroidDriver driver)
     {
-        for (var attempt = 0; attempt < 3; attempt++)
+        var waitingForPageChange = false;
+        var teamCardSelected = false;
+        var pageSourceBeforeNavigation = string.Empty;
+        var wait = new WebDriverWait(driver, TimeSpan.FromSeconds(20))
         {
-            if (driver.FindElements(MobileBy.AccessibilityId("TeamWorkspaceMenuButton"))
-                .Any(item => item.Displayed)) return;
-            if (!IsDisplayed(driver, "TeamCard-1")
-                && IsDisplayed(driver, "TeamYearGroup-2026"))
-                AndroidElementWait.UntilAutomationId(
-                    driver, "TeamYearGroup-2026").Click();
-            if (IsDisplayed(driver, "TeamCard-1"))
+            PollingInterval = TimeSpan.FromMilliseconds(250),
+        };
+        wait.IgnoreExceptionTypes(
+            typeof(NoSuchElementException),
+            typeof(StaleElementReferenceException));
+        wait.Until(current =>
+        {
+            var currentDriver = (AndroidDriver)current;
+            if (IsTeamWorkspaceReady(currentDriver))
+                return true;
+
+            if (teamCardSelected)
+                return false;
+
+            if (waitingForPageChange)
             {
-                AndroidElementWait.UntilAutomationId(driver, "TeamCard-1").Click();
-                AndroidTeamWorkspaceMenu.UntilAvailable(driver);
-                return;
+                if (string.Equals(
+                        currentDriver.PageSource,
+                        pageSourceBeforeNavigation,
+                        StringComparison.Ordinal))
+                    return false;
+                waitingForPageChange = false;
             }
-            PhaseAUiWorkflow.NavigateUp(driver);
-        }
-        throw new WebDriverTimeoutException("Could not navigate to Team Workspace.");
+
+            if (!IsDisplayed(currentDriver, "TeamCard-1")
+                && IsDisplayed(currentDriver, "TeamYearGroup-2026"))
+            {
+                pageSourceBeforeNavigation = currentDriver.PageSource;
+                AndroidElementWait.UntilAutomationId(
+                    currentDriver, "TeamYearGroup-2026").Click();
+                waitingForPageChange = true;
+                return false;
+            }
+
+            if (IsDisplayed(currentDriver, "TeamCard-1"))
+            {
+                AndroidElementWait.UntilAutomationId(currentDriver, "TeamCard-1").Click();
+                teamCardSelected = true;
+                return false;
+            }
+
+            pageSourceBeforeNavigation = currentDriver.PageSource;
+            PhaseAUiWorkflow.NavigateUp(currentDriver);
+            waitingForPageChange = true;
+            return false;
+        });
     }
 
     private static IWebElement FindByAutomationId(AndroidDriver driver, string automationId)
@@ -717,6 +751,11 @@ public sealed class ManualOverrideAcceptanceTests(AndroidAppiumFixture fixture)
         var resourceId = $"{AndroidAutomationConstants.AppPackage}:id/{automationId}";
         Assert.DoesNotContain(driver.FindElements(By.Id(resourceId)), item => item.Displayed);
     }
+
+    private static bool IsTeamWorkspaceReady(AndroidDriver driver) =>
+        driver.FindElements(By.Id(ResourceId("TeamWorkspaceMenuButton")))
+            .Concat(driver.FindElements(MobileBy.AccessibilityId("TeamWorkspaceMenuButton")))
+            .Any(element => element.Displayed);
 
     private static bool IsDisplayed(AndroidDriver driver, string automationId) =>
         driver.FindElements(By.Id(ResourceId(automationId))).Any(item => item.Displayed);

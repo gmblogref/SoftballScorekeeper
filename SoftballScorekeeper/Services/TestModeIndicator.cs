@@ -76,6 +76,9 @@ public static class TestModeIndicator
                 new RowDefinition(GridLength.Star),
             },
         };
+#if WINDOWS
+        page.Content = null;
+#endif
         layout.Add(indicator);
         layout.Add(originalContent, 0, 1);
         page.Content = layout;
