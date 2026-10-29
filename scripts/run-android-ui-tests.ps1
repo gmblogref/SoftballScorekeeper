@@ -39,6 +39,7 @@ $appiumStandardErrorPath = $null
 $defaultAndroidUiTestAvdName = 'softball_tablet_ui_tests_api_35'
 $reservedDevelopmentAvdName = 'softball_tablet_api_35'
 $releaseAcceptanceAvdName = 'softball_tablet_release_acceptance_api_35'
+$releaseAcceptanceTestFilter = 'FullyQualifiedName=SoftballScorekeeper.AndroidUiTests.ReleaseUpgradeAcceptanceTests.Signed_release_upgrade_preserves_data_and_licenses_work_offline'
 $releaseSourceSha256 = '638220D9C91F15D8565A06D694D35390B5FE0EDF90DA855CB6FD21057CC3A361'
 $releaseCertificateSha256 = 'D55EFDC1E25B341F4408BC3014ECFF31D94255113EDD6F9B5F3CE98E833E4E05'
 
@@ -535,8 +536,8 @@ try {
     $releaseSourceApkPath = $null
     $releaseDestinationApkPath = $null
     if ($ReleaseAcceptance) {
-        if ([string]::IsNullOrWhiteSpace($TestFilter) -or $TestFilter -notmatch 'ReleaseUpgradeAcceptanceTests') {
-            throw 'Release acceptance requires a focused ReleaseUpgradeAcceptanceTests filter.'
+        if (-not [string]::Equals($TestFilter, $releaseAcceptanceTestFilter, [StringComparison]::Ordinal)) {
+            throw "Release acceptance requires the authoritative test filter '$releaseAcceptanceTestFilter'."
         }
 
         $releaseSourceApkPath = Resolve-ReleaseApkPath `
@@ -752,6 +753,15 @@ try {
     }
     else {
         Write-Stage 'Running the complete Android UI test suite...'
+    }
+    if ($ReleaseAcceptance) {
+        $releaseResultsDirectory = Join-Path $repositoryRoot 'SoftballScorekeeper.AndroidUiTests\TestResults\ReleaseAcceptance'
+        $releaseTrxName = "release-upgrade-acceptance-$([DateTime]::UtcNow.ToString('yyyyMMdd-HHmmssfff')).trx"
+        $testArguments += @(
+            '--logger', "trx;LogFileName=$releaseTrxName",
+            '--results-directory', $releaseResultsDirectory
+        )
+        Write-Stage "Release-acceptance TRX: $(Join-Path $releaseResultsDirectory $releaseTrxName)"
     }
     Invoke-RequiredCommand -Description 'Android UI tests' -FilePath $dotnetExecutable -Arguments $testArguments
 

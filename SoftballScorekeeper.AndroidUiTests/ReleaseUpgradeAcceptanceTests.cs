@@ -97,7 +97,7 @@ public sealed class ReleaseUpgradeAcceptanceTests(AndroidAppiumFixture fixture)
             AssertTestModeIndicator(driver);
 
             driver.Navigate().Back();
-            PhaseAUiWorkflow.NavigateSection(driver, "Teams", TeamName);
+            NavigateToPersistedTeam(driver);
             AssertTestModeIndicator(driver);
 
             var logcat = fixture.ExecuteAdb("logcat", "-d", "-t", "1000");
@@ -112,70 +112,6 @@ public sealed class ReleaseUpgradeAcceptanceTests(AndroidAppiumFixture fixture)
             );
             throw new Xunit.Sdk.XunitException(
                 $"Signed release acceptance failed. Diagnostics: {artifacts}{Environment.NewLine}{exception}"
-            );
-        }
-        finally
-        {
-            if (networkDisabled)
-                fixture.ExecuteAdb("shell", "cmd", "connectivity", "airplane-mode", "disable");
-            fixture.SetOrientation(ScreenOrientation.Landscape);
-        }
-    }
-
-    [AndroidUiFact]
-    public void Signed_v200_licenses_work_offline_in_both_orientations()
-    {
-        Assert.Equal("1", Environment.GetEnvironmentVariable("SOFTBALL_ANDROID_RELEASE_ACCEPTANCE"));
-        AssertVersion("6", "2.0.0");
-        fixture.SetOrientation(ScreenOrientation.Landscape);
-        fixture.RelaunchApplicationWithoutReset();
-        var driver = fixture.Driver;
-        var networkDisabled = false;
-        try
-        {
-            OpenLicenses(driver);
-            AssertLicenseContent(driver, "PolyForm Noncommercial License 1.0.0");
-            AndroidElementWait.UntilAutomationIdText(
-                driver,
-                "ApplicationRequiredNotice",
-                "Required Notice: Copyright 2026 gmblogref. Softball Scorekeeper."
-            );
-            AssertTestModeIndicator(driver);
-
-            SelectLicense(driver, "Consolidated Third-Party Notices");
-            AssertLicenseContent(driver, "Third-Party Notices");
-            AssertDocumentScrolls(driver);
-
-            fixture.ExecuteAdb("shell", "cmd", "connectivity", "airplane-mode", "enable");
-            networkDisabled = true;
-            Assert.Contains(
-                "enabled",
-                fixture.ExecuteAdb("shell", "cmd", "connectivity", "airplane-mode"),
-                StringComparison.OrdinalIgnoreCase
-            );
-            SelectLicense(driver, "Microsoft.Android Runtime 36.1.118 — Third-Party Notices");
-            AssertLicenseContent(driver, "xamarin-android");
-
-            fixture.SetOrientation(ScreenOrientation.Portrait);
-            Assert.True(AndroidElementWait.UntilAutomationId(driver, "LicenseDocumentPicker").Displayed);
-            Assert.True(AndroidElementWait.UntilAutomationId(driver, "LicenseDocumentContent").Displayed);
-            AssertTestModeIndicator(driver);
-            fixture.SetOrientation(ScreenOrientation.Landscape);
-            Assert.True(AndroidElementWait.UntilAutomationId(driver, "LicenseDocumentPicker").Displayed);
-            AssertTestModeIndicator(driver);
-
-            driver.Navigate().Back();
-            PhaseAUiWorkflow.NavigateSection(driver, "Teams", "Create Team");
-            AssertTestModeIndicator(driver);
-        }
-        catch (Exception exception)
-        {
-            var artifacts = fixture.CaptureFailureArtifacts(
-                nameof(Signed_v200_licenses_work_offline_in_both_orientations),
-                exception
-            );
-            throw new Xunit.Sdk.XunitException(
-                $"Signed v2.0.0 license acceptance failed. Diagnostics: {artifacts}{Environment.NewLine}{exception}"
             );
         }
         finally
@@ -252,7 +188,8 @@ public sealed class ReleaseUpgradeAcceptanceTests(AndroidAppiumFixture fixture)
         entries[1].Clear();
         entries[1].SendKeys("2026");
         AndroidElementWait.UntilText(driver, "Save").Click();
-        AndroidElementWait.UntilText(driver, TeamName);
+        AndroidElementWait.UntilTextAbsent(driver, "Save");
+        PhaseAUiWorkflow.ScrollToText(driver, TeamName);
     }
 
     private static void CreatePlayer(AndroidDriver driver)
@@ -263,16 +200,23 @@ public sealed class ReleaseUpgradeAcceptanceTests(AndroidAppiumFixture fixture)
         entries[0].SendKeys(PlayerFirstName);
         entries[1].SendKeys(PlayerLastName);
         AndroidElementWait.UntilText(driver, "Save").Click();
-        AndroidElementWait.UntilText(driver, PlayerName);
+        AndroidElementWait.UntilTextAbsent(driver, "Save");
+        PhaseAUiWorkflow.ScrollToText(driver, PlayerName);
         AssertTestModeIndicator(driver);
     }
 
     private static void AssertPersistedData(AndroidDriver driver)
     {
-        PhaseAUiWorkflow.NavigateSection(driver, "Teams", TeamName);
-        PhaseAUiWorkflow.NavigateSection(driver, "Players", PlayerName);
-        AndroidElementWait.UntilText(driver, PlayerName);
+        NavigateToPersistedTeam(driver);
+        PhaseAUiWorkflow.NavigateSection(driver, "Players", "Add Player");
+        PhaseAUiWorkflow.ScrollToText(driver, PlayerName);
         AssertTestModeIndicator(driver);
+    }
+
+    private static void NavigateToPersistedTeam(AndroidDriver driver)
+    {
+        PhaseAUiWorkflow.NavigateSection(driver, "Teams", "Create Team");
+        PhaseAUiWorkflow.ScrollToText(driver, TeamName);
     }
 
     private static void OpenLicenses(AndroidDriver driver)
