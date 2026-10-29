@@ -168,7 +168,7 @@ retained emulator and starts a fresh runner-owned Appium server when needed.
 
 ## Release-upgrade acceptance
 
-Version 2.0.0 release acceptance uses the dedicated `softball_tablet_release_acceptance_api_35` AVD and the focused `ReleaseUpgradeAcceptanceTests` workflow. It validates an in-place upgrade from the permanently signed v1.0.1 APK (version code 5) to the permanently signed v2.0.0 APK (version code 6). The runner never uninstalls the application or clears package data, skips its normal Debug build/install path, and rejects the reserved development and ordinary UI-test AVDs.
+Version 2.0.0 release acceptance uses the dedicated `softball_tablet_release_acceptance_api_35` AVD and the single authoritative `Signed_release_upgrade_preserves_data_and_licenses_work_offline` workflow. It validates an in-place upgrade from the permanently signed v1.0.1 APK (version code 5) to the permanently signed v2.0.0 APK (version code 6). The runner never uninstalls the application or clears package data, skips its normal Debug build/install path, and rejects the reserved development and ordinary UI-test AVDs.
 
 Do not run this workflow until the definitive v2 APK has an independently accepted SHA-256. Supply both APK paths and that hash explicitly:
 
@@ -181,12 +181,12 @@ $destinationSha256 = '<accepted definitive v2.0.0 APK SHA-256>'
     -ReleaseSourceApk $sourceApk `
     -ReleaseDestinationApk $destinationApk `
     -ReleaseDestinationSha256 $destinationSha256 `
-    -TestFilter 'FullyQualifiedName~ReleaseUpgradeAcceptanceTests'
+    -TestFilter 'FullyQualifiedName=SoftballScorekeeper.AndroidUiTests.ReleaseUpgradeAcceptanceTests.Signed_release_upgrade_preserves_data_and_licenses_work_offline'
 ```
 
 Before device discovery, the runner requires both files, verifies the fixed accepted v1.0.1 hash and supplied v2 hash, and uses `apksigner` to require v1/v2/v3 signatures, exactly one signer, and permanent certificate SHA-256 `d55efdc1e25b341f4408bc3014ecff31d94255113edd6f9b5f3ce98e833e4e05`. Use `-ApkSignerPath` only when the configured Android SDK tool is not available as `apksigner`; never place signing credentials in the command or repository.
 
-The focused test asserts package `com.companyname.softballscorekeeper`, source version 1.0.1/code 5, destination version 2.0.0/code 6, retained Test Mode selection and records, offline license documents, and continued navigation in portrait and landscape. Appium uses `noReset=true`, and the runner preserves any pre-existing emulator or Appium process while stopping only resources it started. This automation does not replace separately authorized physical-tablet acceptance or final artifact/hash verification from merged `main`.
+The focused test asserts package `com.companyname.softballscorekeeper`, source version 1.0.1/code 5, destination version 2.0.0/code 6, retained Test Mode selection and records, offline license documents, and continued navigation in portrait and landscape. Team and Player verification scrolls virtualized lists, so previously retained Product Test records remain intact. The runner requires the exact method filter above and writes a timestamped TRX under `SoftballScorekeeper.AndroidUiTests/TestResults/ReleaseAcceptance` so a failed run retains its test name, exception, stack trace, and result counts. Appium uses `noReset=true`, and the runner preserves any pre-existing emulator or Appium process while stopping only resources it started. This automation does not replace separately authorized physical-tablet acceptance or final artifact/hash verification from merged `main`.
 
 ## Lower-level manual commands
 

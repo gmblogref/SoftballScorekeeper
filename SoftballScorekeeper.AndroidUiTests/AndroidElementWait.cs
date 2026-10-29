@@ -36,6 +36,17 @@ internal static class AndroidElementWait
             ?? throw new NoSuchElementException());
     }
 
+    public static void UntilTextAbsent(
+        AndroidDriver driver,
+        string text,
+        TimeSpan? timeout = null)
+    {
+        var wait = CreateWait(driver, timeout);
+        wait.Until(currentDriver =>
+            currentDriver.FindElements(By.XPath($"//*[@text={ToXPathLiteral(text)}]"))
+                .All(element => !element.Displayed));
+    }
+
     public static IWebElement UntilTextContaining(
         AndroidDriver driver,
         string text,
