@@ -447,9 +447,17 @@ function Start-ConfiguredEmulator {
     )
 
     Write-Stage "Checking configured Android test AVD: $RequestedAvdName"
-    $avdOutput = & $EmulatorExecutable -list-avds
-    if ($LASTEXITCODE -ne 0) {
-        throw "Android AVD discovery failed with exit code $LASTEXITCODE."
+    $previousErrorActionPreference = $ErrorActionPreference
+    try {
+        $ErrorActionPreference = 'Continue'
+        $avdOutput = & $EmulatorExecutable -list-avds
+        $avdExitCode = $LASTEXITCODE
+    }
+    finally {
+        $ErrorActionPreference = $previousErrorActionPreference
+    }
+    if ($avdExitCode -ne 0) {
+        throw "Android AVD discovery failed with exit code $avdExitCode."
     }
     $availableAvds = @($avdOutput | ForEach-Object { $_.Trim() } | Where-Object {
         -not [string]::IsNullOrWhiteSpace($_) -and $_ -match '^[A-Za-z0-9._-]+$'
