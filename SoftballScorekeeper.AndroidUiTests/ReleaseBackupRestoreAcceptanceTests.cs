@@ -413,8 +413,18 @@ public sealed class ReleaseBackupRestoreAcceptanceTests(AndroidAppiumFixture fix
                 string.Equals(driver.CurrentPackage, packageName, StringComparison.Ordinal)
             );
 
-    private static WebDriverWait Wait(AndroidDriver driver) =>
-        new(driver, TimeSpan.FromSeconds(20)) { PollingInterval = TimeSpan.FromMilliseconds(250) };
+    private static WebDriverWait Wait(AndroidDriver driver)
+    {
+        var wait = new WebDriverWait(driver, TimeSpan.FromSeconds(20))
+        {
+            PollingInterval = TimeSpan.FromMilliseconds(250),
+        };
+        wait.IgnoreExceptionTypes(
+            typeof(NoSuchElementException),
+            typeof(StaleElementReferenceException)
+        );
+        return wait;
+    }
 
     private static string ResourceId(string automationId) =>
         $"{AndroidAutomationConstants.AppPackage}:id/{automationId}";
