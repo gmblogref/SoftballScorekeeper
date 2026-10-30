@@ -5,10 +5,12 @@ param(
     [switch]$KeepEmulatorRunning,
     [string]$TestFilter,
     [switch]$ReleaseAcceptance,
+    [switch]$ReleaseBackupRestoreAcceptance,
     [string]$ReleaseSourceApk,
     [string]$ReleaseDestinationApk,
     [string]$ReleaseDestinationSha256,
     [string]$ApkSignerPath = 'apksigner',
+    [string]$Aapt2Path = 'aapt2',
     [string]$AppiumServerUrl,
     [string]$AppiumCommand = 'appium',
     [string]$AdbPath
@@ -23,6 +25,7 @@ $originalAppiumServerUrl = $env:SOFTBALL_APPIUM_SERVER_URL
 $originalAdbPath = $env:SOFTBALL_ADB_PATH
 $originalRunAndroidUiTests = $env:SOFTBALL_RUN_ANDROID_UI_TESTS
 $originalReleaseAcceptance = $env:SOFTBALL_ANDROID_RELEASE_ACCEPTANCE
+$originalReleaseBackupRestoreAcceptance = $env:SOFTBALL_ANDROID_RELEASE_BACKUP_RESTORE_ACCEPTANCE
 $originalReleaseSourceApk = $env:SOFTBALL_RELEASE_SOURCE_APK
 $originalReleaseSourceSha256 = $env:SOFTBALL_RELEASE_SOURCE_SHA256
 $originalReleaseDestinationApk = $env:SOFTBALL_RELEASE_DESTINATION_APK
@@ -34,14 +37,17 @@ $selectedEmulatorId = $null
 $startedEmulatorProcess = $null
 $startedAppium = $false
 $startedAppiumProcess = $null
+$selectedAvdName = $null
 $appiumStandardOutputPath = $null
 $appiumStandardErrorPath = $null
 $defaultAndroidUiTestAvdName = 'softball_tablet_ui_tests_api_35'
 $reservedDevelopmentAvdName = 'softball_tablet_api_35'
 $releaseAcceptanceAvdName = 'softball_tablet_release_acceptance_api_35'
 $releaseAcceptanceTestFilter = 'FullyQualifiedName=SoftballScorekeeper.AndroidUiTests.ReleaseUpgradeAcceptanceTests.Signed_release_upgrade_preserves_data_and_licenses_work_offline'
+$releaseBackupRestoreAcceptanceTestFilter = 'FullyQualifiedName=SoftballScorekeeper.AndroidUiTests.ReleaseBackupRestoreAcceptanceTests.Signed_release_backup_restore_round_trip_preserves_test_mode_isolation'
 $releaseSourceSha256 = '638220D9C91F15D8565A06D694D35390B5FE0EDF90DA855CB6FD21057CC3A361'
 $releaseCertificateSha256 = 'D55EFDC1E25B341F4408BC3014ECFF31D94255113EDD6F9B5F3CE98E833E4E05'
+$releasePackageName = 'com.companyname.softballscorekeeper'
 
 function Write-Stage {
     param([string]$Message)
@@ -148,6 +154,43 @@ function Assert-ReleaseApkSignature {
     $actualCertificateSha256 = $certificateMatches[0].Matches[0].Groups[1].Value.ToUpperInvariant()
     if ($actualCertificateSha256 -cne $ExpectedCertificateSha256) {
         throw "$Description signing certificate mismatch. Expected $ExpectedCertificateSha256; found $actualCertificateSha256."
+    }
+}
+
+function Assert-ReleaseApkMetadata {
+    param(
+        [string]$ApkPath,
+        [string]$Description,
+        [string]$Aapt2Executable,
+        [string]$ExpectedPackageName,
+        [string]$ExpectedVersionName,
+        [string]$ExpectedVersionCode
+    )
+
+    $badging = @(& $Aapt2Executable dump badging $ApkPath 2>&1)
+    if ($LASTEXITCODE -ne 0) {
+        throw "$Description package metadata inspection failed. $($badging -join ' ')"
+    }
+    $packageLine = $badging | Select-Object -First 1
+    $packageMatch = [regex]::Match(
+        $packageLine,
+        "^package: name='([^']+)' versionCode='([^']+)' versionName='([^']+)'"
+    )
+    if (-not $packageMatch.Success) {
+        throw "$Description package metadata was not recognized. $packageLine"
+    }
+
+    $actualPackageName = $packageMatch.Groups[1].Value
+    $actualVersionCode = $packageMatch.Groups[2].Value
+    $actualVersionName = $packageMatch.Groups[3].Value
+    if (-not [string]::Equals($actualPackageName, $ExpectedPackageName, [StringComparison]::Ordinal)) {
+        throw "$Description package mismatch. Expected $ExpectedPackageName; found $actualPackageName."
+    }
+    if (-not [string]::Equals($actualVersionName, $ExpectedVersionName, [StringComparison]::Ordinal)) {
+        throw "$Description version name mismatch. Expected $ExpectedVersionName; found $actualVersionName."
+    }
+    if (-not [string]::Equals($actualVersionCode, $ExpectedVersionCode, [StringComparison]::Ordinal)) {
+        throw "$Description version code mismatch. Expected $ExpectedVersionCode; found $actualVersionCode."
     }
 }
 
@@ -533,49 +576,79 @@ try {
     Write-Stage "Repository: $repositoryRoot"
     $dotnetExecutable = Resolve-RequiredCommand -Name 'dotnet' -RequestedCommand 'dotnet'
 
+    if ($ReleaseAcceptance -and $ReleaseBackupRestoreAcceptance) {
+        throw 'Release upgrade acceptance and release Backup/Restore acceptance cannot run together.'
+    }
+    $releaseModeEnabled = $ReleaseAcceptance -or $ReleaseBackupRestoreAcceptance
     $releaseSourceApkPath = $null
     $releaseDestinationApkPath = $null
-    if ($ReleaseAcceptance) {
-        if (-not [string]::Equals($TestFilter, $releaseAcceptanceTestFilter, [StringComparison]::Ordinal)) {
-            throw "Release acceptance requires the authoritative test filter '$releaseAcceptanceTestFilter'."
+    if ($releaseModeEnabled) {
+        if ($ReleaseAcceptance) {
+            if (-not [string]::Equals($TestFilter, $releaseAcceptanceTestFilter, [StringComparison]::Ordinal)) {
+                throw "Release acceptance requires the authoritative test filter '$releaseAcceptanceTestFilter'."
+            }
+        }
+        else {
+            if (-not [string]::Equals($TestFilter, $releaseBackupRestoreAcceptanceTestFilter, [StringComparison]::Ordinal)) {
+                throw "Release Backup/Restore acceptance requires the authoritative test filter '$releaseBackupRestoreAcceptanceTestFilter'."
+            }
         }
 
-        $releaseSourceApkPath = Resolve-ReleaseApkPath `
-            -RequestedPath $ReleaseSourceApk `
-            -Description 'v1.0.1 source APK' `
-            -RepositoryRoot $repositoryRoot
         $releaseDestinationApkPath = Resolve-ReleaseApkPath `
             -RequestedPath $ReleaseDestinationApk `
             -Description 'v2.0.0 destination APK' `
             -RepositoryRoot $repositoryRoot
-        Assert-ReleaseApkHash `
-            -ApkPath $releaseSourceApkPath `
-            -ExpectedSha256 $releaseSourceSha256 `
-            -Description 'v1.0.1 source APK'
         Assert-ReleaseApkHash `
             -ApkPath $releaseDestinationApkPath `
             -ExpectedSha256 $ReleaseDestinationSha256 `
             -Description 'v2.0.0 destination APK'
 
         $apkSignerExecutable = Resolve-RequiredCommand -Name 'apksigner' -RequestedCommand $ApkSignerPath
-        Assert-ReleaseApkSignature `
-            -ApkPath $releaseSourceApkPath `
-            -Description 'v1.0.1 source APK' `
-            -ApkSignerExecutable $apkSignerExecutable `
-            -ExpectedCertificateSha256 $releaseCertificateSha256
+        $aapt2Executable = Resolve-RequiredCommand -Name 'aapt2' -RequestedCommand $Aapt2Path
         Assert-ReleaseApkSignature `
             -ApkPath $releaseDestinationApkPath `
             -Description 'v2.0.0 destination APK' `
             -ApkSignerExecutable $apkSignerExecutable `
             -ExpectedCertificateSha256 $releaseCertificateSha256
+        Assert-ReleaseApkMetadata `
+            -ApkPath $releaseDestinationApkPath `
+            -Description 'v2.0.0 destination APK' `
+            -Aapt2Executable $aapt2Executable `
+            -ExpectedPackageName $releasePackageName `
+            -ExpectedVersionName '2.0.0' `
+            -ExpectedVersionCode '6'
+
+        if ($ReleaseAcceptance) {
+            $releaseSourceApkPath = Resolve-ReleaseApkPath `
+                -RequestedPath $ReleaseSourceApk `
+                -Description 'v1.0.1 source APK' `
+                -RepositoryRoot $repositoryRoot
+            Assert-ReleaseApkHash `
+                -ApkPath $releaseSourceApkPath `
+                -ExpectedSha256 $releaseSourceSha256 `
+                -Description 'v1.0.1 source APK'
+            Assert-ReleaseApkSignature `
+                -ApkPath $releaseSourceApkPath `
+                -Description 'v1.0.1 source APK' `
+                -ApkSignerExecutable $apkSignerExecutable `
+                -ExpectedCertificateSha256 $releaseCertificateSha256
+            Assert-ReleaseApkMetadata `
+                -ApkPath $releaseSourceApkPath `
+                -Description 'v1.0.1 source APK' `
+                -Aapt2Executable $aapt2Executable `
+                -ExpectedPackageName $releasePackageName `
+                -ExpectedVersionName '1.0.1' `
+                -ExpectedVersionCode '5'
+        }
 
         $env:SOFTBALL_ANDROID_RELEASE_ACCEPTANCE = '1'
-        $env:SOFTBALL_RELEASE_SOURCE_APK = $releaseSourceApkPath
-        $env:SOFTBALL_RELEASE_SOURCE_SHA256 = $releaseSourceSha256
+        $env:SOFTBALL_ANDROID_RELEASE_BACKUP_RESTORE_ACCEPTANCE = if ($ReleaseBackupRestoreAcceptance) { '1' } else { $null }
+        $env:SOFTBALL_RELEASE_SOURCE_APK = if ($ReleaseAcceptance) { $releaseSourceApkPath } else { $null }
+        $env:SOFTBALL_RELEASE_SOURCE_SHA256 = if ($ReleaseAcceptance) { $releaseSourceSha256 } else { $null }
         $env:SOFTBALL_RELEASE_DESTINATION_APK = $releaseDestinationApkPath
         $env:SOFTBALL_RELEASE_DESTINATION_SHA256 = $ReleaseDestinationSha256.ToUpperInvariant()
         $env:SOFTBALL_RELEASE_CERTIFICATE_SHA256 = $releaseCertificateSha256
-        Write-Stage 'Release APK hashes, v1/v2/v3 signatures, and permanent signing certificate verified.'
+        Write-Stage 'Release APK package metadata, hashes, v1/v2/v3 signatures, and permanent signing certificate verified.'
     }
 
     if ([string]::IsNullOrWhiteSpace($AppiumServerUrl)) {
@@ -668,7 +741,7 @@ try {
     elseif ($usableDeviceIds.Count -eq 0) {
         if ([string]::IsNullOrWhiteSpace($AvdName)) {
             $AvdName = if ([string]::IsNullOrWhiteSpace($env:SOFTBALL_ANDROID_AVD)) {
-                if ($ReleaseAcceptance) { $releaseAcceptanceAvdName } else { $defaultAndroidUiTestAvdName }
+                if ($releaseModeEnabled) { $releaseAcceptanceAvdName } else { $defaultAndroidUiTestAvdName }
             }
             else {
                 $env:SOFTBALL_ANDROID_AVD.Trim()
@@ -705,11 +778,19 @@ try {
 
     Write-Stage "Using device: $DeviceId"
 
-    if ($ReleaseAcceptance) {
+    if ($releaseModeEnabled) {
+        if ($DeviceId -notmatch '^emulator-\d+$') {
+            throw "Release acceptance is restricted to Android AVD '$releaseAcceptanceAvdName'; physical device '$DeviceId' is not allowed."
+        }
         if (-not [string]::Equals($selectedAvdName, $releaseAcceptanceAvdName, [StringComparison]::OrdinalIgnoreCase)) {
             throw "Release acceptance is restricted to Android AVD '$releaseAcceptanceAvdName'; selected '$selectedAvdName'."
         }
-        Write-Stage 'Release-acceptance mode: preserving the dedicated AVD and delegating the signed v1.0.1-to-v2.0.0 in-place installation to the focused test.'
+        if ($ReleaseBackupRestoreAcceptance) {
+            Write-Stage 'Release Backup/Restore acceptance mode: preserving the dedicated AVD and delegating the signed v2.0.0 in-place installation to the focused test.'
+        }
+        else {
+            Write-Stage 'Release-acceptance mode: preserving the dedicated AVD and delegating the signed v1.0.1-to-v2.0.0 in-place installation to the focused test.'
+        }
     }
     else {
         $appProject = Join-Path $repositoryRoot 'SoftballScorekeeper\SoftballScorekeeper.csproj'
@@ -754,9 +835,15 @@ try {
     else {
         Write-Stage 'Running the complete Android UI test suite...'
     }
-    if ($ReleaseAcceptance) {
+    if ($releaseModeEnabled) {
         $releaseResultsDirectory = Join-Path $repositoryRoot 'SoftballScorekeeper.AndroidUiTests\TestResults\ReleaseAcceptance'
-        $releaseTrxName = "release-upgrade-acceptance-$([DateTime]::UtcNow.ToString('yyyyMMdd-HHmmssfff')).trx"
+        $releaseTrxPrefix = if ($ReleaseBackupRestoreAcceptance) {
+            'release-backup-restore-acceptance-'
+        }
+        else {
+            'release-upgrade-acceptance-'
+        }
+        $releaseTrxName = "$releaseTrxPrefix$([DateTime]::UtcNow.ToString('yyyyMMdd-HHmmssfff')).trx"
         $testArguments += @(
             '--logger', "trx;LogFileName=$releaseTrxName",
             '--results-directory', $releaseResultsDirectory
@@ -858,6 +945,7 @@ finally {
     $env:SOFTBALL_ADB_PATH = $originalAdbPath
     $env:SOFTBALL_RUN_ANDROID_UI_TESTS = $originalRunAndroidUiTests
     $env:SOFTBALL_ANDROID_RELEASE_ACCEPTANCE = $originalReleaseAcceptance
+    $env:SOFTBALL_ANDROID_RELEASE_BACKUP_RESTORE_ACCEPTANCE = $originalReleaseBackupRestoreAcceptance
     $env:SOFTBALL_RELEASE_SOURCE_APK = $originalReleaseSourceApk
     $env:SOFTBALL_RELEASE_SOURCE_SHA256 = $originalReleaseSourceSha256
     $env:SOFTBALL_RELEASE_DESTINATION_APK = $originalReleaseDestinationApk

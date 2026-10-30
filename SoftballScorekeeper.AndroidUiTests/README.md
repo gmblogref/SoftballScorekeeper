@@ -184,9 +184,32 @@ $destinationSha256 = '<accepted definitive v2.0.0 APK SHA-256>'
     -TestFilter 'FullyQualifiedName=SoftballScorekeeper.AndroidUiTests.ReleaseUpgradeAcceptanceTests.Signed_release_upgrade_preserves_data_and_licenses_work_offline'
 ```
 
-Before device discovery, the runner requires both files, verifies the fixed accepted v1.0.1 hash and supplied v2 hash, and uses `apksigner` to require v1/v2/v3 signatures, exactly one signer, and permanent certificate SHA-256 `d55efdc1e25b341f4408bc3014ecff31d94255113edd6f9b5f3ce98e833e4e05`. Use `-ApkSignerPath` only when the configured Android SDK tool is not available as `apksigner`; never place signing credentials in the command or repository.
+Before device discovery, the runner requires both files, verifies the fixed accepted v1.0.1 hash and supplied v2 hash, uses `aapt2` to require the expected package identity and version metadata, and uses `apksigner` to require v1/v2/v3 signatures, exactly one signer, and permanent certificate SHA-256 `d55efdc1e25b341f4408bc3014ecff31d94255113edd6f9b5f3ce98e833e4e05`. Use `-Aapt2Path` or `-ApkSignerPath` only when the corresponding configured Android SDK tool is not available on `PATH`; never place signing credentials in the command or repository.
 
 The focused test asserts package `com.companyname.softballscorekeeper`, source version 1.0.1/code 5, destination version 2.0.0/code 6, retained Test Mode selection and records, offline license documents, and continued navigation in portrait and landscape. Team and Player verification scrolls virtualized lists, so previously retained Product Test records remain intact. The runner requires the exact method filter above and writes a timestamped TRX under `SoftballScorekeeper.AndroidUiTests/TestResults/ReleaseAcceptance` so a failed run retains its test name, exception, stack trace, and result counts. Appium uses `noReset=true`, and the runner preserves any pre-existing emulator or Appium process while stopping only resources it started. This automation does not replace separately authorized physical-tablet acceptance or final artifact/hash verification from merged `main`.
+
+## Signed Release Backup/Restore acceptance
+
+The signed Release Backup/Restore workflow is separate from the upgrade workflow and uses the same dedicated `softball_tablet_release_acceptance_api_35` AVD. It never invokes the Debug APK build/install path or the Debug-only database initializer. It binds the run to the exact verified v2.0.0 APK with `adb install -r`, creates only disposable records on the dedicated AVD, and never uninstalls the package, clears application data, resets a database through the test fixture, or wipes the AVD.
+
+Run only the exact authoritative method filter:
+
+```powershell
+$destinationApk = 'artifacts\release\v2.0.0-rc\SoftballScorekeeper-2.0.0.apk'
+$destinationSha256 = '328DF16906732A5980B5661C5030D4E5B0A38CDA0EF0218DDC2FDDCDB3B6E58C'
+$androidBuildTools = Join-Path $env:ANDROID_HOME 'build-tools\36.0.0'
+.\scripts\run-android-ui-tests.ps1 `
+    -ReleaseBackupRestoreAcceptance `
+    -ReleaseDestinationApk $destinationApk `
+    -ReleaseDestinationSha256 $destinationSha256 `
+    -ApkSignerPath (Join-Path $androidBuildTools 'apksigner.bat') `
+    -Aapt2Path (Join-Path $androidBuildTools 'aapt2.exe') `
+    -TestFilter 'FullyQualifiedName=SoftballScorekeeper.AndroidUiTests.ReleaseBackupRestoreAcceptanceTests.Signed_release_backup_restore_round_trip_preserves_test_mode_isolation'
+```
+
+Before Appium or emulator work, the runner verifies the APK hash, package `com.companyname.softballscorekeeper`, version 2.0.0/code 6, v1/v2/v3 signatures, exactly one signer, and the permanent certificate. It rejects physical devices, the development AVD, the ordinary UI-test AVD, empty filters, and every broad or alternate filter. The test initializes its driver only through the no-reset release path, creates Product Test sentinels, returns to Production with Test data kept, and performs a real DocumentsUI-created backup and restore through a unique Downloads directory. It inspects the pulled `metadata.json` and `database.sqlite3`, proves that pre-backup Production records return and post-backup records disappear after restore and restart, and then proves the Product Test sentinels remain isolated.
+
+The runner writes a timestamped `release-backup-restore-acceptance-*.trx` under `SoftballScorekeeper.AndroidUiTests/TestResults/ReleaseAcceptance`. Test failures retain the existing screenshot, page source, exception, and logcat evidence. This workflow must be rerun against the final signed APK rebuilt from the exact accepted and tagged `main` commit; passing an earlier candidate does not waive the final-source requirement.
 
 ## Lower-level manual commands
 
