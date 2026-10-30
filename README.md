@@ -10,11 +10,13 @@ Version 1.0.1 is the latest published release.
 
 ## Upcoming Version 2.0.0
 
-Version 2.0.0 is being prepared but has not been published. The preparation target uses .NET 10, Visual Studio Community 2026 version 18.11.2, MAUI 10.0.110, Android version name 2.0.0/code 6, and Windows version 2.0.0.0. It preserves Android and Windows Release identity `com.companyname.softballscorekeeper`, SQLite schema version 6, and backup format version 1. Existing Version 1 backups are expected to remain compatible, but final Backup/Restore and v1.0.1-to-v2.0.0 upgrade acceptance are still pending.
+Version 2.0.0 is being prepared but has not been published. It uses .NET 10, Visual Studio Community 2026 version 18.11.2, MAUI 10.0.110, Android version name 2.0.0/code 6, and Windows version 2.0.0.0. It preserves Android and Windows Release identity `com.companyname.softballscorekeeper`, SQLite schema version 6, and backup format version 1.
 
-Release preparation occurs on `task/v2-release`; definitive binaries must be built only after that preparation is reviewed and merged into clean `main`. Final acceptance must verify the permanent Android signing certificate, in-place upgrade without uninstalling or clearing data, Production/Test Mode isolation on the dedicated `softball_tablet_release_acceptance_api_35` AVD, and physical-tablet behavior when separately authorized. Windows remains a self-contained, unpackaged, portable x64 ZIP distribution.
+The signed Android candidate, `SoftballScorekeeper-2.0.0.apk` (36,477,330 bytes; SHA-256 `328DF16906732A5980B5661C5030D4E5B0A38CDA0EF0218DDC2FDDCDB3B6E58C`), passed the automated v1.0.1-to-v2.0.0 in-place upgrade workflow without uninstalling or clearing application data. The workflow preserved Test Mode Team and Player records and verified offline license documents plus portrait and landscape behavior. Final Backup/Restore was not independently verified with this signed APK, and physical-tablet acceptance was not performed; both await release-owner disposition.
 
-The planned release assets are `SoftballScorekeeper-2.0.0.apk` and `SoftballScorekeeper-2.0.0-windows-x64-portable.zip`. Their definitive SHA-256 values will be recorded only after merged-main builds and acceptance. The production licensing inventory targets v2.0.0, but final artifacts must still be reconciled against it, and the documented Microsoft downstream-license interpretation remains unresolved. Only after those checks may the exact artifact-producing commit be tagged `v2.0.0` and published through GitHub Releases.
+The self-contained, unpackaged Windows x64 candidate, `SoftballScorekeeper-2.0.0-windows-x64-portable.zip` (118,020,556 bytes; SHA-256 `F0DE2C5A15AAE80260E0B72EE27D032DE61E04AF062AF045322C0F65D18935CA`), passed ZIP integrity and inventory checks plus manual startup, navigation, Production persistence, Backup/Restore, local-license, v1.0.1 persisted-data compatibility, continued-write, and restart acceptance. It contains 624 application/runtime files and 21 licensing files. The in-app Licenses menu remains intentionally Android-only because the Windows agreements and notices are included in the portable ZIP.
+
+These candidates are not yet definitive release artifacts: Android was built from `d688bf5aeea09260680adb5246eb6c37fb9da265`, while Windows was built from `a1b2c8a1c8a5578060bf0b6f40d29b7e9523a1a1`. The release process requires one exact accepted merged-main source commit. Unless an explicit provenance exception is approved, both artifacts must be rebuilt from final accepted `main` and affected acceptance repeated. Publication also remains blocked on qualified clarification or legal review of the Microsoft downstream protective-terms question. No `v2.0.0` tag or GitHub Release has been created.
 
 ## Download and Install on Android
 
@@ -120,7 +122,7 @@ dotnet build SoftballScorekeeper/SoftballScorekeeper.csproj --framework net10.0-
 dotnet build SoftballScorekeeper/SoftballScorekeeper.csproj --framework net10.0-windows10.0.19041.0
 ```
 
-### Windows v2.0.0 portable release preparation
+### Windows v2.0.0 portable release workflow
 
 The validated .NET 10 preparation workflow restores the Windows ReadyToRun runtime pack before publishing. The Windows-specific restore below supplies `TargetFramework` globally, which also overwrites the referenced Core and Infrastructure asset graphs with the Windows target. The two following native project restores are therefore required to restore their `net10.0` graphs. This exact sequence was validated; an alternative project-reference-suppression command has not been validated and is not documented here.
 
@@ -132,14 +134,9 @@ dotnet restore SoftballScorekeeper.Infrastructure/SoftballScorekeeper.Infrastruc
 
 Before publishing, verify that Core and Infrastructure each have a `net10.0` target in their `obj/project.assets.json`, that the application has `net10.0-windows10.0.19041.0/win-x64`, and that its asset graph contains `Microsoft.NETCore.App.Crossgen2.win-x64`.
 
-The validated preliminary publish and package commands are:
+Publish the self-contained, unpackaged `win-x64` application with ReadyToRun enabled, then package it with `scripts/package-windows-portable.ps1`. The packager validates the v2.0.0 licensing manifest, recorded checksums, required notices, ZIP inventory, deterministic output, overwrite protection, and sensitive-file exclusions. Independently confirm the executable version and identity, fully inspect the ZIP, record its size and SHA-256, and reconcile its runtime payload with the production licensing inventory.
 
-```powershell
-dotnet publish SoftballScorekeeper/SoftballScorekeeper.csproj --framework net10.0-windows10.0.19041.0 --configuration Release --runtime win-x64 --self-contained true -p:WindowsPackageType=None -p:WindowsAppSDKSelfContained=true -p:PublishReadyToRun=true -m:1 -nodeReuse:false --no-restore --output artifacts/release/v2.0.0-rc/windows-publish-preliminary
-powershell -NoProfile -ExecutionPolicy Bypass -File scripts/package-windows-portable.ps1 -PublishDirectory artifacts/release/v2.0.0-rc/windows-publish-preliminary -OutputZip artifacts/release/v2.0.0-rc/SoftballScorekeeper-2.0.0-windows-x64-portable-preliminary.zip -StagingDirectory artifacts/release/v2.0.0-rc/windows-package-stage-preliminary
-```
-
-The packager validates the v2.0.0 licensing manifest, recorded checksums, required notices, ZIP inventory, deterministic output, overwrite protection, and sensitive-file exclusions. Independently confirm the executable version and identity, fully inspect the ZIP, record its size and SHA-256, and reconcile its runtime payload with the production licensing inventory. These task-branch paths produce preliminary validation output only. Definitive binaries must be rebuilt from clean merged `main` into new non-existing release paths, receive final runtime acceptance, and be hashed before tagging or publication.
+The accepted candidate ZIP contains the PolyForm license, consolidated third-party notices, root `LICENSE-INFO.txt`, and applicable component agreements under `licenses/common/` and `licenses/windows/`; keep all 645 extracted entries together. Its build-source commit differs from the Android candidate's source commit, so it is not yet the definitive release artifact. Build definitive binaries from the final accepted merged-main commit unless an explicit provenance exception is approved, and repeat affected runtime acceptance before tagging or publication.
 
 ## Testing
 
