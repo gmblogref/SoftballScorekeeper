@@ -56,6 +56,31 @@ public sealed class ReleaseBackupRestoreAcceptanceWiringTests
     }
 
     [Fact]
+    public void Release_backup_restore_requeries_documentsui_elements_after_stale_references()
+    {
+        var acceptance = Read(
+            "SoftballScorekeeper.AndroidUiTests",
+            "ReleaseBackupRestoreAcceptanceTests.cs"
+        );
+
+        AssertOrdered(
+            acceptance,
+            "private static IWebElement UntilAny",
+            ".Until(currentDriver =>",
+            ".SelectMany(currentDriver.FindElements)",
+            ".FirstOrDefault(element => element.Displayed)"
+        );
+        AssertOrdered(
+            acceptance,
+            "private static WebDriverWait Wait",
+            "wait.IgnoreExceptionTypes(",
+            "typeof(NoSuchElementException)",
+            "typeof(StaleElementReferenceException)",
+            "return wait;"
+        );
+    }
+
+    [Fact]
     public void Runner_requires_exact_filter_artifact_identity_and_release_avd()
     {
         var runner = Read("scripts", "run-android-ui-tests.ps1");
