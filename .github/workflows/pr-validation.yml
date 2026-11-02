@@ -12,6 +12,7 @@ jobs:
   unit-tests:
     name: Unit tests
     runs-on: ubuntu-latest
+    timeout-minutes: 15
 
     steps:
       - name: Check out repository
@@ -29,3 +30,87 @@ jobs:
 
       - name: Run unit tests
         run: dotnet test SoftballScorekeeper.Tests/SoftballScorekeeper.Tests.csproj --configuration Release --no-restore
+
+  appium-project:
+    name: Appium project compilation
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Set up .NET
+        uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Restore Appium-project dependencies
+        run: dotnet restore SoftballScorekeeper.AndroidUiTests/SoftballScorekeeper.AndroidUiTests.csproj
+
+      - name: Compile Appium project
+        run: dotnet build SoftballScorekeeper.AndroidUiTests/SoftballScorekeeper.AndroidUiTests.csproj --configuration Release --no-restore
+
+  android-application:
+    name: Android application compilation
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Set up .NET
+        uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@dd06d9cba3e5552c54d9f8ea23572deb30010f7c # v6.0.0
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - name: Install .NET MAUI Android workload
+        run: dotnet workload install maui-android --skip-manifest-update
+
+      - name: Restore Android application dependencies
+        run: |
+          dotnet restore SoftballScorekeeper/SoftballScorekeeper.csproj --property:TargetFrameworks=net10.0-android --disable-parallel
+          dotnet restore SoftballScorekeeper.Core/SoftballScorekeeper.Core.csproj --disable-parallel
+          dotnet restore SoftballScorekeeper.Infrastructure/SoftballScorekeeper.Infrastructure.csproj --disable-parallel
+
+      - name: Compile Android application
+        run: dotnet build SoftballScorekeeper/SoftballScorekeeper.csproj --configuration Debug --framework net10.0-android --no-restore --maxcpucount:1
+
+  windows-application:
+    name: Windows application compilation
+    runs-on: windows-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Set up .NET
+        uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Install .NET MAUI Windows workload
+        run: dotnet workload install maui-windows --skip-manifest-update
+
+      - name: Restore Windows application dependencies
+        run: |
+          dotnet restore SoftballScorekeeper/SoftballScorekeeper.csproj --property:TargetFrameworks=net10.0-windows10.0.19041.0 --disable-parallel
+          dotnet restore SoftballScorekeeper.Core/SoftballScorekeeper.Core.csproj --disable-parallel
+          dotnet restore SoftballScorekeeper.Infrastructure/SoftballScorekeeper.Infrastructure.csproj --disable-parallel
+
+      - name: Compile Windows application
+        run: dotnet build SoftballScorekeeper/SoftballScorekeeper.csproj --configuration Debug --framework net10.0-windows10.0.19041.0 --no-restore --property:WindowsPackageType=None --maxcpucount:1

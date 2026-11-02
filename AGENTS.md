@@ -560,6 +560,8 @@ Repository tests must use isolated temporary SQLite databases, never use the rea
 
 Repository tests do not provide MAUI UI coverage and must not be reported as Android or Windows runtime validation. UI behavior still requires appropriate manual or UI-level validation. Keep test changes story-focused and report untested areas honestly rather than adding unrelated future-feature coverage.
 
+Pull requests targeting `main` must automatically run the complete emulator-independent test suite and compile the Android application, Windows application, and Android UI/Appium test project. Routine PR validation must not start an emulator or Appium and must not perform release packaging, signing, tagging, or publication. Keep third-party Actions pinned to full commit SHAs, retain least-privilege workflow permissions, and disable persisted checkout credentials. When a required-check name changes, update the GitHub `main` ruleset only after the replacement check has run on a real pull request and its exact context can be selected; repository workflow changes alone do not prove ruleset enforcement.
+
 Scoring-engine development requires comprehensive table-driven tests covering base states, out counts, batter outcomes, runner movement, corrections, and derived statistics. Repository integration tests may use isolated temporary SQLite databases. UI automation is not required unless a later story explicitly adds it.
 
 Batting statistics must derive from authoritative batting outcomes through the centralized statistics calculator. UI and future correction workflows must not independently calculate PA, AB, H, AVG, OBP, or SLG.
