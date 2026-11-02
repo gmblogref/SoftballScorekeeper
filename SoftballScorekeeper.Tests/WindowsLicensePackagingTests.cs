@@ -3,6 +3,7 @@ using System.IO.Compression;
 using System.Security.Cryptography;
 using System.Text.Json;
 using System.Text.Json.Nodes;
+using System.Text.RegularExpressions;
 
 namespace SoftballScorekeeper.Tests;
 
@@ -550,7 +551,10 @@ public sealed class WindowsLicensePackagingTests : IDisposable
 
         return new PackagingResult(
             process.ExitCode,
-            standardOutput.GetAwaiter().GetResult() + standardError.GetAwaiter().GetResult()
+            NormalizePowerShellOutput(
+                standardOutput.GetAwaiter().GetResult(),
+                standardError.GetAwaiter().GetResult()
+            )
         );
     }
 
@@ -589,8 +593,18 @@ public sealed class WindowsLicensePackagingTests : IDisposable
         Assert.True(process.WaitForExit(120_000), "Windows package verification timed out.");
         return new PackagingResult(
             process.ExitCode,
-            standardOutput.GetAwaiter().GetResult() + standardError.GetAwaiter().GetResult()
+            NormalizePowerShellOutput(
+                standardOutput.GetAwaiter().GetResult(),
+                standardError.GetAwaiter().GetResult()
+            )
         );
+    }
+
+    private static string NormalizePowerShellOutput(string standardOutput, string standardError)
+    {
+        var combined = standardOutput + Environment.NewLine + standardError;
+        var withoutAnsi = Regex.Replace(combined, "\u001B\\[[0-?]*[ -/]*[@-~]", string.Empty);
+        return Regex.Replace(withoutAnsi, @"\s+", " ").Trim();
     }
 
     private static string ComputeSha256(string path) =>
