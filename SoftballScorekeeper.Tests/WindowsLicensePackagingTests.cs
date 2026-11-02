@@ -305,7 +305,13 @@ public sealed class WindowsLicensePackagingTests : IDisposable
         );
 
         Assert.NotEqual(0, result.ExitCode);
-        Assert.Contains("not requested release 'v1.0.0'", result.CombinedOutput);
+        const string expectedMessage = "not requested release 'v1.0.0'";
+        Assert.True(
+            result.CombinedOutput.Contains(expectedMessage, StringComparison.Ordinal),
+            $"PowerShell packaging failure did not contain '{expectedMessage}'."
+                + Environment.NewLine
+                + result.DiagnosticSummary
+        );
         Assert.False(File.Exists(outputZip));
     }
 
@@ -551,10 +557,9 @@ public sealed class WindowsLicensePackagingTests : IDisposable
 
         return new PackagingResult(
             process.ExitCode,
-            NormalizePowerShellOutput(
-                standardOutput.GetAwaiter().GetResult(),
-                standardError.GetAwaiter().GetResult()
-            )
+            NormalizePowerShellOutput(standardOutput.GetAwaiter().GetResult()),
+            NormalizePowerShellOutput(standardError.GetAwaiter().GetResult()),
+            FormatCommandContext(startInfo)
         );
     }
 
@@ -593,22 +598,41 @@ public sealed class WindowsLicensePackagingTests : IDisposable
         Assert.True(process.WaitForExit(120_000), "Windows package verification timed out.");
         return new PackagingResult(
             process.ExitCode,
-            NormalizePowerShellOutput(
-                standardOutput.GetAwaiter().GetResult(),
-                standardError.GetAwaiter().GetResult()
-            )
+            NormalizePowerShellOutput(standardOutput.GetAwaiter().GetResult()),
+            NormalizePowerShellOutput(standardError.GetAwaiter().GetResult()),
+            FormatCommandContext(startInfo)
         );
     }
 
-    private static string NormalizePowerShellOutput(string standardOutput, string standardError)
+    private static string NormalizePowerShellOutput(string output)
     {
-        var combined = standardOutput + Environment.NewLine + standardError;
-        var withoutAnsi = Regex.Replace(combined, "\u001B\\[[0-?]*[ -/]*[@-~]", string.Empty);
+        var withoutAnsi = Regex.Replace(output, "\u001B\\[[0-?]*[ -/]*[@-~]", string.Empty);
         return Regex.Replace(withoutAnsi, @"\s+", " ").Trim();
     }
+
+    private static string FormatCommandContext(ProcessStartInfo startInfo) =>
+        $"{startInfo.FileName} "
+        + string.Join(" ", startInfo.ArgumentList.Select(argument => $"[{argument}]"));
 
     private static string ComputeSha256(string path) =>
         Convert.ToHexString(SHA256.HashData(File.ReadAllBytes(path)));
 
-    private sealed record PackagingResult(int ExitCode, string CombinedOutput);
+    private sealed record PackagingResult(
+        int ExitCode,
+        string StandardOutput,
+        string StandardError,
+        string CommandContext
+    )
+    {
+        public string CombinedOutput => $"{StandardOutput} {StandardError}".Trim();
+
+        public string DiagnosticSummary =>
+            $"Exit code: {ExitCode}"
+            + Environment.NewLine
+            + $"Command: {CommandContext}"
+            + Environment.NewLine
+            + $"Normalized stdout: {(StandardOutput.Length == 0 ? "<empty>" : StandardOutput)}"
+            + Environment.NewLine
+            + $"Normalized stderr: {(StandardError.Length == 0 ? "<empty>" : StandardError)}";
+    }
 }
