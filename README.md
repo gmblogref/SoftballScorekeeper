@@ -150,6 +150,15 @@ dotnet test SoftballScorekeeper.Tests/SoftballScorekeeper.Tests.csproj
 
 The repository also includes an opt-in Android/Appium acceptance suite and its PowerShell runner. See the [Android UI test documentation](SoftballScorekeeper.AndroidUiTests/README.md) for its prerequisites, isolation rules, and supported commands. Android UI tests must use their dedicated test database and emulator; they are not part of the normal emulator-independent test command.
 
+Pull requests targeting `main` automatically run four independent GitHub Actions checks:
+
+- `Unit tests` runs the complete normal test project without an emulator.
+- `Appium project compilation` verifies that the opt-in Android UI test project compiles, but does not start Appium or run its tests.
+- `Android application compilation` installs the .NET MAUI Android workload and compiles the Debug Android target without an emulator.
+- `Windows application compilation` installs the .NET MAUI Windows workload and compiles the unpackaged Debug Windows target.
+
+These checks are compilation and emulator-independent test gates only. They do not replace Android UI acceptance, physical-tablet validation, Windows runtime validation, release packaging, signing, or publication. Repository administrators must configure the `main` ruleset to require the exact four check names after they have appeared on a real pull request; a workflow-file change cannot update that GitHub setting by itself.
+
 ## Architecture and Repository Structure
 
 The solution uses three production projects and two test projects:
