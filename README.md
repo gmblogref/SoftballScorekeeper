@@ -6,11 +6,11 @@
 
 Softball Scorekeeper is a fast, offline-first scorekeeping application for live adult slow-pitch softball. It is designed around a touch-friendly Android tablet workflow with quick scoring, automatic runner-movement defaults, easy corrections, automatic statistics, and configurable Beer Rules.
 
-Version 1.0.1 is the latest published release.
+Version 2.0.0 is the latest published release.
 
-## Upcoming Version 2.0.0
+## Version 2.0.0 Release
 
-Version 2.0.0 is technically accepted but has not been published. It uses .NET 10, Visual Studio Community 2026 version 18.11.2, MAUI 10.0.110, Android version name 2.0.0/code 6, and Windows version 2.0.0.0. It preserves Android and Windows Release identity `com.companyname.softballscorekeeper`, SQLite schema version 6, and backup format version 1.
+Version 2.0.0 was published on October 30, 2026. It uses .NET 10, Visual Studio Community 2026 version 18.11.2, MAUI 10.0.110, Android version name 2.0.0/code 6, and Windows version 2.0.0.0. It preserves Android and Windows Release identity `com.companyname.softballscorekeeper`, SQLite schema version 6, and backup format version 1.
 
 The definitive signed Android artifact is `SoftballScorekeeper-2.0.0-8ebd707c.apk` (36,812,076 bytes; SHA-256 `E88A8D36399C7845950ED4E478E1853AF6038C0D93DB35CC0A03782A6215B4D6`). It has exactly one signer, valid v1/v2/v3 signatures, and permanent certificate SHA-256 `D55EFDC1E25B341F4408BC3014ECFF31D94255113EDD6F9B5F3CE98E833E4E05`. The final signed v1.0.1-to-v2.0.0 upgrade acceptance passed 1 test with no failures or skips after one initial automation-only failure and a successful clean retry; it preserved Product Test data and verified offline licenses plus portrait and landscape behavior. The final signed Production Backup/Restore acceptance passed 1 test with no failures, skips, or retries in 8 minutes 37 seconds. It saved and inspected a real DocumentsUI ZIP containing `database.sqlite3` and `metadata.json`, restored pre-backup Production records, removed post-backup changes, preserved restored data across relaunch, maintained Product Test Mode isolation, and found no fatal application or SQLite exception.
 
@@ -18,7 +18,7 @@ The definitive self-contained, unpackaged Windows x64 artifact is `SoftballScore
 
 Both definitive artifacts were built from merged-main commit `8ebd707c90147c5b3032bae7791eb787f0b6818d`. Later `main` changes are limited to acceptance automation, wiring tests, and documentation; no production binary-producing input changed. For v2.0.0 only, the release owner approved a one-time provenance exception allowing the annotated `v2.0.0` tag to point to the actual artifact-producing commit `8ebd707c90147c5b3032bae7791eb787f0b6818d` rather than the newer `main` tip. The exception does not waive signing, acceptance, or licensing obligations, does not authorize publication, and establishes no future precedent.
 
-Physical-tablet acceptance is deferred until the final GitHub publication and Google Drive installation milestone; no physical-tablet installation of v2.0.0 has occurred. Publication remains blocked on qualified clarification or legal review of the Microsoft downstream protective-terms question: the portable ZIP contains the reconciled legal notices, but the sufficiency of download/use-based terms to establish end-user agreement has not been established, and no legal clearance is claimed. No `v2.0.0` tag or GitHub Release has been created, so Version 1.0.1 remains the latest published release.
+The release record retains physical-tablet acceptance as deferred to the post-publication Google Drive installation milestone; this repository contains no later record of a physical-tablet installation of v2.0.0. Version 2.0.0 was published while the Microsoft downstream protective-terms question remained unresolved: the portable ZIP contains the reconciled legal notices, but the sufficiency of download/use-based terms to establish end-user agreement has not been established, and no legal clearance is claimed. The annotated `v2.0.0` tag and GitHub Release identify the accepted artifacts.
 
 ## Download and Install on Android
 
@@ -138,7 +138,7 @@ Before publishing, verify that Core and Infrastructure each have a `net10.0` tar
 
 Publish the self-contained, unpackaged `win-x64` application with ReadyToRun enabled, then package it with `scripts/package-windows-portable.ps1`. The packager validates the v2.0.0 licensing manifest, recorded checksums, required notices, ZIP inventory, deterministic output, overwrite protection, and sensitive-file exclusions. Independently confirm the executable version and identity, fully inspect the ZIP, record its size and SHA-256, and reconcile its runtime payload with the production licensing inventory.
 
-The definitive ZIP contains the PolyForm license, consolidated third-party notices, root `LICENSE-INFO.txt`, and applicable component agreements under `licenses/common/` and `licenses/windows/`; keep all 645 extracted entries together. It and the definitive Android APK were built from commit `8ebd707c90147c5b3032bae7791eb787f0b6818d`. The release owner's one-time v2.0.0 provenance exception requires the annotated release tag to identify that exact artifact-producing commit; it does not resolve or waive the remaining Microsoft downstream-license publication blocker.
+The definitive ZIP contains the PolyForm license, consolidated third-party notices, root `LICENSE-INFO.txt`, and applicable component agreements under `licenses/common/` and `licenses/windows/`; keep all 645 extracted entries together. It and the definitive Android APK were built from commit `8ebd707c90147c5b3032bae7791eb787f0b6818d`. The release owner's one-time v2.0.0 provenance exception requires the annotated release tag to identify that exact artifact-producing commit; it does not resolve or waive the documented Microsoft downstream-license acceptance question.
 
 ## Testing
 
@@ -179,6 +179,7 @@ The application uses .NET MAUI, C#, XAML, CommunityToolkit.Mvvm, built-in depend
 - [FEATURE_HISTORY.md](FEATURE_HISTORY.md) is the canonical record of completed stories, implementation decisions, validation, and current repository state.
 - [CONTRIBUTING.md](CONTRIBUTING.md) explains the pull-request workflow and contribution licensing.
 - [SECURITY.md](SECURITY.md) defines supported versions and private vulnerability-reporting guidance.
+- [docs/RELEASING.md](docs/RELEASING.md) explains the protected manual release workflow, dry runs, and publication verification.
 
 ## Project Boundaries
 
