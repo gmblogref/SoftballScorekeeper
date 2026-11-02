@@ -93,6 +93,7 @@ Optional runner parameters:
 .\scripts\run-android-ui-tests.ps1 -TestFilter 'FullyQualifiedName~ScoringResumeWorkflowTests'
 .\scripts\run-android-ui-tests.ps1 -AppiumServerUrl 'http://127.0.0.1:4723/' -AdbPath 'adb'
 .\scripts\run-android-ui-tests.ps1 -AppiumCommand 'appium'
+.\scripts\run-android-ui-tests.ps1 -AvdName 'softball_tablet_ui_tests_api_35' -HeadlessEmulator
 ```
 
 `-AvdName` overrides `SOFTBALL_ANDROID_AVD`; both override the default
@@ -104,6 +105,9 @@ already connected as the chosen emulator.
 environment variables for that run. `-AppiumCommand` selects an already-installed
 Appium CLI when it is not available under the default `appium` command.
 `-TestFilter` is passed to `dotnet test`; omit it to run the complete suite.
+`-HeadlessEmulator` adds the no-window, no-audio, no-boot-animation, no-snapshot,
+and software-GPU options used by the GitHub-hosted release workflow. It affects only
+an emulator the runner starts and does not change local visible-emulator defaults.
 
 The Appium URL defaults to `http://127.0.0.1:4723/`. A local override supplies the
 host, port, and optional base path used for automatic startup as well as the URL

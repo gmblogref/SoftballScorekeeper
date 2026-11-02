@@ -1,13 +1,22 @@
 [CmdletBinding()]
 param(
-    [Parameter(Mandatory = $true)]
+    [Parameter(Mandatory = $true, ParameterSetName = 'Package')]
     [ValidateNotNullOrEmpty()]
     [string]$PublishDirectory,
 
-    [Parameter(Mandatory = $true)]
+    [Parameter(Mandatory = $true, ParameterSetName = 'Package')]
     [ValidateNotNullOrEmpty()]
     [string]$OutputZip,
 
+    [Parameter(Mandatory = $true, ParameterSetName = 'Verify')]
+    [ValidateNotNullOrEmpty()]
+    [string]$InputZip,
+
+    [Parameter(Mandatory = $true)]
+    [ValidateNotNullOrEmpty()]
+    [string]$ReleaseVersion,
+
+    [Parameter(ParameterSetName = 'Package')]
     [ValidateNotNullOrEmpty()]
     [string]$StagingDirectory
 )
@@ -189,15 +198,19 @@ function Get-WindowsLicenseMappings {
         [string]$RepositoryRoot,
 
         [Parameter(Mandatory = $true)]
-        [psobject]$Manifest
+        [psobject]$Manifest,
+
+        [Parameter(Mandatory = $true)]
+        [string]$ReleaseVersion
     )
 
     if ($Manifest.schema_version -ne 1) {
         throw "Unsupported production license manifest schema '$($Manifest.schema_version)'. Expected schema 1."
     }
 
-    if ($Manifest.release_target -cne 'v2.0.0') {
-        throw "Production license manifest targets '$($Manifest.release_target)', not v2.0.0."
+    $expectedReleaseTarget = "v$ReleaseVersion"
+    if ($Manifest.release_target -cne $expectedReleaseTarget) {
+        throw "Production license manifest targets '$($Manifest.release_target)', not requested release '$expectedReleaseTarget'. Reconcile and explicitly retarget the production license inventory before packaging this version."
     }
 
     if ([string]::IsNullOrWhiteSpace([string]$Manifest.coverage_status)) {
@@ -358,6 +371,49 @@ function Assert-PublishDirectorySafe {
     if (-not (Test-Path -LiteralPath (Join-Path $PublishRoot 'SoftballScorekeeper.exe') -PathType Leaf)) {
         throw "Publish directory does not contain SoftballScorekeeper.exe: $PublishRoot"
     }
+
+    foreach ($runtimeFile in @('coreclr.dll', 'hostfxr.dll', 'hostpolicy.dll')) {
+        if (-not (Test-Path -LiteralPath (Join-Path $PublishRoot $runtimeFile) -PathType Leaf)) {
+            throw "Publish directory does not contain required self-contained win-x64 runtime file '$runtimeFile'."
+        }
+    }
+}
+
+function Assert-WindowsVersionMetadata {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$PublishRoot,
+
+        [Parameter(Mandatory = $true)]
+        [string]$ReleaseVersion
+    )
+
+    $expectedFourPartVersion = "$ReleaseVersion.0"
+    $executablePath = Join-Path $PublishRoot 'SoftballScorekeeper.exe'
+    $versionInfo = [System.Diagnostics.FileVersionInfo]::GetVersionInfo($executablePath)
+    if ($versionInfo.FileVersion -cne $expectedFourPartVersion) {
+        throw "SoftballScorekeeper.exe file version mismatch. Expected $expectedFourPartVersion; found '$($versionInfo.FileVersion)'."
+    }
+
+    $productVersion = ([string]$versionInfo.ProductVersion).Split('+')[0]
+    if ($productVersion -cne $ReleaseVersion -and $productVersion -cne $expectedFourPartVersion) {
+        throw "SoftballScorekeeper.exe product version mismatch. Expected $ReleaseVersion or $expectedFourPartVersion; found '$($versionInfo.ProductVersion)'."
+    }
+
+    $assemblyPath = Join-Path $PublishRoot 'SoftballScorekeeper.dll'
+    if (-not (Test-Path -LiteralPath $assemblyPath -PathType Leaf)) {
+        throw "Publish directory does not contain SoftballScorekeeper.dll for assembly-version verification."
+    }
+
+    try {
+        $assemblyVersion = [System.Reflection.AssemblyName]::GetAssemblyName($assemblyPath).Version.ToString()
+    }
+    catch {
+        throw "SoftballScorekeeper.dll assembly version could not be inspected. $($_.Exception.Message)"
+    }
+    if ($assemblyVersion -cne $expectedFourPartVersion) {
+        throw "SoftballScorekeeper.dll assembly version mismatch. Expected $expectedFourPartVersion; found '$assemblyVersion'."
+    }
 }
 
 function Copy-PublishFiles {
@@ -467,7 +523,10 @@ function Test-ZipContents {
         [string]$ArchivePath,
 
         [Parameter(Mandatory = $true)]
-        [object[]]$Mappings
+        [object[]]$Mappings,
+
+        [Parameter(Mandatory = $true)]
+        [string]$ReleaseVersion
     )
 
     Add-Type -AssemblyName System.IO.Compression
@@ -480,8 +539,32 @@ function Test-ZipContents {
         try {
             $entries = @($archive.Entries)
             $entryNames = @($entries | ForEach-Object { $_.FullName })
+            if (($entryNames | Sort-Object -Unique).Count -ne $entryNames.Count) {
+                throw 'Portable ZIP contains duplicate entry names.'
+            }
+            foreach ($entryName in $entryNames) {
+                $normalizedName = $entryName.Replace('\', '/')
+                if ([string]::IsNullOrWhiteSpace($normalizedName) -or
+                    $normalizedName.StartsWith('/', [System.StringComparison]::Ordinal) -or
+                    $normalizedName.Split('/') -contains '..') {
+                    throw "Portable ZIP contains an unsafe entry path '$entryName'."
+                }
+            }
             if ($entryNames -notcontains 'SoftballScorekeeper.exe') {
                 throw 'Portable ZIP does not contain SoftballScorekeeper.exe at its root.'
+            }
+
+            foreach ($requiredEntry in @('SoftballScorekeeper.dll', 'coreclr.dll', 'hostfxr.dll', 'hostpolicy.dll')) {
+                if ($entryNames -notcontains $requiredEntry) {
+                    throw "Portable ZIP does not contain required self-contained file '$requiredEntry' at its root."
+                }
+            }
+
+            $forbiddenExtensions = @('.appx', '.appxbundle', '.cer', '.jks', '.key', '.keystore', '.msix', '.msixbundle', '.p12', '.p8', '.pdb', '.pem', '.pfx', '.snk')
+            foreach ($entryName in $entryNames) {
+                if ($forbiddenExtensions -contains [System.IO.Path]::GetExtension($entryName).ToLowerInvariant()) {
+                    throw "Portable ZIP contains a forbidden package, symbol, or sensitive file '$entryName'."
+                }
             }
 
             if (@($entryNames | Where-Object { $_.StartsWith('licenses/android/', [System.StringComparison]::OrdinalIgnoreCase) }).Count -ne 0) {
@@ -523,6 +606,33 @@ function Test-ZipContents {
                     throw "Portable ZIP license hash does not match source for '$($mapping.DestinationRelativePath)'."
                 }
             }
+
+            $metadataRoot = Join-Path ([System.IO.Path]::GetTempPath()) ("SoftballScorekeeper-windows-verify-" + [System.Guid]::NewGuid().ToString('N'))
+            try {
+                New-Item -ItemType Directory -Path $metadataRoot | Out-Null
+                foreach ($metadataEntryName in @('SoftballScorekeeper.exe', 'SoftballScorekeeper.dll')) {
+                    $metadataEntry = @($entries | Where-Object { $_.FullName -ceq $metadataEntryName })
+                    if ($metadataEntry.Count -ne 1) {
+                        throw "Portable ZIP must contain exactly one '$metadataEntryName' entry."
+                    }
+                    $destination = Join-Path $metadataRoot $metadataEntryName
+                    $sourceStream = $metadataEntry[0].Open()
+                    $destinationStream = [System.IO.File]::Create($destination)
+                    try {
+                        $sourceStream.CopyTo($destinationStream)
+                    }
+                    finally {
+                        $destinationStream.Dispose()
+                        $sourceStream.Dispose()
+                    }
+                }
+                Assert-WindowsVersionMetadata -PublishRoot $metadataRoot -ReleaseVersion $ReleaseVersion
+            }
+            finally {
+                if (Test-Path -LiteralPath $metadataRoot) {
+                    Remove-Item -LiteralPath $metadataRoot -Recurse -Force
+                }
+            }
         }
         finally {
             $archive.Dispose()
@@ -535,31 +645,9 @@ function Test-ZipContents {
 
 $scriptRoot = [System.IO.Path]::GetFullPath($PSScriptRoot)
 $repositoryRoot = [System.IO.Path]::GetFullPath((Join-Path $scriptRoot '..'))
-$publishRoot = Get-FullPath -Path $PublishDirectory -BasePath (Get-Location).Path
-$outputPath = Get-FullPath -Path $OutputZip -BasePath (Get-Location).Path
-$outputParent = Split-Path -Parent $outputPath
 
-if (-not (Test-Path -LiteralPath $publishRoot -PathType Container)) {
-    throw "Windows publish directory does not exist: $publishRoot"
-}
-
-if ([System.IO.Path]::GetExtension($outputPath) -ine '.zip') {
-    throw "Output path must use the .zip extension: $outputPath"
-}
-
-if (-not (Test-Path -LiteralPath $outputParent -PathType Container)) {
-    throw "Output directory does not exist: $outputParent"
-}
-
-if (Test-Path -LiteralPath $outputPath) {
-    throw "Output ZIP already exists and will not be overwritten: $outputPath"
-}
-
-$publishPrefix = $publishRoot.TrimEnd(
-    [System.IO.Path]::DirectorySeparatorChar,
-    [System.IO.Path]::AltDirectorySeparatorChar) + [System.IO.Path]::DirectorySeparatorChar
-if ($outputPath.StartsWith($publishPrefix, [System.StringComparison]::OrdinalIgnoreCase)) {
-    throw 'Output ZIP must be outside the publish directory.'
+if ($ReleaseVersion -notmatch '^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$') {
+    throw "Release version '$ReleaseVersion' must use strict major.minor.patch format."
 }
 
 $manifestPath = Join-Path $repositoryRoot 'licenses/distribution/production-license-manifest.json'
@@ -574,9 +662,64 @@ catch {
     throw "Production license manifest is not valid JSON: $($_.Exception.Message)"
 }
 
-$licenseMappings = @(Get-WindowsLicenseMappings -RepositoryRoot $repositoryRoot -Manifest $manifest)
+$licenseMappings = @(
+    Get-WindowsLicenseMappings `
+        -RepositoryRoot $repositoryRoot `
+        -Manifest $manifest `
+        -ReleaseVersion $ReleaseVersion
+)
 Assert-DistributionChecksums -RepositoryRoot $repositoryRoot
+
+if ($PSCmdlet.ParameterSetName -ceq 'Verify') {
+    $inputPath = Get-FullPath -Path $InputZip -BasePath (Get-Location).Path
+    $expectedInputFileName = "SoftballScorekeeper-$ReleaseVersion-windows-x64-portable.zip"
+    if ([System.IO.Path]::GetFileName($inputPath) -cne $expectedInputFileName) {
+        throw "Input ZIP must be named '$expectedInputFileName'."
+    }
+    if (-not (Test-Path -LiteralPath $inputPath -PathType Leaf)) {
+        throw "Windows portable ZIP does not exist: $inputPath"
+    }
+    Test-ZipContents -ArchivePath $inputPath -Mappings $licenseMappings -ReleaseVersion $ReleaseVersion
+    $verifiedArtifact = Get-Item -LiteralPath $inputPath
+    return [pscustomobject]@{
+        OutputZip = $verifiedArtifact.FullName
+        SizeBytes = $verifiedArtifact.Length
+        Sha256 = Get-Sha256 -Path $verifiedArtifact.FullName
+        LicenseFileCount = $licenseMappings.Count
+        Manifest = $manifestPath
+        ReleaseVersion = $ReleaseVersion
+        ExecutableFileVersion = "$ReleaseVersion.0"
+        AssemblyVersion = "$ReleaseVersion.0"
+    }
+}
+
+$publishRoot = Get-FullPath -Path $PublishDirectory -BasePath (Get-Location).Path
+$outputPath = Get-FullPath -Path $OutputZip -BasePath (Get-Location).Path
+$outputParent = Split-Path -Parent $outputPath
+$expectedOutputFileName = "SoftballScorekeeper-$ReleaseVersion-windows-x64-portable.zip"
+if ([System.IO.Path]::GetFileName($outputPath) -cne $expectedOutputFileName) {
+    throw "Output ZIP must be named '$expectedOutputFileName'."
+}
+if (-not (Test-Path -LiteralPath $publishRoot -PathType Container)) {
+    throw "Windows publish directory does not exist: $publishRoot"
+}
+if ([System.IO.Path]::GetExtension($outputPath) -ine '.zip') {
+    throw "Output path must use the .zip extension: $outputPath"
+}
+if (-not (Test-Path -LiteralPath $outputParent -PathType Container)) {
+    throw "Output directory does not exist: $outputParent"
+}
+if (Test-Path -LiteralPath $outputPath) {
+    throw "Output ZIP already exists and will not be overwritten: $outputPath"
+}
+$publishPrefix = $publishRoot.TrimEnd(
+    [System.IO.Path]::DirectorySeparatorChar,
+    [System.IO.Path]::AltDirectorySeparatorChar) + [System.IO.Path]::DirectorySeparatorChar
+if ($outputPath.StartsWith($publishPrefix, [System.StringComparison]::OrdinalIgnoreCase)) {
+    throw 'Output ZIP must be outside the publish directory.'
+}
 Assert-PublishDirectorySafe -PublishRoot $publishRoot
+Assert-WindowsVersionMetadata -PublishRoot $publishRoot -ReleaseVersion $ReleaseVersion
 
 if ([string]::IsNullOrWhiteSpace($StagingDirectory)) {
     $stageRoot = Join-Path ([System.IO.Path]::GetTempPath()) ("SoftballScorekeeper-windows-package-" + [System.Guid]::NewGuid().ToString('N'))
@@ -602,7 +745,7 @@ try {
     $publishedFileCount = Copy-PublishFiles -PublishRoot $publishRoot -StageRoot $stageRoot
     Copy-LicenseFiles -Mappings $licenseMappings -StageRoot $stageRoot
     New-DeterministicZip -StageRoot $stageRoot -ArchivePath $temporaryArchive
-    Test-ZipContents -ArchivePath $temporaryArchive -Mappings $licenseMappings
+    Test-ZipContents -ArchivePath $temporaryArchive -Mappings $licenseMappings -ReleaseVersion $ReleaseVersion
 
     Move-Item -LiteralPath $temporaryArchive -Destination $outputPath
     $artifact = Get-Item -LiteralPath $outputPath
@@ -613,6 +756,9 @@ try {
         PublishedFileCount = $publishedFileCount
         LicenseFileCount = $licenseMappings.Count
         Manifest = $manifestPath
+        ReleaseVersion = $ReleaseVersion
+        ExecutableFileVersion = "$ReleaseVersion.0"
+        AssemblyVersion = "$ReleaseVersion.0"
     }
 }
 finally {

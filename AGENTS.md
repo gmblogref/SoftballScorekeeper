@@ -562,6 +562,17 @@ Repository tests do not provide MAUI UI coverage and must not be reported as And
 
 Pull requests targeting `main` must automatically run the complete emulator-independent test suite and compile the Android application, Windows application, and Android UI/Appium test project. Routine PR validation must not start an emulator or Appium and must not perform release packaging, signing, tagging, or publication. Keep third-party Actions pinned to full commit SHAs, retain least-privilege workflow permissions, and disable persisted checkout credentials. When a required-check name changes, update the GitHub `main` ruleset only after the replacement check has run on a real pull request and its exact context can be selected; repository workflow changes alone do not prove ruleset enforcement.
 
+Production releases are manual-only and must use an exact commit already merged
+to `main`. The requested semantic version and Android version code must match
+committed application metadata, and the Windows licensing manifest and tracked
+version-specific release notes must be reconciled in the same reviewed release-
+preparation change. Production Android signing is allowed only through the
+protected `production-release` environment and must retain certificate SHA-256
+`D55EFDC1E25B341F4408BC3014ECFF31D94255113EDD6F9B5F3CE98E833E4E05`.
+Release automation must default to no publication, preserve least-privilege
+permissions, reject existing tags or Releases, create annotated version tags,
+and never automatically delete, overwrite, or force-move release state.
+
 Scoring-engine development requires comprehensive table-driven tests covering base states, out counts, batter outcomes, runner movement, corrections, and derived statistics. Repository integration tests may use isolated temporary SQLite databases. UI automation is not required unless a later story explicitly adds it.
 
 Batting statistics must derive from authoritative batting outcomes through the centralized statistics calculator. UI and future correction workflows must not independently calculate PA, AB, H, AVG, OBP, or SLG.
@@ -716,7 +727,7 @@ Do not expand a story beyond its approved scope to prepare for these features.
 
 ## Current Implementation Status
 
-Version 1.0.1 is the latest published GitHub Release, with an Android APK and a Windows x64 portable ZIP. Version 2.0.0 release preparation is in progress and must not be described as published or accepted until definitive artifacts are built from merged `main`, validated, tagged, and published. Android tablet remains the primary deployment and acceptance target. Windows is supported through the portable ZIP and as a source-build target for development, debugging, validation, and convenience; no Windows installer or MSIX is currently distributed.
+Version 2.0.0 is the latest published GitHub Release, with an Android APK and a Windows x64 portable ZIP. Android tablet remains the primary deployment and acceptance target. Windows is supported through the portable ZIP and as a source-build target for development, debugging, validation, and convenience; no Windows installer or MSIX is currently distributed.
 
 The repository contains three production projects and two test projects: the Android- and Windows-targeted .NET 10 MAUI application, platform-independent Core, SQLite-backed Infrastructure, the emulator-independent Tests project, and the opt-in Android UI/Appium test project. Version 1.0 implements Team, Player, roster, Team Year, Season, Game, lineup, scoring, statistics, Beer Rules, Backup/Restore, and isolated Product Test Mode workflows. Inspect `FEATURE_HISTORY.md` and the current repository before describing detailed behavior or validation as current.
 

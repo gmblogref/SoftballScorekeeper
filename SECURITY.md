@@ -8,10 +8,10 @@ promised.
 
 | Version | Security attention |
 | --- | --- |
-| Current `main` and Version 1.0.1 | Yes |
+| Current `main` and Version 2.0.0 | Yes |
 | Older, superseded, or prerelease builds | No guaranteed attention |
 
-The latest published release is Version 1.0.1. Users should reproduce an issue
+The latest published release is Version 2.0.0. Users should reproduce an issue
 against the latest supported release when practical.
 
 ## Reporting a vulnerability

@@ -2,6 +2,7 @@
 param(
     [string]$DeviceId,
     [string]$AvdName,
+    [switch]$HeadlessEmulator,
     [switch]$KeepEmulatorRunning,
     [string]$TestFilter,
     [switch]$ReleaseAcceptance,
@@ -306,7 +307,7 @@ function Start-OwnedAppium {
         throw "No healthy Appium server is available at '$($ServerUri.AbsoluteUri)', and the runner can only start and own a local HTTP Appium endpoint (127.0.0.1, localhost, or ::1)."
     }
 
-    $logDirectory = Join-Path $RepositoryRoot 'SoftballScorekeeper.AndroidUiTests\TestResults\Appium'
+    $logDirectory = Join-Path $RepositoryRoot 'SoftballScorekeeper.AndroidUiTests/TestResults/Appium'
     New-Item -ItemType Directory -Path $logDirectory -Force | Out-Null
     $timestamp = [DateTime]::UtcNow.ToString('yyyyMMdd-HHmmssfff')
     $script:appiumStandardOutputPath = Join-Path $logDirectory "appium-$timestamp.stdout.log"
@@ -325,13 +326,17 @@ function Start-OwnedAppium {
         if ($_ -match '\s') { '"' + $_.Replace('"', '\"') + '"' } else { $_ }
     })
     Write-Stage "Starting Appium at $($ServerUri.AbsoluteUri)..."
-    $script:startedAppiumProcess = Start-Process `
-        -FilePath $AppiumLaunch.FilePath `
-        -ArgumentList $startArguments `
-        -RedirectStandardOutput $script:appiumStandardOutputPath `
-        -RedirectStandardError $script:appiumStandardErrorPath `
-        -PassThru `
-        -WindowStyle Hidden
+    $startProcessParameters = @{
+        FilePath = $AppiumLaunch.FilePath
+        ArgumentList = $startArguments
+        RedirectStandardOutput = $script:appiumStandardOutputPath
+        RedirectStandardError = $script:appiumStandardErrorPath
+        PassThru = $true
+    }
+    if ($env:OS -eq 'Windows_NT') {
+        $startProcessParameters.WindowStyle = 'Hidden'
+    }
+    $script:startedAppiumProcess = Start-Process @startProcessParameters
     $script:startedAppium = $true
     Write-Stage "Waiting up to $TimeoutSeconds seconds for runner-owned Appium PID $($script:startedAppiumProcess.Id) to become ready..."
 
@@ -487,6 +492,7 @@ function Start-ConfiguredEmulator {
         [string]$EmulatorExecutable,
         [string]$RequestedAvdName,
         [string[]]$ExistingDeviceIds,
+        [switch]$Headless,
         [int]$TimeoutSeconds = 180
     )
 
@@ -512,7 +518,12 @@ function Start-ConfiguredEmulator {
     }
 
     Write-Stage "Starting Android test AVD: $RequestedAvdName"
-    $emulatorProcess = Start-Process -FilePath $EmulatorExecutable -ArgumentList @('-avd', $RequestedAvdName) -PassThru
+    $emulatorArguments = @('-avd', $RequestedAvdName)
+    if ($Headless) {
+        $emulatorArguments += @('-no-window', '-no-audio', '-no-boot-anim', '-no-snapshot', '-gpu', 'swiftshader')
+        Write-Stage 'Using headless emulator options for hosted execution.'
+    }
+    $emulatorProcess = Start-Process -FilePath $EmulatorExecutable -ArgumentList $emulatorArguments -PassThru
     $script:startedEmulator = $true
     $script:startedEmulatorProcess = $emulatorProcess
     $deadline = [DateTime]::UtcNow.AddSeconds($TimeoutSeconds)
@@ -732,7 +743,8 @@ try {
                 -AdbExecutable $adbExecutable `
                 -EmulatorExecutable $emulatorExecutable `
                 -RequestedAvdName $AvdName `
-                -ExistingDeviceIds @($initialDeviceStates.Keys)
+                -ExistingDeviceIds @($initialDeviceStates.Keys) `
+                -Headless:$HeadlessEmulator
         }
     }
     elseif ($usableDeviceIds.Count -eq 1) {
@@ -759,7 +771,8 @@ try {
             -AdbExecutable $adbExecutable `
             -EmulatorExecutable $emulatorExecutable `
             -RequestedAvdName $AvdName `
-            -ExistingDeviceIds @($initialDeviceStates.Keys)
+            -ExistingDeviceIds @($initialDeviceStates.Keys) `
+            -Headless:$HeadlessEmulator
     }
     else {
         throw "Multiple usable Android devices are connected: $($usableDeviceIds -join ', '). Specify one with -DeviceId or SOFTBALL_ANDROID_DEVICE_ID."
@@ -793,7 +806,7 @@ try {
         }
     }
     else {
-        $appProject = Join-Path $repositoryRoot 'SoftballScorekeeper\SoftballScorekeeper.csproj'
+        $appProject = Join-Path $repositoryRoot 'SoftballScorekeeper/SoftballScorekeeper.csproj'
         Write-Stage 'Building embedded-assembly Android APK...'
         Invoke-RequiredCommand -Description 'Android build' -FilePath $dotnetExecutable -Arguments @(
             'build',
@@ -805,7 +818,7 @@ try {
             '--maxcpucount:1'
         )
 
-        $apkPath = Join-Path $repositoryRoot 'SoftballScorekeeper\bin\Debug\net10.0-android\com.companyname.softballscorekeeper-Signed.apk'
+        $apkPath = Join-Path $repositoryRoot 'SoftballScorekeeper/bin/Debug/net10.0-android/com.companyname.softballscorekeeper-Signed.apk'
         if (-not (Test-Path -LiteralPath $apkPath -PathType Leaf)) {
             throw "Android build succeeded but the expected APK was not found at '$apkPath'."
         }
@@ -826,7 +839,7 @@ try {
     $env:SOFTBALL_ADB_PATH = $adbExecutable
     $env:SOFTBALL_RUN_ANDROID_UI_TESTS = '1'
 
-    $testProject = Join-Path $repositoryRoot 'SoftballScorekeeper.AndroidUiTests\SoftballScorekeeper.AndroidUiTests.csproj'
+    $testProject = Join-Path $repositoryRoot 'SoftballScorekeeper.AndroidUiTests/SoftballScorekeeper.AndroidUiTests.csproj'
     $testArguments = @('test', $testProject, '-m:1')
     if (-not [string]::IsNullOrWhiteSpace($TestFilter)) {
         $testArguments += @('--filter', $TestFilter)

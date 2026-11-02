@@ -1,0 +1,818 @@
+name: Manual Release
+
+run-name: Preflight v${{ inputs.release_version }} from ${{ github.ref_name }} by @${{ github.actor }}
+
+on:
+  workflow_dispatch:
+    inputs:
+      release_version:
+        description: Release version in major.minor.patch format without a leading v
+        required: true
+        type: string
+      android_version_code:
+        description: Positive Android version code matching the committed ApplicationVersion
+        required: true
+        type: string
+      android_ui_validation:
+        description: Optional Android UI validation level for later release stages
+        required: true
+        default: none
+        type: choice
+        options:
+          - none
+          - smoke
+          - full
+      create_github_release:
+        description: Authorize later tag and GitHub Release publication stages
+        required: true
+        default: false
+        type: boolean
+
+permissions:
+  contents: read
+
+concurrency:
+  group: manual-release-${{ inputs.release_version }}
+  cancel-in-progress: false
+
+jobs:
+  preflight:
+    name: Release preflight
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+
+    outputs:
+      release_version: ${{ steps.validate.outputs.release_version }}
+      android_version_code: ${{ steps.validate.outputs.android_version_code }}
+      release_tag: ${{ steps.validate.outputs.release_tag }}
+      source_sha: ${{ steps.validate.outputs.source_sha }}
+
+    steps:
+      - name: Check out exact dispatch source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+          ref: ${{ github.sha }}
+
+      - name: Validate release source and versions
+        id: validate
+        shell: pwsh
+        env:
+          ANDROID_VERSION_CODE: ${{ inputs.android_version_code }}
+          DISPATCH_EVENT_NAME: ${{ github.event_name }}
+          DISPATCH_REF: ${{ github.ref }}
+          DISPATCH_SOURCE_SHA: ${{ github.sha }}
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_VERSION: ${{ inputs.release_version }}
+          SOURCE_REPOSITORY: ${{ github.repository }}
+        run: |
+          ./scripts/validate-release-preflight.ps1 `
+            -ReleaseVersion $env:RELEASE_VERSION `
+            -AndroidVersionCode $env:ANDROID_VERSION_CODE `
+            -EventName $env:DISPATCH_EVENT_NAME `
+            -ExpectedRef $env:DISPATCH_REF `
+            -SourceSha $env:DISPATCH_SOURCE_SHA `
+            -Repository $env:SOURCE_REPOSITORY `
+            -GitHubOutputPath $env:GITHUB_OUTPUT
+
+  automated-tests:
+    name: Automated tests
+    needs: preflight
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      RELEASE_SOURCE_SHA: ${{ needs.preflight.outputs.source_sha }}
+
+    steps:
+      - name: Check out validated release source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          ref: ${{ needs.preflight.outputs.source_sha }}
+
+      - name: Verify exact release source
+        shell: pwsh
+        run: |
+          $actualSha = (git rev-parse HEAD).Trim()
+          if ($actualSha -ne $env:RELEASE_SOURCE_SHA) {
+            throw "Checked-out source '$actualSha' does not match validated source '$env:RELEASE_SOURCE_SHA'."
+          }
+
+      - name: Set up .NET
+        uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Restore automated-test dependencies
+        run: dotnet restore SoftballScorekeeper.Tests/SoftballScorekeeper.Tests.csproj
+
+      - name: Run automated tests
+        run: dotnet test SoftballScorekeeper.Tests/SoftballScorekeeper.Tests.csproj --configuration Release --no-restore
+
+  appium-project:
+    name: Appium project compilation
+    needs: preflight
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      RELEASE_SOURCE_SHA: ${{ needs.preflight.outputs.source_sha }}
+
+    steps:
+      - name: Check out validated release source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          ref: ${{ needs.preflight.outputs.source_sha }}
+
+      - name: Verify exact release source
+        shell: pwsh
+        run: |
+          $actualSha = (git rev-parse HEAD).Trim()
+          if ($actualSha -ne $env:RELEASE_SOURCE_SHA) {
+            throw "Checked-out source '$actualSha' does not match validated source '$env:RELEASE_SOURCE_SHA'."
+          }
+
+      - name: Set up .NET
+        uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Restore Appium-project dependencies
+        run: dotnet restore SoftballScorekeeper.AndroidUiTests/SoftballScorekeeper.AndroidUiTests.csproj
+
+      - name: Compile Appium project
+        run: dotnet build SoftballScorekeeper.AndroidUiTests/SoftballScorekeeper.AndroidUiTests.csproj --configuration Release --no-restore
+
+  android-application:
+    name: Android application compilation
+    needs: preflight
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      ANDROID_VERSION_CODE: ${{ needs.preflight.outputs.android_version_code }}
+      RELEASE_SOURCE_SHA: ${{ needs.preflight.outputs.source_sha }}
+      RELEASE_VERSION: ${{ needs.preflight.outputs.release_version }}
+
+    steps:
+      - name: Check out validated release source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          ref: ${{ needs.preflight.outputs.source_sha }}
+
+      - name: Verify exact release source
+        shell: pwsh
+        run: |
+          $actualSha = (git rev-parse HEAD).Trim()
+          if ($actualSha -ne $env:RELEASE_SOURCE_SHA) {
+            throw "Checked-out source '$actualSha' does not match validated source '$env:RELEASE_SOURCE_SHA'."
+          }
+
+      - name: Set up .NET
+        uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@dd06d9cba3e5552c54d9f8ea23572deb30010f7c # v6.0.0
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - name: Install .NET MAUI Android workload
+        run: dotnet workload install maui-android --skip-manifest-update
+
+      - name: Restore Android application dependencies
+        shell: pwsh
+        run: |
+          dotnet restore SoftballScorekeeper/SoftballScorekeeper.csproj --property:TargetFrameworks=net10.0-android --property:ApplicationDisplayVersion=$env:RELEASE_VERSION --property:ApplicationVersion=$env:ANDROID_VERSION_CODE --disable-parallel
+          dotnet restore SoftballScorekeeper.Core/SoftballScorekeeper.Core.csproj --disable-parallel
+          dotnet restore SoftballScorekeeper.Infrastructure/SoftballScorekeeper.Infrastructure.csproj --disable-parallel
+
+      - name: Compile Android application
+        shell: pwsh
+        run: dotnet build SoftballScorekeeper/SoftballScorekeeper.csproj --configuration Debug --framework net10.0-android --no-restore --property:ApplicationDisplayVersion=$env:RELEASE_VERSION --property:ApplicationVersion=$env:ANDROID_VERSION_CODE --maxcpucount:1
+
+  windows-application:
+    name: Windows application compilation
+    needs: preflight
+    runs-on: windows-latest
+    timeout-minutes: 30
+    env:
+      ANDROID_VERSION_CODE: ${{ needs.preflight.outputs.android_version_code }}
+      RELEASE_SOURCE_SHA: ${{ needs.preflight.outputs.source_sha }}
+      RELEASE_VERSION: ${{ needs.preflight.outputs.release_version }}
+
+    steps:
+      - name: Check out validated release source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          ref: ${{ needs.preflight.outputs.source_sha }}
+
+      - name: Verify exact release source
+        shell: pwsh
+        run: |
+          $actualSha = (git rev-parse HEAD).Trim()
+          if ($actualSha -ne $env:RELEASE_SOURCE_SHA) {
+            throw "Checked-out source '$actualSha' does not match validated source '$env:RELEASE_SOURCE_SHA'."
+          }
+
+      - name: Set up .NET
+        uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Install .NET MAUI Windows workload
+        run: dotnet workload install maui-windows --skip-manifest-update
+
+      - name: Restore Windows application dependencies
+        shell: pwsh
+        run: |
+          dotnet restore SoftballScorekeeper/SoftballScorekeeper.csproj --property:TargetFrameworks=net10.0-windows10.0.19041.0 --property:ApplicationDisplayVersion=$env:RELEASE_VERSION --property:ApplicationVersion=$env:ANDROID_VERSION_CODE --disable-parallel
+          dotnet restore SoftballScorekeeper.Core/SoftballScorekeeper.Core.csproj --disable-parallel
+          dotnet restore SoftballScorekeeper.Infrastructure/SoftballScorekeeper.Infrastructure.csproj --disable-parallel
+
+      - name: Compile Windows application
+        shell: pwsh
+        run: dotnet build SoftballScorekeeper/SoftballScorekeeper.csproj --configuration Debug --framework net10.0-windows10.0.19041.0 --no-restore --property:ApplicationDisplayVersion=$env:RELEASE_VERSION --property:ApplicationVersion=$env:ANDROID_VERSION_CODE --property:WindowsPackageType=None --maxcpucount:1
+
+  android-ui-validation:
+    name: Android UI validation
+    if: ${{ inputs.android_ui_validation != 'none' }}
+    needs:
+      - preflight
+      - appium-project
+      - android-application
+    runs-on: ubuntu-24.04
+    timeout-minutes: 120
+    env:
+      ANDROID_AVD_HOME: ${{ runner.temp }}/softball-android-avd
+      RELEASE_SOURCE_SHA: ${{ needs.preflight.outputs.source_sha }}
+
+    steps:
+      - name: Check out validated release source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          ref: ${{ needs.preflight.outputs.source_sha }}
+
+      - name: Verify exact release source
+        shell: pwsh
+        run: |
+          $actualSha = (git rev-parse HEAD).Trim()
+          if ($actualSha -ne $env:RELEASE_SOURCE_SHA) {
+            throw "Checked-out source '$actualSha' does not match validated source '$env:RELEASE_SOURCE_SHA'."
+          }
+
+      - name: Set up .NET
+        uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@dd06d9cba3e5552c54d9f8ea23572deb30010f7c # v6.0.0
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - name: Install Android workload and restore UI dependencies
+        shell: pwsh
+        run: |
+          dotnet workload install maui-android --skip-manifest-update
+          dotnet restore SoftballScorekeeper/SoftballScorekeeper.csproj --property:TargetFrameworks=net10.0-android --disable-parallel
+          dotnet restore SoftballScorekeeper.Core/SoftballScorekeeper.Core.csproj --disable-parallel
+          dotnet restore SoftballScorekeeper.Infrastructure/SoftballScorekeeper.Infrastructure.csproj --disable-parallel
+          dotnet restore SoftballScorekeeper.AndroidUiTests/SoftballScorekeeper.AndroidUiTests.csproj --disable-parallel
+
+      - name: Install Android API 35 emulator image and create dedicated AVD
+        shell: pwsh
+        run: |
+          $sdkManager = Join-Path $env:ANDROID_HOME "cmdline-tools/latest/bin/sdkmanager"
+          $avdManager = Join-Path $env:ANDROID_HOME "cmdline-tools/latest/bin/avdmanager"
+          foreach ($tool in @($sdkManager, $avdManager)) {
+            if (-not (Test-Path -LiteralPath $tool -PathType Leaf)) {
+              throw "Required Android SDK tool was not found at '$tool'."
+            }
+          }
+
+          $packages = @(
+            "platform-tools",
+            "emulator",
+            "platforms;android-35",
+            "system-images;android-35;google_apis;x86_64"
+          )
+          & $sdkManager --install $packages
+          if ($LASTEXITCODE -ne 0) {
+            throw "Android SDK package installation failed with exit code $LASTEXITCODE."
+          }
+
+          New-Item -ItemType Directory -Path $env:ANDROID_AVD_HOME -Force | Out-Null
+          $avdName = "softball_tablet_ui_tests_api_35"
+          $creationOutput = @(
+            "no" | & $avdManager create avd --force --name $avdName --package "system-images;android-35;google_apis;x86_64" --device "pixel_c" 2>&1
+          )
+          if ($LASTEXITCODE -ne 0) {
+            throw "Dedicated Android AVD creation failed. $($creationOutput -join [Environment]::NewLine)"
+          }
+
+          $configPath = Join-Path $env:ANDROID_AVD_HOME "$avdName.avd/config.ini"
+          if (-not (Test-Path -LiteralPath $configPath -PathType Leaf)) {
+            throw "Dedicated Android AVD configuration was not created at '$configPath'."
+          }
+          $managedKeys = @("hw.lcd.width", "hw.lcd.height", "hw.lcd.density", "hw.keyboard", "hw.gpu.enabled")
+          $preservedConfiguration = @(Get-Content -LiteralPath $configPath | Where-Object {
+            $key = ($_ -split "=", 2)[0]
+            $key -notin $managedKeys
+          })
+          $configuredValues = $preservedConfiguration + @(
+            "hw.lcd.width=1280",
+            "hw.lcd.height=800",
+            "hw.lcd.density=160",
+            "hw.keyboard=yes",
+            "hw.gpu.enabled=yes"
+          )
+          [System.IO.File]::WriteAllLines($configPath, $configuredValues, [System.Text.UTF8Encoding]::new($false))
+
+          foreach ($path in @(
+            (Join-Path $env:ANDROID_HOME "platform-tools"),
+            (Join-Path $env:ANDROID_HOME "emulator"),
+            (Join-Path $env:ANDROID_HOME "cmdline-tools/latest/bin")
+          )) {
+            $path | Out-File -LiteralPath $env:GITHUB_PATH -Encoding utf8 -Append
+          }
+
+      - name: Require Android emulator acceleration
+        shell: pwsh
+        run: |
+          if (-not (Test-Path -LiteralPath "/dev/kvm")) {
+            throw "GitHub-hosted runner does not expose /dev/kvm; refusing an unaccelerated Android emulator run."
+          }
+          & bash -c "test -r /dev/kvm && test -w /dev/kvm"
+          if ($LASTEXITCODE -ne 0) {
+            throw "The runner account cannot access /dev/kvm; refusing an unaccelerated Android emulator run."
+          }
+          $acceleration = @(& emulator -accel-check 2>&1)
+          if ($LASTEXITCODE -ne 0) {
+            throw "Android emulator acceleration check failed. $($acceleration -join [Environment]::NewLine)"
+          }
+          $acceleration | ForEach-Object { Write-Host $_ }
+
+      - name: Install pinned Appium and UiAutomator2
+        shell: pwsh
+        run: |
+          npm install --global appium@3.7.0
+          if ($LASTEXITCODE -ne 0) {
+            throw "Appium 3.7.0 installation failed with exit code $LASTEXITCODE."
+          }
+          $npmPrefix = (& npm prefix --global).Trim()
+          $npmBin = Join-Path $npmPrefix "bin"
+          $appium = Join-Path $npmBin "appium"
+          $npmBin | Out-File -LiteralPath $env:GITHUB_PATH -Encoding utf8 -Append
+
+          & $appium driver install "uiautomator2@8.5.0"
+          if ($LASTEXITCODE -ne 0) {
+            throw "UiAutomator2 8.5.0 installation failed with exit code $LASTEXITCODE."
+          }
+          $appiumVersion = (& $appium --version).Trim()
+          if ($appiumVersion -cne "3.7.0") {
+            throw "Expected Appium 3.7.0; found '$appiumVersion'."
+          }
+          $drivers = ((& $appium driver list --installed --json) -join "`n") | ConvertFrom-Json
+          if ($LASTEXITCODE -ne 0 -or
+              $null -eq $drivers.uiautomator2 -or
+              $drivers.uiautomator2.installed -ne $true -or
+              [string]$drivers.uiautomator2.version -cne "8.5.0") {
+            throw "Expected installed UiAutomator2 driver 8.5.0."
+          }
+
+      - name: Run selected Android UI validation
+        shell: pwsh
+        env:
+          ANDROID_UI_VALIDATION: ${{ inputs.android_ui_validation }}
+        run: |
+          $avdName = "softball_tablet_ui_tests_api_35"
+          $smokeFilter = "FullyQualifiedName=SoftballScorekeeper.AndroidUiTests.AndroidSessionSmokeTests.Installed_application_creates_an_Appium_session"
+          if ($env:ANDROID_UI_VALIDATION -ceq "smoke") {
+            ./scripts/run-android-ui-tests.ps1 -AvdName $avdName -HeadlessEmulator -TestFilter $smokeFilter
+          }
+          elseif ($env:ANDROID_UI_VALIDATION -ceq "full") {
+            ./scripts/run-android-ui-tests.ps1 -AvdName $avdName -HeadlessEmulator
+          }
+          else {
+            throw "Unsupported Android UI validation selection '$($env:ANDROID_UI_VALIDATION)'."
+          }
+
+  android-production-package:
+    name: Android production package
+    needs:
+      - preflight
+      - automated-tests
+      - appium-project
+      - android-application
+      - windows-application
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    environment: production-release
+    env:
+      ANDROID_VERSION_CODE: ${{ needs.preflight.outputs.android_version_code }}
+      RELEASE_SOURCE_SHA: ${{ needs.preflight.outputs.source_sha }}
+      RELEASE_VERSION: ${{ needs.preflight.outputs.release_version }}
+
+    steps:
+      - name: Check out validated release source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          ref: ${{ needs.preflight.outputs.source_sha }}
+
+      - name: Verify exact release source
+        shell: pwsh
+        run: |
+          $actualSha = (git rev-parse HEAD).Trim()
+          if ($actualSha -ne $env:RELEASE_SOURCE_SHA) {
+            throw "Checked-out source '$actualSha' does not match validated source '$env:RELEASE_SOURCE_SHA'."
+          }
+
+      - name: Set up .NET
+        uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@dd06d9cba3e5552c54d9f8ea23572deb30010f7c # v6.0.0
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - name: Install .NET MAUI Android workload
+        run: dotnet workload install maui-android --skip-manifest-update
+
+      - name: Restore Android Release dependencies
+        shell: pwsh
+        run: |
+          dotnet restore SoftballScorekeeper/SoftballScorekeeper.csproj --property:TargetFrameworks=net10.0-android --property:ApplicationDisplayVersion=$env:RELEASE_VERSION --property:ApplicationVersion=$env:ANDROID_VERSION_CODE --property:AndroidPackageFormats=apk --disable-parallel
+          dotnet restore SoftballScorekeeper.Core/SoftballScorekeeper.Core.csproj --disable-parallel
+          dotnet restore SoftballScorekeeper.Infrastructure/SoftballScorekeeper.Infrastructure.csproj --disable-parallel
+
+      - name: Build unsigned Android Release APK
+        shell: pwsh
+        run: dotnet build SoftballScorekeeper/SoftballScorekeeper.csproj --configuration Release --framework net10.0-android --no-restore --property:ApplicationDisplayVersion=$env:RELEASE_VERSION --property:ApplicationVersion=$env:ANDROID_VERSION_CODE --property:AndroidPackageFormats=apk --maxcpucount:1
+
+      - name: Select unsigned production input
+        shell: pwsh
+        run: |
+          $releaseDirectory = Join-Path $env:GITHUB_WORKSPACE "SoftballScorekeeper/bin/Release/net10.0-android"
+          $unsignedApk = Join-Path $releaseDirectory "com.companyname.softballscorekeeper.apk"
+          if (-not (Test-Path -LiteralPath $unsignedApk -PathType Leaf)) {
+            throw "Expected unsigned Android Release APK was not found at '$unsignedApk'."
+          }
+
+          $generatedSignedApk = Join-Path $releaseDirectory "com.companyname.softballscorekeeper-Signed.apk"
+          if (Test-Path -LiteralPath $generatedSignedApk -PathType Leaf) {
+            Remove-Item -LiteralPath $generatedSignedApk -Force
+          }
+
+          $outputDirectory = Join-Path $env:RUNNER_TEMP "softball-android-release-output"
+          "UNSIGNED_APK_PATH=$unsignedApk" | Out-File -LiteralPath $env:GITHUB_ENV -Encoding utf8 -Append
+          "ANDROID_RELEASE_OUTPUT_DIRECTORY=$outputDirectory" | Out-File -LiteralPath $env:GITHUB_ENV -Encoding utf8 -Append
+
+      - name: Reconstruct temporary signing material
+        shell: pwsh
+        env:
+          SIGNING_KEYSTORE_BASE64: ${{ secrets.ANDROID_SIGNING_KEYSTORE_BASE64 }}
+          SIGNING_KEY_PASSWORD: ${{ secrets.ANDROID_SIGNING_KEY_PASSWORD }}
+          SIGNING_STORE_PASSWORD: ${{ secrets.ANDROID_SIGNING_STORE_PASSWORD }}
+        run: |
+          foreach ($requiredName in @("SIGNING_KEYSTORE_BASE64", "SIGNING_KEY_PASSWORD", "SIGNING_STORE_PASSWORD")) {
+            if ([string]::IsNullOrWhiteSpace([Environment]::GetEnvironmentVariable($requiredName))) {
+              throw "Required production-release environment secret '$requiredName' is unavailable."
+            }
+          }
+
+          $signingDirectory = Join-Path $env:RUNNER_TEMP "softball-android-signing"
+          if (Test-Path -LiteralPath $signingDirectory) {
+            throw "Temporary signing directory already exists at '$signingDirectory'."
+          }
+          New-Item -ItemType Directory -Path $signingDirectory | Out-Null
+
+          try {
+            $keystorePath = Join-Path $signingDirectory "production.keystore"
+            $storePasswordPath = Join-Path $signingDirectory "store-password.txt"
+            $keyPasswordPath = Join-Path $signingDirectory "key-password.txt"
+            [System.IO.File]::WriteAllBytes(
+              $keystorePath,
+              [Convert]::FromBase64String($env:SIGNING_KEYSTORE_BASE64)
+            )
+            $utf8WithoutBom = [System.Text.UTF8Encoding]::new($false)
+            [System.IO.File]::WriteAllText($storePasswordPath, $env:SIGNING_STORE_PASSWORD, $utf8WithoutBom)
+            [System.IO.File]::WriteAllText($keyPasswordPath, $env:SIGNING_KEY_PASSWORD, $utf8WithoutBom)
+            & chmod 600 $keystorePath $storePasswordPath $keyPasswordPath
+            if ($LASTEXITCODE -ne 0) {
+              throw "Failed to restrict temporary signing-file permissions."
+            }
+
+            "ANDROID_KEYSTORE_PATH=$keystorePath" | Out-File -LiteralPath $env:GITHUB_ENV -Encoding utf8 -Append
+            "ANDROID_STORE_PASSWORD_FILE=$storePasswordPath" | Out-File -LiteralPath $env:GITHUB_ENV -Encoding utf8 -Append
+            "ANDROID_KEY_PASSWORD_FILE=$keyPasswordPath" | Out-File -LiteralPath $env:GITHUB_ENV -Encoding utf8 -Append
+          }
+          catch {
+            Remove-Item -LiteralPath $signingDirectory -Recurse -Force -ErrorAction SilentlyContinue
+            throw
+          }
+
+      - name: Sign and verify definitive Android APK
+        shell: pwsh
+        env:
+          SIGNING_KEY_ALIAS: ${{ secrets.ANDROID_SIGNING_KEY_ALIAS }}
+        run: |
+          if ([string]::IsNullOrWhiteSpace($env:SIGNING_KEY_ALIAS)) {
+            throw "Required production-release environment secret 'ANDROID_SIGNING_KEY_ALIAS' is unavailable."
+          }
+
+          ./scripts/sign-android-release.ps1 `
+            -UnsignedApkPath $env:UNSIGNED_APK_PATH `
+            -ReleaseVersion $env:RELEASE_VERSION `
+            -AndroidVersionCode $env:ANDROID_VERSION_CODE `
+            -SourceSha $env:RELEASE_SOURCE_SHA `
+            -KeystorePath $env:ANDROID_KEYSTORE_PATH `
+            -KeyAlias $env:SIGNING_KEY_ALIAS `
+            -StorePasswordFile $env:ANDROID_STORE_PASSWORD_FILE `
+            -KeyPasswordFile $env:ANDROID_KEY_PASSWORD_FILE `
+            -OutputDirectory $env:ANDROID_RELEASE_OUTPUT_DIRECTORY
+
+      - name: Select definitive Android artifact
+        shell: pwsh
+        run: |
+          $shortSha = $env:RELEASE_SOURCE_SHA.Substring(0, 8).ToLowerInvariant()
+          $expectedName = "SoftballScorekeeper-$($env:RELEASE_VERSION)-$shortSha.apk"
+          $files = @(Get-ChildItem -LiteralPath $env:ANDROID_RELEASE_OUTPUT_DIRECTORY -File -Recurse -Force)
+          if ($files.Count -ne 1 -or $files[0].Name -cne $expectedName) {
+            throw "Android release output must contain exactly '$expectedName'; found: $($files.Name -join ', ')."
+          }
+          "ANDROID_DEFINITIVE_APK=$($files[0].FullName)" | Out-File -LiteralPath $env:GITHUB_ENV -Encoding utf8 -Append
+
+      - name: Preserve definitive Android artifact
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: SoftballScorekeeper-${{ needs.preflight.outputs.release_version }}-android-production
+          path: ${{ env.ANDROID_DEFINITIVE_APK }}
+          if-no-files-found: error
+          compression-level: 0
+          retention-days: 7
+
+      - name: Remove temporary signing material
+        if: ${{ always() }}
+        shell: pwsh
+        run: |
+          $temporaryRoot = [System.IO.Path]::GetFullPath($env:RUNNER_TEMP).TrimEnd([System.IO.Path]::DirectorySeparatorChar) + [System.IO.Path]::DirectorySeparatorChar
+          $signingDirectory = [System.IO.Path]::GetFullPath((Join-Path $env:RUNNER_TEMP "softball-android-signing"))
+          if (-not ($signingDirectory + [System.IO.Path]::DirectorySeparatorChar).StartsWith($temporaryRoot, [StringComparison]::Ordinal)) {
+            throw "Refusing to clean a signing path outside RUNNER_TEMP."
+          }
+          if (Test-Path -LiteralPath $signingDirectory) {
+            Remove-Item -LiteralPath $signingDirectory -Recurse -Force
+          }
+
+  windows-production-package:
+    name: Windows production package
+    needs:
+      - preflight
+      - automated-tests
+      - appium-project
+      - android-application
+      - windows-application
+    runs-on: windows-latest
+    timeout-minutes: 40
+    env:
+      ANDROID_VERSION_CODE: ${{ needs.preflight.outputs.android_version_code }}
+      RELEASE_SOURCE_SHA: ${{ needs.preflight.outputs.source_sha }}
+      RELEASE_VERSION: ${{ needs.preflight.outputs.release_version }}
+      WINDOWS_VERSION: ${{ needs.preflight.outputs.release_version }}.0
+
+    steps:
+      - name: Check out validated release source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          ref: ${{ needs.preflight.outputs.source_sha }}
+
+      - name: Verify exact release source
+        shell: pwsh
+        run: |
+          $actualSha = (git rev-parse HEAD).Trim()
+          if ($actualSha -ne $env:RELEASE_SOURCE_SHA) {
+            throw "Checked-out source '$actualSha' does not match validated source '$env:RELEASE_SOURCE_SHA'."
+          }
+
+      - name: Set up .NET
+        uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Install .NET MAUI Windows workload
+        run: dotnet workload install maui-windows --skip-manifest-update
+
+      - name: Restore Windows Release dependencies
+        shell: pwsh
+        run: |
+          dotnet restore SoftballScorekeeper/SoftballScorekeeper.csproj --property:Configuration=Release --property:TargetFramework=net10.0-windows10.0.19041.0 --property:RuntimeIdentifier=win-x64 --property:SelfContained=true --property:PublishReadyToRun=true --property:WindowsPackageType=None --property:WindowsAppSDKSelfContained=true --property:ApplicationDisplayVersion=$env:RELEASE_VERSION --property:ApplicationVersion=$env:ANDROID_VERSION_CODE --property:Version=$env:RELEASE_VERSION --property:FileVersion=$env:WINDOWS_VERSION --property:AssemblyVersion=$env:WINDOWS_VERSION --property:InformationalVersion=$env:RELEASE_VERSION --disable-parallel
+          dotnet restore SoftballScorekeeper.Core/SoftballScorekeeper.Core.csproj --disable-parallel
+          dotnet restore SoftballScorekeeper.Infrastructure/SoftballScorekeeper.Infrastructure.csproj --disable-parallel
+
+      - name: Publish self-contained Windows x64 application
+        shell: pwsh
+        run: |
+          $publishDirectory = Join-Path $env:RUNNER_TEMP "softball-windows-x64-publish"
+          dotnet publish SoftballScorekeeper/SoftballScorekeeper.csproj --framework net10.0-windows10.0.19041.0 --configuration Release --runtime win-x64 --self-contained true --property:PublishReadyToRun=true --property:WindowsPackageType=None --property:WindowsAppSDKSelfContained=true --property:ApplicationDisplayVersion=$env:RELEASE_VERSION --property:ApplicationVersion=$env:ANDROID_VERSION_CODE --property:Version=$env:RELEASE_VERSION --property:FileVersion=$env:WINDOWS_VERSION --property:AssemblyVersion=$env:WINDOWS_VERSION --property:InformationalVersion=$env:RELEASE_VERSION --maxcpucount:1 --no-restore --output $publishDirectory
+          "WINDOWS_PUBLISH_DIRECTORY=$publishDirectory" | Out-File -LiteralPath $env:GITHUB_ENV -Encoding utf8 -Append
+
+      - name: Package and validate Windows portable ZIP
+        shell: pwsh
+        run: |
+          $outputDirectory = Join-Path $env:RUNNER_TEMP "softball-windows-release-output"
+          $stagingDirectory = Join-Path $env:RUNNER_TEMP "softball-windows-package-staging"
+          New-Item -ItemType Directory -Path $outputDirectory | Out-Null
+          $outputZip = Join-Path $outputDirectory "SoftballScorekeeper-$($env:RELEASE_VERSION)-windows-x64-portable.zip"
+
+          $package = ./scripts/package-windows-portable.ps1 `
+            -PublishDirectory $env:WINDOWS_PUBLISH_DIRECTORY `
+            -OutputZip $outputZip `
+            -ReleaseVersion $env:RELEASE_VERSION `
+            -StagingDirectory $stagingDirectory
+
+          Write-Host "Definitive Windows ZIP: $($package.OutputZip)"
+          Write-Host "Definitive Windows ZIP SHA-256: $($package.Sha256)"
+          Write-Host "Published files: $($package.PublishedFileCount); license files: $($package.LicenseFileCount)"
+
+          $files = @(Get-ChildItem -LiteralPath $outputDirectory -File -Recurse -Force)
+          if ($files.Count -ne 1 -or $files[0].FullName -cne $outputZip) {
+            throw "Windows release output must contain exactly '$([System.IO.Path]::GetFileName($outputZip))'; found: $($files.Name -join ', ')."
+          }
+          "WINDOWS_DEFINITIVE_ZIP=$outputZip" | Out-File -LiteralPath $env:GITHUB_ENV -Encoding utf8 -Append
+
+      - name: Preserve definitive Windows artifact
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: SoftballScorekeeper-${{ needs.preflight.outputs.release_version }}-windows-production
+          path: ${{ env.WINDOWS_DEFINITIVE_ZIP }}
+          if-no-files-found: error
+          compression-level: 0
+          retention-days: 7
+
+  release-artifact-verification:
+    name: Release artifact verification
+    if: >-
+      ${{
+        always() &&
+        needs.preflight.result == 'success' &&
+        needs['automated-tests'].result == 'success' &&
+        needs['appium-project'].result == 'success' &&
+        needs['android-application'].result == 'success' &&
+        needs['windows-application'].result == 'success' &&
+        needs['android-production-package'].result == 'success' &&
+        needs['windows-production-package'].result == 'success' &&
+        (
+          (inputs.android_ui_validation == 'none' && needs['android-ui-validation'].result == 'skipped') ||
+          (inputs.android_ui_validation != 'none' && needs['android-ui-validation'].result == 'success')
+        )
+      }}
+    needs:
+      - preflight
+      - automated-tests
+      - appium-project
+      - android-application
+      - windows-application
+      - android-production-package
+      - windows-production-package
+      - android-ui-validation
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      ANDROID_VERSION_CODE: ${{ needs.preflight.outputs.android_version_code }}
+      RELEASE_SOURCE_SHA: ${{ needs.preflight.outputs.source_sha }}
+      RELEASE_VERSION: ${{ needs.preflight.outputs.release_version }}
+
+    steps:
+      - name: Check out validated release source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          ref: ${{ needs.preflight.outputs.source_sha }}
+
+      - name: Verify exact release source
+        shell: pwsh
+        run: |
+          $actualSha = (git rev-parse HEAD).Trim()
+          if ($actualSha -ne $env:RELEASE_SOURCE_SHA) {
+            throw "Checked-out source '$actualSha' does not match validated source '$env:RELEASE_SOURCE_SHA'."
+          }
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@dd06d9cba3e5552c54d9f8ea23572deb30010f7c # v6.0.0
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - name: Download definitive Android artifact
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: SoftballScorekeeper-${{ needs.preflight.outputs.release_version }}-android-production
+          path: ${{ runner.temp }}/release-intermediate/android
+
+      - name: Download definitive Windows artifact
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: SoftballScorekeeper-${{ needs.preflight.outputs.release_version }}-windows-production
+          path: ${{ runner.temp }}/release-intermediate/windows
+
+      - name: Verify and prepare definitive release artifacts
+        shell: pwsh
+        run: |
+          $finalDirectory = Join-Path $env:RUNNER_TEMP "softball-release-artifacts"
+          ./scripts/prepare-release-artifacts.ps1 `
+            -AndroidArtifactDirectory (Join-Path $env:RUNNER_TEMP "release-intermediate/android") `
+            -WindowsArtifactDirectory (Join-Path $env:RUNNER_TEMP "release-intermediate/windows") `
+            -OutputDirectory $finalDirectory `
+            -ReleaseVersion $env:RELEASE_VERSION `
+            -AndroidVersionCode $env:ANDROID_VERSION_CODE `
+            -SourceSha $env:RELEASE_SOURCE_SHA
+          "FINAL_RELEASE_ARTIFACT_DIRECTORY=$finalDirectory" | Out-File -LiteralPath $env:GITHUB_ENV -Encoding utf8 -Append
+
+      - name: Upload verified release artifact set
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: SoftballScorekeeper-${{ needs.preflight.outputs.release_version }}-release-artifacts
+          path: ${{ env.FINAL_RELEASE_ARTIFACT_DIRECTORY }}
+          if-no-files-found: error
+          compression-level: 0
+          retention-days: 30
+
+  github-release-publication:
+    name: GitHub Release publication
+    if: >-
+      ${{
+        always() &&
+        inputs.create_github_release == true &&
+        needs.preflight.result == 'success' &&
+        needs['automated-tests'].result == 'success' &&
+        needs['appium-project'].result == 'success' &&
+        needs['android-application'].result == 'success' &&
+        needs['windows-application'].result == 'success' &&
+        needs['android-production-package'].result == 'success' &&
+        needs['windows-production-package'].result == 'success' &&
+        needs['release-artifact-verification'].result == 'success' &&
+        (
+          (inputs.android_ui_validation == 'none' && needs['android-ui-validation'].result == 'skipped') ||
+          (inputs.android_ui_validation != 'none' && needs['android-ui-validation'].result == 'success')
+        )
+      }}
+    needs:
+      - preflight
+      - automated-tests
+      - appium-project
+      - android-application
+      - windows-application
+      - android-production-package
+      - windows-production-package
+      - android-ui-validation
+      - release-artifact-verification
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment: production-release
+    permissions:
+      contents: write
+    env:
+      ANDROID_VERSION_CODE: ${{ needs.preflight.outputs.android_version_code }}
+      RELEASE_SOURCE_SHA: ${{ needs.preflight.outputs.source_sha }}
+      RELEASE_VERSION: ${{ needs.preflight.outputs.release_version }}
+
+    steps:
+      - name: Check out exact validated release source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+          ref: ${{ needs.preflight.outputs.source_sha }}
+
+      - name: Download final verified release artifacts
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: SoftballScorekeeper-${{ needs.preflight.outputs.release_version }}-release-artifacts
+          path: ${{ runner.temp }}/release-publication
+
+      - name: Create annotated tag and publish verified GitHub Release
+        shell: pwsh
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          ./scripts/publish-github-release.ps1 `
+            -ReleaseVersion $env:RELEASE_VERSION `
+            -AndroidVersionCode $env:ANDROID_VERSION_CODE `
+            -SourceSha $env:RELEASE_SOURCE_SHA `
+            -Repository $env:GITHUB_REPOSITORY `
+            -ArtifactDirectory (Join-Path $env:RUNNER_TEMP "release-publication") `
+            -ReleaseNotesPath (Join-Path $env:GITHUB_WORKSPACE "release-notes/v$($env:RELEASE_VERSION).md") `
+            -GitHubToken $env:GITHUB_TOKEN `
+            -ApiBaseUrl $env:GITHUB_API_URL
