@@ -316,6 +316,30 @@ public sealed class WindowsLicensePackagingTests : IDisposable
     }
 
     [Fact]
+    public void PowerShellDiagnosticNormalization_RemovesGuttersWithoutChangingExceptionContent()
+    {
+        var capturedUbuntuPowerShell7Stderr = string.Join(
+            Environment.NewLine,
+            "\u001B[31;1mException: \u001B[0m/tmp/SoftballScorekeeper-WindowsPackaging-a839fd741a47440398c70a5021cd7802/target-fixture/scripts/package-windows-portable.ps1:213",
+            "\u001B[31;1mLine |\u001B[0m",
+            "\u001B[31;1m 213 | \u001B[0m    throw \"Production license manifest targets '$($Manifest.relea …",
+            "\u001B[31;1m     | \u001B[0m    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~",
+            "\u001B[31;1m     | \u001B[0mProduction license manifest targets 'v2.0.1', not requested release",
+            "\u001B[31;1m     | \u001B[0m'v1.0.0'. Reconcile and explicitly retarget the production license",
+            "\u001B[31;1m     | \u001B[0minventory before packaging this version. Preserve meaningful alpha | beta."
+        );
+
+        var normalized = NormalizePowerShellOutput(capturedUbuntuPowerShell7Stderr);
+
+        Assert.Contains("not requested release 'v1.0.0'", normalized);
+        Assert.Contains("meaningful alpha | beta", normalized);
+        Assert.DoesNotContain(
+            "not requested release 'v1.0.0'",
+            NormalizePowerShellOutput("Exception: unrelated package failure")
+        );
+    }
+
+    [Fact]
     public void Package_WhenExecutableIsMissing_FailsWithoutCreatingOutput()
     {
         var fixtureRoot = Path.Combine(_testRoot, "missing-exe-fixture");
@@ -607,7 +631,12 @@ public sealed class WindowsLicensePackagingTests : IDisposable
     private static string NormalizePowerShellOutput(string output)
     {
         var withoutAnsi = Regex.Replace(output, "\u001B\\[[0-?]*[ -/]*[@-~]", string.Empty);
-        return Regex.Replace(withoutAnsi, @"\s+", " ").Trim();
+        var withoutDiagnosticGutters = Regex.Replace(
+            withoutAnsi,
+            @"(?m)^(?:Line[ \t]*\|[ \t]*|[ \t]*\d+[ \t]*\|[ \t]?|[ \t]+\|[ \t]?)",
+            string.Empty
+        );
+        return Regex.Replace(withoutDiagnosticGutters, @"\s+", " ").Trim();
     }
 
     private static string FormatCommandContext(ProcessStartInfo startInfo) =>
