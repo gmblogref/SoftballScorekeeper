@@ -7,6 +7,14 @@ $ErrorActionPreference = 'Stop'
 $repositoryRoot = [System.IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..'))
 $workflow = Get-Content -LiteralPath (Join-Path $repositoryRoot '.github/workflows/release.yml') -Raw
 $runner = Get-Content -LiteralPath (Join-Path $repositoryRoot 'scripts/run-android-ui-tests.ps1') -Raw
+$androidUiJobMatch = [regex]::Match(
+    $workflow,
+    '(?ms)^  android-ui-validation:.*?(?=^  [a-z][a-z0-9-]+:\s*$)'
+)
+if (-not $androidUiJobMatch.Success) {
+    throw 'Android UI validation job was not found.'
+}
+$androidUiJob = $androidUiJobMatch.Value
 $passed = 0
 $failed = 0
 
@@ -48,6 +56,14 @@ Assert-Matches `
     -Name 'hosted UI job uses Ubuntu 24.04 and exact validated source' `
     -Text $workflow `
     -Pattern "(?ms)^  android-ui-validation:.*?runs-on: ubuntu-24\.04.*?ref: \$\{\{ needs\.preflight\.outputs\.source_sha \}\}.*?git rev-parse HEAD"
+Assert-DoesNotMatch `
+    -Name 'job-level environment does not use unavailable runner context' `
+    -Text $androidUiJob `
+    -Pattern '(?m)^      [A-Z0-9_]+:\s*\$\{\{\s*runner\.'
+Assert-Matches `
+    -Name 'hosted UI job initializes AVD storage from RUNNER_TEMP within a step' `
+    -Text $workflow `
+    -Pattern '(?ms)name: Configure dedicated Android AVD storage\s+shell: pwsh\s+run: \|\s+\$avdHome = Join-Path \$env:RUNNER_TEMP "softball-android-avd"\s+"ANDROID_AVD_HOME=\$avdHome" \| Out-File -LiteralPath \$env:GITHUB_ENV'
 Assert-Matches `
     -Name 'hosted setup pins Appium and UiAutomator2' `
     -Text $workflow `
@@ -80,6 +96,10 @@ Assert-Matches `
     -Name 'final artifact verification explicitly needs Android UI validation' `
     -Text $workflow `
     -Pattern '(?ms)^  release-artifact-verification:.*?needs:.*?- android-ui-validation'
+Assert-Matches `
+    -Name 'Android production package validates its exact packaged license inventory' `
+    -Text $workflow `
+    -Pattern '(?ms)name: Verify Android production licenses.*?verify-android-production-licenses\.ps1.*?-ApkPath \$env:ANDROID_DEFINITIVE_APK.*?-ReleaseVersion \$env:RELEASE_VERSION'
 Assert-Matches `
     -Name 'repository runner supports explicit headless emulator startup' `
     -Text $runner `

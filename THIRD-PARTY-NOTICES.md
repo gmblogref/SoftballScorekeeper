@@ -68,9 +68,9 @@ dependency groups require release-time notice handling:
   declares BSD-2-Clause material. Their package-provided third-party notices
   must be preserved when the corresponding material is distributed.
 - The Android Release build contains the arm64 and x86_64 variants of the .NET
-  Mono Android runtime 10.0.13 and .NET for Android runtime 36.1.118. The exact
+  Mono Android runtime 10.0.14 and .NET for Android runtime 36.1.118. The exact
   `Microsoft.NETCore.App.Runtime.Mono.android-arm64` and
-  `Microsoft.NETCore.App.Runtime.Mono.android-x64` 10.0.13 packs supply
+  `Microsoft.NETCore.App.Runtime.Mono.android-x64` 10.0.14 packs supply
   byte-identical MIT license and third-party-notice files; the inventory retains
   one verified copy of each shared legal document and records both packages.
 - The Windows target resolves Microsoft Windows App SDK 1.8.260529003,

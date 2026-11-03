@@ -22,9 +22,9 @@ The release record retains physical-tablet acceptance as deferred to the post-pu
 
 ## Download and Install on Android
 
-Android tablet is the primary supported deployment for Version 1.0.
+Android tablet is the primary supported deployment.
 
-1. Download the verified [`SoftballScorekeeper-1.0.1.apk`](https://github.com/gmblogref/SoftballScorekeeper/releases/download/v1.0.1/SoftballScorekeeper-1.0.1.apk) release asset.
+1. Download the verified [`SoftballScorekeeper-2.0.0-8ebd707c.apk`](https://github.com/gmblogref/SoftballScorekeeper/releases/download/v2.0.0/SoftballScorekeeper-2.0.0-8ebd707c.apk) release asset.
 2. Open the downloaded APK on the Android device.
 3. If Android requests permission to install apps from that source, enable it for the installer you used and continue the installation.
 
@@ -34,11 +34,11 @@ The application is distributed directly through GitHub rather than an app store.
 
 Windows x64 is supported through a self-contained portable ZIP. No installer is required.
 
-1. Download the verified [`SoftballScorekeeper-1.0.1-windows-x64-portable.zip`](https://github.com/gmblogref/SoftballScorekeeper/releases/download/v1.0.1/SoftballScorekeeper-1.0.1-windows-x64-portable.zip) release asset.
+1. Download the verified [`SoftballScorekeeper-2.0.0-windows-x64-portable.zip`](https://github.com/gmblogref/SoftballScorekeeper/releases/download/v2.0.0/SoftballScorekeeper-2.0.0-windows-x64-portable.zip) release asset.
 2. Extract the entire ZIP to a folder where you want to keep the application.
 3. Open that folder and run `SoftballScorekeeper.exe`.
 
-Keep all extracted files and directories together. The published v1.0.1 ZIP was produced from the .NET 9 release workflow and includes its required .NET and Windows App SDK runtime dependencies. Its package integrity and licensing inventory were verified, but isolated runtime-launch acceptance was not completed and is not claimed.
+Keep all extracted files and directories together. The published v2.0.0 ZIP was produced from the .NET 10 release workflow and includes its required .NET and Windows App SDK runtime dependencies. Its package integrity, licensing inventory, and focused runtime startup were verified as recorded above.
 
 The portable executable is unsigned, so Windows may identify it as an unrecognized downloaded application or display a security warning. Verify that the ZIP came from the release page, and follow any organizational security requirements; do not bypass policies that prohibit running unsigned software.
 
@@ -103,7 +103,7 @@ There are no user accounts, server-side services, cloud database, or automatic c
 ## Platform Support
 
 - **Android:** Primary Version 1.0 deployment and UI acceptance target, optimized for a 10-inch tablet with responsive portrait and landscape layouts. The project declares Android API 21 as its minimum supported platform version.
-- **Windows x64:** Supported through a self-contained portable ZIP with no installer or MSIX registration. The published v1.0.1 ZIP passed package-integrity and licensing validation, but isolated runtime-launch acceptance was not completed.
+- **Windows x64:** Supported through a self-contained portable ZIP with no installer or MSIX registration. The published v2.0.0 ZIP passed package-integrity, licensing, and focused runtime-startup validation.
 
 ## Developer Setup
 

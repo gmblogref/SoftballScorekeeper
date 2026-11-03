@@ -10,9 +10,9 @@ Stable product and architecture decisions belong in the project architecture doc
 
 ## Current Project Status
 
-- **Latest completed story:** Story 3.1 — Manual Release Pipeline
-- **Completed stories:** All completed implementation stories recorded below through Version 1 Story 20, plus post-Version-1 Stories 2.0, 2.1, 3.0, and 3.1
-- **Current story:** None. Story 3.1 implementation is complete; hosted production release acceptance is explicitly deferred by the user to a separate future story and remains unverified.
+- **Latest completed story:** Story 4.0 — Reorder Current Live Batting Lineup
+- **Completed stories:** All completed implementation stories recorded below through Version 1 Story 20, plus post-Version-1 Stories 2.0, 2.1, 3.0, 3.1, and 4.0
+- **Current story:** Story 3.2 — Prepare Version 2.0.1 Release Candidate. Local preparation and validation are complete on the story branch; PR review, merge, protected hosted release execution, and publication remain pending.
 - **Current phase:** Version 2.0.0 is the latest public Android and Windows release. The published, annotated `v2.0.0` tag identifies accepted artifact-source commit `8ebd707c90147c5b3032bae7791eb787f0b6818d`, and the GitHub Release contains the definitive Android and Windows assets recorded below. The repository contains no later record of physical-tablet installation, the Microsoft downstream-license acceptance question remains documented as unresolved, and no legal clearance is claimed. Historical Story 2.2 entries preserve the preparation and acceptance state that existed before publication.
 - **Foundation status:** Complete
 
@@ -4012,7 +4012,7 @@ Dedicated Double Play/Triple Play presentation, sacrifice results, HR-limit/dead
 
 ### Story 4.0 — Reorder Current Live Batting Lineup
 
-**Status:** Implementation, lower-level validation, targeted Android Appium acceptance, and user-performed Windows manual acceptance complete; physical Android tablet acceptance and protected PR CI pending
+**Status:** Implementation, lower-level validation, targeted Android Appium acceptance, user-performed Windows manual acceptance, merge, and protected PR CI complete; physical Android tablet acceptance deferred
 
 #### Implementation Summary
 
@@ -4030,11 +4030,33 @@ Dedicated Double Play/Triple Play presentation, sacrifice results, HR-limit/dead
 - Focused reorder and presentation validation passed 7 of 7 with zero failures or skips. The complete emulator-independent suite passed 1,191 of 1,191 with zero failures or skips in 1 minute 36 seconds.
 - Android Debug built with zero warnings or errors. The Android UI-test project built with zero warnings or errors. Windows Debug built with zero errors and the existing 146 `MVVMTK0045` warnings; no new warning category was introduced.
 - Targeted Android Appium acceptance used only `softball_tablet_ui_tests_api_35` as `emulator-5554`. The exact command was `& .\scripts\run-android-ui-tests.ps1 -AvdName 'softball_tablet_ui_tests_api_35' -TestFilter 'FullyQualifiedName=SoftballScorekeeper.AndroidUiTests.LiveLineupManagementTests.Reorder_live_lineup_preserves_current_slot_cancel_history_and_resume'`. Its initial invocation passed 1 of 1 with zero failures or skips in 1 minute 5 seconds. Final assertion review found that the post-Undo Player name alone was ambiguous because undoing either the reorder or the preceding Home Run could display the same Player; an automation-only correction added assertions that the two-run score remains unchanged across Undo and Redo, independently proving that the reorder—not an earlier play—is reversed. The exact targeted test was rerun once and passed 1 of 1 with zero failures or skips in 1 minute 2 seconds. Across two attempts and one retry, both invocations passed; no production fix or assertion weakening was required. The final assertions verified active scoring startup, View Lineup and Manage Live Lineup entry points, touch drag/drop, Cancel discard, Save persistence, fixed current-slot semantics, refreshed Current Batter/On Deck/In The Hole including wrap-around, Exit/Resume persistence, chronological Undo/Redo with earlier scoring preserved, pending-play unavailability, and reachable Save/Cancel controls in portrait and landscape. Runner-owned Appium and the emulator started by the runner stopped normally after both invocations; the reserved development AVD was not used. The recurring harmless emulator crash-database attachment warning appeared before startup and did not affect either successful run.
-- Phase D capability assessment found no supported automated Windows desktop interaction/observation channel, so Codex did not claim runtime evidence from an unobservable launch. The user subsequently performed and confirmed focused Windows manual acceptance: View Lineup and Reorder Lineup opened; mouse drag/drop worked; Cancel preserved the original lineup; Save persisted the reorder; Current Batter, On Deck, and In The Hole updated while score, outs, and inning remained unchanged; Exit/Resume preserved the reordered lineup; Undo/Redo operated correctly; pending-play restrictions worked from both entry points; and narrow/tall plus wide/short resizing retained usable scrolling and Save/Cancel controls. This is user-performed manual Windows acceptance, not automated testing. Physical 10-inch Android tablet acceptance remains deferred and protected PR CI remains pending until a real pull request runs.
+- Phase D capability assessment found no supported automated Windows desktop interaction/observation channel, so Codex did not claim runtime evidence from an unobservable launch. The user subsequently performed and confirmed focused Windows manual acceptance: View Lineup and Reorder Lineup opened; mouse drag/drop worked; Cancel preserved the original lineup; Save persisted the reorder; Current Batter, On Deck, and In The Hole updated while score, outs, and inning remained unchanged; Exit/Resume preserved the reordered lineup; Undo/Redo operated correctly; pending-play restrictions worked from both entry points; and narrow/tall plus wide/short resizing retained usable scrolling and Save/Cancel controls. This is user-performed manual Windows acceptance, not automated testing. Pull request 115 subsequently passed the protected Unit tests, Appium project compilation, Android application compilation, and Windows application compilation checks and merged to `main` at `5833915c4afefc6af84b88a6db1b39f0158cc2f2`. Physical 10-inch Android tablet acceptance remains deferred.
 
 #### Intended Commit Message
 
 `Add live batting lineup reordering`
+
+### Story 3.2 — Prepare Version 2.0.1 Release Candidate
+
+**Status:** Local release-candidate preparation implemented and validated; protected hosted release execution, publication, and physical-tablet acceptance pending
+
+#### Implementation Summary
+
+- Advanced application display metadata to 2.0.1 and Android version code to 7 while preserving Release package identity `com.companyname.softballscorekeeper`, SQLite schema version 6, and backup format version 1. Added version-specific release notes limited to the verified Story 4.0 live-lineup reorder behavior and its documented limitations; v2.0.1 is not described as published.
+- Corrected the manual release workflow's invalid Android UI job-level use of the unavailable `runner` expression context. A step now derives the dedicated AVD storage path from `RUNNER_TEMP` and writes it to `GITHUB_ENV`. Focused source-contract coverage and GitHub Actions-aware `actionlint` validation protect the supported initialization.
+- Built release-equivalent Android and self-contained ReadyToRun Windows production outputs from merged Story 4.0 source and reconciled the 18-component production license inventory against their actual resolved dependency/runtime evidence. This identified Android Mono and ILLink 10.0.14 in place of the stale 10.0.13 inventory entries. The Android runtime's exact license and notice bytes remain unchanged, but its versioned notice filename, embedded catalog label/path, targeted test, and checksum-inventory path now identify 10.0.14. The other reviewed versions and all 29 distribution-file hashes remain unchanged.
+- Added a narrow Android production-license gate to the protected packaging job. It fails closed unless the manifest targets the requested release, every common/Android source notice matches the checksum inventory, every Android component's required notice exists, and the APK contains exactly the reviewed 21 application/common/Android license assets with byte-identical content and no Windows-only or unexpected asset.
+- Updated the public README's stale v1.0.1 download links and associated Windows claims to the actual published v2.0.0 artifacts without implying that v2.0.1 has been released. `SECURITY.md` remains unchanged.
+
+#### Validation
+
+- Official actionlint 1.7.12, downloaded from its upstream release and verified against the published SHA-256, accepted both GitHub Actions workflows. Focused PowerShell validation passed 24 release-preflight, 9 Android-signing, 4 artifact-preparation, 15 release-UI/workflow, 15 publication, and 4 Android-license cases with zero failures. The 18 focused Android/Windows licensing and packaging tests and the complete 1,191-test emulator-independent suite passed with zero failures or skips.
+- Android Debug built with zero warnings or errors. The release-equivalent Android Release build passed with four existing `XC0022` warnings and produced package `com.companyname.softballscorekeeper`, version 2.0.1/code 7, API 21 minimum, and API 36 target; its exact 21-file production-license inventory passed the new gate. The Android UI/Appium project compiled with zero warnings or errors. Windows Debug built with zero errors and the existing 146 `MVVMTK0045` warnings.
+- A self-contained ReadyToRun Windows x64 production publish produced executable file and assembly version 2.0.1.0. The production packager accepted the reconciled manifest and created a locally validated 624-file ZIP with 21 license files; this evidence package is not a signed, definitive, or published release artifact. No Android emulator, Appium UI suite, production signing, hosted workflow, tag, GitHub Release, or publication was run.
+
+#### Deferred Work
+
+- Protected hosted release execution must validate the exact future merged-main source and environment secrets before any production artifact or publication claim. The workflow still defaults to no publication. Physical Android tablet acceptance remains deferred, and the documented Microsoft downstream-license acceptance question remains unresolved.
 
 ## Maintenance Rules
 
