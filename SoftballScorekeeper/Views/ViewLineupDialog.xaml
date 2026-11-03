@@ -55,14 +55,20 @@
                         </DataTemplate>
                     </CollectionView.ItemTemplate>
                 </CollectionView>
-                <Button Grid.Row="2"
-                        AutomationId="ViewLineupCloseButton"
-                        Text="{x:Static strings:AppResources.CloseButton}"
-                        Clicked="OnCloseClicked"
-                        MinimumHeightRequest="52"
-                        MinimumWidthRequest="140"
-                        HorizontalOptions="Center"
-                        Padding="20,12" />
+                <Grid Grid.Row="2" ColumnDefinitions="*,*" ColumnSpacing="16">
+                    <Button x:Name="ReorderButton"
+                            AutomationId="ViewLineupReorderButton"
+                            Text="{x:Static strings:AppResources.ReorderLineupButton}"
+                            Clicked="OnReorderClicked"
+                            MinimumHeightRequest="52"
+                            Padding="20,12" />
+                    <Button Grid.Column="1"
+                            AutomationId="ViewLineupCloseButton"
+                            Text="{x:Static strings:AppResources.CloseButton}"
+                            Clicked="OnCloseClicked"
+                            MinimumHeightRequest="52"
+                            Padding="20,12" />
+                </Grid>
             </Grid>
         </Border>
     </Grid>

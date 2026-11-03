@@ -296,6 +296,171 @@ public sealed class GameScoringSessionRepository
             GameScoringLineupChangeType.Replace
         );
 
+    public async Task<LiveLineupChangeFailure> GetLiveLineupReorderAvailabilityAsync(int gameId)
+    {
+        if (gameId <= 0)
+            return LiveLineupChangeFailure.InvalidRequest;
+
+        await using var operation = await database.BeginOperationAsync();
+        var failure = LiveLineupChangeFailure.SessionNotFound;
+        await operation.Connection.RunInTransactionAsync(transaction =>
+        {
+            if (TeamYearWriteGuard.IsGameFinalized(transaction, gameId))
+            {
+                failure = LiveLineupChangeFailure.TeamYearFinalized;
+                return;
+            }
+
+            var session = transaction
+                .Table<GameScoringSession>()
+                .FirstOrDefault(item => item.GameId == gameId);
+            if (session is null)
+                return;
+            if (session.Status != GameScoringStatus.InProgress)
+            {
+                failure = LiveLineupChangeFailure.GameCompleted;
+                return;
+            }
+            if (HasUnresolvedScoringState(transaction, session.Id))
+            {
+                failure = LiveLineupChangeFailure.UnresolvedScoringState;
+                return;
+            }
+
+            var sequence = transaction
+                .Table<GameScoringLineupPlayer>()
+                .Where(item => item.GameScoringSessionId == session.Id)
+                .OrderBy(item => item.BattingPosition)
+                .ThenBy(item => item.Id)
+                .ToList();
+            failure = IsValidLiveLineup(sequence, session.CurrentBatterPosition)
+                ? LiveLineupChangeFailure.None
+                : LiveLineupChangeFailure.InvalidRequest;
+        });
+        return failure;
+    }
+
+    public async Task<LiveLineupChangeResult> ReorderLiveLineupAsync(
+        int gameId,
+        IReadOnlyCollection<int>? orderedPlayerIds
+    )
+    {
+        if (gameId <= 0 || orderedPlayerIds is null)
+            return new(false, LiveLineupChangeFailure.InvalidRequest);
+
+        var requestedIds = orderedPlayerIds.ToArray();
+        if (
+            requestedIds.Length == 0
+            || requestedIds.Any(id => id <= 0)
+            || requestedIds.Distinct().Count() != requestedIds.Length
+        )
+            return new(false, LiveLineupChangeFailure.InvalidRequest);
+
+        await using var operation = await database.BeginOperationAsync();
+        var result = new LiveLineupChangeResult(false, LiveLineupChangeFailure.SessionNotFound);
+        try
+        {
+            await operation.Connection.RunInTransactionAsync(transaction =>
+            {
+                if (TeamYearWriteGuard.IsGameFinalized(transaction, gameId))
+                {
+                    result = new(false, LiveLineupChangeFailure.TeamYearFinalized);
+                    return;
+                }
+
+                var session = transaction
+                    .Table<GameScoringSession>()
+                    .FirstOrDefault(item => item.GameId == gameId);
+                if (session is null)
+                    return;
+                if (session.Status != GameScoringStatus.InProgress)
+                {
+                    result = new(false, LiveLineupChangeFailure.GameCompleted);
+                    return;
+                }
+                if (HasUnresolvedScoringState(transaction, session.Id))
+                {
+                    result = new(false, LiveLineupChangeFailure.UnresolvedScoringState);
+                    return;
+                }
+
+                var sequence = transaction
+                    .Table<GameScoringLineupPlayer>()
+                    .Where(item => item.GameScoringSessionId == session.Id)
+                    .OrderBy(item => item.BattingPosition)
+                    .ThenBy(item => item.Id)
+                    .ToList();
+                if (!IsValidLiveLineup(sequence, session.CurrentBatterPosition))
+                {
+                    result = new(false, LiveLineupChangeFailure.InvalidRequest);
+                    return;
+                }
+
+                var rowsByPlayerId = sequence.ToDictionary(item => item.PlayerId);
+                if (
+                    requestedIds.Length != sequence.Count
+                    || requestedIds.Any(id => !rowsByPlayerId.ContainsKey(id))
+                )
+                {
+                    result = new(false, LiveLineupChangeFailure.InvalidRequest);
+                    return;
+                }
+
+                var changedRows = requestedIds
+                    .Select((playerId, index) => (Row: rowsByPlayerId[playerId], Position: index + 1))
+                    .Where(item => item.Row.BattingPosition != item.Position)
+                    .ToArray();
+                if (changedRows.Length == 0)
+                {
+                    result = new(true, LiveLineupChangeFailure.None, session.CurrentBatterPosition);
+                    return;
+                }
+
+                EnsureHistoryInitialized(transaction, session.Id);
+                ReplaceCurrentHistorySnapshot(transaction, session.Id);
+
+                foreach (var item in changedRows)
+                {
+                    item.Row.BattingPosition = -item.Row.Id;
+                    if (transaction.Update(item.Row) != 1)
+                        throw new InvalidOperationException(
+                            "Live-lineup temporary reorder did not affect one row."
+                        );
+                }
+
+                foreach (var item in changedRows.OrderBy(item => item.Position))
+                {
+                    item.Row.BattingPosition = item.Position;
+                    if (transaction.Update(item.Row) != 1)
+                        throw new InvalidOperationException(
+                            "Live-lineup reorder did not affect one row."
+                        );
+                }
+
+                AdvanceHistory(transaction, session.Id);
+                result = new(true, LiveLineupChangeFailure.None, session.CurrentBatterPosition);
+            });
+        }
+        catch
+        {
+            return new(false, LiveLineupChangeFailure.Persistence);
+        }
+        return result;
+    }
+
+    private static bool IsValidLiveLineup(
+        IReadOnlyList<GameScoringLineupPlayer> sequence,
+        int currentBatterPosition
+    ) =>
+        sequence.Count > 0
+        && sequence.All(item => item.Id > 0 && item.PlayerId > 0)
+        && sequence.Select(item => item.PlayerId).Distinct().Count() == sequence.Count
+        && sequence
+            .Select(item => item.BattingPosition)
+            .SequenceEqual(Enumerable.Range(1, sequence.Count))
+        && currentBatterPosition >= 1
+        && currentBatterPosition <= sequence.Count;
+
     private async Task<LiveLineupChangeResult> ChangeLiveLineupAsync(
         int gameId,
         int playerId,

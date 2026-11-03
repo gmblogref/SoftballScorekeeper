@@ -749,6 +749,211 @@ public sealed partial class GameScoringSessionRepositoryTests
     }
 
     [Fact]
+    public async Task Reorder_preserves_slot_membership_row_identity_frozen_lineup_and_statistics()
+    {
+        await using var db = await TemporaryTestDatabase.CreateAsync();
+        var context = await CreateReadyGameAsync(db, DateTime.Today, null, null, 4);
+        var frozenBefore = (await db.GetGameLineupPlayersAsync())
+            .Select(item => (item.Id, item.GameId, item.PlayerId, item.BattingOrder))
+            .ToArray();
+        var membershipsBefore = (await db.GetTeamPlayersAsync())
+            .Select(item => (item.Id, item.TeamId, item.PlayerId, item.IsActive))
+            .ToArray();
+        var repository = db.CreateGameScoringSessionRepository();
+        await repository.InitializeAsync(context.Team.Id, context.Game.Id, TeamGameSide.Away);
+        await CompleteHitAsync(repository, context.Game.Id, BatterResult.HomeRun);
+        await CompleteHitAsync(repository, context.Game.Id, BatterResult.HomeRun);
+        var before = (await repository.GetStateForGameAsync(context.Game.Id))!;
+        var rowsBefore = before.BattingSequence
+            .Select(item => (item.Id, item.GameScoringSessionId, item.PlayerId, item.BattingPosition))
+            .ToArray();
+        var statisticsBefore = System.Text.Json.JsonSerializer.Serialize(
+            (await repository.GetInProgressBattingStatisticsAsync(context.Game.Id))!
+                .Players.OrderBy(item => item.PlayerId)
+                .Select(item => (item.PlayerId, item.BattingStatistics))
+        );
+        var requestedOrder = new[]
+        {
+            rowsBefore[0].PlayerId,
+            rowsBefore[1].PlayerId,
+            rowsBefore[3].PlayerId,
+            rowsBefore[2].PlayerId,
+        };
+
+        var result = await repository.ReorderLiveLineupAsync(context.Game.Id, requestedOrder);
+        var state = (await repository.GetStateForGameAsync(context.Game.Id))!;
+        var reloaded = (await db.CreateGameScoringSessionRepository()
+            .GetStateForGameAsync(context.Game.Id))!;
+
+        Assert.True(result.IsSuccess);
+        Assert.Equal(3, result.CurrentBatterPosition);
+        Assert.Equal(3, state.Session.CurrentBatterPosition);
+        Assert.Equal(requestedOrder, state.BattingSequence.Select(item => item.PlayerId));
+        Assert.Equal(Enumerable.Range(1, 4), state.BattingSequence.Select(item => item.BattingPosition));
+        Assert.Equal(rowsBefore.Select(item => item.Id).Order(), state.BattingSequence.Select(item => item.Id).Order());
+        Assert.Equal(rowsBefore.Select(item => item.PlayerId).Order(), state.BattingSequence.Select(item => item.PlayerId).Order());
+        Assert.Equal(rowsBefore[3].PlayerId, state.BattingSequence[2].PlayerId);
+        Assert.Equal(rowsBefore[2].PlayerId, state.GetUpcomingPlayerIds()!.Value.OnDeckPlayerId);
+        Assert.Equal(rowsBefore[0].PlayerId, state.GetUpcomingPlayerIds()!.Value.InTheHolePlayerId);
+        Assert.Equal(requestedOrder, reloaded.BattingSequence.Select(item => item.PlayerId));
+        Assert.Equal(frozenBefore, (await db.GetGameLineupPlayersAsync())
+            .Select(item => (item.Id, item.GameId, item.PlayerId, item.BattingOrder)));
+        Assert.Equal(membershipsBefore, (await db.GetTeamPlayersAsync())
+            .Select(item => (item.Id, item.TeamId, item.PlayerId, item.IsActive)));
+        Assert.Equal(statisticsBefore, System.Text.Json.JsonSerializer.Serialize(
+            (await repository.GetInProgressBattingStatisticsAsync(context.Game.Id))!
+                .Players.OrderBy(item => item.PlayerId)
+                .Select(item => (item.PlayerId, item.BattingStatistics))));
+        Assert.Empty(await db.GetGameScoringLineupChangesAsync());
+    }
+
+    [Fact]
+    public async Task Reorder_is_one_chronological_action_and_later_scoring_undo_preserves_it()
+    {
+        await using var db = await TemporaryTestDatabase.CreateAsync();
+        var context = await CreateReadyGameAsync(db, DateTime.Today, null, null, 3);
+        var repository = db.CreateGameScoringSessionRepository();
+        await repository.InitializeAsync(context.Team.Id, context.Game.Id, TeamGameSide.Away);
+        var original = (await repository.GetStateForGameAsync(context.Game.Id))!
+            .BattingSequence.Select(item => item.PlayerId).ToArray();
+        await CompleteHitAsync(repository, context.Game.Id, BatterResult.HomeRun);
+        var reordered = new[] { original[0], original[2], original[1] };
+
+        Assert.True((await repository.ReorderLiveLineupAsync(context.Game.Id, reordered)).IsSuccess);
+        Assert.True((await repository.UndoAsync(context.Game.Id)).IsSuccess);
+        var afterReorderUndo = (await repository.GetStateForGameAsync(context.Game.Id))!;
+        Assert.Equal(original, afterReorderUndo.BattingSequence.Select(item => item.PlayerId));
+        Assert.Single(afterReorderUndo.PlateAppearances);
+        Assert.True((await repository.RedoAsync(context.Game.Id)).IsSuccess);
+        Assert.Equal(reordered, (await repository.GetStateForGameAsync(context.Game.Id))!
+            .BattingSequence.Select(item => item.PlayerId));
+
+        await CompleteHitAsync(repository, context.Game.Id, BatterResult.HomeRun);
+        Assert.True((await repository.UndoAsync(context.Game.Id)).IsSuccess);
+        var afterPlayUndo = (await repository.GetStateForGameAsync(context.Game.Id))!;
+        Assert.Equal(reordered, afterPlayUndo.BattingSequence.Select(item => item.PlayerId));
+        Assert.Single(afterPlayUndo.PlateAppearances);
+
+        Assert.True((await repository.UndoAsync(context.Game.Id)).IsSuccess);
+        var divergentOrder = new[] { original[2], original[0], original[1] };
+        Assert.True((await repository.ReorderLiveLineupAsync(context.Game.Id, divergentOrder)).IsSuccess);
+        var availability = await repository.GetUndoRedoAvailabilityAsync(context.Game.Id);
+        Assert.False(availability.CanRedo);
+        Assert.Equal(divergentOrder, (await repository.GetStateForGameAsync(context.Game.Id))!
+            .BattingSequence.Select(item => item.PlayerId));
+    }
+
+    [Fact]
+    public async Task Reordered_lineup_remains_authoritative_for_replace_add_remove_and_reentry()
+    {
+        await using var db = await TemporaryTestDatabase.CreateAsync();
+        var context = await CreateReadyGameAsync(db, DateTime.Today, null, null, 3);
+        var replacement = await CreateEligiblePlayerAsync(db, context.Team.Id, "Replacement");
+        var added = await CreateEligiblePlayerAsync(db, context.Team.Id, "Added");
+        var repository = db.CreateGameScoringSessionRepository();
+        await repository.InitializeAsync(context.Team.Id, context.Game.Id, TeamGameSide.Away);
+        var original = (await repository.GetStateForGameAsync(context.Game.Id))!
+            .BattingSequence.Select(item => item.PlayerId).ToArray();
+        Assert.True((await repository.ReorderLiveLineupAsync(
+            context.Game.Id, [original[2], original[0], original[1]])).IsSuccess);
+
+        Assert.True((await repository.ReplaceLiveLineupPlayerAsync(
+            context.Game.Id, original[0], replacement.Id)).IsSuccess);
+        Assert.True((await repository.AddLiveLineupPlayerAsync(
+            context.Game.Id, added.Id, 2)).IsSuccess);
+        Assert.True((await repository.RemoveLiveLineupPlayerAsync(
+            context.Game.Id, original[2])).IsSuccess);
+        Assert.True((await repository.AddLiveLineupPlayerAsync(
+            context.Game.Id, original[2], 4)).IsSuccess);
+
+        var state = (await repository.GetStateForGameAsync(context.Game.Id))!;
+        Assert.Equal(
+            new[] { added.Id, replacement.Id, original[1], original[2] },
+            state.BattingSequence.Select(item => item.PlayerId)
+        );
+        Assert.Equal(Enumerable.Range(1, 4), state.BattingSequence.Select(item => item.BattingPosition));
+    }
+
+    [Fact]
+    public async Task Reorder_rejects_invalid_pending_completed_and_finalized_requests_without_mutation()
+    {
+        await using var db = await TemporaryTestDatabase.CreateAsync();
+        var context = await CreateReadyGameAsync(db, DateTime.Today, null, null, 3);
+        var repository = db.CreateGameScoringSessionRepository();
+        await repository.InitializeAsync(context.Team.Id, context.Game.Id, TeamGameSide.Away);
+        var original = (await repository.GetStateForGameAsync(context.Game.Id))!
+            .BattingSequence.Select(item => item.PlayerId).ToArray();
+        var reversed = original.Reverse().ToArray();
+
+        Assert.Equal(LiveLineupChangeFailure.InvalidRequest,
+            (await repository.ReorderLiveLineupAsync(0, reversed)).FailureReason);
+        Assert.Equal(LiveLineupChangeFailure.InvalidRequest,
+            (await repository.ReorderLiveLineupAsync(context.Game.Id, null)).FailureReason);
+        Assert.Equal(LiveLineupChangeFailure.InvalidRequest,
+            (await repository.ReorderLiveLineupAsync(context.Game.Id, [])).FailureReason);
+        Assert.Equal(LiveLineupChangeFailure.InvalidRequest,
+            (await repository.ReorderLiveLineupAsync(context.Game.Id, [original[0], original[0], original[2]])).FailureReason);
+        Assert.Equal(LiveLineupChangeFailure.InvalidRequest,
+            (await repository.ReorderLiveLineupAsync(context.Game.Id, original[..2])).FailureReason);
+        Assert.Equal(LiveLineupChangeFailure.InvalidRequest,
+            (await repository.ReorderLiveLineupAsync(context.Game.Id, [original[0], original[1], int.MaxValue])).FailureReason);
+
+        Assert.True((await repository.SelectBatterResultAsync(
+            context.Game.Id, BatterResult.Single)).IsSuccess);
+        Assert.Equal(LiveLineupChangeFailure.UnresolvedScoringState,
+            (await repository.ReorderLiveLineupAsync(context.Game.Id, reversed)).FailureReason);
+        Assert.True((await repository.UndoAsync(context.Game.Id)).IsSuccess);
+        Assert.True((await repository.CompleteGameAsync(context.Game.Id)).IsSuccess);
+        Assert.Equal(LiveLineupChangeFailure.GameCompleted,
+            (await repository.ReorderLiveLineupAsync(context.Game.Id, reversed)).FailureReason);
+        Assert.Equal(original, (await repository.GetStateForGameAsync(context.Game.Id))!
+            .BattingSequence.Select(item => item.PlayerId));
+
+        var finalizedContext = await CreateReadyGameAsync(
+            db, DateTime.Today.AddDays(1), null, null, 2);
+        await repository.InitializeAsync(
+            finalizedContext.Team.Id, finalizedContext.Game.Id, TeamGameSide.Away);
+        var finalizedOrder = (await repository.GetStateForGameAsync(finalizedContext.Game.Id))!
+            .BattingSequence.Select(item => item.PlayerId).Reverse().ToArray();
+        Assert.True(await db.CreateTeamRepository().MarkYearOverAsync(finalizedContext.Team.Id));
+        Assert.Equal(LiveLineupChangeFailure.TeamYearFinalized,
+            (await repository.ReorderLiveLineupAsync(
+                finalizedContext.Game.Id, finalizedOrder)).FailureReason);
+
+        var homeContext = await CreateReadyGameAsync(
+            db, DateTime.Today.AddDays(2), null, null, 2);
+        await repository.InitializeAsync(homeContext.Team.Id, homeContext.Game.Id, TeamGameSide.Home);
+        Assert.NotNull(await repository.GetPendingHalfInningTransitionAsync(homeContext.Game.Id));
+        var homeOrder = (await repository.GetStateForGameAsync(homeContext.Game.Id))!
+            .BattingSequence.Select(item => item.PlayerId).Reverse().ToArray();
+        Assert.Equal(LiveLineupChangeFailure.UnresolvedScoringState,
+            (await repository.ReorderLiveLineupAsync(homeContext.Game.Id, homeOrder)).FailureReason);
+    }
+
+    [Fact]
+    public async Task Reorder_rolls_back_sequence_and_history_when_position_update_fails()
+    {
+        await using var db = await TemporaryTestDatabase.CreateAsync();
+        var context = await CreateReadyGameAsync(db, DateTime.Today, null, null, 3);
+        var repository = db.CreateGameScoringSessionRepository();
+        await repository.InitializeAsync(context.Team.Id, context.Game.Id, TeamGameSide.Away);
+        var before = (await repository.GetStateForGameAsync(context.Game.Id))!;
+        var beforeRows = before.BattingSequence
+            .Select(item => (item.Id, item.PlayerId, item.BattingPosition)).ToArray();
+        var availabilityBefore = await repository.GetUndoRedoAvailabilityAsync(context.Game.Id);
+        await db.UseConnectionAsync(connection => connection.ExecuteAsync(
+            "CREATE TRIGGER FailLiveReorder BEFORE UPDATE OF BattingPosition ON GameScoringLineupPlayer BEGIN SELECT RAISE(ABORT, 'test failure'); END"));
+
+        var result = await repository.ReorderLiveLineupAsync(
+            context.Game.Id, beforeRows.Select(item => item.PlayerId).Reverse().ToArray());
+
+        Assert.Equal(LiveLineupChangeFailure.Persistence, result.FailureReason);
+        Assert.Equal(beforeRows, (await repository.GetStateForGameAsync(context.Game.Id))!
+            .BattingSequence.Select(item => (item.Id, item.PlayerId, item.BattingPosition)));
+        Assert.Equal(availabilityBefore, await repository.GetUndoRedoAvailabilityAsync(context.Game.Id));
+    }
+
+    [Fact]
     public async Task Version_three_active_game_migrates_without_rewriting_saved_lineup()
     {
         await using var db = await TemporaryTestDatabase.CreateAsync();

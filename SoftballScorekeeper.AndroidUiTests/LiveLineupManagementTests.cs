@@ -1,8 +1,105 @@
+using OpenQA.Selenium;
+using OpenQA.Selenium.Appium.Android;
+using OpenQA.Selenium.Interactions;
+
 namespace SoftballScorekeeper.AndroidUiTests;
 
 [Collection(AndroidUiTestCollection.Name)]
 public sealed class LiveLineupManagementTests(AndroidAppiumFixture fixture)
 {
+    [AndroidUiFact]
+    public void Reorder_live_lineup_preserves_current_slot_cancel_history_and_resume()
+    {
+        Run(
+            nameof(Reorder_live_lineup_preserves_current_slot_cancel_history_and_resume),
+            driver =>
+            {
+                OpenScoring(driver);
+
+                OpenViewLineup(driver);
+                AndroidElementWait.UntilAutomationId(driver, "ViewLineupReorderButton").Click();
+                fixture.SetOrientation(OpenQA.Selenium.ScreenOrientation.Portrait);
+                AndroidElementWait.UntilAutomationId(driver, "ReorderLiveLineupSaveButton");
+                AndroidElementWait.UntilAutomationId(driver, "ReorderLiveLineupCancelButton");
+                fixture.SetOrientation(OpenQA.Selenium.ScreenOrientation.Landscape);
+                PerformPressHoldDrag(
+                    driver,
+                    AndroidElementWait.UntilAutomationId(driver, "ReorderLiveLineupRow-1"),
+                    AndroidElementWait.UntilAutomationId(driver, "ReorderLiveLineupRow-3")
+                );
+                AndroidElementWait.UntilAutomationId(
+                    driver,
+                    "ReorderLiveLineupCancelButton"
+                ).Click();
+                AssertLineupPlayer(driver, 1, "Alex Live");
+                CloseViewLineup(driver);
+                AndroidElementWait.UntilAutomationIdText(driver, "CurrentBatter", "Alex Live");
+
+                OpenManageLineup(driver);
+                AndroidElementWait.UntilText(driver, "Reorder Lineup").Click();
+                PerformPressHoldDrag(
+                    driver,
+                    AndroidElementWait.UntilAutomationId(driver, "ReorderLiveLineupRow-1"),
+                    AndroidElementWait.UntilAutomationId(driver, "ReorderLiveLineupRow-3")
+                );
+                AndroidElementWait.UntilAutomationId(
+                    driver,
+                    "ReorderLiveLineupSaveButton"
+                ).Click();
+                AndroidElementWait.UntilAutomationIdText(driver, "CurrentBatter", "Blake Live");
+                AndroidElementWait.UntilAutomationIdText(driver, "OnDeckBatter", "Casey Live");
+                AndroidElementWait.UntilAutomationIdText(driver, "InTheHoleBatter", "Alex Live");
+
+                AndroidScoringWorkflow.SelectResult(driver, "Home Run");
+                AndroidScoringWorkflow.SelectResult(driver, "Home Run");
+                AndroidElementWait.UntilAutomationIdText(driver, "CurrentBatter", "Alex Live");
+
+                OpenManageLineup(driver);
+                AndroidElementWait.UntilText(driver, "Reorder Lineup").Click();
+                PerformPressHoldDrag(
+                    driver,
+                    AndroidElementWait.UntilAutomationId(driver, "ReorderLiveLineupRow-3"),
+                    AndroidElementWait.UntilAutomationId(driver, "ReorderLiveLineupRow-2")
+                );
+                AndroidElementWait.UntilAutomationId(
+                    driver,
+                    "ReorderLiveLineupSaveButton"
+                ).Click();
+                AndroidElementWait.UntilAutomationIdText(driver, "CurrentBatter", "Casey Live");
+                AndroidElementWait.UntilAutomationIdText(driver, "OnDeckBatter", "Blake Live");
+                AndroidElementWait.UntilAutomationIdText(driver, "InTheHoleBatter", "Alex Live");
+
+                AndroidScoringWorkflow.ExitAndResume(driver);
+                AndroidElementWait.UntilAutomationIdText(driver, "CurrentBatter", "Casey Live");
+                AndroidElementWait.UntilAutomationIdText(driver, "VisitorScoreValue", "2");
+                AndroidElementWait.UntilAutomationId(driver, "UndoScoringButton").Click();
+                AndroidElementWait.UntilAutomationIdText(driver, "CurrentBatter", "Alex Live");
+                AndroidElementWait.UntilAutomationIdText(driver, "VisitorScoreValue", "2");
+                AndroidElementWait.UntilAutomationId(driver, "RedoScoringButton").Click();
+                AndroidElementWait.UntilAutomationIdText(driver, "CurrentBatter", "Casey Live");
+                AndroidElementWait.UntilAutomationIdText(driver, "VisitorScoreValue", "2");
+
+                AndroidScoringWorkflow.SelectResult(driver, "Single");
+                OpenManageLineup(driver);
+                Assert.DoesNotContain(
+                    driver.FindElements(By.XPath("//*[@text='Reorder Lineup']")),
+                    element => element.Displayed
+                );
+                AndroidElementWait.UntilText(driver, "Cancel").Click();
+                OpenViewLineup(driver);
+                Assert.DoesNotContain(
+                    driver.FindElements(
+                        By.Id(
+                            $"{AndroidAutomationConstants.AppPackage}:id/ViewLineupReorderButton"
+                        )
+                    ),
+                    element => element.Displayed
+                );
+                CloseViewLineup(driver);
+            }
+        );
+    }
+
     [AndroidUiFact]
     public void Manage_lineup_cancel_returns_to_scoring_and_remove_still_opens_explicitly()
     {
@@ -547,5 +644,36 @@ public sealed class LiveLineupManagementTests(AndroidAppiumFixture fixture)
             Assert.InRange(element.Location.X + element.Size.Width, 1, viewport.Width);
             Assert.InRange(element.Location.Y + element.Size.Height, 1, viewport.Height);
         }
+    }
+
+    private static void PerformPressHoldDrag(
+        AndroidDriver driver,
+        IWebElement source,
+        IWebElement target
+    )
+    {
+        var finger = new PointerInputDevice(PointerKind.Touch, "live-lineup-reorder-finger");
+        var actions = new ActionSequence(finger, 0);
+        actions.AddAction(
+            finger.CreatePointerMove(
+                CoordinateOrigin.Viewport,
+                source.Location.X + source.Size.Width / 2,
+                source.Location.Y + source.Size.Height / 2,
+                TimeSpan.Zero
+            )
+        );
+        actions.AddAction(finger.CreatePointerDown(MouseButton.Left));
+        actions.AddAction(finger.CreatePause(TimeSpan.FromMilliseconds(900)));
+        actions.AddAction(
+            finger.CreatePointerMove(
+                CoordinateOrigin.Viewport,
+                target.Location.X + target.Size.Width / 2,
+                target.Location.Y + target.Size.Height / 2,
+                TimeSpan.FromMilliseconds(1400)
+            )
+        );
+        actions.AddAction(finger.CreatePointerUp(MouseButton.Left));
+        driver.PerformActions([actions]);
+        driver.ResetInputState();
     }
 }

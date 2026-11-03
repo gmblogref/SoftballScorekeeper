@@ -1215,6 +1215,10 @@ namespace SoftballScorekeeper.Resources.Strings {
         public static string ViewLineupTitle { get { return ResourceManager.GetString("ViewLineupTitle", resourceCulture); } }
         public static string ViewLineupCurrentMarker { get { return ResourceManager.GetString("ViewLineupCurrentMarker", resourceCulture); } }
         public static string ViewLineupNextMarker { get { return ResourceManager.GetString("ViewLineupNextMarker", resourceCulture); } }
+        public static string ReorderLineupButton { get { return ResourceManager.GetString("ReorderLineupButton", resourceCulture); } }
+        public static string ReorderLiveLineupTitle { get { return ResourceManager.GetString("ReorderLiveLineupTitle", resourceCulture); } }
+        public static string ReorderLiveLineupInstructions { get { return ResourceManager.GetString("ReorderLiveLineupInstructions", resourceCulture); } }
+        public static string SaveLineupOrderButton { get { return ResourceManager.GetString("SaveLineupOrderButton", resourceCulture); } }
         public static string RemovePlayerButton { get { return ResourceManager.GetString("RemovePlayerButton", resourceCulture); } }
         public static string ReplacePlayerButton { get { return ResourceManager.GetString("ReplacePlayerButton", resourceCulture); } }
         public static string SelectReplacementPlayerTitle { get { return ResourceManager.GetString("SelectReplacementPlayerTitle", resourceCulture); } }
