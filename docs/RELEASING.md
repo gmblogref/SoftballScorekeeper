@@ -34,7 +34,10 @@ Release preparation is a normal reviewed source change which must be merged to
    or replace required notice files, and update
    `licenses/distribution/SHA256SUMS.txt`. This is a deliberate licensing review,
    not a version-string-only edit. The Windows packager will reject a stale
-   target, missing notice, unexpected inventory, or checksum drift.
+   target, missing notice, unexpected inventory, or checksum drift. The Android
+   production-license gate likewise rejects a stale target, checksum drift, or
+   an APK whose packaged application/common/Android license inventory or bytes
+   do not exactly match the reviewed sources.
 3. Copy `release-notes/RELEASE_NOTES_TEMPLATE.md` to
    `release-notes/v<version>.md`. Replace every placeholder with concise,
    human-authored highlights and known limitations. The publisher appends the

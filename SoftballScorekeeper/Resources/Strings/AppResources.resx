@@ -877,7 +877,7 @@
   <data name="LicenseDocumentDotNetAndroid" xml:space="preserve"><value>.NET for Android — MIT</value></data>
   <data name="LicenseDocumentGsonNotices" xml:space="preserve"><value>Google Gson 2.13.1.1 — Third-Party Notices</value></data>
   <data name="LicenseDocumentAndroidRuntimeNotices" xml:space="preserve"><value>Microsoft.Android Runtime 36.1.118 — Third-Party Notices</value></data>
-  <data name="LicenseDocumentMonoAndroidNotices" xml:space="preserve"><value>.NET Mono Android Runtimes 10.0.13 — Third-Party Notices</value></data>
+  <data name="LicenseDocumentMonoAndroidNotices" xml:space="preserve"><value>.NET Mono Android Runtimes 10.0.14 — Third-Party Notices</value></data>
   <data name="LicenseDocumentGlideNotices" xml:space="preserve"><value>Glide Bindings 4.16.0.14 — Third-Party Notices</value></data>
   <data name="LicenseDocumentAndroidBindingsLicense" xml:space="preserve"><value>Microsoft Android Bindings — MIT</value></data>
   <data name="LicenseDocumentAndroidBindingsNotices" xml:space="preserve"><value>AndroidX and Google Bindings — Third-Party Notices</value></data>

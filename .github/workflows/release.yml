@@ -248,7 +248,6 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 120
     env:
-      ANDROID_AVD_HOME: ${{ runner.temp }}/softball-android-avd
       RELEASE_SOURCE_SHA: ${{ needs.preflight.outputs.source_sha }}
 
     steps:
@@ -265,6 +264,12 @@ jobs:
           if ($actualSha -ne $env:RELEASE_SOURCE_SHA) {
             throw "Checked-out source '$actualSha' does not match validated source '$env:RELEASE_SOURCE_SHA'."
           }
+
+      - name: Configure dedicated Android AVD storage
+        shell: pwsh
+        run: |
+          $avdHome = Join-Path $env:RUNNER_TEMP "softball-android-avd"
+          "ANDROID_AVD_HOME=$avdHome" | Out-File -LiteralPath $env:GITHUB_ENV -Encoding utf8 -Append
 
       - name: Set up .NET
         uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
@@ -552,6 +557,13 @@ jobs:
             throw "Android release output must contain exactly '$expectedName'; found: $($files.Name -join ', ')."
           }
           "ANDROID_DEFINITIVE_APK=$($files[0].FullName)" | Out-File -LiteralPath $env:GITHUB_ENV -Encoding utf8 -Append
+
+      - name: Verify Android production licenses
+        shell: pwsh
+        run: |
+          ./scripts/verify-android-production-licenses.ps1 `
+            -ApkPath $env:ANDROID_DEFINITIVE_APK `
+            -ReleaseVersion $env:RELEASE_VERSION
 
       - name: Preserve definitive Android artifact
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2

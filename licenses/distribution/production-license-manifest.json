@@ -1,9 +1,9 @@
 {
   "schema_version": 1,
-  "inventory_date": "2026-10-28",
-  "release_target": "v2.0.0",
-  "inventory_basis": "Initial versions were verified from the accepted Story 2.0 restored .NET 10 Android and Windows production graphs. Story 2.2 preliminary Windows publish inspection verified Microsoft.NETCore.App.Runtime.win-x64 10.0.14 and reconciled its exact package SHA-256 plus byte-identical MIT license and third-party notice; the independently verified Android Mono runtime remains 10.0.13. Final v2.0.0 artifacts built from merged main must be reconciled against this inventory before release.",
-  "coverage_status": "complete-for-identified-v2.0.0-runtime-components-with-unresolved-microsoft-downstream-acceptance",
+  "inventory_date": "2026-11-03",
+  "release_target": "v2.0.1",
+  "inventory_basis": "Reconciled against release-equivalent v2.0.1/code 7 production evidence built from merged-main Story 4.0 source 5833915c4afefc6af84b88a6db1b39f0158cc2f2 with .NET SDK 10.0.403, .NET runtime 10.0.14, MAUI 10.0.110, and .NET for Android 36.1.118. The Android Release project.assets.json graph, installed runtime packs, and generated APK establish Android Mono runtime 10.0.14, Microsoft.Android runtime 36.1.118, and the reviewed common and Android component versions. The self-contained ReadyToRun win-x64 publish retained Microsoft.NETCore.App.Runtime.win-x64 10.0.14, Windows App SDK 1.8.260529003, and every reviewed Windows package version. All 18 component groups and all 29 recorded distribution-file checksums were reconciled; the Android Mono notice filename advanced to 10.0.14 while its exact license and notice bytes remained unchanged.",
+  "coverage_status": "complete-for-identified-v2.0.1-runtime-components-with-unresolved-microsoft-downstream-acceptance",
   "application_license": {
     "source": "LICENSE",
     "packaged_destination": "LICENSE.txt",
@@ -133,25 +133,25 @@
     },
     {
       "component": ".NET Mono Android arm64 and x86_64 runtimes",
-      "version": "10.0.13",
+      "version": "10.0.14",
       "packages": [
-        "Microsoft.NETCore.App.Runtime.Mono.android-arm64/10.0.13",
-        "Microsoft.NETCore.App.Runtime.Mono.android-x64/10.0.13"
+        "Microsoft.NETCore.App.Runtime.Mono.android-arm64/10.0.14",
+        "Microsoft.NETCore.App.Runtime.Mono.android-x64/10.0.14"
       ],
       "platform": ["android"],
       "license_identifier": "MIT",
       "copyright_holder_or_source": "© Microsoft Corporation. All rights reserved.; contributors identified in the exact runtime notice",
       "authoritative_sources": [
-        "https://www.nuget.org/packages/Microsoft.NETCore.App.Runtime.Mono.android-arm64/10.0.13",
-        "https://www.nuget.org/packages/Microsoft.NETCore.App.Runtime.Mono.android-x64/10.0.13"
+        "installed .NET 10.0.14 Android arm64 runtime pack",
+        "installed .NET 10.0.14 Android x64 runtime pack"
       ],
       "required_notice_files": [
         "licenses/distribution/android/DotNet-Android-MIT-LICENSE.txt",
-        "licenses/distribution/android/Microsoft.NETCore.App.Runtime.Mono.android-10.0.13-THIRD-PARTY-NOTICES.txt"
+        "licenses/distribution/android/Microsoft.NETCore.App.Runtime.Mono.android-10.0.14-THIRD-PARTY-NOTICES.txt"
       ],
       "packaged_destination_paths": [
         "licenses/android/DotNet-Android-MIT-LICENSE.txt",
-        "licenses/android/Microsoft.NETCore.App.Runtime.Mono.android-10.0.13-THIRD-PARTY-NOTICES.txt"
+        "licenses/android/Microsoft.NETCore.App.Runtime.Mono.android-10.0.14-THIRD-PARTY-NOTICES.txt"
       ],
       "verification_status": "verified-from-both-installed-exact-runtime-packs; ABI license and notice files are byte-identical"
     },
@@ -388,7 +388,7 @@
   "excluded_non_runtime_dependencies": [
     "Microsoft.Maui.Controls.Build.Tasks/10.0.110",
     "Microsoft.Maui.Resizetizer/10.0.110",
-    "Microsoft.NET.ILLink.Tasks/10.0.13",
+    "Microsoft.NET.ILLink.Tasks/10.0.14",
     "Microsoft.Windows.SDK.BuildTools/10.0.26100.8249",
     "Microsoft.Windows.SDK.BuildTools.MSIX/1.7.20250829.1",
     "Microsoft.NET.Test.Sdk/18.11.0",

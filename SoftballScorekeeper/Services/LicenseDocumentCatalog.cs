@@ -61,7 +61,7 @@ public static class LicenseDocumentCatalog
             ),
             new(
                 AppResources.LicenseDocumentMonoAndroidNotices,
-                "licenses/android/Microsoft.NETCore.App.Runtime.Mono.android-10.0.13-THIRD-PARTY-NOTICES.txt"
+                "licenses/android/Microsoft.NETCore.App.Runtime.Mono.android-10.0.14-THIRD-PARTY-NOTICES.txt"
             ),
             new(
                 AppResources.LicenseDocumentGlideNotices,
