@@ -1,4 +1,5 @@
 using SoftballScorekeeper.Core.Models;
+using SoftballScorekeeper.Infrastructure.Data.Repositories;
 using SoftballScorekeeper.Resources.Strings;
 using SoftballScorekeeper.Services;
 using SoftballScorekeeper.ViewModels;
@@ -140,22 +141,38 @@ public partial class ScoringPage : ContentPage
     {
         ScoringMenu.IsVisible = false;
         var lineup = await viewModel.GetLiveLineupPlayersAsync();
-        await new ViewLineupDialog(lineup).ShowAsync(Navigation);
+        var availability = await viewModel.GetLiveLineupReorderAvailabilityAsync();
+        await new ViewLineupDialog(
+            lineup,
+            availability == LiveLineupChangeFailure.None ? ReorderFromViewLineupAsync : null
+        ).ShowAsync(Navigation);
     }
 
     private async void OnManageLineupClicked(object sender, EventArgs e)
     {
         ScoringMenu.IsVisible = false;
+        var availability = await viewModel.GetLiveLineupReorderAvailabilityAsync();
+        var actions = new List<string>
+        {
+            AppResources.AddPlayerButton,
+            AppResources.RemovePlayerButton,
+            AppResources.ReplacePlayerButton,
+        };
+        if (availability == LiveLineupChangeFailure.None)
+            actions.Add(AppResources.ReorderLineupButton);
+        actions.Add(AppResources.AddPlayersToTeamTitle);
+        actions.Add(AppResources.CreateNewPlayerButton);
         var action = await DisplayActionSheetAsync(
             AppResources.ManageLiveLineupTitle,
             AppResources.CancelButton,
             null,
-            AppResources.AddPlayerButton,
-            AppResources.RemovePlayerButton,
-            AppResources.ReplacePlayerButton,
-            AppResources.AddPlayersToTeamTitle,
-            AppResources.CreateNewPlayerButton
+            actions.ToArray()
         );
+        if (action == AppResources.ReorderLineupButton)
+        {
+            await ShowReorderLiveLineupAsync();
+            return;
+        }
         if (action == AppResources.AddPlayersToTeamTitle)
         {
             await viewModel.AddPlayersToTeamForLiveLineupAsync();
@@ -206,6 +223,37 @@ public partial class ScoringPage : ContentPage
                 outgoing.PlayerId,
                 incoming.PlayerId
             );
+    }
+
+    private async Task<IReadOnlyList<LiveLineupPlayerOption>?> ReorderFromViewLineupAsync()
+    {
+        var saved = await ShowReorderLiveLineupAsync();
+        return saved ? await viewModel.GetLiveLineupPlayersAsync() : null;
+    }
+
+    private async Task<bool> ShowReorderLiveLineupAsync()
+    {
+        var availability = await viewModel.GetLiveLineupReorderAvailabilityAsync();
+        if (availability != LiveLineupChangeFailure.None)
+        {
+            await DisplayAlertAsync(
+                AppResources.ReorderLiveLineupTitle,
+                availability == LiveLineupChangeFailure.UnresolvedScoringState
+                    ? AppResources.LiveLineupPendingPlayMessage
+                    : AppResources.LiveLineupChangeFailedMessage,
+                AppResources.OkButton
+            );
+            return false;
+        }
+
+        var lineup = await viewModel.GetLiveLineupPlayersAsync();
+        if (lineup.Count == 0)
+            return false;
+
+        return await new ReorderLiveLineupDialog(
+            lineup,
+            viewModel.ReorderLiveLineupAsync
+        ).ShowAsync(Navigation);
     }
 
     private async Task PromptForCreatedLiveLineupPlayerAsync()

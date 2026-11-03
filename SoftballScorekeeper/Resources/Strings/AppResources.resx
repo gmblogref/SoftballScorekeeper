@@ -777,6 +777,10 @@
   <data name="ViewLineupTitle" xml:space="preserve"><value>Current Lineup</value></data>
   <data name="ViewLineupCurrentMarker" xml:space="preserve"><value>CURRENT</value></data>
   <data name="ViewLineupNextMarker" xml:space="preserve"><value>NEXT</value></data>
+  <data name="ReorderLineupButton" xml:space="preserve"><value>Reorder Lineup</value></data>
+  <data name="ReorderLiveLineupTitle" xml:space="preserve"><value>Reorder Live Lineup</value></data>
+  <data name="ReorderLiveLineupInstructions" xml:space="preserve"><value>Press and hold a Player, then drag to a new batting position.</value></data>
+  <data name="SaveLineupOrderButton" xml:space="preserve"><value>Save Order</value></data>
   <data name="RemovePlayerButton" xml:space="preserve"><value>Remove Player</value></data>
   <data name="ReplacePlayerButton" xml:space="preserve"><value>Replace Player</value></data>
   <data name="SelectReplacementPlayerTitle" xml:space="preserve"><value>Select Replacement Player</value></data>

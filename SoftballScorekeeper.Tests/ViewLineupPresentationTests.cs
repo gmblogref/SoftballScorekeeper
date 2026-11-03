@@ -5,17 +5,27 @@ namespace SoftballScorekeeper.Tests;
 public sealed class ViewLineupPresentationTests
 {
     [Fact]
-    public void Scoring_menu_opens_a_read_only_scrollable_lineup_dialog()
+    public void Scoring_menu_opens_lineup_view_and_both_entries_share_the_reorder_editor()
     {
         var scoringPage = LoadXaml("Views", "ScoringPage.xaml");
         var dialog = LoadXaml("Views", "ViewLineupDialog.xaml");
+        var reorderDialog = LoadXaml("Views", "ReorderLiveLineupDialog.xaml");
         var scoringCode = Read("Views", "ScoringPage.xaml.cs");
         var dialogCode = Read("Views", "ViewLineupDialog.xaml.cs");
+        var reorderCode = Read("Views", "ReorderLiveLineupDialog.xaml.cs");
 
         Assert.NotNull(ByAutomationId(scoringPage, "ViewLineupButton"));
         Assert.Equal("ViewLineupDialog", dialog.Root?.Attribute("AutomationId")?.Value);
         Assert.NotNull(ByAutomationId(dialog, "ViewLineupList"));
         Assert.NotNull(ByAutomationId(dialog, "ViewLineupCloseButton"));
+        Assert.NotNull(ByAutomationId(dialog, "ViewLineupReorderButton"));
+        Assert.Equal(
+            "ReorderLiveLineupDialog",
+            reorderDialog.Root?.Attribute("AutomationId")?.Value
+        );
+        Assert.NotNull(ByAutomationId(reorderDialog, "ReorderLiveLineupList"));
+        Assert.NotNull(ByAutomationId(reorderDialog, "ReorderLiveLineupSaveButton"));
+        Assert.NotNull(ByAutomationId(reorderDialog, "ReorderLiveLineupCancelButton"));
         Assert.Equal(
             "None",
             ByAutomationId(dialog, "ViewLineupList").Attribute("SelectionMode")?.Value
@@ -31,10 +41,17 @@ public sealed class ViewLineupPresentationTests
 
         Assert.Contains("ScoringMenu.IsVisible = false;", scoringCode);
         Assert.Contains("GetLiveLineupPlayersAsync()", scoringCode);
-        Assert.Contains("new ViewLineupDialog(lineup).ShowAsync(Navigation)", scoringCode);
+        Assert.Contains("ReorderFromViewLineupAsync", scoringCode);
+        Assert.Contains("ShowReorderLiveLineupAsync", scoringCode);
+        Assert.Contains("AppResources.ReorderLineupButton", scoringCode);
         Assert.Contains("PushModalAsync(this)", dialogCode);
         Assert.Contains("PopModalAsync()", dialogCode);
         Assert.DoesNotContain("Repository", dialogCode, StringComparison.Ordinal);
+        Assert.Contains("DragGestureRecognizer", reorderDialog.ToString());
+        Assert.Contains("DropGestureRecognizer", reorderDialog.ToString());
+        Assert.Contains("saveOrder(state.Items.Select", reorderCode);
+        Assert.Contains("CloseAsync(false)", reorderCode);
+        Assert.Contains("completion.TrySetResult(false)", reorderCode);
     }
 
     [Fact]
@@ -53,6 +70,9 @@ public sealed class ViewLineupPresentationTests
         Assert.Contains("{Binding IsNextBatter}", dialog.ToString());
         Assert.Equal("CURRENT", Resource(resources, "ViewLineupCurrentMarker"));
         Assert.Equal("NEXT", Resource(resources, "ViewLineupNextMarker"));
+        Assert.Equal("Reorder Lineup", Resource(resources, "ReorderLineupButton"));
+        Assert.Equal("Reorder Live Lineup", Resource(resources, "ReorderLiveLineupTitle"));
+        Assert.Equal("Save Order", Resource(resources, "SaveLineupOrderButton"));
 
         Assert.Contains("sessionRepository.GetStateForGameAsync(GameId)", viewModel);
         Assert.Contains("state.GetUpcomingPlayerIds()", viewModel);

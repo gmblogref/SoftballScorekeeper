@@ -371,6 +371,14 @@ public partial class ScoringViewModel : ObservableObject, IQueryAttributable
         await EnsureLiveLineupPlayerRosteredAsync(replacementPlayerId)
         && await ReplaceLiveLineupPlayerAsync(outgoingPlayerId, replacementPlayerId);
 
+    public Task<LiveLineupChangeFailure> GetLiveLineupReorderAvailabilityAsync() =>
+        sessionRepository.GetLiveLineupReorderAvailabilityAsync(GameId);
+
+    public async Task<bool> ReorderLiveLineupAsync(IReadOnlyCollection<int> orderedPlayerIds) =>
+        await ApplyLiveLineupChangeAsync(
+            sessionRepository.ReorderLiveLineupAsync(GameId, orderedPlayerIds)
+        );
+
     private async Task<bool> EnsureLiveLineupPlayerRosteredAsync(int playerId)
     {
         if (teamPlayerRepository is null)
