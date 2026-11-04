@@ -93,6 +93,7 @@ function Invoke-SigningCase {
                 "--v2-signing-enabled true",
                 "--v3-signing-enabled true",
                 "--v4-signing-enabled false",
+                "--print-certs-pem",
                 "--ks-pass file:",
                 "--key-pass file:",
                 "zipalign -f -p 4",
@@ -164,18 +165,46 @@ if ([System.IO.Path]::GetFileName($apkPath) -eq "com.companyname.softballscoreke
 
 $v3 = if ($env:SIGNING_TEST_MODE -eq "v3-false") { "false" } else { "true" }
 $v4 = if ($env:SIGNING_TEST_MODE -eq "v4-true") { "true" } else { "false" }
-$certificate = if ($env:SIGNING_TEST_MODE -eq "certificate-mismatch") {
-    "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
-} else {
-    "D55EFDC1E25B341F4408BC3014ECFF31D94255113EDD6F9B5F3CE98E833E4E05"
-}
+$certificate = @"
+-----BEGIN CERTIFICATE-----
+MIIDuDCCAqCgAwIBAgIJAOKEzXbK4ChEMA0GCSqGSIb3DQEBCwUAMIGIMQswCQYD
+VQQGEwJVUzELMAkGA1UECBMCS1MxFjAUBgNVBAcTDU92ZXJsYW5kIFBhcmsxHTAb
+BgNVBAoTFFNvZnRiYWxsIFNjb3Jla2VlcGVyMR0wGwYDVQQLExRTb2Z0d2FyZSBE
+ZXZlbG9wbWVudDEWMBQGA1UEAxMNR2VvZmYgQmxvZ3JlZjAgFw0yNjEwMDIxOTMy
+MTBaGA8yMDU0MDIxNzE5MzIxMFowgYgxCzAJBgNVBAYTAlVTMQswCQYDVQQIEwJL
+UzEWMBQGA1UEBxMNT3ZlcmxhbmQgUGFyazEdMBsGA1UEChMUU29mdGJhbGwgU2Nv
+cmVrZWVwZXIxHTAbBgNVBAsTFFNvZnR3YXJlIERldmVsb3BtZW50MRYwFAYDVQQD
+Ew1HZW9mZiBCbG9ncmVmMIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA
+0rqu6fr/vJwWXC2gmnCBEuPlT+j4pH/AUaX+K/Z2/u0sekNGnpuCMzsVlLuj9Gen
+tNs5N0SN4ve0rBCl1ajPoTElmXNaJ/gG6xVw10FGWmmn+vIETuriEUARZJzm/y/c
+Xw2eEwEyOYkmC/m3rNiO47yeSUqpNRMr0rjfouRlXMUzLTHHXIDiJ2f0DlmwSJda
+FsqOhmXXrH+yDVtIT0gIn9+uABqXt4JPoJzsBJgFnGg7MCS50TIf1U/0OC20d3Qs
+0Y03AZ3hzHbtMDcBe6cBNdG1k6ApV+ckXG/Q8MoVW+nylYy1bikuU1CHycJ8G6uQ
+ZWPJAzc2epG9Q2CEjZMuzQIDAQABoyEwHzAdBgNVHQ4EFgQUM+D5vzADM5y2EiyZ
+4KVlEWTCVJwwDQYJKoZIhvcNAQELBQADggEBALBZRLEwNYarGTAjqQBRSk5yqYkB
+2n3d2ijKfMmzUk7m0V15c8RVjvy6Rn4BeWubRfa5LK4e6gVJuViWiCwgt0BR80i3
+wmEoDI206E8ueYBhn7MFxxrzo2vAHWKNggKhHJxSKJkXgRE6BlrQDMXQD7WgcWEk
+7iy0dTC5w87lR/Z69U4kF50BVTSxTBmdkILZ2I4KXit4OEK3hrm8wCnpgy7vilRn
+NjxrqGjhFEc9eZ9Q0C7T2baeust3gaM0fOVUA7g2XwJO5MWqrT9XKGtZfX6TjG/Z
+Vh2C70bXp5hRG2GwQnq3ERVprb/Zw7uIztGF3i+izsXbh05O9LGKGBVjICs=
+-----END CERTIFICATE-----
+"@
 Write-Output "Verified using v1 scheme (JAR signing): true"
 Write-Output "Verified using v2 scheme (APK Signature Scheme v2): true"
 Write-Output "Verified using v3 scheme (APK Signature Scheme v3): $v3"
 Write-Output "Verified using v4 scheme (APK Signature Scheme v4): $v4"
-Write-Output "Signer #1 certificate SHA-256 digest: $certificate"
-if ($env:SIGNING_TEST_MODE -eq "multiple-signers") {
-    Write-Output "Signer #2 certificate SHA-256 digest: $certificate"
+if ($env:SIGNING_TEST_MODE -eq "certificate-mismatch") {
+    $certificate = $certificate -replace "ICs=", "ICo="
+}
+$signerCount = if ($env:SIGNING_TEST_MODE -eq "multiple-signers") { 2 } else { 1 }
+if ($env:SIGNING_TEST_MODE -ne "missing-signer-count") {
+    Write-Output "Number of signers: $signerCount"
+}
+if ($env:SIGNING_TEST_MODE -ne "missing-certificate") {
+    Write-Output $certificate
+    if ($env:SIGNING_TEST_MODE -eq "multiple-signers") {
+        Write-Output $certificate
+    }
 }
 exit 0
 '@
@@ -193,6 +222,8 @@ exit 0
     Invoke-SigningCase -Name "rejects already signed input" -Mode "already-signed" -ShouldPass $false -ExpectedFailure "already signed"
     Invoke-SigningCase -Name "rejects certificate mismatch" -Mode "certificate-mismatch" -ShouldPass $false -ExpectedFailure "certificate mismatch"
     Invoke-SigningCase -Name "rejects multiple signers" -Mode "multiple-signers" -ShouldPass $false -ExpectedFailure "exactly one signer"
+    Invoke-SigningCase -Name "rejects missing signer count" -Mode "missing-signer-count" -ShouldPass $false -ExpectedFailure "signer-count declaration"
+    Invoke-SigningCase -Name "rejects missing signer certificate" -Mode "missing-certificate" -ShouldPass $false -ExpectedFailure "reported 1 signer(s) but emitted 0"
     Invoke-SigningCase -Name "rejects missing v3 verification" -Mode "v3-false" -ShouldPass $false -ExpectedFailure "scheme v3"
     Invoke-SigningCase -Name "rejects v4 signature" -Mode "v4-true" -ShouldPass $false -ExpectedFailure "v4"
     Invoke-SigningCase -Name "rejects package mismatch" -Mode "metadata-mismatch" -ShouldPass $false -ExpectedFailure "package mismatch"
