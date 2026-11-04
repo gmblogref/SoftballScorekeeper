@@ -144,6 +144,22 @@ public sealed class WindowsLicensePackagingTests : IDisposable
         Assert.Contains("noncommercial use", notice, StringComparison.OrdinalIgnoreCase);
     }
 
+    [Theory]
+    [InlineData("LICENSE", "2F9EEF0091CCB898B1FFD285B0EF09B7A02AF5650D137A252E59A5D7AB958296")]
+    [InlineData(
+        "THIRD-PARTY-NOTICES.md",
+        "DB870BC34AC54A9729527D5FA3033827588DF218D2632CA8E4DC5A850A98F369"
+    )]
+    public void SourceMappedLicense_HasByteStableGitAttributeAndContent(
+        string relativePath,
+        string expectedSha256
+    )
+    {
+        Assert.Equal("set", GetGitAttribute(relativePath, "text"));
+        Assert.Equal("lf", GetGitAttribute(relativePath, "eol"));
+        Assert.Equal(expectedSha256, ComputeSha256(Path.Combine(RepositoryRoot, relativePath)));
+    }
+
     [Fact]
     public void Package_WhenRequiredLicenseIsMissing_FailsWithoutCreatingOutput()
     {
@@ -645,6 +661,37 @@ public sealed class WindowsLicensePackagingTests : IDisposable
 
     private static string ComputeSha256(string path) =>
         Convert.ToHexString(SHA256.HashData(File.ReadAllBytes(path)));
+
+    private static string GetGitAttribute(string relativePath, string attribute)
+    {
+        var startInfo = new ProcessStartInfo
+        {
+            FileName = "git",
+            WorkingDirectory = RepositoryRoot,
+            RedirectStandardOutput = true,
+            RedirectStandardError = true,
+            UseShellExecute = false,
+            CreateNoWindow = true,
+        };
+        startInfo.ArgumentList.Add("check-attr");
+        startInfo.ArgumentList.Add(attribute);
+        startInfo.ArgumentList.Add("--");
+        startInfo.ArgumentList.Add(relativePath);
+
+        using var process =
+            Process.Start(startInfo)
+            ?? throw new InvalidOperationException("Could not start Git attribute inspection.");
+        var standardOutput = process.StandardOutput.ReadToEndAsync();
+        var standardError = process.StandardError.ReadToEndAsync();
+        Assert.True(process.WaitForExit(30_000), "Git attribute inspection timed out.");
+        var output = standardOutput.GetAwaiter().GetResult().Trim();
+        var error = standardError.GetAwaiter().GetResult().Trim();
+        Assert.True(process.ExitCode == 0, $"Git attribute inspection failed: {error}");
+
+        var prefix = $"{relativePath}: {attribute}: ";
+        Assert.StartsWith(prefix, output, StringComparison.Ordinal);
+        return output[prefix.Length..];
+    }
 
     private sealed record PackagingResult(
         int ExitCode,
