@@ -67,5 +67,9 @@ licenses/distribution/common/* -text
 licenses/distribution/android/* -text
 licenses/distribution/windows/* -text
 
+# Preserve repository-authored release licensing sources byte-for-byte.
+LICENSE -text
+THIRD-PARTY-NOTICES.md -text
+
 # Keep the checksum-pinned Windows distribution notice byte-stable.
 licenses/WINDOWS-DISTRIBUTION-NOTICE.txt -text
