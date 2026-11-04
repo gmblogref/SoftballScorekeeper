@@ -205,8 +205,8 @@ try {
         }
         $projectFile = Join-Path $RepositoryRoot $ProjectPath
         [xml] $project = Get-Content -LiteralPath $projectFile -Raw
-        $display = @($project.Project.PropertyGroup.ApplicationDisplayVersion | Where-Object { $_ })
-        $code = @($project.Project.PropertyGroup.ApplicationVersion | Where-Object { $_ })
+        $display = @($project.SelectNodes('/Project/PropertyGroup/ApplicationDisplayVersion') | ForEach-Object { $_.InnerText })
+        $code = @($project.SelectNodes('/Project/PropertyGroup/ApplicationVersion') | ForEach-Object { $_.InnerText })
         if ($display.Count -ne 1 -or [string] $display[0] -cne $ReleaseVersion -or
             $code.Count -ne 1 -or [string] $code[0] -cne $AndroidVersionCode) {
             throw 'Release version or Android version code does not match the checked-out application project.'

@@ -47,7 +47,7 @@ function New-Fixture {
     New-Item -ItemType Directory -Path (Join-Path $projectRoot 'SoftballScorekeeper'), $artifactRoot -Force | Out-Null
     [System.IO.File]::WriteAllText(
         (Join-Path $projectRoot 'SoftballScorekeeper/SoftballScorekeeper.csproj'),
-        "<Project><PropertyGroup><ApplicationDisplayVersion>$releaseVersion</ApplicationDisplayVersion><ApplicationVersion>$androidCode</ApplicationVersion></PropertyGroup></Project>"
+        "<Project><PropertyGroup><TargetFrameworks>net10.0-android;net10.0-windows10.0.19041.0</TargetFrameworks><ApplicationDisplayVersion>$releaseVersion</ApplicationDisplayVersion><ApplicationVersion>$androidCode</ApplicationVersion></PropertyGroup><PropertyGroup Condition=`"'`$(Configuration)' == 'Debug'`"><ApplicationId>com.companyname.softballscorekeeper.debug</ApplicationId></PropertyGroup></Project>"
     )
     $apkName = "SoftballScorekeeper-$releaseVersion-$($sourceSha.Substring(0, 8)).apk"
     $zipName = "SoftballScorekeeper-$releaseVersion-windows-x64-portable.zip"

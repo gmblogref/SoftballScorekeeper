@@ -95,8 +95,8 @@ function Get-ProjectVersions {
     }
 
     [xml] $project = Get-Content -LiteralPath $Path -Raw
-    $displayVersions = @($project.Project.PropertyGroup.ApplicationDisplayVersion | Where-Object { $_ })
-    $applicationVersions = @($project.Project.PropertyGroup.ApplicationVersion | Where-Object { $_ })
+    $displayVersions = @($project.SelectNodes("/Project/PropertyGroup/ApplicationDisplayVersion") | ForEach-Object { $_.InnerText })
+    $applicationVersions = @($project.SelectNodes("/Project/PropertyGroup/ApplicationVersion") | ForEach-Object { $_.InnerText })
 
     if ($displayVersions.Count -ne 1 -or $applicationVersions.Count -ne 1) {
         throw "The application project must contain exactly one ApplicationDisplayVersion and one ApplicationVersion."
@@ -131,8 +131,11 @@ function Assert-VersionCodeNotUsedByVersionTag {
 
         try {
             [xml] $taggedProject = $projectResult.Output -join [Environment]::NewLine
-            $taggedVersionValues = @($taggedProject.Project.PropertyGroup.ApplicationVersion | Where-Object { $_ })
-            if ($taggedVersionValues.Count -eq 1 -and [long] $taggedVersionValues[0] -eq $VersionCode) {
+            $taggedVersionValues = @($taggedProject.SelectNodes("/Project/PropertyGroup/ApplicationVersion") | ForEach-Object { $_.InnerText })
+            if ($taggedVersionValues.Count -ne 1) {
+                throw "The application project at version tag $tagName must contain exactly one ApplicationVersion."
+            }
+            if ([long] $taggedVersionValues[0] -eq $VersionCode) {
                 throw "Android version code $VersionCode was already used by version tag $tagName."
             }
         }
