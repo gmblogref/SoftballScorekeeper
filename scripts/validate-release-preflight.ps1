@@ -129,21 +129,30 @@ function Assert-VersionCodeNotUsedByVersionTag {
             continue
         }
 
-        try {
-            [xml] $taggedProject = $projectResult.Output -join [Environment]::NewLine
-            $taggedVersionValues = @($taggedProject.SelectNodes("/Project/PropertyGroup/ApplicationVersion") | ForEach-Object { $_.InnerText })
-            if ($taggedVersionValues.Count -ne 1) {
-                throw "The application project at version tag $tagName must contain exactly one ApplicationVersion."
-            }
-            if ([long] $taggedVersionValues[0] -eq $VersionCode) {
-                throw "Android version code $VersionCode was already used by version tag $tagName."
-            }
+        $taggedProjectText = $projectResult.Output -join [Environment]::NewLine
+        if ($taggedProjectText.Length -gt 0 -and $taggedProjectText[0] -eq [char] 0xFEFF) {
+            $taggedProjectText = $taggedProjectText.Substring(1)
         }
-        catch [System.Management.Automation.RuntimeException] {
-            throw
+        try {
+            [xml] $taggedProject = $taggedProjectText
         }
         catch {
-            throw "Unable to inspect ApplicationVersion at version tag $tagName. $($_.Exception.Message)"
+            throw "Unable to parse the application project at version tag $tagName. $($_.Exception.Message)"
+        }
+
+        $taggedVersionValues = @($taggedProject.SelectNodes("/Project/PropertyGroup/ApplicationVersion") | ForEach-Object { $_.InnerText })
+        if ($taggedVersionValues.Count -ne 1) {
+            throw "The application project at version tag $tagName must contain exactly one ApplicationVersion."
+        }
+
+        $taggedVersionCode = 0L
+        if (-not [long]::TryParse($taggedVersionValues[0], [ref] $taggedVersionCode) -or
+            $taggedVersionCode -le 0 -or $taggedVersionCode -gt 2100000000L) {
+            throw "ApplicationVersion at version tag $tagName must be an integer between 1 and 2100000000."
+        }
+
+        if ($taggedVersionCode -eq $VersionCode) {
+            throw "Android version code $VersionCode was already used by version tag $tagName."
         }
     }
 }

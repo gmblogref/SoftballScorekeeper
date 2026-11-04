@@ -76,7 +76,8 @@ function Invoke-ValidationCase {
     param(
         [Parameter(Mandatory = $true)][string] $Name,
         [Parameter(Mandatory = $true)][bool] $ShouldPass,
-        [Parameter(Mandatory = $true)][hashtable] $Overrides
+        [Parameter(Mandatory = $true)][hashtable] $Overrides,
+        [string] $ExpectedFailure
     )
 
     $sourceSha = (& git rev-parse HEAD).Trim()
@@ -103,13 +104,15 @@ function Invoke-ValidationCase {
         $failureMessage = $_.Exception.Message
     }
 
-    if ($didPass -eq $ShouldPass) {
+    $failureMatched = $ShouldPass -or [string]::IsNullOrWhiteSpace($ExpectedFailure) -or
+        $failureMessage -like "*$ExpectedFailure*"
+    if ($didPass -eq $ShouldPass -and $failureMatched) {
         $script:passed++
         Write-Host "PASS: $Name"
     }
     else {
         $script:failed++
-        Write-Error "FAIL: $Name expected pass=$ShouldPass but observed pass=$didPass. $failureMessage"
+        Write-Error "FAIL: $Name expected pass=$ShouldPass and failure '*$ExpectedFailure*' but observed pass=$didPass. $failureMessage"
     }
 }
 
@@ -189,13 +192,13 @@ exit 1
     Set-TestProjectVersion -DisplayVersion "1.0.0" -ApplicationVersion "7" -Message "Create historical version code"
     Invoke-TestGit -Arguments @("tag", "v1.0.0")
     Set-TestProjectVersion -DisplayVersion "2.0.1" -ApplicationVersion "7" -Message "Reuse historical version code"
-    Invoke-ValidationCase -Name "rejects Android version code used by a tagged multi-PropertyGroup project" -ShouldPass $false -Overrides @{}
+    Invoke-ValidationCase -Name "rejects Android version code used by a tagged multi-PropertyGroup project" -ShouldPass $false -Overrides @{} -ExpectedFailure "Android version code 7 was already used by version tag v1.0.0."
 
     Set-TestProjectVersion -DisplayVersion "9.9.9" -ApplicationVersion "8" -Message "Create future tag fixture"
     Set-TestProjectXml -Message "Remove tagged Android version" -Xml '<Project><PropertyGroup><ApplicationDisplayVersion>9.9.9</ApplicationDisplayVersion></PropertyGroup><PropertyGroup Condition="true"><ApplicationId>example</ApplicationId></PropertyGroup></Project>'
     Invoke-TestGit -Arguments @("tag", "v9.9.9")
     Set-TestProjectVersion -DisplayVersion "2.0.1" -ApplicationVersion "8" -Message "Inspect malformed historical project"
-    Invoke-ValidationCase -Name "fails closed when a tagged project lacks exactly one Android version" -ShouldPass $false -Overrides @{ AndroidVersionCode = "8" }
+    Invoke-ValidationCase -Name "fails closed when a tagged project lacks exactly one Android version" -ShouldPass $false -Overrides @{ AndroidVersionCode = "8" } -ExpectedFailure "The application project at version tag v9.9.9 must contain exactly one ApplicationVersion."
 }
 finally {
     if ((Get-Location).Path -eq $repositoryPath) {
