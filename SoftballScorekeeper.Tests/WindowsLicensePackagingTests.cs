@@ -145,17 +145,18 @@ public sealed class WindowsLicensePackagingTests : IDisposable
     }
 
     [Theory]
-    [InlineData("LICENSE", "82E63286D1763B0933B83E94B577B97EFD04378011BD07A73C104CCF710A71A9")]
+    [InlineData("LICENSE", "2F9EEF0091CCB898B1FFD285B0EF09B7A02AF5650D137A252E59A5D7AB958296")]
     [InlineData(
         "THIRD-PARTY-NOTICES.md",
-        "17568AF0E1A3C7E9F3A7A370598F7A6458990E9D8B8A6B286F8B88714B8D0DA9"
+        "DB870BC34AC54A9729527D5FA3033827588DF218D2632CA8E4DC5A850A98F369"
     )]
     public void SourceMappedLicense_HasByteStableGitAttributeAndContent(
         string relativePath,
         string expectedSha256
     )
     {
-        Assert.Equal("unset", GetGitTextAttribute(relativePath));
+        Assert.Equal("set", GetGitAttribute(relativePath, "text"));
+        Assert.Equal("lf", GetGitAttribute(relativePath, "eol"));
         Assert.Equal(expectedSha256, ComputeSha256(Path.Combine(RepositoryRoot, relativePath)));
     }
 
@@ -661,7 +662,7 @@ public sealed class WindowsLicensePackagingTests : IDisposable
     private static string ComputeSha256(string path) =>
         Convert.ToHexString(SHA256.HashData(File.ReadAllBytes(path)));
 
-    private static string GetGitTextAttribute(string relativePath)
+    private static string GetGitAttribute(string relativePath, string attribute)
     {
         var startInfo = new ProcessStartInfo
         {
@@ -673,7 +674,7 @@ public sealed class WindowsLicensePackagingTests : IDisposable
             CreateNoWindow = true,
         };
         startInfo.ArgumentList.Add("check-attr");
-        startInfo.ArgumentList.Add("text");
+        startInfo.ArgumentList.Add(attribute);
         startInfo.ArgumentList.Add("--");
         startInfo.ArgumentList.Add(relativePath);
 
@@ -687,7 +688,7 @@ public sealed class WindowsLicensePackagingTests : IDisposable
         var error = standardError.GetAwaiter().GetResult().Trim();
         Assert.True(process.ExitCode == 0, $"Git attribute inspection failed: {error}");
 
-        var prefix = $"{relativePath}: text: ";
+        var prefix = $"{relativePath}: {attribute}: ";
         Assert.StartsWith(prefix, output, StringComparison.Ordinal);
         return output[prefix.Length..];
     }

@@ -67,9 +67,9 @@ licenses/distribution/common/* -text
 licenses/distribution/android/* -text
 licenses/distribution/windows/* -text
 
-# Preserve repository-authored release licensing sources byte-for-byte.
-LICENSE -text
-THIRD-PARTY-NOTICES.md -text
+# Keep repository-authored release licensing sources canonical LF on every platform.
+LICENSE text eol=lf
+THIRD-PARTY-NOTICES.md text eol=lf
 
 # Keep the checksum-pinned Windows distribution notice byte-stable.
 licenses/WINDOWS-DISTRIBUTION-NOTICE.txt -text
