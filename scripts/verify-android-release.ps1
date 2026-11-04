@@ -22,6 +22,8 @@ param(
 Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
 
+. (Join-Path $PSScriptRoot "android-apksigner-output.ps1")
+
 $expectedCertificateSha256 = "D55EFDC1E25B341F4408BC3014ECFF31D94255113EDD6F9B5F3CE98E833E4E05"
 $expectedPackageId = "com.companyname.softballscorekeeper"
 $expectedAbis = @("arm64-v8a", "x86_64")
@@ -102,7 +104,7 @@ $apkSigner = Resolve-AndroidTool -Name "apksigner" -RequestedPath $ApkSignerPath
 $aapt2 = Resolve-AndroidTool -Name "aapt2" -RequestedPath $Aapt2Path
 
 Invoke-AndroidTool -Description "Definitive APK alignment verification" -Executable $zipAlign -Arguments @("-c", "-p", "4", $apk) | Out-Null
-$signatureText = (Invoke-AndroidTool -Description "Definitive APK signature verification" -Executable $apkSigner -Arguments @("verify", "--verbose", "--print-certs", $apk)) -join [Environment]::NewLine
+$signatureText = (Invoke-AndroidTool -Description "Definitive APK signature verification" -Executable $apkSigner -Arguments @("verify", "--verbose", "--print-certs-pem", $apk)) -join [Environment]::NewLine
 foreach ($scheme in @("v1", "v2", "v3")) {
     if ($signatureText -notmatch "Verified using $scheme scheme .*:\s*true") {
         throw "Definitive APK did not verify under APK signature scheme $scheme."
@@ -111,11 +113,11 @@ foreach ($scheme in @("v1", "v2", "v3")) {
 if ($signatureText -notmatch "Verified using v4 scheme .*:\s*false") {
     throw "Definitive APK must not contain an APK signature scheme v4 sidecar signature."
 }
-$certificateMatches = [regex]::Matches($signatureText, "Signer #\d+ certificate SHA-256 digest:\s*([0-9A-Fa-f:]+)")
-if ($certificateMatches.Count -ne 1) {
-    throw "Definitive APK must contain exactly one signer; found $($certificateMatches.Count)."
+$signerInfo = ConvertFrom-ApkSignerVerificationOutput -Output $signatureText
+if ($signerInfo.SignerCount -ne 1) {
+    throw "Definitive APK must contain exactly one signer; found $($signerInfo.SignerCount)."
 }
-$actualCertificate = ($certificateMatches[0].Groups[1].Value -replace "[^0-9A-Fa-f]", "").ToUpperInvariant()
+$actualCertificate = $signerInfo.CertificateSha256[0]
 if ($actualCertificate -cne $expectedCertificateSha256) {
     throw "Definitive APK certificate mismatch. Expected $expectedCertificateSha256; found $actualCertificate."
 }
