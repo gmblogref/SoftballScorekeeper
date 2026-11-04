@@ -15,6 +15,14 @@ if (-not $androidUiJobMatch.Success) {
     throw 'Android UI validation job was not found.'
 }
 $androidUiJob = $androidUiJobMatch.Value
+$androidProductionJobMatch = [regex]::Match(
+    $workflow,
+    '(?ms)^  android-production-package:.*?(?=^  [a-z][a-z0-9-]+:\s*$)'
+)
+if (-not $androidProductionJobMatch.Success) {
+    throw 'Android production package job was not found.'
+}
+$androidProductionJob = $androidProductionJobMatch.Value
 $passed = 0
 $failed = 0
 
@@ -100,6 +108,26 @@ Assert-Matches `
     -Name 'Android production package validates its exact packaged license inventory' `
     -Text $workflow `
     -Pattern '(?ms)name: Verify Android production licenses.*?verify-android-production-licenses\.ps1.*?-ApkPath \$env:ANDROID_DEFINITIVE_APK.*?-ReleaseVersion \$env:RELEASE_VERSION'
+Assert-Matches `
+    -Name 'Android production job verifies the evaluated Android-only runtime configuration' `
+    -Text $androidProductionJob `
+    -Pattern '(?ms)name: Verify Android Release runtime configuration.*?dotnet msbuild SoftballScorekeeper/SoftballScorekeeper\.csproj.*?--property:UseDefaultPublishRuntimeIdentifier=false.*?--property:UseCurrentRuntimeIdentifier=false.*?--property:AndroidCreatePackagePerAbi=false.*?RuntimeIdentifier -getProperty:RuntimeIdentifiers -getProperty:PublishRuntimeIdentifier.*?RuntimeIdentifiers -cne "android-arm64;android-x64".*?PublishRuntimeIdentifier -cne "".*?AndroidCreatePackagePerAbi -cne "false"'
+Assert-Matches `
+    -Name 'Android production restore disables host RID inference for one universal APK' `
+    -Text $androidProductionJob `
+    -Pattern '(?ms)name: Restore Android Release dependencies.*?dotnet restore SoftballScorekeeper/SoftballScorekeeper\.csproj.*?--property:UseDefaultPublishRuntimeIdentifier=false.*?--property:UseCurrentRuntimeIdentifier=false.*?--property:AndroidCreatePackagePerAbi=false'
+Assert-Matches `
+    -Name 'Android production build matches the restore runtime and universal APK configuration' `
+    -Text $androidProductionJob `
+    -Pattern '(?ms)name: Build unsigned Android Release APK.*?dotnet build SoftballScorekeeper/SoftballScorekeeper\.csproj.*?--no-restore.*?--property:UseDefaultPublishRuntimeIdentifier=false.*?--property:UseCurrentRuntimeIdentifier=false.*?--property:AndroidCreatePackagePerAbi=false'
+Assert-DoesNotMatch `
+    -Name 'Android production package never selects a desktop host RID' `
+    -Text $androidProductionJob `
+    -Pattern '(?i)(RuntimeIdentifiers?|--runtime|-r)=(linux|win|osx)-'
+Assert-Matches `
+    -Name 'Android production package retains the universal unsigned APK contract' `
+    -Text $androidProductionJob `
+    -Pattern '(?ms)\$releaseDirectory = Join-Path \$env:GITHUB_WORKSPACE "SoftballScorekeeper/bin/Release/net10\.0-android".*?\$unsignedApk = Join-Path \$releaseDirectory "com\.companyname\.softballscorekeeper\.apk"'
 Assert-Matches `
     -Name 'repository runner supports explicit headless emulator startup' `
     -Text $runner `

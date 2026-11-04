@@ -454,16 +454,31 @@ jobs:
       - name: Install .NET MAUI Android workload
         run: dotnet workload install maui-android --skip-manifest-update
 
+      - name: Verify Android Release runtime configuration
+        shell: pwsh
+        run: |
+          $configurationJson = & dotnet msbuild SoftballScorekeeper/SoftballScorekeeper.csproj -nologo --property:TargetFramework=net10.0-android --property:TargetFrameworks=net10.0-android --property:Configuration=Release --property:UseDefaultPublishRuntimeIdentifier=false --property:UseCurrentRuntimeIdentifier=false --property:AndroidCreatePackagePerAbi=false -getProperty:RuntimeIdentifier -getProperty:RuntimeIdentifiers -getProperty:PublishRuntimeIdentifier -getProperty:AndroidCreatePackagePerAbi
+          if ($LASTEXITCODE -ne 0) {
+            throw "Unable to evaluate Android Release runtime configuration."
+          }
+          $configuration = ($configurationJson -join [Environment]::NewLine) | ConvertFrom-Json
+          if ($configuration.Properties.RuntimeIdentifier -cne "" -or
+              $configuration.Properties.RuntimeIdentifiers -cne "android-arm64;android-x64" -or
+              $configuration.Properties.PublishRuntimeIdentifier -cne "" -or
+              $configuration.Properties.AndroidCreatePackagePerAbi -cne "false") {
+            throw "Android Release must target one universal APK for exactly android-arm64 and android-x64 without a host runtime identifier."
+          }
+
       - name: Restore Android Release dependencies
         shell: pwsh
         run: |
-          dotnet restore SoftballScorekeeper/SoftballScorekeeper.csproj --property:TargetFrameworks=net10.0-android --property:ApplicationDisplayVersion=$env:RELEASE_VERSION --property:ApplicationVersion=$env:ANDROID_VERSION_CODE --property:AndroidPackageFormats=apk --disable-parallel
+          dotnet restore SoftballScorekeeper/SoftballScorekeeper.csproj --property:TargetFrameworks=net10.0-android --property:UseDefaultPublishRuntimeIdentifier=false --property:UseCurrentRuntimeIdentifier=false --property:AndroidCreatePackagePerAbi=false --property:ApplicationDisplayVersion=$env:RELEASE_VERSION --property:ApplicationVersion=$env:ANDROID_VERSION_CODE --property:AndroidPackageFormats=apk --disable-parallel
           dotnet restore SoftballScorekeeper.Core/SoftballScorekeeper.Core.csproj --disable-parallel
           dotnet restore SoftballScorekeeper.Infrastructure/SoftballScorekeeper.Infrastructure.csproj --disable-parallel
 
       - name: Build unsigned Android Release APK
         shell: pwsh
-        run: dotnet build SoftballScorekeeper/SoftballScorekeeper.csproj --configuration Release --framework net10.0-android --no-restore --property:ApplicationDisplayVersion=$env:RELEASE_VERSION --property:ApplicationVersion=$env:ANDROID_VERSION_CODE --property:AndroidPackageFormats=apk --maxcpucount:1
+        run: dotnet build SoftballScorekeeper/SoftballScorekeeper.csproj --configuration Release --framework net10.0-android --no-restore --property:UseDefaultPublishRuntimeIdentifier=false --property:UseCurrentRuntimeIdentifier=false --property:AndroidCreatePackagePerAbi=false --property:ApplicationDisplayVersion=$env:RELEASE_VERSION --property:ApplicationVersion=$env:ANDROID_VERSION_CODE --property:AndroidPackageFormats=apk --maxcpucount:1
 
       - name: Select unsigned production input
         shell: pwsh
