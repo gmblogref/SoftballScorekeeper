@@ -43,11 +43,30 @@ function Set-TestProjectVersion {
     Set-Content -LiteralPath $projectPath -Encoding utf8 -Value @"
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
+    <TargetFrameworks>net10.0-android;net10.0-windows10.0.19041.0</TargetFrameworks>
+    <ApplicationTitle>SoftballScorekeeper</ApplicationTitle>
     <ApplicationDisplayVersion>$DisplayVersion</ApplicationDisplayVersion>
     <ApplicationVersion>$ApplicationVersion</ApplicationVersion>
   </PropertyGroup>
+  <PropertyGroup Condition="'`$(Configuration)' == 'Debug'">
+    <ApplicationId>com.companyname.softballscorekeeper.debug</ApplicationId>
+  </PropertyGroup>
 </Project>
 "@
+    Invoke-TestGit -Arguments @("add", "SoftballScorekeeper/SoftballScorekeeper.csproj")
+    Invoke-TestGit -Arguments @("commit", "-m", $Message)
+    Invoke-TestGit -Arguments @("update-ref", "refs/remotes/origin/main", "HEAD")
+}
+
+function Set-TestProjectXml {
+    param(
+        [Parameter(Mandatory = $true)][string] $Xml,
+        [Parameter(Mandatory = $true)][string] $Message
+    )
+
+    $projectDirectory = Join-Path $repositoryPath "SoftballScorekeeper"
+    New-Item -ItemType Directory -Path $projectDirectory -Force | Out-Null
+    Set-Content -LiteralPath (Join-Path $projectDirectory "SoftballScorekeeper.csproj") -Encoding utf8 -Value $Xml
     Invoke-TestGit -Arguments @("add", "SoftballScorekeeper/SoftballScorekeeper.csproj")
     Invoke-TestGit -Arguments @("commit", "-m", $Message)
     Invoke-TestGit -Arguments @("update-ref", "refs/remotes/origin/main", "HEAD")
@@ -123,7 +142,7 @@ exit 1
 
     foreach ($version in @("2.0.1", "2.1.0", "3.0.0")) {
         Set-TestProjectVersion -DisplayVersion $version -ApplicationVersion "7" -Message "Set version $version"
-        Invoke-ValidationCase -Name "accepts semantic version $version" -ShouldPass $true -Overrides @{ ReleaseVersion = $version }
+        Invoke-ValidationCase -Name "accepts semantic version $version from multiple PropertyGroups" -ShouldPass $true -Overrides @{ ReleaseVersion = $version }
     }
 
     Set-TestProjectVersion -DisplayVersion "2.0.1" -ApplicationVersion "7" -Message "Reset positive fixture"
@@ -139,6 +158,16 @@ exit 1
     Invoke-ValidationCase -Name "rejects Android-version mismatch" -ShouldPass $false -Overrides @{ AndroidVersionCode = "8" }
     Invoke-ValidationCase -Name "rejects task-branch dispatch" -ShouldPass $false -Overrides @{ ExpectedRef = "refs/heads/task/3.1-release-pipeline" }
     Invoke-ValidationCase -Name "rejects non-dispatch event" -ShouldPass $false -Overrides @{ EventName = "push" }
+
+    Set-TestProjectXml -Message "Remove display version" -Xml '<Project><PropertyGroup><ApplicationVersion>7</ApplicationVersion></PropertyGroup><PropertyGroup Condition="true"><ApplicationId>example</ApplicationId></PropertyGroup></Project>'
+    Invoke-ValidationCase -Name "rejects missing display-version property" -ShouldPass $false -Overrides @{}
+    Set-TestProjectXml -Message "Remove Android version" -Xml '<Project><PropertyGroup><ApplicationDisplayVersion>2.0.1</ApplicationDisplayVersion></PropertyGroup><PropertyGroup Condition="true"><ApplicationId>example</ApplicationId></PropertyGroup></Project>'
+    Invoke-ValidationCase -Name "rejects missing Android-version property" -ShouldPass $false -Overrides @{}
+    Set-TestProjectXml -Message "Duplicate display version" -Xml '<Project><PropertyGroup><ApplicationDisplayVersion>2.0.1</ApplicationDisplayVersion><ApplicationVersion>7</ApplicationVersion></PropertyGroup><PropertyGroup Condition="true"><ApplicationDisplayVersion>2.0.1</ApplicationDisplayVersion></PropertyGroup></Project>'
+    Invoke-ValidationCase -Name "rejects duplicate display-version properties" -ShouldPass $false -Overrides @{}
+    Set-TestProjectXml -Message "Duplicate Android version" -Xml '<Project><PropertyGroup><ApplicationDisplayVersion>2.0.1</ApplicationDisplayVersion><ApplicationVersion>7</ApplicationVersion></PropertyGroup><PropertyGroup Condition="true"><ApplicationVersion>7</ApplicationVersion></PropertyGroup></Project>'
+    Invoke-ValidationCase -Name "rejects duplicate Android-version properties" -ShouldPass $false -Overrides @{}
+    Set-TestProjectVersion -DisplayVersion "2.0.1" -ApplicationVersion "7" -Message "Restore valid multi-group fixture"
 
     Set-TestProjectVersion -DisplayVersion "2.0.0" -ApplicationVersion "6" -Message "Create existing v2 fixture"
     $env:PREFLIGHT_TEST_GH_MODE = "tag-exists"
@@ -160,7 +189,13 @@ exit 1
     Set-TestProjectVersion -DisplayVersion "1.0.0" -ApplicationVersion "7" -Message "Create historical version code"
     Invoke-TestGit -Arguments @("tag", "v1.0.0")
     Set-TestProjectVersion -DisplayVersion "2.0.1" -ApplicationVersion "7" -Message "Reuse historical version code"
-    Invoke-ValidationCase -Name "rejects Android version code used by version tag" -ShouldPass $false -Overrides @{}
+    Invoke-ValidationCase -Name "rejects Android version code used by a tagged multi-PropertyGroup project" -ShouldPass $false -Overrides @{}
+
+    Set-TestProjectVersion -DisplayVersion "9.9.9" -ApplicationVersion "8" -Message "Create future tag fixture"
+    Set-TestProjectXml -Message "Remove tagged Android version" -Xml '<Project><PropertyGroup><ApplicationDisplayVersion>9.9.9</ApplicationDisplayVersion></PropertyGroup><PropertyGroup Condition="true"><ApplicationId>example</ApplicationId></PropertyGroup></Project>'
+    Invoke-TestGit -Arguments @("tag", "v9.9.9")
+    Set-TestProjectVersion -DisplayVersion "2.0.1" -ApplicationVersion "8" -Message "Inspect malformed historical project"
+    Invoke-ValidationCase -Name "fails closed when a tagged project lacks exactly one Android version" -ShouldPass $false -Overrides @{ AndroidVersionCode = "8" }
 }
 finally {
     if ((Get-Location).Path -eq $repositoryPath) {
