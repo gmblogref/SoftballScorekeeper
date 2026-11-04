@@ -24,6 +24,8 @@ param(
 $ErrorActionPreference = 'Stop'
 Set-StrictMode -Version 2.0
 
+. (Join-Path $PSScriptRoot 'windows-pe-version-info.ps1')
+
 function Get-FullPath {
     param(
         [Parameter(Mandatory = $true)]
@@ -390,14 +392,18 @@ function Assert-WindowsVersionMetadata {
 
     $expectedFourPartVersion = "$ReleaseVersion.0"
     $executablePath = Join-Path $PublishRoot 'SoftballScorekeeper.exe'
-    $versionInfo = [System.Diagnostics.FileVersionInfo]::GetVersionInfo($executablePath)
+    try {
+        $versionInfo = Get-WindowsPeVersionMetadata -Path $executablePath
+    }
+    catch {
+        throw "SoftballScorekeeper.exe version metadata could not be inspected. $($_.Exception.Message)"
+    }
     if ($versionInfo.FileVersion -cne $expectedFourPartVersion) {
         throw "SoftballScorekeeper.exe file version mismatch. Expected $expectedFourPartVersion; found '$($versionInfo.FileVersion)'."
     }
 
-    $productVersion = ([string]$versionInfo.ProductVersion).Split('+')[0]
-    if ($productVersion -cne $ReleaseVersion -and $productVersion -cne $expectedFourPartVersion) {
-        throw "SoftballScorekeeper.exe product version mismatch. Expected $ReleaseVersion or $expectedFourPartVersion; found '$($versionInfo.ProductVersion)'."
+    if ($versionInfo.ProductVersion -cne $expectedFourPartVersion) {
+        throw "SoftballScorekeeper.exe product version mismatch. Expected $expectedFourPartVersion; found '$($versionInfo.ProductVersion)'."
     }
 
     $assemblyPath = Join-Path $PublishRoot 'SoftballScorekeeper.dll'

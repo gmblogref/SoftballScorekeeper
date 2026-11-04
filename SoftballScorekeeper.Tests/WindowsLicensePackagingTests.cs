@@ -378,6 +378,33 @@ public sealed class WindowsLicensePackagingTests : IDisposable
     }
 
     [Fact]
+    public void Package_WhenExecutableVersionResourceIsMalformed_FailsWithoutCreatingOutput()
+    {
+        var fixtureRoot = Path.Combine(_testRoot, "malformed-version-fixture");
+        CopyLicenseFixture(fixtureRoot);
+        var publishDirectory = CreateFakePublishDirectory(
+            Path.Combine(_testRoot, "malformed-version")
+        );
+        File.WriteAllBytes(
+            Path.Combine(publishDirectory, "SoftballScorekeeper.exe"),
+            [0x4D, 0x5A, 0x00, 0x00]
+        );
+        var outputDirectory = Path.Combine(_testRoot, "malformed-version-output");
+        Directory.CreateDirectory(outputDirectory);
+        var outputZip = OutputZip(outputDirectory);
+
+        var result = RunPackager(
+            Path.Combine(fixtureRoot, "scripts", "package-windows-portable.ps1"),
+            publishDirectory,
+            outputZip
+        );
+
+        Assert.NotEqual(0, result.ExitCode);
+        Assert.Contains("version metadata could not be inspected", result.CombinedOutput);
+        Assert.False(File.Exists(outputZip));
+    }
+
+    [Fact]
     public void Package_WhenSensitiveFileExists_FailsWithoutCreatingOutput()
     {
         var fixtureRoot = Path.Combine(_testRoot, "sensitive-fixture");
@@ -419,6 +446,36 @@ public sealed class WindowsLicensePackagingTests : IDisposable
 
         Assert.NotEqual(0, result.ExitCode);
         Assert.Contains("file version mismatch", result.CombinedOutput);
+        Assert.False(File.Exists(outputZip));
+    }
+
+    [Fact]
+    public void Package_WhenExecutableProductVersionDoesNotMatch_FailsWithoutCreatingOutput()
+    {
+        var fixtureRoot = Path.Combine(_testRoot, "product-version-fixture");
+        CopyLicenseFixture(fixtureRoot);
+        var publishDirectory = CreateFakePublishDirectory(
+            Path.Combine(_testRoot, "product-version")
+        );
+        SetExecutableProductVersion(
+            Path.Combine(publishDirectory, "SoftballScorekeeper.exe"),
+            9,
+            8,
+            7,
+            6
+        );
+        var outputDirectory = Path.Combine(_testRoot, "product-version-output");
+        Directory.CreateDirectory(outputDirectory);
+        var outputZip = OutputZip(outputDirectory);
+
+        var result = RunPackager(
+            Path.Combine(fixtureRoot, "scripts", "package-windows-portable.ps1"),
+            publishDirectory,
+            outputZip
+        );
+
+        Assert.NotEqual(0, result.ExitCode);
+        Assert.Contains("product version mismatch", result.CombinedOutput);
         Assert.False(File.Exists(outputZip));
     }
 
@@ -504,6 +561,10 @@ public sealed class WindowsLicensePackagingTests : IDisposable
         File.Copy(
             PackagingScript,
             Path.Combine(fixtureRoot, "scripts", "package-windows-portable.ps1")
+        );
+        File.Copy(
+            Path.Combine(RepositoryRoot, "scripts", "windows-pe-version-info.ps1"),
+            Path.Combine(fixtureRoot, "scripts", "windows-pe-version-info.ps1")
         );
         File.Copy(Path.Combine(RepositoryRoot, "LICENSE"), Path.Combine(fixtureRoot, "LICENSE"));
         File.Copy(
@@ -661,6 +722,53 @@ public sealed class WindowsLicensePackagingTests : IDisposable
 
     private static string ComputeSha256(string path) =>
         Convert.ToHexString(SHA256.HashData(File.ReadAllBytes(path)));
+
+    private static void SetExecutableProductVersion(
+        string path,
+        ushort major,
+        ushort minor,
+        ushort build,
+        ushort revision
+    )
+    {
+        var bytes = File.ReadAllBytes(path);
+        var signature = BitConverter.GetBytes(0xFEEF04BDu);
+        var versionKey = System.Text.Encoding.Unicode.GetBytes("VS_VERSION_INFO\0");
+        var fixedInfoOffset = -1;
+        for (var index = 0; index <= bytes.Length - signature.Length; index++)
+        {
+            if (!bytes.AsSpan(index, signature.Length).SequenceEqual(signature))
+            {
+                continue;
+            }
+
+            var followsVersionKey = false;
+            for (var padding = 0; padding <= 3; padding++)
+            {
+                var keyOffset = index - padding - versionKey.Length;
+                if (
+                    keyOffset >= 0
+                    && bytes.AsSpan(keyOffset, versionKey.Length).SequenceEqual(versionKey)
+                )
+                {
+                    followsVersionKey = true;
+                    break;
+                }
+            }
+            if (followsVersionKey)
+            {
+                Assert.Equal(-1, fixedInfoOffset);
+                fixedInfoOffset = index;
+            }
+        }
+        Assert.True(fixedInfoOffset >= 0, "Test executable lacks VS_FIXEDFILEINFO.");
+
+        var mostSignificant = ((uint)major << 16) | minor;
+        var leastSignificant = ((uint)build << 16) | revision;
+        BitConverter.GetBytes(mostSignificant).CopyTo(bytes, fixedInfoOffset + 16);
+        BitConverter.GetBytes(leastSignificant).CopyTo(bytes, fixedInfoOffset + 20);
+        File.WriteAllBytes(path, bytes);
+    }
 
     private static string GetGitAttribute(string relativePath, string attribute)
     {
