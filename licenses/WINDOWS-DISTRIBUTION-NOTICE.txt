@@ -1,28 +1,34 @@
 SOFTBALL SCOREKEEPER - WINDOWS DISTRIBUTION LICENSE INFORMATION
 
+IMPORTANT - REVIEW BEFORE DOWNLOADING OR USING THE WINDOWS VERSION
+
 Softball Scorekeeper is provided free of charge for noncommercial use under
 the PolyForm Noncommercial License 1.0.0. The complete application license is
 included as LICENSE.txt.
 
-By downloading, installing, or using Softball Scorekeeper, you acknowledge
-that the application is provided subject to its applicable license terms,
-including the separate licenses governing third-party components.
+Before downloading or using the Windows version, review LICENSE.txt, this
+notice, THIRD-PARTY-NOTICES.txt, and the applicable component documents. If
+you do not agree to the applicable terms, do not download or use the Windows
+distribution.
 
 Microsoft components and other third-party components remain subject to
-their own license agreements and are not relicensed under PolyForm Noncommercial.
-The applicable third-party notices are included as THIRD-PARTY-NOTICES.txt,
-with complete component license documents under licenses/common/ and
-licenses/windows/.
+their own license agreements and are not relicensed under PolyForm
+Noncommercial. The application license does not replace, amend, or grant
+rights under Microsoft's component agreements.
 
-By downloading or using this Windows distribution, you agree to comply with
-applicable third-party licensing conditions, including redistribution
-restrictions, required notices, and other conditions in the accompanying
-license documents.
+The current Windows distribution includes separately licensed Microsoft
+components including the Windows App SDK, Microsoft.Graphics.Win2D, the
+Microsoft Windows SDK .NET projections, Microsoft WebView2, the self-contained
+.NET Windows runtime, and Microsoft.IO.RecyclableMemoryStream. The original
+Microsoft agreements and supporting notices are provided under
+licenses/windows/. Common Microsoft and .NET license and notice files are under
+licenses/common/. THIRD-PARTY-NOTICES.txt identifies the applicable versions
+and maps each component to its documents.
 
 Commercial use of Softball Scorekeeper requires separate authorization from
 the copyright holder.
 
 This notice summarizes where the applicable terms are provided. It does not
 replace or modify any license agreement, guarantee legally binding acceptance,
-or establish that every Microsoft downstream-license obligation has been
-satisfied.
+establish that every Microsoft downstream-license obligation has been
+satisfied, or state that Microsoft has reviewed or approved this distribution.

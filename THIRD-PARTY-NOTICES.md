@@ -85,10 +85,10 @@ audit. A future release must inventory the actual final APK and Windows ZIP,
 copy all applicable package-provided license and notice texts into the
 distribution, and verify that build-only packages are excluded.
 
-## Version 2.0.0 notice collection
+## Version 2.0.1 production notice collection
 
 The version-specific production inventory and preserved upstream files collected
-for the upcoming v2.0.0 release are under
+for the v2.0.1 release are under
 [`licenses/distribution`](licenses/distribution). The structured
 [`production-license-manifest.json`](licenses/distribution/production-license-manifest.json)
 records exact package versions, platform scope, sources, notice files, intended
@@ -96,7 +96,7 @@ package destinations, exclusions, and verification status. `SHA256SUMS.txt`
 records the preserved files' repository hashes.
 
 This collection is wired into the Android APK and Windows portable-ZIP
-packaging. Every runtime component identified by the v2.0.0 production
+packaging. Every runtime component identified by the v2.0.1 production
 inventory has a mapped license or notice source. Release validation must still
 compare the final artifacts to this inventory and investigate any added or
 changed components.
@@ -106,6 +106,11 @@ changed components.
 The Microsoft terms below apply to their identified components independently of
 Softball Scorekeeper's PolyForm Noncommercial license. The application license
 does not replace, amend, or grant rights under these Microsoft agreements.
+Windows recipients should review the applicable terms before downloading or
+using the Windows version. In the portable ZIP, `LICENSE-INFO.txt` explains the
+license layout, while the original Microsoft documents listed below are under
+`licenses/windows/`; common Microsoft and .NET notices are under
+`licenses/common/`.
 
 - `Microsoft.Graphics.Win2D` 1.4.0 requires license acceptance in its exact
   NuGet metadata and links the Microsoft Win2D EULA. The original Microsoft URL
@@ -131,13 +136,23 @@ does not replace, amend, or grant rights under these Microsoft agreements.
   [`LICENSE.txt`](licenses/distribution/windows/Microsoft.Web.WebView2-1.0.3179.45-LICENSE.txt)
   and [`NOTICE.txt`](licenses/distribution/windows/Microsoft.Web.WebView2-1.0.3179.45-NOTICE.txt).
   The NOTICE preserves its BSD and LGPL-related upstream material.
+- The self-contained `.NET Windows x64 runtime` 10.0.14 is covered by the
+  [common .NET MIT license](licenses/distribution/common/DotNet-MIT-LICENSE.txt)
+  and the exact runtime
+  [third-party notices](licenses/distribution/windows/Microsoft.NETCore.App.Runtime.win-x64-10.0.13-THIRD-PARTY-NOTICES.txt).
+  The retained 10.0.13-named notice is byte-identical to the file verified from
+  the exact 10.0.14 runtime package.
+- `Microsoft.IO.RecyclableMemoryStream` 3.0.1 retains its exact
+  [MIT license](licenses/distribution/windows/Microsoft.IO.RecyclableMemoryStream-3.0.1-LICENSE.txt).
 
 The Win2D, Windows App SDK, and Windows SDK terms require downstream users to
 agree to sufficiently protective terms. Whether making the exact agreements
 available in a portable ZIP, with use-based acceptance language, satisfies that
 requirement remains unresolved. This inventory records the terms but does not
 claim that question has been answered; obtain Microsoft clarification or
-qualified legal review before publishing v2.0.0.
+qualified legal review before treating the Windows distribution question as
+resolved. The presence of these documents does not state or imply that Microsoft
+has reviewed or approved Softball Scorekeeper's distribution.
 
 ## Test-only dependencies
 

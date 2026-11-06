@@ -136,11 +136,21 @@ public sealed class WindowsLicensePackagingTests : IDisposable
         var notice = noticeReader.ReadToEnd();
         Assert.Contains("PolyForm Noncommercial", notice, StringComparison.OrdinalIgnoreCase);
         Assert.Contains(
-            "third-party licensing conditions",
+            "REVIEW BEFORE DOWNLOADING OR USING",
             notice,
             StringComparison.OrdinalIgnoreCase
         );
-        Assert.Contains("Microsoft", notice, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains(
+            "application license does not replace",
+            notice,
+            StringComparison.OrdinalIgnoreCase
+        );
+        Assert.Contains("licenses/windows/", notice, StringComparison.Ordinal);
+        Assert.Contains(
+            "Microsoft has reviewed or approved",
+            notice,
+            StringComparison.OrdinalIgnoreCase
+        );
         Assert.Contains("noncommercial use", notice, StringComparison.OrdinalIgnoreCase);
     }
 
@@ -148,7 +158,7 @@ public sealed class WindowsLicensePackagingTests : IDisposable
     [InlineData("LICENSE", "2F9EEF0091CCB898B1FFD285B0EF09B7A02AF5650D137A252E59A5D7AB958296")]
     [InlineData(
         "THIRD-PARTY-NOTICES.md",
-        "DB870BC34AC54A9729527D5FA3033827588DF218D2632CA8E4DC5A850A98F369"
+        "7F127B15DF0C6E2F642F6388405EF29E0F65F958CD577A8172F4C7A6E1EC0A05"
     )]
     public void SourceMappedLicense_HasByteStableGitAttributeAndContent(
         string relativePath,

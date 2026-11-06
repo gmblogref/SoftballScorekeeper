@@ -65,6 +65,10 @@ function New-Fixture {
     $notes = (Get-Content -LiteralPath $template -Raw).
         Replace('{{RELEASE_VERSION}}', $releaseVersion).
         Replace('{{RELEASE_HIGHLIGHTS}}', '- Human-authored validation fixture.').
+        Replace(
+            '{{WINDOWS_LICENSE_DOCUMENT_LINKS}}',
+            '- [Microsoft Windows agreement](https://github.com/gmblogref/SoftballScorekeeper/blob/v2.0.1/licenses/distribution/windows/Microsoft.WindowsAppSDK-1.8.260529003-LICENSE.txt)'
+        ).
         Replace('{{KNOWN_LIMITATIONS}}', '- Hosted acceptance remains pending in this fixture.')
     $notesPath = Join-Path $root "v$releaseVersion.md"
     [System.IO.File]::WriteAllText($notesPath, $notes, [System.Text.UTF8Encoding]::new($false))
@@ -184,6 +188,11 @@ ConvertTo-Json -InputObject ([pscustomobject]@{ status_code = $status; body = $r
         foreach ($metadata in @($sourceSha, 'SoftballScorekeeper-2.0.1-01234567.apk', 'SoftballScorekeeper-2.0.1-windows-x64-portable.zip', 'com.companyname.softballscorekeeper', $androidCode, 'D55EFDC1E25B341F4408BC3014ECFF31D94255113EDD6F9B5F3CE98E833E4E05')) {
             if ($draftCall[0].body.body.IndexOf($metadata, [StringComparison]::OrdinalIgnoreCase) -lt 0) {
                 throw "Generated release metadata '$metadata' was missing from the draft body."
+            }
+        }
+        foreach ($licensingText in @('## Windows licensing information', 'Before downloading or using the Windows version', '/blob/v2.0.1/licenses/WINDOWS-DISTRIBUTION-NOTICE.txt', '/blob/v2.0.1/licenses/distribution/windows/Microsoft.WindowsAppSDK-1.8.260529003-LICENSE.txt', 'does not state that Microsoft has reviewed')) {
+            if ($draftCall[0].body.body.IndexOf($licensingText, [StringComparison]::OrdinalIgnoreCase) -lt 0) {
+                throw "Windows licensing release text '$licensingText' was missing from the draft body."
             }
         }
     }
