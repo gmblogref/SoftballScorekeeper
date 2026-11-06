@@ -12,7 +12,7 @@
   "windows_distribution_notice": {
     "source": "licenses/WINDOWS-DISTRIBUTION-NOTICE.txt",
     "packaged_destination": "LICENSE-INFO.txt",
-    "sha256": "E3B1595DF13763A9387F1CD08194127F32670824D777072F7A5C2C534B4191CE"
+    "sha256": "D5D4E7D21E745EC806AA3DCFC9E1917543023B7BD29F49EBFB84E0201CF9EC7E"
   },
   "components": [
     {

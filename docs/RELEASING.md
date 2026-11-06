@@ -40,9 +40,17 @@ Release preparation is a normal reviewed source change which must be merged to
    do not exactly match the reviewed sources.
 3. Copy `release-notes/RELEASE_NOTES_TEMPLATE.md` to
    `release-notes/v<version>.md`. Replace every placeholder with concise,
-   human-authored highlights and known limitations. The publisher appends the
-   verified source SHA, artifact names and hashes, Android identity/version
-   code, and certificate identity; do not guess those generated values.
+   human-authored highlights, known limitations, and direct links to every
+   applicable original Microsoft Windows agreement in the reconciled production
+   inventory. Keep the prominent **Windows licensing information** section
+   before **Windows usage**. Its links must be pinned to the release's exact
+   `v<version>` tag, and its component names and versions must agree with the
+   production manifest. Preserve the statements that the application license
+   does not replace Microsoft's terms, that recipients should review the terms
+   before downloading or using Windows, and that no Microsoft approval or legal
+   clearance is claimed. The publisher appends the verified source SHA,
+   artifact names and hashes, Android identity/version code, and certificate
+   identity; do not guess those generated values.
 4. Review and merge the complete release-preparation change to `main`. Do not
    dispatch from the preparation branch.
 
@@ -119,6 +127,13 @@ Treat packaged Windows runtime launch as advisory manual validation; the hosted
 workflow validates build, ZIP structure, versions, and licensing but does not
 claim an interactive desktop smoke test.
 
+Open the Windows ZIP and confirm that root `LICENSE-INFO.txt` directs recipients
+to `LICENSE.txt`, `THIRD-PARTY-NOTICES.txt`, `licenses/common/`, and
+`licenses/windows/`. Confirm that every agreement linked from the tracked
+release notes is present byte-for-byte at its manifest-mapped ZIP path. Any
+change to a packaged licensing source after this dry run changes the release
+artifacts and requires a new dry run from the resulting merged `main` SHA.
+
 ## Optional Android UI validation
 
 Choose `smoke` only when the focused release smoke scenario is required, or
@@ -146,6 +161,13 @@ uploads only the APK, Windows ZIP, and checksum file, and verifies each remote
 asset's name, state, size, and SHA-256 digest. Only then does it publish the
 draft as a non-prerelease Release.
 
+The publisher preserves the tracked release notes verbatim before appending the
+verified metadata. Before approving publication, inspect the draft and confirm
+that the complete Windows licensing section, tag-pinned agreement links, review-
+before-use direction, and unresolved-status caveat are present. Do not approve a
+draft whose licensing section is missing, stale, or inconsistent with the
+manifest and Windows ZIP.
+
 Publication is deliberately not atomic. If it fails after creating state, the
 workflow never deletes or moves the tag, draft, or assets. Record the run URL and
 reported `tag_reference_created`, `draft_release_created`, `release_id`,
@@ -164,13 +186,17 @@ After publication, independently confirm:
    source SHA on `main`.
 2. The Release is published, not a draft or prerelease, and contains exactly the
    three expected assets.
-3. Downloaded APK and ZIP hashes match `SHA256SUMS.txt` and the metadata in the
+3. The Release body preserves the Windows licensing section before Windows
+   usage; every agreement link resolves through the exact release tag to the
+   reviewed original file, and the text makes no claim of Microsoft approval or
+   legal clearance.
+4. Downloaded APK and ZIP hashes match `SHA256SUMS.txt` and the metadata in the
    Release body.
-4. The APK reports package `com.companyname.softballscorekeeper`, the requested
+5. The APK reports package `com.companyname.softballscorekeeper`, the requested
    version name/code, one signer, and the permanent certificate SHA-256 above.
-5. The Windows ZIP has the requested version, expected portable inventory, and
-   all reconciled licensing files.
-6. The workflow's required test, compile, package, optional UI, artifact, and
+6. The Windows ZIP has the requested version, expected portable inventory, and
+   all reconciled licensing files at the paths described by `LICENSE-INFO.txt`.
+7. The workflow's required test, compile, package, optional UI, artifact, and
    publication jobs all succeeded for the same source SHA.
 
 Do not call the release accepted until these checks and any planned physical
